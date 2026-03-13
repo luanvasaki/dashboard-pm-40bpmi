@@ -1,0 +1,12 @@
+# Dependências
+node_modules/
+
+# Dados locais (não versionar)
+raw_data.json
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Arquivos temporários
+*.log

@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.99.1",
+    "papaparse": "^5.5.3"
+  }
+}

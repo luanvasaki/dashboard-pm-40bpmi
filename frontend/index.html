@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<link rel="icon" type="image/png" href="images/favicon.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>40 BPM/I — Inteligência Criminal 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<aside>
+  <div class="logo">
+    <div class="logo-row">
+      <img src="images/logo-batalhao.jpg" alt="PMESP">
+      <div>
+        <div class="logo-badge">PMESP</div>
+        <div class="logo-title">40º <span>BPM/I</span></div>
+      </div>
+    </div>
+    <div class="logo-sub">Painel de Inteligência Criminal</div>
+  </div>
+  <div class="sidebar-mes">
+    <div class="sidebar-label">Período</div>
+    <div id="sb-mes"></div>
+  </div>
+  <nav>
+    <div class="nav-sec">Painéis</div>
+    <button class="nav-btn on" onclick="goPage('visao',this)"><span class="nav-ic">◈</span>Visão Geral</button>
+    <button class="nav-btn" onclick="goPage('metas',this)"><span class="nav-ic">◎</span>Metas × Realizado</button>
+    <button class="nav-btn" onclick="goPage('cia',this)"><span class="nav-ic">▤</span>Desempenho por CIA</button>
+    <button class="nav-btn" onclick="goPage('heatmap',this)"><span class="nav-ic">▦</span>Mapa de Calor</button>
+    <button class="nav-btn" onclick="goPage('insights',this)"><span class="nav-ic">◉</span>Insights Comando</button>
+    <button class="nav-btn" onclick="goPage('evolucao',this)"><span class="nav-ic">◌</span>Evolução Mensal</button>
+  </nav>
+  <div class="sidebar-foot">
+    PERÍODO<br><b style="color:var(--gold2)" id="sb-periodo">—</b><br><br>
+    MUNICÍPIOS<br><b style="color:var(--gold2)">9 | 3 CIAs</b><br><br>
+    REGISTROS<br><b style="color:var(--gold2)">126</b><br><br>
+    <div id="sync-status" style="font-size:10px;color:var(--tx3);line-height:1.6">
+      ÚLTIMA SYNC<br><b id="sync-time" style="color:var(--gold2)">—</b>
+    </div>
+    <button onclick="forceSync()" id="sync-btn" style="margin-top:10px;width:100%;padding:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:4px;cursor:pointer;font-size:11px">↻ Sincronizar</button>
+    <button onclick="openUploadModal()" style="margin-top:6px;width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar CSV</button>
+  </div>
+</aside>
+
+<!-- MODAL DE DETALHES -->
+<div class="mo" id="mo" onclick="moClickOut(event)">
+  <div class="mo-box">
+    <div class="mo-head">
+      <div class="mo-tw">
+        <div class="mo-accent" id="mo-accent"></div>
+        <div>
+          <div class="mo-crime" id="mo-crime"></div>
+          <div class="mo-sub" id="mo-sub">ANÁLISE DETALHADA</div>
+        </div>
+      </div>
+      <button class="mo-close" onclick="moClose()">✕</button>
+    </div>
+    <div class="mo-body">
+      <div class="mo-kpis" id="mo-kpis"></div>
+      <div class="mo-g2">
+        <div class="mo-card"><div class="mo-ct">Ocorrências por Município</div><canvas id="mo-bar"></canvas></div>
+        <div class="mo-card"><div class="mo-ct">Evolução por Município</div><canvas id="mo-line"></canvas></div>
+      </div>
+      <div class="mo-g2">
+        <div class="mo-card"><div class="mo-ct">Meta vs Avaliado</div><canvas id="mo-meta"></canvas></div>
+        <div class="mo-card"><div class="mo-ct">Distribuição por CIA</div><canvas id="mo-donut"></canvas></div>
+      </div>
+      <div class="mo-card"><div class="mo-ct">Detalhamento por Município</div><table class="ctbl" id="mo-tbl"></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE UPLOAD CSV -->
+<div class="upl-mo" id="upl-mo" onclick="uplClickOut(event)">
+  <div class="upl-box">
+    <div class="upl-head">
+      <div class="upl-title">IMPORTAR CSV</div>
+      <button class="upl-close" onclick="closeUploadModal()">✕</button>
+    </div>
+    <label class="upl-drop" id="upl-drop">
+      <input type="file" id="upl-file" accept=".csv" onchange="handleFileSelect(this)">
+      <div class="upl-drop-icon">📂</div>
+      <div class="upl-drop-lbl">Clique para selecionar ou arraste o arquivo CSV</div>
+      <div class="upl-drop-sub">Colunas esperadas: Ano · Mes · Cia · Municipio · Crime · Anterior · Meta · Avaliado</div>
+    </label>
+    <div class="upl-preview" id="upl-preview">
+      <div class="upl-prev-row">
+        <div class="upl-prev-kv"><span class="upl-prev-k">ARQUIVO</span><span class="upl-prev-v" id="upl-fn">—</span></div>
+        <div class="upl-prev-kv"><span class="upl-prev-k">REGISTROS</span><span class="upl-prev-v" id="upl-rows">—</span></div>
+        <div class="upl-prev-kv"><span class="upl-prev-k">PERÍODO</span><span class="upl-prev-v" id="upl-period">—</span></div>
+      </div>
+    </div>
+    <div class="upl-msg" id="upl-msg"></div>
+    <div class="upl-actions">
+      <button class="upl-btn cancel" onclick="closeUploadModal()">Cancelar</button>
+      <button class="upl-btn confirm" id="upl-confirm" onclick="confirmUpload()">Importar</button>
+    </div>
+  </div>
+</div>
+
+<main>
+<!-- VISÃO GERAL -->
+<div id="page-visao" class="page on">
+  <div class="ph">
+    <div><div class="ph-tag">VISÃO GERAL</div><div class="ph-title">CONSOLIDADO <span>BATALHÃO</span></div></div>
+    <div class="ph-meta">Período: <b id="lbl-p1">—</b><br>Fonte: <b id="lbl-fonte">Banco de Dados RAC - Google Sheets</b></div>
+  </div>
+  <div class="badge-live">DADOS 40º BPM/I — JAN + FEV 2026</div>
+  <div class="kpi-row" id="kpi-row"></div>
+  <div id="pf-visao" class="pf"></div>
+  <div class="g1">
+    <div class="card"><div class="card-head"><div class="card-title">Avaliado por Crime</div></div><canvas id="c-crimes"></canvas></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-head"><div class="card-title">Meta vs Avaliado</div></div><canvas id="c-meta"></canvas></div>
+    <div class="card"><div class="card-head"><div class="card-title">Desvio vs Meta (🟢 ok · 🟠 melhora · 🔴 crítico)</div></div><canvas id="c-var"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">Evolução por Município</div>
+      <select id="evol-mun-crime" class="pf-select" style="font-size:10px;min-width:160px" onchange="renderEvolMuns()"></select>
+    </div>
+    <canvas id="c-evol-muns" style="max-height:280px"></canvas>
+  </div>
+</div>
+
+<!-- METAS -->
+<div id="page-metas" class="page">
+  <div class="ph">
+    <div><div class="ph-tag">CONTROLE</div><div class="ph-title">METAS × <span>REALIZADO</span></div></div>
+    <div class="ph-meta">Período: <b id="lbl-p2">—</b></div>
+  </div>
+  <div id="pf-metas" class="pf"></div>
+  <div class="card"><div class="card-head"><div class="card-title">Todos os Crimes × Municípios</div><div class="card-badge" id="metas-badge">—</div></div><div style="overflow-x:auto"><table class="tbl" id="tbl-metas"></table></div></div>
+</div>
+
+<!-- CIA -->
+<div id="page-cia" class="page">
+  <div class="ph">
+    <div><div class="ph-tag">COMPARATIVO</div><div class="ph-title">DESEMPENHO <span>POR CIA</span></div></div>
+    <div class="ph-meta">Período: <b id="lbl-p3">—</b></div>
+  </div>
+  <div id="pf-cia" class="pf"></div>
+  <div class="g1">
+    <div class="card"><div class="card-head"><div class="card-title" id="cia-main-title">META VS AVALIADO — BATALHÃO</div></div><canvas id="c-cia-main" style="max-height:380px"></canvas></div>
+  </div>
+</div>
+
+<!-- HEATMAP -->
+<div id="page-heatmap" class="page">
+  <div class="ph">
+    <div><div class="ph-tag">DISTRIBUIÇÃO</div><div class="ph-title">MAPA DE <span>CALOR</span></div></div>
+    <div class="ph-meta">Período: <b id="lbl-p4">—</b></div>
+  </div>
+  <div class="hm-filter">
+    <span>FILTRAR:</span>
+    <div id="hm-filter-btns" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div class="card-title">Intensidade por Município e Crime</div><div class="card-badge" id="hm-badge">—</div></div>
+    <div class="hm-wrap"><table class="hm-tbl" id="hm-tbl"></table></div>
+    <div class="hm-legend">
+      <span>ESCALA:</span>
+      <span class="sw" style="background:rgba(74,158,232,.15)"></span><span>Zero</span>
+      <span class="sw" style="background:rgba(200,168,75,.25)"></span><span>Baixo</span>
+      <span class="sw" style="background:rgba(200,168,75,.6)"></span><span>Médio</span>
+      <span class="sw" style="background:#c8a84b"></span><span>Alto</span>
+      <span class="sw" style="background:#c84b4b"></span><span>Crítico</span>
+    </div>
+  </div>
+</div>
+
+<!-- INSIGHTS -->
+<div id="page-insights" class="page">
+  <div class="ph">
+    <div><div class="ph-tag">ANÁLISE EXECUTIVA</div><div class="ph-title">INSIGHTS <span>COMANDO</span></div></div>
+    <div class="ph-meta">Período: <b id="lbl-p5">—</b></div>
+  </div>
+  <div id="pf-insights" class="pf"></div>
+  <div class="ig" id="ins-grid"></div>
+  <div class="g1">
+    <div class="card"><div class="card-head"><div class="card-title" id="ins-chart-title">Cumprimento de Metas por CIA</div></div><canvas id="c-cia-ins"></canvas></div>
+  </div>
+</div>
+
+<!-- EVOLUÇÃO -->
+<div id="page-evolucao" class="page">
+  <div class="ph">
+    <div><div class="ph-tag">HISTÓRICO</div><div class="ph-title">EVOLUÇÃO <span>MENSAL</span></div></div>
+    <div class="ph-meta">Todos os meses disponíveis</div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-head">
+      <div class="card-title">Evolução por Crime</div>
+      <select id="evol-crime-sel" class="pf-select" style="font-size:10px;min-width:180px" onchange="renderEvolucao()"></select>
+    </div>
+    <canvas id="c-evol-main" style="max-height:260px"></canvas>
+  </div>
+  <div class="card"><div class="card-head"><div class="card-title" id="evol-tbl-title">Tabela — Municípios × Meses</div></div><div style="overflow-x:auto"><table class="tbl" id="tbl-evol"></table></div></div>
+</div>
+</main>
+<script src="js/app.js"></script>
+</body>
+</html>
