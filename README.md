@@ -1,65 +1,92 @@
-# Dashboard de Inteligência Operacional — 40º BPM/I
+# 🚔 Dashboard de Inteligência Operacional — 40º BPM/I
 
-Sistema de suporte à decisão desenvolvido para o **40º Batalhão de Polícia Militar do Interior (Votorantim/SP)**, com o objetivo de transformar dados brutos de registros policiais em análises e visualizações que auxiliem no planejamento estratégico e no policiamento orientado pela inteligência.
+> Sistema de suporte à decisão para análise criminal e acompanhamento de metas operacionais do **40º Batalhão de Polícia Militar do Interior — Votorantim/SP**.
 
-<img width="1749" height="914" alt="image" src="https://github.com/user-attachments/assets/b04e59f9-9162-4d23-8936-c63271ac5c46" />
+<img width="1749" height="914" alt="Dashboard" src="https://github.com/user-attachments/assets/b04e59f9-9162-4d23-8936-c63271ac5c46" />
+
+---
+
+## O que o sistema faz
+
+O dashboard transforma dados brutos de registros policiais em informações visuais e análises automáticas, permitindo que gestores acompanhem em tempo real:
+
+- Se os crimes estão **acima ou abaixo da meta**
+- Quais municípios têm **tendência de crescimento criminal**
+- Quais áreas precisam de **prioridade operacional**
+- Evolução mês a mês por crime e por companhia
 
 ---
 
 ## Tecnologias
 
-| Camada | Tecnologia |
+| O quê | Como |
 |---|---|
-| Frontend | HTML5 + CSS3 + JavaScript (vanilla) |
+| Frontend | HTML + CSS + JavaScript |
 | Backend | Node.js + Express |
-| Banco de dados | Supabase (PostgreSQL) |
-| Autenticação | JWT + bcryptjs |
+| Banco de dados | Supabase (PostgreSQL na nuvem) |
+| Autenticação | JWT + senha criptografada |
 | Deploy | Vercel |
 
 ---
 
 ## Funcionalidades
 
-### Dashboard
-- Visão geral do batalhão com KPIs consolidados
-- Metas × Realizado por município e CIA
-- Mapa de calor de crimes por município
-- Evolução mensal por crime
-- Desempenho por Companhia
-- Diagnósticos automáticos com insights gerados pelo sistema
+### Painéis do Dashboard
+- **Visão Geral** — KPIs consolidados do batalhão
+- **Metas × Realizado** — comparativo por município, CIA e crime
+- **Mapa de Calor** — intensidade criminal por município
+- **Evolução Mensal** — gráfico de tendência por crime
+- **Desempenho por CIA** — comparativo entre companhias
+- **Diagnósticos Automáticos** — insights gerados pelo sistema
 
-### Módulo de Analytics (`backend/analytics/`)
-Camada de análise de dados avançada com os seguintes indicadores:
+### Módulo de Analytics (backend)
+Camada de análise que roda no servidor e gera indicadores avançados:
 
-| Módulo | Indicador | Fórmula |
+| Indicador | O que mede |
+|---|---|
+| Índice de Pressão Criminal | O quanto cada município está acima da meta |
+| Tendência de Crescimento | Se o crime está aumentando em relação ao mês anterior |
+| Score de Prioridade Operacional | Ranking de onde agir primeiro |
+| Desvio de Meta | Diferença absoluta e percentual em relação à meta |
+| Insights Automáticos | Frases geradas automaticamente sobre os dados |
+
+### Acesso e Usuários
+- Login com **RE** (matrícula) e senha
+- Cadastro com aprovação obrigatória por gestor
+- Níveis de acesso:
+
+| Nível | Pode aprovar usuários? | Pode alterar permissões? |
 |---|---|---|
-| `crimePressureIndex.js` | Índice de Pressão Criminal | `(avaliado - meta) / meta` |
-| `trendAnalysis.js` | Tendência de Crescimento | `(avaliado - anterior) / anterior` |
-| `priorityScore.js` | Score de Prioridade Operacional | `(volume×0.5) + (pressão×0.3) + (tendência×0.2)` |
-| `cityRanking.js` | Ranking de Municípios | Por pressão e por score de prioridade |
-| `targetDeviation.js` | Desvio de Meta | Absoluto e percentual |
-| `insightGenerator.js` | Insights Automáticos | Linguagem natural gerada a partir dos indicadores |
-
-### Endpoints de Analytics
-```
-GET /api/analytics/pressure          → Índice de pressão por município/crime
-GET /api/analytics/trends            → Tendências de crescimento
-GET /api/analytics/priority-ranking  → Ranking de prioridade operacional
-GET /api/analytics/insights          → Insights em linguagem natural
-GET /api/analytics/deviation         → Desvio de meta consolidado
-```
-
-### Autenticação e Controle de Acesso
-- Login com RE (matrícula) e senha
-- Cadastro com aprovação por gestor
-- Níveis de acesso: Administrador, Comandante Batalhão, Comandante de Cia, P1, P3, Visualizador
-- Gerenciamento de usuários com aprovação, revogação e exclusão
+| Administrador | ✅ | ✅ |
+| Comandante Batalhão | ✅ | ✅ |
+| Comandante de Cia | ✅ | ❌ |
+| P1 / P3 | ✅ | ❌ |
+| Visualizador | ❌ | ❌ |
 
 ### Dados
-- Fonte primária: **Supabase** (sincronização automática a cada 5 minutos)
-- Fonte secundária: **Google Sheets** publicado como CSV
-- Fallback local: `raw_data.json`
-- Upload de dados via CSV com validação e upsert
+- Fonte principal: **Supabase** — sincronização automática a cada 5 minutos
+- Fonte alternativa: **Google Sheets** publicado como CSV
+- Fallback local: arquivo `raw_data.json`
+- Importação via upload de arquivo CSV com validação automática
+
+---
+
+## Como rodar localmente
+
+**Pré-requisito:** Node.js instalado
+
+```bash
+# 1. Entrar na pasta do backend
+cd backend
+
+# 2. Instalar dependências
+npm install
+
+# 3. Iniciar o servidor
+node server.js
+```
+
+Acesse no navegador: **http://localhost:3001**
 
 ---
 
@@ -67,37 +94,23 @@ GET /api/analytics/deviation         → Desvio de meta consolidado
 
 ```
 ├── backend/
-│   ├── analytics/
-│   │   ├── cityRanking.js
+│   ├── analytics/          ← módulos de análise avançada
 │   │   ├── crimePressureIndex.js
-│   │   ├── insightGenerator.js
+│   │   ├── trendAnalysis.js
 │   │   ├── priorityScore.js
+│   │   ├── cityRanking.js
 │   │   ├── targetDeviation.js
-│   │   └── trendAnalysis.js
-│   ├── package.json
-│   └── server.js
+│   │   └── insightGenerator.js
+│   └── server.js           ← API REST
 ├── frontend/
-│   ├── css/style.css
-│   ├── images/
-│   ├── js/app.js
-│   ├── index.html
-│   └── login.html
-├── raw_data.json         ← fallback local de dados
-├── vercel.json
-└── README.md
+│   ├── index.html          ← dashboard principal
+│   ├── login.html          ← tela de acesso
+│   ├── js/app.js           ← lógica e gráficos
+│   └── css/style.css
+├── backup_legado/          ← versões anteriores preservadas
+├── raw_data.json           ← dados de fallback local
+└── vercel.json             ← configuração de deploy
 ```
-
----
-
-## Como rodar localmente
-
-```bash
-cd backend
-npm install
-node server.js
-```
-
-Acesse: `http://localhost:3001`
 
 ---
 
@@ -105,5 +118,5 @@ Acesse: `http://localhost:3001`
 
 **Luan Vasaki Guimarães** — Engenheiro Eletricista & Policial Militar
 
-- Email: luanvasaki9@gmail.com
-- LinkedIn: [linkedin.com/in/luan-vasaki-guimarães](https://linkedin.com/in/luan-vasaki-guimarães)
+📧 luanvasaki9@gmail.com
+🔗 [linkedin.com/in/luan-vasaki-guimarães](https://linkedin.com/in/luan-vasaki-guimarães)
