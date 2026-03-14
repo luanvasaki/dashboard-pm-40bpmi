@@ -757,10 +757,23 @@ function renderMetas() {
 // ---------------------------------------------------------------------------
 
 let _ocultarFurto = false;
+let _logScale = false;
+
 function toggleFurto() {
   _ocultarFurto = !_ocultarFurto;
   const btn = document.getElementById('btn-toggle-furto');
   if (btn) btn.textContent = _ocultarFurto ? 'Mostrar Furto' : 'Ocultar Furto';
+  renderCIA();
+}
+
+function toggleLogScale() {
+  _logScale = !_logScale;
+  const btn = document.getElementById('btn-toggle-log');
+  if (btn) {
+    btn.textContent = _logScale ? 'Escala Normal' : 'Escala Log';
+    btn.style.background = _logScale ? 'rgba(61,122,191,.25)' : 'rgba(61,122,191,.1)';
+    btn.style.borderColor = _logScale ? 'rgba(61,122,191,.6)' : 'rgba(61,122,191,.3)';
+  }
   renderCIA();
 }
 
@@ -790,13 +803,13 @@ function renderCIA() {
         stack: 'cias'
       }))
     ];
+    const yScale = _logScale
+      ? { type: 'logarithmic', grid: GR, stacked: true, ticks: { callback: v => Number.isInteger(Math.log10(v)) || v === 1 ? v : '' } }
+      : { grid: GR, beginAtZero: true, stacked: true };
     chartOptions = {
       responsive: true,
       plugins: { legend: { labels: { boxWidth: 9 } } },
-      scales: {
-        x: { grid: GR, stacked: true },
-        y: { grid: GR, beginAtZero: true, stacked: true }
-      }
+      scales: { x: { grid: GR, stacked: true }, y: yScale }
     };
   } else {
     // CIA ou Município: Meta vs Avaliado
@@ -806,10 +819,13 @@ function renderCIA() {
       { label: 'Meta',     data: meta, backgroundColor: 'rgba(255,255,255,.08)', borderRadius: 4 },
       { label: 'Avaliado', data: aval, backgroundColor: aval.map((v, j) => meta[j] > 0 && v <= meta[j] ? 'rgba(61,191,122,.75)' : 'rgba(200,75,75,.75)'), borderRadius: 4 }
     ];
+    const yScaleSimple = _logScale
+      ? { type: 'logarithmic', grid: GR, ticks: { callback: v => Number.isInteger(Math.log10(v)) || v === 1 ? v : '' } }
+      : { grid: GR, beginAtZero: true };
     chartOptions = {
       responsive: true,
       plugins: { legend: { labels: { boxWidth: 9 } } },
-      scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } }
+      scales: { x: { grid: GR }, y: yScaleSimple }
     };
   }
 
