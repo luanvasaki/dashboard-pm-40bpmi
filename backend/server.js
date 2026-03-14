@@ -326,7 +326,7 @@ app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'comandante'
   const updates = {};
   if (status) updates.status = status;
   // Apenas comandante de batalhão pode alterar o nível de acesso (role)
-  if (role && ['admin', 'comandante'].includes(req.user.role)) updates.role = role;
+  if (role && ['admin', 'comandante', 'p1', 'p3'].includes(req.user.role)) updates.role = role;
 
   if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nenhuma alteração informada' });
 

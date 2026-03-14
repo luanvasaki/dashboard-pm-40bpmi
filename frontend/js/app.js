@@ -116,7 +116,7 @@ function buildUserTable(users, me) {
 
   users.forEach(u => {
     const sStyle = STATUS_STYLE[u.status] || '';
-    const canEditRole = ['admin', 'comandante'].includes(me.role);
+    const canEditRole = ['admin', 'comandante', 'p1', 'p3'].includes(me.role);
     const roleOpts = canEditRole
       ? ['viewer','p1','p3','comandante_cia','comandante'].map(r =>
           `<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABEL[r]||r}</option>`).join('')
@@ -756,46 +756,67 @@ function renderMetas() {
 // Desempenho por CIA
 // ---------------------------------------------------------------------------
 
+let _ocultarFurto = false;
+function toggleFurto() {
+  _ocultarFurto = !_ocultarFurto;
+  const btn = document.getElementById('btn-toggle-furto');
+  if (btn) btn.textContent = _ocultarFurto ? 'Mostrar Furto' : 'Ocultar Furto';
+  renderCIA();
+}
+
 function renderCIA() {
   const pf        = pageFilters.cia;
   const sc        = scope('cia');
   const isBtl     = pf.type === 'btl';
   const ciaColors = ['#c8a84b', '#3d7abf', '#c84b4b'];
+  const crimesVis = _ocultarFurto ? CRIMES.filter(c => c !== 'Furto') : CRIMES;
 
   const titleEl = document.getElementById('cia-main-title');
   if (titleEl) titleEl.textContent = isBtl ? 'META VS AVALIADO — BATALHÃO' : `META VS AVALIADO — ${pf.value?.toUpperCase()}`;
+  const btnFurto = document.getElementById('btn-toggle-furto');
+  if (btnFurto) btnFurto.style.display = 'inline-block';
 
-  let datasets;
+  let datasets, chartOptions;
   if (isBtl) {
-    // Batalhão: Meta global + barra por CIA
-    const meta = CRIMES.map(c => sf(q({ crime: c, mes: selMeses }), 'meta'));
+    // Batalhão: CIAs empilhadas + barra de meta
+    const meta = crimesVis.map(c => sf(q({ crime: c, mes: selMeses }), 'meta'));
     datasets = [
-      { label: 'Meta', data: meta, backgroundColor: 'rgba(255,255,255,.08)', borderRadius: 4 },
+      { label: 'Meta', data: meta, backgroundColor: 'rgba(255,255,255,.08)', borderRadius: 4, stack: 'meta' },
       ...CIAS.map((cia, i) => ({
         label: cia,
-        data: CRIMES.map(c => sf(q({ crime: c, cia, mes: selMeses }))),
+        data: crimesVis.map(c => sf(q({ crime: c, cia, mes: selMeses }))),
         backgroundColor: ciaColors[i] + 'cc',
-        borderRadius: 4
+        borderRadius: 0,
+        stack: 'cias'
       }))
     ];
+    chartOptions = {
+      responsive: true,
+      plugins: { legend: { labels: { boxWidth: 9 } } },
+      scales: {
+        x: { grid: GR, stacked: true },
+        y: { grid: GR, beginAtZero: true, stacked: true }
+      }
+    };
   } else {
     // CIA ou Município: Meta vs Avaliado
-    const aval = CRIMES.map(c => sf(q({ crime: c, mes: selMeses, ...sc })));
-    const meta = CRIMES.map(c => sf(q({ crime: c, mes: selMeses, ...sc }), 'meta'));
+    const aval = crimesVis.map(c => sf(q({ crime: c, mes: selMeses, ...sc })));
+    const meta = crimesVis.map(c => sf(q({ crime: c, mes: selMeses, ...sc }), 'meta'));
     datasets = [
       { label: 'Meta',     data: meta, backgroundColor: 'rgba(255,255,255,.08)', borderRadius: 4 },
       { label: 'Avaliado', data: aval, backgroundColor: aval.map((v, j) => meta[j] > 0 && v <= meta[j] ? 'rgba(61,191,122,.75)' : 'rgba(200,75,75,.75)'), borderRadius: 4 }
     ];
+    chartOptions = {
+      responsive: true,
+      plugins: { legend: { labels: { boxWidth: 9 } } },
+      scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } }
+    };
   }
 
   mk('c-cia-main', {
     type: 'bar',
-    data: { labels: CRIMES.map(cl), datasets },
-    options: {
-      responsive: true,
-      plugins: { legend: { labels: { boxWidth: 9 } } },
-      scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } }
-    }
+    data: { labels: crimesVis.map(cl), datasets },
+    options: chartOptions
   });
 }
 

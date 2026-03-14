@@ -70,13 +70,13 @@ O servidor calcula automaticamente indicadores avançados:
 ### Controle de Acesso
 O sistema tem cadastro com aprovação obrigatória por um gestor.
 
-| Nível | Aprovar usuários | Alterar permissões |
-|---|---|---|
-| Administrador | ✅ | ✅ |
-| Comandante Batalhão | ✅ | ✅ |
-| Comandante de Cia | ✅ | ❌ |
-| P1 / P3 | ✅ | ❌ |
-| Visualizador | ❌ | ❌ |
+| Nível | Aprovar / Rejeitar | Alterar nível de acesso | Excluir usuário |
+|---|---|---|---|
+| Administrador | ✅ | ✅ | ✅ |
+| Comandante Batalhão | ✅ | ✅ | ✅ |
+| P1 / P3 | ✅ | ✅ | ✅ |
+| Comandante de Cia | ✅ | ❌ | ✅ |
+| Visualizador | ❌ | ❌ | ❌ |
 
 ---
 
