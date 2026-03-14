@@ -6,56 +6,71 @@
 
 ---
 
-## O que o sistema faz
+## O que é este projeto
 
-O dashboard transforma dados brutos de registros policiais em informações visuais e análises automáticas, permitindo que gestores acompanhem em tempo real:
+O sistema transforma dados brutos de registros policiais em um painel visual e interativo. Com ele, gestores do batalhão conseguem:
 
-- Se os crimes estão **acima ou abaixo da meta**
-- Quais municípios têm **tendência de crescimento criminal**
-- Quais áreas precisam de **prioridade operacional**
-- Evolução mês a mês por crime e por companhia
+- Ver se os crimes estão **acima ou abaixo da meta** por município
+- Identificar quais áreas têm **tendência de crescimento criminal**
+- Saber quais municípios precisam de **prioridade operacional**
+- Acompanhar a **evolução mês a mês** de cada tipo de crime
+- Ler **insights gerados automaticamente** pelo sistema com base nos dados
 
 ---
 
-## Tecnologias
+## Como foi construído
 
-| O quê | Como |
-|---|---|
-| Frontend | HTML + CSS + JavaScript |
-| Backend | Node.js + Express |
-| Banco de dados | Supabase (PostgreSQL na nuvem) |
-| Autenticação | JWT + senha criptografada |
-| Deploy | Vercel |
+O projeto é dividido em duas partes:
+
+### Frontend (o que o usuário vê)
+Feito com tecnologias web puras, sem frameworks:
+- **HTML** — estrutura das páginas
+- **CSS** — estilo visual do painel
+- **JavaScript** — lógica de gráficos e interações
+- **Chart.js** — biblioteca para renderização dos gráficos
+
+### Backend (o servidor)
+Feito em **Node.js com Express**, responsável por:
+- Servir os dados via API REST
+- Autenticar os usuários com **JWT**
+- Criptografar senhas com **bcryptjs**
+- Sincronizar dados com o banco via **Supabase**
+
+### Banco de dados
+**Supabase** (PostgreSQL na nuvem) — armazena os registros criminais e os usuários do sistema.
+
+### Deploy
+**Vercel** — hospedagem e publicação automática via GitHub.
 
 ---
 
 ## Funcionalidades
 
-### Painéis do Dashboard
-- **Visão Geral** — KPIs consolidados do batalhão
-- **Metas × Realizado** — comparativo por município, CIA e crime
-- **Mapa de Calor** — intensidade criminal por município
-- **Evolução Mensal** — gráfico de tendência por crime
-- **Desempenho por CIA** — comparativo entre companhias
-- **Diagnósticos Automáticos** — insights gerados pelo sistema
+### Painéis
+| Painel | O que mostra |
+|---|---|
+| Visão Geral | KPIs consolidados do batalhão |
+| Metas × Realizado | Comparativo por município, CIA e crime |
+| Mapa de Calor | Intensidade criminal por município |
+| Evolução Mensal | Gráfico de tendência por crime |
+| Desempenho por CIA | Comparativo entre companhias |
+| Diagnósticos | Insights automáticos gerados pelo sistema |
 
-### Módulo de Analytics (backend)
-Camada de análise que roda no servidor e gera indicadores avançados:
+### Módulo de Analytics
+O servidor calcula automaticamente indicadores avançados:
 
 | Indicador | O que mede |
 |---|---|
 | Índice de Pressão Criminal | O quanto cada município está acima da meta |
-| Tendência de Crescimento | Se o crime está aumentando em relação ao mês anterior |
+| Tendência de Crescimento | Se o crime aumentou em relação ao mês anterior |
 | Score de Prioridade Operacional | Ranking de onde agir primeiro |
-| Desvio de Meta | Diferença absoluta e percentual em relação à meta |
-| Insights Automáticos | Frases geradas automaticamente sobre os dados |
+| Desvio de Meta | Diferença percentual em relação à meta |
+| Insights Automáticos | Frases geradas a partir dos indicadores |
 
-### Acesso e Usuários
-- Login com **RE** (matrícula) e senha
-- Cadastro com aprovação obrigatória por gestor
-- Níveis de acesso:
+### Controle de Acesso
+O sistema tem cadastro com aprovação obrigatória por um gestor.
 
-| Nível | Pode aprovar usuários? | Pode alterar permissões? |
+| Nível | Aprovar usuários | Alterar permissões |
 |---|---|---|
 | Administrador | ✅ | ✅ |
 | Comandante Batalhão | ✅ | ✅ |
@@ -63,29 +78,47 @@ Camada de análise que roda no servidor e gera indicadores avançados:
 | P1 / P3 | ✅ | ❌ |
 | Visualizador | ❌ | ❌ |
 
-### Dados
-- Fonte principal: **Supabase** — sincronização automática a cada 5 minutos
-- Fallback local: arquivo `raw_data.json`
-- Importação via upload de arquivo CSV com validação automática
-
 ---
 
 ## Como rodar localmente
 
-**Pré-requisito:** Node.js instalado
+### Pré-requisitos
+- [Node.js](https://nodejs.org/) instalado na máquina (versão 18 ou superior)
+- Conta no [Supabase](https://supabase.com) com as tabelas configuradas
 
+### Passo a passo
+
+**1. Clone o repositório**
 ```bash
-# 1. Entrar na pasta do backend
+git clone https://github.com/luanvasaki/dashboard-pm-40bpmi.git
+cd dashboard-pm-40bpmi
+```
+
+**2. Instale as dependências do backend**
+```bash
 cd backend
-
-# 2. Instalar dependências
 npm install
+```
 
-# 3. Iniciar o servidor
+**3. Configure as credenciais do Supabase**
+
+Abra o arquivo `backend/server.js` e preencha:
+```js
+const SUPABASE_URL = 'sua_url_aqui';
+const SUPABASE_KEY = 'sua_chave_aqui';
+```
+
+**4. Inicie o servidor**
+```bash
 node server.js
 ```
 
-Acesse no navegador: **http://localhost:3001**
+**5. Acesse no navegador**
+```
+http://localhost:3001
+```
+
+> Se o Supabase não estiver configurado, o sistema carrega automaticamente os dados do arquivo `raw_data.json` como fallback.
 
 ---
 
@@ -93,22 +126,23 @@ Acesse no navegador: **http://localhost:3001**
 
 ```
 ├── backend/
-│   ├── analytics/          ← módulos de análise avançada
+│   ├── analytics/              ← módulos de análise de dados
 │   │   ├── crimePressureIndex.js
 │   │   ├── trendAnalysis.js
 │   │   ├── priorityScore.js
 │   │   ├── cityRanking.js
 │   │   ├── targetDeviation.js
 │   │   └── insightGenerator.js
-│   └── server.js           ← API REST
+│   └── server.js               ← API REST principal
 ├── frontend/
-│   ├── index.html          ← dashboard principal
-│   ├── login.html          ← tela de acesso
-│   ├── js/app.js           ← lógica e gráficos
-│   └── css/style.css
-├── backup_legado/          ← versões anteriores preservadas
-├── raw_data.json           ← dados de fallback local
-└── vercel.json             ← configuração de deploy
+│   ├── index.html              ← dashboard principal
+│   ├── login.html              ← tela de acesso
+│   ├── js/app.js               ← lógica, gráficos e chamadas à API
+│   └── css/style.css           ← estilo visual
+├── backup_legado/              ← versões anteriores preservadas
+├── raw_data.json               ← dados de fallback local
+├── vercel.json                 ← configuração de deploy
+└── README.md
 ```
 
 ---
@@ -117,5 +151,4 @@ Acesse no navegador: **http://localhost:3001**
 
 **Luan Vasaki Guimarães** — Engenheiro Eletricista & Policial Militar
 
-📧 luanvasaki9@gmail.com
-🔗 [linkedin.com/in/luan-vasaki-guimarães](https://linkedin.com/in/luan-vasaki-guimarães)
+🔗 [LinkedIn](https://www.linkedin.com/in/luan-vasaki-guimar%C3%A3es-29054548/)
