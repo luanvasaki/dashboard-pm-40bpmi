@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<link rel="icon" type="image/png" href="images/favicon.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>40 BPM/I — Acesso Restrito</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07090f;--s1:#0d1018;--s2:#121620;--s3:#181d28;
+  --bd:#1c2235;--bd2:#252d40;
+  --gold:#c8a84b;--gold2:#e8c96a;
+  --blue:#3d7abf;--red:#c84b4b;--green:#3dbf7a;
+  --red2:#e06060;--green2:#5ae09a;--blue2:#5a9de0;
+  --tx:#d8dce8;--tx2:#8090a8;--tx3:#4a5568;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-size:14px;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.wrap{width:100%;max-width:420px}
+.logo-area{text-align:center;margin-bottom:32px}
+.logo-img{width:80px;height:80px;object-fit:contain;border-radius:50%;border:2px solid var(--gold);box-shadow:0 0 0 4px rgba(200,168,75,.15),0 0 24px rgba(200,168,75,.12);background:#fff;padding:4px;margin-bottom:16px}
+.logo-badge{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:4px;background:var(--gold);color:#000;padding:3px 10px;border-radius:2px;display:inline-block;margin-bottom:8px}
+.logo-title{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;line-height:1;margin-bottom:4px}
+.logo-title span{color:var(--gold)}
+.logo-sub{font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:28px 28px 24px}
+.tabs{display:flex;gap:2px;margin-bottom:24px;background:var(--s2);padding:4px;border-radius:6px}
+.tab{flex:1;padding:8px;text-align:center;border-radius:4px;cursor:pointer;font-size:13px;font-weight:500;color:var(--tx2);border:none;background:none;transition:all .15s;font-family:'DM Sans',sans-serif}
+.tab.on{background:rgba(200,168,75,.15);color:var(--gold);font-weight:600}
+.form{display:none}
+.form.on{display:block}
+.field{margin-bottom:16px}
+.field label{display:block;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:6px}
+.field input,.field select{width:100%;background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:10px 14px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .15s;-webkit-appearance:none}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238090a8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+.field input:focus,.field select:focus{border-color:var(--gold)}
+.field select option{background:var(--s2)}
+.btn{width:100%;padding:12px;border-radius:6px;border:none;cursor:pointer;font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;transition:all .15s;margin-top:4px}
+.btn-primary{background:rgba(200,168,75,.2);color:var(--gold);border:1px solid rgba(200,168,75,.35)}
+.btn-primary:hover:not(:disabled){background:rgba(200,168,75,.3);border-color:var(--gold)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.msg{margin-top:14px;padding:10px 14px;border-radius:6px;font-size:13px;display:none}
+.msg.ok{background:rgba(61,191,122,.1);border:1px solid rgba(61,191,122,.25);color:var(--green2);display:block}
+.msg.err{background:rgba(200,75,75,.1);border:1px solid rgba(200,75,75,.25);color:var(--red2);display:block}
+.msg.info{background:rgba(61,122,191,.1);border:1px solid rgba(61,122,191,.25);color:var(--blue2);display:block}
+.footer{text-align:center;margin-top:20px;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo-area">
+    <img src="images/logo-batalhao.jpg" alt="40 BPM/I" class="logo-img"><br>
+    <span class="logo-badge">PMESP</span>
+    <div class="logo-title">40º <span>BPM/I</span></div>
+    <div class="logo-sub">Painel de Inteligência Criminal — Acesso Restrito</div>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab on" onclick="switchTab('login',this)">Entrar</button>
+      <button class="tab" onclick="switchTab('register',this)">Solicitar Acesso</button>
+    </div>
+
+    <!-- FORM LOGIN -->
+    <div class="form on" id="form-login">
+      <div class="field">
+        <label>RE</label>
+        <input type="text" id="l-mat" placeholder="123456" autocomplete="username" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="field">
+        <label>Senha</label>
+        <input type="password" id="l-senha" placeholder="Sua senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn btn-primary" id="btn-login" onclick="doLogin()">Entrar</button>
+      <div class="msg" id="msg-login"></div>
+    </div>
+
+    <!-- FORM CADASTRO -->
+    <div class="form" id="form-register">
+      <div class="field">
+        <label>Nome Completo</label>
+        <input type="text" id="r-nome" placeholder="Ex: João da Silva">
+      </div>
+      <div class="field">
+        <label>Posto / Graduação</label>
+        <select id="r-posto">
+          <option value="">Selecione...</option>
+          <option value="Cel PM">Cel PM — Coronel</option>
+          <option value="Ten Cel PM">Ten Cel PM — Tenente Coronel</option>
+          <option value="Maj PM">Maj PM — Major</option>
+          <option value="Cap PM">Cap PM — Capitão</option>
+          <option value="1º Ten PM">1º Ten PM — Primeiro Tenente</option>
+          <option value="2º Ten PM">2º Ten PM — Segundo Tenente</option>
+          <option value="Asp OF PM">Asp OF PM — Aspirante a Oficial</option>
+          <option value="Subten PM">Subten PM — Subtenente</option>
+          <option value="1º Sgt PM">1º Sgt PM — Primeiro Sargento</option>
+          <option value="2º Sgt PM">2º Sgt PM — Segundo Sargento</option>
+          <option value="3º Sgt PM">3º Sgt PM — Terceiro Sargento</option>
+          <option value="Cb PM">Cb PM — Cabo</option>
+          <option value="Sd PM">Sd PM — Soldado</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>RE</label>
+        <input type="text" id="r-mat" placeholder="123456" maxlength="6" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)">
+      </div>
+      <div class="field">
+        <label>Função</label>
+        <select id="r-secao">
+          <option value="">Selecione sua função...</option>
+          <option value="Comandante Batalhão">Comandante Batalhão</option>
+          <option value="Comandante de Cia">Comandante de Cia</option>
+          <option value="P1">P1 — Pessoal</option>
+          <option value="P2">P2 — Inteligência</option>
+          <option value="P3">P3 — Operações</option>
+          <option value="P4">P4 — Logística</option>
+          <option value="P5">P5 — Comunicação Social</option>
+          <option value="CFP">CFP</option>
+          <option value="1ª Cia PM">1ª Cia PM</option>
+          <option value="2ª Cia PM">2ª Cia PM</option>
+          <option value="3ª Cia PM">3ª Cia PM</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Senha</label>
+        <input type="password" id="r-senha" placeholder="Mínimo 6 caracteres">
+      </div>
+      <div class="field">
+        <label>Confirmar Senha</label>
+        <input type="password" id="r-senha2" placeholder="Repita a senha" onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <button class="btn btn-primary" id="btn-reg" onclick="doRegister()">Solicitar Acesso</button>
+      <div class="msg" id="msg-reg"></div>
+    </div>
+  </div>
+
+  <div class="footer">SISTEMA RESTRITO — 40º BPM/I · PMESP · 2026</div>
+</div>
+
+<script>
+const API = window.location.origin + '/api';
+
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.form').forEach(f => f.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('form-' + tab).classList.add('on');
+  document.getElementById('msg-login').className = 'msg';
+  document.getElementById('msg-reg').className = 'msg';
+}
+
+function showMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'msg ' + type;
+}
+
+async function doLogin() {
+  const matricula = document.getElementById('l-mat').value.trim();
+  const senha     = document.getElementById('l-senha').value;
+  if (!matricula || !senha) return showMsg('msg-login', 'Preencha todos os campos.', 'err');
+
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = 'Verificando...';
+
+  try {
+    const res  = await fetch(`${API}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ matricula, senha })
+    });
+    const data = await res.json();
+    if (!res.ok) return showMsg('msg-login', data.error || 'Erro ao entrar.', 'err');
+
+    localStorage.setItem('auth_token', data.token);
+    localStorage.setItem('auth_user', JSON.stringify(data.user));
+    window.location.replace('/');
+  } catch {
+    showMsg('msg-login', 'Erro de conexão com o servidor.', 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+}
+
+async function doRegister() {
+  const nome   = document.getElementById('r-nome').value.trim();
+  const posto  = document.getElementById('r-posto').value;
+  const mat    = document.getElementById('r-mat').value.trim();
+  const secao  = document.getElementById('r-secao').value;
+  const senha  = document.getElementById('r-senha').value;
+  const senha2 = document.getElementById('r-senha2').value;
+
+  if (!nome || !posto || !mat || !secao || !senha || !senha2)
+    return showMsg('msg-reg', 'Preencha todos os campos.', 'err');
+  if (senha.length < 6)
+    return showMsg('msg-reg', 'A senha deve ter no mínimo 6 caracteres.', 'err');
+  if (senha !== senha2)
+    return showMsg('msg-reg', 'As senhas não coincidem.', 'err');
+
+  const btn = document.getElementById('btn-reg');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+
+  try {
+    const res  = await fetch(`${API}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome, posto, matricula: mat, secao, senha })
+    });
+    const data = await res.json();
+    if (!res.ok) return showMsg('msg-reg', data.error || 'Erro ao cadastrar.', 'err');
+    showMsg('msg-reg', data.message, 'ok');
+    document.getElementById('r-nome').value  = '';
+    document.getElementById('r-posto').value = '';
+    document.getElementById('r-mat').value   = '';
+    document.getElementById('r-secao').value = '';
+    document.getElementById('r-senha').value = '';
+    document.getElementById('r-senha2').value = '';
+  } catch {
+    showMsg('msg-reg', 'Erro de conexão com o servidor.', 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Solicitar Acesso';
+  }
+}
+
+// Se já estiver logado, vai direto pro dashboard
+(function(){
+  const token = localStorage.getItem('auth_token');
+  if (token) window.location.replace('/');
+})();
+</script>
+</body>
+</html>

@@ -5,6 +5,203 @@
 
 const API = `${window.location.origin}/api`;
 
+// ---------------------------------------------------------------------------
+// Autenticação — helpers
+// ---------------------------------------------------------------------------
+function authFetch(url, options = {}) {
+  const token = localStorage.getItem('auth_token');
+  options.headers = { ...options.headers, ...(token ? { 'Authorization': `Bearer ${token}` } : {}) };
+  return fetch(url, options).then(r => {
+    if (r.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      window.location.replace('/login.html');
+      throw new Error('Sessão expirada');
+    }
+    return r;
+  });
+}
+
+function doLogout() {
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('auth_user');
+  window.location.replace('/login.html');
+}
+
+function initUserBlock() {
+  try {
+    const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
+    const ROLE_LABEL = { comandante: 'Cmt Batalhão', comandante_cia: 'Cmt de Cia', p1: 'Seção P1', p3: 'Seção P3', viewer: 'Visualizador' };
+    document.getElementById('user-nome').textContent = u.nome || '—';
+    document.getElementById('user-info').textContent = `${u.secao || '—'} · ${ROLE_LABEL[u.role] || u.role || '—'}`;
+    if (['admin', 'comandante', 'p1', 'p3', 'comandante_cia'].includes(u.role)) {
+      document.getElementById('btn-admin').style.display = 'block';
+      checkPendingUsers();
+    }
+  } catch (_) {}
+}
+
+async function checkPendingUsers() {
+  try {
+    const users   = await authFetch(`${API}/admin/users`).then(r => r.json());
+    const pending = Array.isArray(users) ? users.filter(u => u.status === 'pending').length : 0;
+    const badge   = document.getElementById('pending-badge');
+    if (pending > 0) {
+      badge.textContent = pending;
+      badge.style.display = 'block';
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch (_) {}
+}
+
+// ---------------------------------------------------------------------------
+// Modal de administração de usuários
+// ---------------------------------------------------------------------------
+function admClickOut(e) { if (e.target.id === 'adm-mo') closeAdminModal(); }
+function closeAdminModal() { document.getElementById('adm-mo').style.display = 'none'; }
+
+async function openAdminModal() {
+  document.getElementById('adm-mo').style.display = 'block';
+  document.getElementById('adm-msg').style.display = 'none';
+  const badge = document.getElementById('pending-badge');
+  if (badge) badge.style.display = 'none';
+  document.getElementById('adm-users').innerHTML = '<div style="color:#4a5568;font-size:12px;padding:10px 0">Carregando...</div>';
+  document.getElementById('adm-pending').innerHTML = '';
+  document.getElementById('adm-pending-section').style.display = 'none';
+
+  try {
+    const data = await authFetch(`${API}/admin/users`).then(r => r.json());
+    if (!Array.isArray(data)) throw new Error(data?.error || 'Resposta inesperada da API.');
+    renderAdminUsers(data);
+  } catch (err) {
+    document.getElementById('adm-users').innerHTML = `<div style="color:#e06060;font-size:12px">${err.message}</div>`;
+  }
+}
+
+function renderAdminUsers(users) {
+  const me = JSON.parse(localStorage.getItem('auth_user') || '{}');
+  const pending = users.filter(u => u.status === 'pending');
+  const others  = users.filter(u => u.status !== 'pending');
+
+  if (pending.length) {
+    document.getElementById('adm-pending-section').style.display = 'block';
+    document.getElementById('adm-pending').innerHTML = buildUserTable(pending, me);
+  }
+  document.getElementById('adm-users').innerHTML = buildUserTable(others, me);
+}
+
+function buildUserTable(users, me) {
+  // Oculta usuários com role 'admin' — protegidos contra alteração
+  users = users.filter(u => u.role !== 'admin');
+  if (!users.length) return '<div style="color:#4a5568;font-size:12px;padding:6px 0">Nenhum registro.</div>';
+  const ROLE_LABEL = { comandante: 'Cmt Batalhão', comandante_cia: 'Cmt de Cia', p1: 'P1', p3: 'P3', viewer: 'Visualizador' };
+  const STATUS_STYLE = {
+    pending:  'background:rgba(200,168,75,.15);color:#e8c96a',
+    approved: 'background:rgba(61,191,122,.1);color:#5ae09a',
+    rejected: 'background:rgba(200,75,75,.1);color:#e06060'
+  };
+  const STATUS_LABEL = { pending: 'Pendente', approved: 'Aprovado', rejected: 'Recusado' };
+
+  let h = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:1px">NOME</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:1px">POSTO/GRAD.</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:1px">RE</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:1px">FUNÇÃO</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:1px">STATUS</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:1px">NÍVEL</th>
+      <th style="padding:7px 8px;border-bottom:1px solid #1c2235"></th>
+    </tr></thead><tbody>`;
+
+  users.forEach(u => {
+    const sStyle = STATUS_STYLE[u.status] || '';
+    const canEditRole = ['admin', 'comandante'].includes(me.role);
+    const roleOpts = canEditRole
+      ? ['viewer','p1','p3','comandante_cia','comandante'].map(r =>
+          `<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABEL[r]||r}</option>`).join('')
+      : `<option>${ROLE_LABEL[u.role]||u.role}</option>`;
+
+    let actions = '';
+    if (u.status === 'pending') {
+      actions = `<button onclick="admAction('${u.id}','approved')" style="padding:4px 10px;background:rgba(61,191,122,.15);border:1px solid rgba(61,191,122,.3);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px">✓ Aprovar</button>
+                 <button onclick="admAction('${u.id}','rejected')" style="padding:4px 10px;background:rgba(200,75,75,.1);border:1px solid rgba(200,75,75,.25);color:#e06060;border-radius:4px;cursor:pointer;font-size:11px">✕ Recusar</button>`;
+    } else if (u.status === 'approved') {
+      actions = `<button onclick="admAction('${u.id}','rejected')" style="padding:4px 10px;background:rgba(200,75,75,.08);border:1px solid rgba(200,75,75,.2);color:#e06060;border-radius:4px;cursor:pointer;font-size:11px">Revogar</button>`;
+    } else {
+      actions = `<button onclick="admAction('${u.id}','approved')" style="padding:4px 10px;background:rgba(61,191,122,.1);border:1px solid rgba(61,191,122,.25);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:11px">Reativar</button>`;
+    }
+
+    h += `<tr>
+      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:#d8dce8">${u.nome}</td>
+      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:#8090a8">${u.posto||'—'}</td>
+      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-family:'DM Mono',monospace;color:#8090a8">${u.matricula}</td>
+      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:#8090a8">${u.secao}</td>
+      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)"><span style="padding:2px 8px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;${sStyle}">${STATUS_LABEL[u.status]||u.status}</span></td>
+      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
+        <select onchange="admChangeRole('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${roleOpts}</select>
+      </td>
+      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);white-space:nowrap">
+        ${actions}
+        <button onclick="admDelete('${u.id}','${u.nome}')" style="padding:4px 8px;background:transparent;border:1px solid rgba(200,75,75,.2);color:#4a5568;border-radius:4px;cursor:pointer;font-size:11px;margin-left:4px" title="Excluir usuário">🗑</button>
+      </td>
+    </tr>`;
+  });
+
+  h += '</tbody></table>';
+  return h;
+}
+
+async function admAction(id, status) {
+  try {
+    const res = await authFetch(`${API}/admin/users/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    await openAdminModal();
+  } catch (err) {
+    showAdmMsg(err.message, 'err');
+  }
+}
+
+async function admDelete(id, nome) {
+  if (!confirm(`Excluir definitivamente o usuário "${nome}"? Esta ação não pode ser desfeita.`)) return;
+  try {
+    const res = await authFetch(`${API}/admin/users/${id}`, { method: 'DELETE' });
+    if (!res.ok) { const d = await res.json(); alert(d.error || 'Erro ao excluir.'); return; }
+    openAdminModal();
+  } catch (err) {
+    alert('Erro de conexão.');
+  }
+}
+
+async function admChangeRole(id, role) {
+  try {
+    const res = await authFetch(`${API}/admin/users/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showAdmMsg('Nível de acesso atualizado.', 'ok');
+  } catch (err) {
+    showAdmMsg(err.message, 'err');
+  }
+}
+
+function showAdmMsg(text, type) {
+  const el = document.getElementById('adm-msg');
+  el.textContent = text;
+  el.style.cssText = type === 'ok'
+    ? 'display:block;padding:10px 14px;border-radius:6px;font-size:13px;background:rgba(61,191,122,.1);border:1px solid rgba(61,191,122,.25);color:#5ae09a;margin-top:14px'
+    : 'display:block;padding:10px 14px;border-radius:6px;font-size:13px;background:rgba(200,75,75,.1);border:1px solid rgba(200,75,75,.25);color:#e06060;margin-top:14px';
+  setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
 // Paleta de cores por crime (mesma ordem da API)
 const PAL = ['#c84b4b','#bf7a3d','#c8a84b','#3d7abf','#e8c96a','#3dbf7a','#7a4bbf'];
 const GR  = { color: 'rgba(255,255,255,.04)' };
@@ -34,6 +231,7 @@ const pageFilters = {
   metas:    { type: 'btl', value: null },
   cia:      { type: 'btl', value: null },
   insights: { type: 'btl', value: null },
+  evolucao: { type: 'btl', value: null },
 };
 
 // Retorna {cia: x} ou {mun: x} ou {} para uso em q()
@@ -172,6 +370,7 @@ function buildPageFilters() {
   buildPageFilter('pf-metas',   'metas',    renderMetas);
   buildPageFilter('pf-cia',     'cia',      renderCIA);
   buildPageFilter('pf-insights','insights', renderInsights);
+  buildPageFilter('pf-evolucao','evolucao', renderEvolucao);
 }
 
 // ---------------------------------------------------------------------------
@@ -199,8 +398,8 @@ const cl  = c => c.replace(' Vulnerável', 'Vuln.').replace(' Veículos', 'Veíc
 
 async function loadData() {
   const [meta, registros] = await Promise.all([
-    fetch(`${API}/meta`).then(r => r.json()),
-    fetch(`${API}/registros`).then(r => r.json())
+    authFetch(`${API}/meta`).then(r => r.json()),
+    authFetch(`${API}/registros`).then(r => r.json())
   ]);
   CRIMES = meta.crimes;
   MESES  = meta.meses;
@@ -211,7 +410,7 @@ async function loadData() {
 
 async function updateSyncStatus() {
   try {
-    const s = await fetch(`${API}/status`).then(r => r.json());
+    const s = await authFetch(`${API}/status`).then(r => r.json());
     const elTime  = document.getElementById('sync-time');
     const elFonte = document.getElementById('lbl-fonte');
     if (elTime && s.lastSync) {
@@ -233,7 +432,7 @@ async function forceSync() {
   const btn = document.getElementById('sync-btn');
   if (btn) { btn.textContent = '↻ Sincronizando...'; btn.disabled = true; }
   try {
-    await fetch(`${API}/sync`);
+    await authFetch(`${API}/sync`);
     await loadData();
     selMeses = [...MESES];
     hmMeses  = [...MESES];
@@ -249,6 +448,7 @@ async function forceSync() {
 }
 
 async function init() {
+  initUserBlock();
   try {
     await loadData();
 
@@ -507,32 +707,48 @@ function renderEvolMuns() {
 // Metas
 // ---------------------------------------------------------------------------
 
+function ciaSepRow(cia, cols) {
+  return `<tr><td colspan="${cols}" style="padding:6px 10px;background:rgba(61,122,191,.08);border-top:2px solid rgba(61,122,191,.3);border-bottom:1px solid rgba(61,122,191,.2);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:#5a9de0;font-weight:700">${cia.toUpperCase()}</td></tr>`;
+}
+
+function munCia(mun) {
+  return RAW.find(r => r.mun === mun)?.cia || '';
+}
+
 function renderMetas() {
-  const pf   = pageFilters.metas;
-  const muns = pf.type === 'mun' ? [pf.value]
-             : pf.type === 'cia' ? MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === pf.value))
-             : MUNS;
+  const pf      = pageFilters.metas;
+  const isBtl   = pf.type === 'btl';
+  const muns    = pf.type === 'mun' ? [pf.value]
+                : pf.type === 'cia' ? MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === pf.value))
+                : MUNS;
 
   let h = '<thead><tr><th>Município</th><th>CIA</th><th>Crime</th><th>Anterior</th><th>Meta</th><th>Avaliado</th><th>Var%</th><th>Status</th></tr></thead><tbody>';
-  muns.forEach(mun => CRIMES.forEach(crime => {
-    const rows = q({ crime, mun, mes: selMeses });
-    if (!rows.length) return;
-    const ant = sf(rows, 'anterior'), meta = sf(rows, 'meta'), aval = sf(rows), cia = rows[0].cia;
-    const vp = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : '—';
-    const vc = parseFloat(vp) > 0 ? 'var(--red2)' : parseFloat(vp) < 0 ? 'var(--green2)' : 'var(--tx3)';
-    const vt = vp !== '—' ? (parseFloat(vp) > 0 ? '▲' : '▼') + Math.abs(vp) + '%' : vp;
-    let pc, pt;
-    if (meta > 0) {
-      if (aval <= meta * 0.8) { pc = 'p-ok'; pt = 'Ótimo'; }
-      else if (aval <= meta)  { pc = 'p-warn'; pt = 'Na Meta'; }
-      else                    { pc = 'p-bad'; pt = 'Acima'; }
-    } else {
-      if (aval === 0)       { pc = 'p-ok';   pt = 'Zero'; }
-      else if (aval < ant)  { pc = 'p-evol'; pt = 'Em Evolução'; }
-      else                  { pc = 'p-warn'; pt = 'Sem Meta'; }
+  let lastCia = null;
+  muns.forEach(mun => {
+    if (isBtl) {
+      const cia = munCia(mun);
+      if (cia !== lastCia) { h += ciaSepRow(cia, 8); lastCia = cia; }
     }
-    h += `<tr><td style="font-weight:600">${mun}</td><td style="color:var(--tx3);font-size:11px">${cia}</td><td>${crime}</td><td class="num">${ant}</td><td class="num">${meta}</td><td class="num" style="font-weight:700">${aval}</td><td class="num" style="color:${vc}">${vt}</td><td><span class="pill ${pc}">${pt}</span></td></tr>`;
-  }));
+    CRIMES.forEach(crime => {
+      const rows = q({ crime, mun, mes: selMeses });
+      if (!rows.length) return;
+      const ant = sf(rows, 'anterior'), meta = sf(rows, 'meta'), aval = sf(rows), cia = rows[0].cia;
+      const vp = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : '—';
+      const vc = parseFloat(vp) > 0 ? 'var(--red2)' : parseFloat(vp) < 0 ? 'var(--green2)' : 'var(--tx3)';
+      const vt = vp !== '—' ? (parseFloat(vp) > 0 ? '▲' : '▼') + Math.abs(vp) + '%' : vp;
+      let pc, pt;
+      if (meta > 0) {
+        if (aval <= meta * 0.8) { pc = 'p-ok'; pt = 'Ótimo'; }
+        else if (aval <= meta)  { pc = 'p-warn'; pt = 'Na Meta'; }
+        else                    { pc = 'p-bad'; pt = 'Acima'; }
+      } else {
+        if (aval === 0)       { pc = 'p-ok';   pt = 'Zero'; }
+        else if (aval < ant)  { pc = 'p-evol'; pt = 'Em Evolução'; }
+        else                  { pc = 'p-warn'; pt = 'Sem Meta'; }
+      }
+      h += `<tr><td style="font-weight:600">${mun}</td><td style="color:var(--tx3);font-size:11px">${cia}</td><td>${crime}</td><td class="num">${ant}</td><td class="num">${meta}</td><td class="num" style="font-weight:700">${aval}</td><td class="num" style="color:${vc}">${vt}</td><td><span class="pill ${pc}">${pt}</span></td></tr>`;
+    });
+  });
   document.getElementById('tbl-metas').innerHTML = h + '</tbody>';
 }
 
@@ -592,8 +808,12 @@ function renderHeatmap() {
   document.getElementById('lbl-p4').textContent  = p;
   document.getElementById('hm-badge').textContent = p;
   const maxes = CRIMES.map(c => Math.max(...MUNS.map(m => sf(q({ crime: c, mun: m, mes: hmMeses }))), 1));
+  const hmCols = CRIMES.length + 2;
   let h = '<thead><tr><th>Município</th>' + CRIMES.map(c => `<th>${cl(c)}</th>`).join('') + '<th>Total</th></tr></thead><tbody>';
+  let lastHmCia = null;
   MUNS.forEach(mun => {
+    const cia = munCia(mun);
+    if (cia !== lastHmCia) { h += ciaSepRow(cia, hmCols); lastHmCia = cia; }
     const vals  = CRIMES.map(c => sf(q({ crime: c, mun, mes: hmMeses })));
     const total = vals.reduce((a, b) => a + b, 0);
     h += `<tr><td class="hm-city">${mun}</td>`;
@@ -713,19 +933,30 @@ function renderInsights() {
   // Gráfico de cumprimento por CIA (ou por crime quando filtrado)
   const insTitle = document.getElementById('ins-chart-title');
   if (pf.type === 'btl') {
-    if (insTitle) insTitle.textContent = 'CUMPRIMENTO DE METAS POR CIA';
-    const pct = CIAS.map(cia => {
-      const ok = CRIMES.filter(c => {
-        const a = sf(q({ crime: c, cia, mes: selMeses }));
-        const m = sf(q({ crime: c, cia, mes: selMeses }), 'meta');
-        return m > 0 && a <= m;
-      }).length;
-      return parseFloat((ok / CRIMES.length * 100).toFixed(1));
+    if (insTitle) insTitle.textContent = 'AVALIADO VS META POR CRIME — BATALHÃO';
+    const avals  = CRIMES.map(c => sf(q({ crime: c, mes: selMeses })));
+    const metas2 = CRIMES.map(c => sf(q({ crime: c, mes: selMeses }), 'meta'));
+    const ants2  = CRIMES.map(c => sf(q({ crime: c, mes: selMeses }), 'anterior'));
+    const colors = avals.map((a, i) => {
+      const m = metas2[i], ant = ants2[i];
+      if (a <= m)  return 'rgba(61,191,122,.75)';   // verde — na meta
+      if (a < ant) return 'rgba(191,122,61,.85)';   // laranja — em evolução
+      return 'rgba(200,75,75,.75)';                  // vermelho — acima
     });
     mk('c-cia-ins', {
       type: 'bar',
-      data: { labels: CIAS, datasets: [{ label: '% dentro da Meta', data: pct, backgroundColor: pct.map(v => v >= 70 ? 'rgba(61,191,122,.75)' : v >= 40 ? 'rgba(200,168,75,.75)' : 'rgba(200,75,75,.75)'), borderRadius: 4 }] },
-      options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } } } }
+      data: {
+        labels: CRIMES.map(cl),
+        datasets: [
+          { label: 'Meta',     data: metas2, backgroundColor: 'rgba(255,255,255,.08)', borderRadius: 4 },
+          { label: 'Avaliado', data: avals,  backgroundColor: colors, borderRadius: 4 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { boxWidth: 9 } } },
+        scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } }
+      }
     });
   } else {
     if (insTitle) insTitle.textContent = `AVALIADO VS META — ${pf.value?.toUpperCase()}`;
@@ -759,8 +990,15 @@ function renderEvolucao() {
     });
   }
   const crime = sel?.value || CRIMES[0];
+  const sc    = scope('evolucao');
+  const pf    = pageFilters.evolucao;
 
-  // Gráfico de linhas: Avaliado · Meta · Anterior · Tendência
+  // Municípios no escopo
+  const muns = pf.type === 'mun' ? [pf.value]
+             : pf.type === 'cia' ? MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === pf.value))
+             : MUNS;
+
+  // Gráfico de linhas: Avaliado · Meta · Anterior · Tendência (agregado no escopo)
   mk('c-evol-main', {
     type: 'line',
     data: {
@@ -768,25 +1006,25 @@ function renderEvolucao() {
       datasets: [
         {
           label: 'Avaliado',
-          data: MESES.map(m => sf(q({ crime, mes: m }))),
+          data: MESES.map(m => sf(q({ crime, mes: m, ...sc }))),
           borderColor: '#c8a84b', backgroundColor: 'rgba(200,168,75,.08)',
           tension: .4, fill: true, pointRadius: 5, pointBackgroundColor: '#c8a84b', borderWidth: 2
         },
         {
           label: 'Meta',
-          data: MESES.map(m => sf(q({ crime, mes: m }), 'meta')),
+          data: MESES.map(m => sf(q({ crime, mes: m, ...sc }), 'meta')),
           borderColor: 'rgba(61,191,122,.6)', backgroundColor: 'transparent',
           tension: .4, borderDash: [6, 3], pointRadius: 3, borderWidth: 1.5
         },
         {
           label: 'Anterior',
-          data: MESES.map(m => sf(q({ crime, mes: m }), 'anterior')),
+          data: MESES.map(m => sf(q({ crime, mes: m, ...sc }), 'anterior')),
           borderColor: 'rgba(255,255,255,.18)', backgroundColor: 'transparent',
           tension: .4, borderDash: [3, 4], pointRadius: 2, borderWidth: 1
         },
         {
           label: 'Tendência',
-          data: MESES.map(m => sf(q({ crime, mes: m }), 'tend')),
+          data: MESES.map(m => sf(q({ crime, mes: m, ...sc }), 'tend')),
           borderColor: '#3d7abf', backgroundColor: 'transparent',
           tension: .4, borderDash: [8, 4], pointRadius: 3, borderWidth: 1.5
         }
@@ -799,18 +1037,56 @@ function renderEvolucao() {
     }
   });
 
-  // Tabela: municípios × meses para o crime selecionado
+  // Tabela: municípios no escopo × meses
   const tblTitle = document.getElementById('evol-tbl-title');
   if (tblTitle) tblTitle.textContent = `${crime} — Avaliado por Município × Mês`;
 
-  let h = '<thead><tr><th>Município</th><th>CIA</th>' + MESES.map(m => `<th>${m}</th>`).join('') + '<th>Total</th></tr></thead><tbody>';
-  MUNS.forEach(mun => {
+  const evolCols = MESES.length + 4;
+  let h = '<thead><tr><th>Município</th><th>CIA</th>' + MESES.map(m => `<th>${m}</th>`).join('') + '<th>Total</th><th>Status</th></tr></thead><tbody>';
+  let lastEvolCia = null;
+  muns.forEach(mun => {
+    if (pf.type === 'btl') {
+      const cia = munCia(mun);
+      if (cia !== lastEvolCia) { h += ciaSepRow(cia, evolCols); lastEvolCia = cia; }
+    }
     const rows = q({ crime, mun });
     if (!rows.length) return;
-    const cia  = rows[0]?.cia || '—';
-    const vals = MESES.map(m => sf(q({ crime, mun, mes: m })));
-    const tot  = vals.reduce((a, b) => a + b, 0);
-    h += `<tr><td style="font-weight:600">${mun}</td><td style="color:var(--tx3);font-size:11px">${cia}</td>${vals.map(v => `<td class="num">${v}</td>`).join('')}<td class="num" style="font-weight:700">${tot}</td></tr>`;
+    const cia   = rows[0]?.cia || '—';
+    const avals = MESES.map(m => sf(q({ crime, mun, mes: m })));
+    const metas = MESES.map(m => sf(q({ crime, mun, mes: m }), 'meta'));
+    const ants  = MESES.map(m => sf(q({ crime, mun, mes: m }), 'anterior'));
+    const tot     = avals.reduce((a, b) => a + b, 0);
+    const totMeta = metas.reduce((a, b) => a + b, 0);
+    const totAnt  = ants.reduce((a, b) => a + b, 0);
+
+    let pc, pt;
+    if (tot <= totMeta)      { pc = 'p-ok';   pt = 'Na Meta'; }
+    else if (tot < totAnt)   { pc = 'p-evol'; pt = 'Em Evolução'; }
+    else                     { pc = 'p-bad';  pt = 'Acima'; }
+
+    const cells = avals.map((a, i) => {
+      const mt = metas[i], ant = ants[i];
+      let color;
+      if (a <= mt)      color = 'var(--green2)';
+      else if (a < ant) color = '#e8965a';
+      else              color = 'var(--red2)';
+      const hasRec = q({ crime, mun, mes: MESES[i] }).length > 0;
+      return `<td style="text-align:center;padding:6px 8px">
+        ${hasRec ? `<div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${color}">${a}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);margin-top:2px">meta: ${mt}</div>` : '<div style="color:var(--tx3)">—</div>'}
+      </td>`;
+    }).join('');
+
+    h += `<tr style="border-top:1px solid var(--bd)">
+      <td style="font-weight:600">${mun}</td>
+      <td style="color:var(--tx3);font-size:11px">${cia}</td>
+      ${cells}
+      <td style="text-align:center;padding:6px 8px">
+        <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700">${tot}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);margin-top:2px">meta: ${totMeta}</div>
+      </td>
+      <td><span class="pill ${pc}">${pt}</span></td>
+    </tr>`;
   });
   document.getElementById('tbl-evol').innerHTML = h + '</tbody>';
 }
@@ -1023,7 +1299,7 @@ async function confirmUpload() {
   showUplMsg('Enviando para o Supabase...', 'info');
 
   try {
-    const res  = await fetch(`${API}/upload`, {
+    const res  = await authFetch(`${API}/upload`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ records: uploadData })
