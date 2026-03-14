@@ -65,7 +65,6 @@ Camada de análise que roda no servidor e gera indicadores avançados:
 
 ### Dados
 - Fonte principal: **Supabase** — sincronização automática a cada 5 minutos
-- Fonte alternativa: **Google Sheets** publicado como CSV
 - Fallback local: arquivo `raw_data.json`
 - Importação via upload de arquivo CSV com validação automática
 

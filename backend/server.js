@@ -61,11 +61,6 @@ function requireRole(...roles) {
 const SUPABASE_URL = 'https://lhdmqqmvpaeanblqiodr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_1drgCoWkW1rMsr1CagUgEQ_N14K4sPd';
 
-// ============================================================
-// CONFIGURE AQUI: Google Sheets (fonte secundária / fallback)
-// Arquivo → Compartilhar → Publicar na Web → CSV → Copiar link
-// ============================================================
-const SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHYvDauaOHA14LOb7m5uTuowGskNG-KMcJlM9eru4NRWGPISlYrlhFCyAo1MsQwUOCIf8v7P93lxbe/pub?gid=157855787&single=true&output=csv';
 
 const CACHE_TTL  = 5 * 60 * 1000; // auto-refresh a cada 5 minutos
 const TABLE_NAME = 'Base de Dados RAC PM';
@@ -185,28 +180,6 @@ async function syncFromSupabase() {
   }
 }
 
-async function syncFromSheets() {
-  if (!SHEETS_URL) return false;
-  try {
-    console.log('↻ Sincronizando com Google Sheets...');
-    const res  = await fetch(SHEETS_URL);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    const data = parseCSV(text);
-    if (!data.length) throw new Error('Nenhum registro encontrado no CSV');
-
-    cache.data     = data;
-    cache.lastSync = new Date().toISOString();
-    cache.source   = 'sheets';
-    cache.error    = null;
-    console.log(`✓ Sheets: ${data.length} registros carregados (${cache.lastSync})`);
-    return true;
-  } catch (err) {
-    cache.error = err.message;
-    console.error('✗ Erro ao sincronizar Sheets:', err.message);
-    return false;
-  }
-}
 
 function loadLocalFallback() {
   const DATA_PATH = path.join(__dirname, '..', 'raw_data.json');
@@ -227,21 +200,14 @@ function loadLocalFallback() {
 async function init() {
   if (supabase) {
     const ok = await syncFromSupabase();
-    if (!ok) {
-      const sheetsOk = SHEETS_URL ? await syncFromSheets() : false;
-      if (!sheetsOk) loadLocalFallback();
-    }
-  } else if (SHEETS_URL) {
-    const ok = await syncFromSheets();
     if (!ok) loadLocalFallback();
   } else {
-    console.warn('⚠ Nenhuma fonte configurada. Usando raw_data.json local.');
+    console.warn('⚠ Supabase não configurado. Usando raw_data.json local.');
     loadLocalFallback();
   }
 
   setInterval(async () => {
-    if (supabase)       await syncFromSupabase();
-    else if (SHEETS_URL) await syncFromSheets();
+    if (supabase) await syncFromSupabase();
   }, CACHE_TTL);
 }
 
@@ -402,16 +368,13 @@ app.get('/api/status', requireAuth, (req, res) => {
     source:             cache.source,
     records:            cache.data.length,
     error:              cache.error,
-    supabaseConfigured: !!supabase,
-    sheetsConfigured:   !!SHEETS_URL
+    supabaseConfigured: !!supabase
   });
 });
 
 app.get('/api/sync', requireAuth, async (req, res) => {
-  let ok;
-  if (supabase)        ok = await syncFromSupabase();
-  else if (SHEETS_URL) ok = await syncFromSheets();
-  else return res.status(400).json({ error: 'Nenhuma fonte configurada no server.js' });
+  if (!supabase) return res.status(400).json({ error: 'Supabase não configurado no server.js' });
+  let ok = await syncFromSupabase();
   res.json({ ok, lastSync: cache.lastSync, source: cache.source, records: cache.data.length, error: cache.error });
 });
 
@@ -595,8 +558,7 @@ app.get('*', (req, res) => {
 init().then(() => {
   app.listen(PORT, () => {
     console.log(`✓ API rodando em http://localhost:${PORT}`);
-    if (supabase)        console.log(`  Supabase: ${SUPABASE_URL}`);
-    else if (SHEETS_URL) console.log(`  Sheets: ${SHEETS_URL.slice(0, 60)}...`);
-    else                 console.log(`  ⚠ Configure SUPABASE_URL ou SHEETS_URL no server.js`);
+    if (supabase) console.log(`  Supabase: ${SUPABASE_URL}`);
+    else          console.log(`  ⚠ Configure SUPABASE_URL e SUPABASE_KEY no server.js`);
   });
 });
