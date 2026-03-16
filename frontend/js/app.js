@@ -637,6 +637,12 @@ function renderVisao() {
       scales: {
         x: { grid: GR },
         y: { grid: GR, ticks: { callback: v => v + '%' } }
+      },
+      onClick: (evt, elements) => {
+        if (elements.length) moOpen(CRIMES[elements[0].index], PAL[elements[0].index]);
+      },
+      onHover: (evt, elements) => {
+        evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
       }
     }
   });
