@@ -48,7 +48,6 @@
     <div id="p3-submenu">
       <button class="nav-btn on" onclick="goPage('visao',this)"><span class="nav-ic">◈</span>Visão Geral</button>
       <button class="nav-btn" onclick="goPage('metas',this)"><span class="nav-ic">◎</span>Metas × Realizado</button>
-      <button class="nav-btn" onclick="goPage('cia',this)"><span class="nav-ic">▤</span>Desempenho por CIA</button>
       <button class="nav-btn" onclick="goPage('heatmap',this)"><span class="nav-ic">▦</span>Mapa de Calor</button>
       <button class="nav-btn" onclick="goPage('evolucao',this)"><span class="nav-ic">◌</span>Evolução Mensal</button>
     </div>
@@ -235,24 +234,6 @@
   <div class="card"><div class="card-head"><div class="card-title">Todos os Crimes × Municípios</div><div class="card-badge" id="metas-badge">—</div></div><div style="overflow-x:auto"><table class="tbl" id="tbl-metas"></table></div></div>
 </div>
 
-<!-- CIA -->
-<div id="page-cia" class="page">
-  <div class="ph">
-    <div><div class="ph-tag">COMPARATIVO</div><div class="ph-title">DESEMPENHO <span>POR CIA</span></div></div>
-    <div class="ph-meta">Período: <b id="lbl-p3">—</b></div>
-  </div>
-  <div id="pf-cia" class="pf"></div>
-  <div class="g1">
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title" id="cia-main-title">META VS AVALIADO — BATALHÃO</div>
-        <button id="btn-toggle-log" onclick="toggleLogScale()" style="padding:4px 10px;background:rgba(61,122,191,.1);border:1px solid rgba(61,122,191,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;margin-right:6px">Escala Log</button>
-        <button id="btn-toggle-furto" onclick="toggleFurto()" style="padding:4px 10px;background:rgba(200,168,75,.15);border:1px solid rgba(200,168,75,.3);color:#c8a84b;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">Ocultar Furto</button>
-      </div>
-      <canvas id="c-cia-main" style="max-height:380px"></canvas>
-    </div>
-  </div>
-</div>
 
 <!-- HEATMAP -->
 <div id="page-heatmap" class="page">

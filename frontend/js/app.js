@@ -229,7 +229,6 @@ let moCh     = [];
 const pageFilters = {
   visao:    { type: 'btl', value: null },
   metas:    { type: 'btl', value: null, crime: '__all__' },
-  cia:      { type: 'btl', value: null },
   evolucao: { type: 'btl', value: null },
 };
 
@@ -383,7 +382,6 @@ function buildPageFilter(containerId, key, renderFn, opts = {}) {
 function buildPageFilters() {
   buildPageFilter('pf-visao',    'visao',    renderVisaoAndInsights);
   buildPageFilter('pf-metas',   'metas',    renderMetas, { showCrime: true });
-  buildPageFilter('pf-cia',     'cia',      renderCIA);
   buildPageFilter('pf-evolucao','evolucao', renderEvolucao);
 }
 
@@ -535,7 +533,7 @@ function hmTog(mes, btn) {
 
 function renderAll() {
   const p = pLbl(selMeses);
-  ['lbl-p1','lbl-p2','lbl-p3'].forEach(id => {
+  ['lbl-p1','lbl-p2'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = p;
   });
@@ -544,7 +542,6 @@ function renderAll() {
   renderKPIs();
   renderVisaoAndInsights();
   renderMetas();
-  renderCIA();
   renderHeatmap();
   renderEvolucao();
 }
@@ -777,85 +774,6 @@ function renderMetas() {
 // Desempenho por CIA
 // ---------------------------------------------------------------------------
 
-let _ocultarFurto = false;
-let _logScale = false;
-
-function toggleFurto() {
-  _ocultarFurto = !_ocultarFurto;
-  const btn = document.getElementById('btn-toggle-furto');
-  if (btn) btn.textContent = _ocultarFurto ? 'Mostrar Furto' : 'Ocultar Furto';
-  renderCIA();
-}
-
-function toggleLogScale() {
-  _logScale = !_logScale;
-  const btn = document.getElementById('btn-toggle-log');
-  if (btn) {
-    btn.textContent = _logScale ? 'Escala Normal' : 'Escala Log';
-    btn.style.background = _logScale ? 'rgba(61,122,191,.25)' : 'rgba(61,122,191,.1)';
-    btn.style.borderColor = _logScale ? 'rgba(61,122,191,.6)' : 'rgba(61,122,191,.3)';
-  }
-  renderCIA();
-}
-
-function renderCIA() {
-  const pf        = pageFilters.cia;
-  const sc        = scope('cia');
-  const isBtl     = pf.type === 'btl';
-  const ciaColors = ['#c8a84b', '#3d7abf', '#c84b4b'];
-  const crimesVis = _ocultarFurto ? CRIMES.filter(c => c !== 'Furto') : CRIMES;
-
-  const titleEl = document.getElementById('cia-main-title');
-  if (titleEl) titleEl.textContent = isBtl ? 'META VS AVALIADO — BATALHÃO' : `META VS AVALIADO — ${pf.value?.toUpperCase()}`;
-  const btnFurto = document.getElementById('btn-toggle-furto');
-  if (btnFurto) btnFurto.style.display = 'inline-block';
-
-  let datasets, chartOptions;
-  if (isBtl) {
-    // Batalhão: CIAs empilhadas + barra de meta
-    const meta = crimesVis.map(c => sf(q({ crime: c, mes: selMeses }), 'meta'));
-    datasets = [
-      { label: 'Meta', data: meta, backgroundColor: 'rgba(255,255,255,.08)', borderRadius: 4, stack: 'meta' },
-      ...CIAS.map((cia, i) => ({
-        label: cia,
-        data: crimesVis.map(c => sf(q({ crime: c, cia, mes: selMeses }))),
-        backgroundColor: ciaColors[i] + 'cc',
-        borderRadius: 0,
-        stack: 'cias'
-      }))
-    ];
-    const yScale = _logScale
-      ? { type: 'logarithmic', grid: GR, stacked: true, ticks: { callback: v => Number.isInteger(Math.log10(v)) || v === 1 ? v : '' } }
-      : { grid: GR, beginAtZero: true, stacked: true };
-    chartOptions = {
-      responsive: true,
-      plugins: { legend: { labels: { boxWidth: 9 } } },
-      scales: { x: { grid: GR, stacked: true }, y: yScale }
-    };
-  } else {
-    // CIA ou Município: Meta vs Avaliado
-    const aval = crimesVis.map(c => sf(q({ crime: c, mes: selMeses, ...sc })));
-    const meta = crimesVis.map(c => sf(q({ crime: c, mes: selMeses, ...sc }), 'meta'));
-    datasets = [
-      { label: 'Meta',     data: meta, backgroundColor: 'rgba(255,255,255,.08)', borderRadius: 4 },
-      { label: 'Avaliado', data: aval, backgroundColor: aval.map((v, j) => meta[j] > 0 && v <= meta[j] ? 'rgba(61,191,122,.75)' : 'rgba(200,75,75,.75)'), borderRadius: 4 }
-    ];
-    const yScaleSimple = _logScale
-      ? { type: 'logarithmic', grid: GR, ticks: { callback: v => Number.isInteger(Math.log10(v)) || v === 1 ? v : '' } }
-      : { grid: GR, beginAtZero: true };
-    chartOptions = {
-      responsive: true,
-      plugins: { legend: { labels: { boxWidth: 9 } } },
-      scales: { x: { grid: GR }, y: yScaleSimple }
-    };
-  }
-
-  mk('c-cia-main', {
-    type: 'bar',
-    data: { labels: crimesVis.map(cl), datasets },
-    options: chartOptions
-  });
-}
 
 // ---------------------------------------------------------------------------
 // Heatmap
