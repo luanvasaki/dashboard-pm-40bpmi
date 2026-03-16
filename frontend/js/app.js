@@ -230,7 +230,6 @@ const pageFilters = {
   visao:    { type: 'btl', value: null },
   metas:    { type: 'btl', value: null, crime: '__all__' },
   cia:      { type: 'btl', value: null },
-  insights: { type: 'btl', value: null },
   evolucao: { type: 'btl', value: null },
 };
 
@@ -382,10 +381,9 @@ function buildPageFilter(containerId, key, renderFn, opts = {}) {
 }
 
 function buildPageFilters() {
-  buildPageFilter('pf-visao',    'visao',    renderVisao);
+  buildPageFilter('pf-visao',    'visao',    renderVisaoAndInsights);
   buildPageFilter('pf-metas',   'metas',    renderMetas, { showCrime: true });
   buildPageFilter('pf-cia',     'cia',      renderCIA);
-  buildPageFilter('pf-insights','insights', renderInsights);
   buildPageFilter('pf-evolucao','evolucao', renderEvolucao);
 }
 
@@ -537,19 +535,23 @@ function hmTog(mes, btn) {
 
 function renderAll() {
   const p = pLbl(selMeses);
-  ['lbl-p1','lbl-p2','lbl-p3','lbl-p5'].forEach(id => {
+  ['lbl-p1','lbl-p2','lbl-p3'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = p;
   });
   document.getElementById('sb-periodo').textContent  = p;
   document.getElementById('metas-badge').textContent = p;
   renderKPIs();
-  renderVisao();
+  renderVisaoAndInsights();
   renderMetas();
   renderCIA();
   renderHeatmap();
-  renderInsights();
   renderEvolucao();
+}
+
+function renderVisaoAndInsights() {
+  renderVisao();
+  renderInsights();
 }
 
 // ---------------------------------------------------------------------------
@@ -864,8 +866,8 @@ function renderHeatmap() {
 // ---------------------------------------------------------------------------
 
 function renderInsights() {
-  const pf   = pageFilters.insights;
-  const sc   = scope('insights');
+  const pf   = pageFilters.visao;
+  const sc   = scope('visao');
   const lbl  = pf.type === 'btl' ? 'Batalhão' : pf.value;
   const muns = pf.type === 'cia' ? MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === pf.value)) : MUNS;
   const qsc  = f => q({ ...f, mes: selMeses, ...sc });

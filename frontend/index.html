@@ -50,7 +50,6 @@
       <button class="nav-btn" onclick="goPage('metas',this)"><span class="nav-ic">◎</span>Metas × Realizado</button>
       <button class="nav-btn" onclick="goPage('cia',this)"><span class="nav-ic">▤</span>Desempenho por CIA</button>
       <button class="nav-btn" onclick="goPage('heatmap',this)"><span class="nav-ic">▦</span>Mapa de Calor</button>
-      <button class="nav-btn" onclick="goPage('insights',this)"><span class="nav-ic">◉</span>Insights Comando</button>
       <button class="nav-btn" onclick="goPage('evolucao',this)"><span class="nav-ic">◌</span>Evolução Mensal</button>
     </div>
     <button class="sec-btn" id="sec-p4" onclick="goSection('p4',this)">
@@ -222,6 +221,12 @@
     </div>
     <canvas id="c-evol-muns" style="max-height:280px"></canvas>
   </div>
+  <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin:22px 0 10px">Insights Comando</div>
+  <div class="ig" id="ins-grid"></div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-head"><div class="card-title" id="ins-chart-title">Avaliado vs Meta por Crime</div></div>
+    <canvas id="c-cia-ins"></canvas>
+  </div>
 </div>
 
 <!-- METAS -->
@@ -278,17 +283,6 @@
 </div>
 
 <!-- INSIGHTS -->
-<div id="page-insights" class="page">
-  <div class="ph">
-    <div><div class="ph-tag">ANÁLISE EXECUTIVA</div><div class="ph-title">INSIGHTS <span>COMANDO</span></div></div>
-    <div class="ph-meta">Período: <b id="lbl-p5">—</b></div>
-  </div>
-  <div id="pf-insights" class="pf"></div>
-  <div class="ig" id="ins-grid"></div>
-  <div class="g1">
-    <div class="card"><div class="card-head"><div class="card-title" id="ins-chart-title">Cumprimento de Metas por CIA</div></div><canvas id="c-cia-ins"></canvas></div>
-  </div>
-</div>
 
 <!-- EVOLUÇÃO -->
 <div id="page-evolucao" class="page">
