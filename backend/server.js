@@ -286,7 +286,7 @@ app.post('/api/auth/login', async (req, res) => {
     const ok = await bcrypt.compare(senha, data.senha_hash);
     if (!ok) return res.status(401).json({ error: 'Matrícula ou senha incorretos' });
 
-    const payload = { id: data.id, nome: data.nome, matricula: data.matricula, role: data.role, secao: data.secao };
+    const payload = { id: data.id, nome: data.nome, matricula: data.matricula, role: data.role, secao: data.secao, resetSenha: data.reset_senha === true };
     const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
     res.json({ token, user: payload });
   } catch (err) {
@@ -298,6 +298,21 @@ app.post('/api/auth/login', async (req, res) => {
 // GET /api/auth/me
 app.get('/api/auth/me', requireAuth, (req, res) => {
   res.json(req.user);
+});
+
+// POST /api/auth/nova-senha — define nova senha após reset obrigatório
+app.post('/api/auth/nova-senha', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  const { senha } = req.body;
+  if (!senha || senha.length < 6) return res.status(400).json({ error: 'Senha deve ter no mínimo 6 caracteres' });
+  try {
+    const hash = await bcrypt.hash(senha, 10);
+    const { error } = await supabase.from(USUARIOS_TABLE).update({ senha_hash: hash, reset_senha: false }).eq('id', req.user.id);
+    if (error) throw new Error(error.message);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -338,6 +353,22 @@ app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'p3'), async
     const { error } = await supabase.from(USUARIOS_TABLE).update(updates).eq('id', req.params.id);
     if (error) throw new Error(error.message);
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/users/:id/reset-senha — define matrícula como senha temporária (apenas p3)
+app.post('/api/admin/users/:id/reset-senha', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  try {
+    const { data: target } = await supabase.from(USUARIOS_TABLE).select('role, matricula').eq('id', req.params.id).single();
+    if (!target) return res.status(404).json({ error: 'Usuário não encontrado' });
+    if (target.role === 'admin') return res.status(403).json({ error: 'Usuário protegido' });
+    const hash = await bcrypt.hash(target.matricula, 10);
+    const { error } = await supabase.from(USUARIOS_TABLE).update({ senha_hash: hash, reset_senha: true }).eq('id', req.params.id);
+    if (error) throw new Error(error.message);
+    res.json({ ok: true, matricula: target.matricula });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -127,7 +127,8 @@ function buildUserTable(users, me) {
       actions = `<button onclick="admAction('${u.id}','approved')" style="padding:4px 10px;background:rgba(61,191,122,.15);border:1px solid rgba(61,191,122,.3);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px">✓ Aprovar</button>
                  <button onclick="admAction('${u.id}','rejected')" style="padding:4px 10px;background:rgba(200,75,75,.1);border:1px solid rgba(200,75,75,.25);color:#e06060;border-radius:4px;cursor:pointer;font-size:11px">✕ Recusar</button>`;
     } else if (u.status === 'approved') {
-      actions = `<button onclick="admAction('${u.id}','rejected')" style="padding:4px 10px;background:rgba(200,75,75,.08);border:1px solid rgba(200,75,75,.2);color:#e06060;border-radius:4px;cursor:pointer;font-size:11px">Revogar</button>`;
+      actions = `<button onclick="admAction('${u.id}','rejected')" style="padding:4px 10px;background:rgba(200,75,75,.08);border:1px solid rgba(200,75,75,.2);color:#e06060;border-radius:4px;cursor:pointer;font-size:11px">Revogar</button>
+                 <button onclick="admResetSenha('${u.id}','${u.nome}')" style="padding:4px 10px;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.25);color:#e8c96a;border-radius:4px;cursor:pointer;font-size:11px;margin-left:4px" title="Senha temporária = matrícula do usuário">🔑 Redefinir Senha</button>`;
     } else {
       actions = `<button onclick="admAction('${u.id}','approved')" style="padding:4px 10px;background:rgba(61,191,122,.1);border:1px solid rgba(61,191,122,.25);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:11px">Reativar</button>`;
     }
@@ -188,6 +189,18 @@ async function admChangeRole(id, role) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     showAdmMsg('Nível de acesso atualizado.', 'ok');
+  } catch (err) {
+    showAdmMsg(err.message, 'err');
+  }
+}
+
+async function admResetSenha(id, nome) {
+  if (!confirm(`Redefinir a senha de "${nome}"?\n\nA senha temporária será a própria matrícula do usuário.\nNa próxima vez que entrar, ele será obrigado a criar uma nova senha.`)) return;
+  try {
+    const res  = await authFetch(`${API}/admin/users/${id}/reset-senha`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showAdmMsg(`Senha redefinida. Senha temporária: matrícula ${data.matricula}`, 'ok');
   } catch (err) {
     showAdmMsg(err.message, 'err');
   }
