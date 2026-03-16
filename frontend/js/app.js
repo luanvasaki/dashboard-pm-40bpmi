@@ -874,10 +874,14 @@ function renderInsights() {
 
   // --- Pré-cálculos genéricos ---
 
-  // Variação geral: total avaliado vs total anterior
-  const totalAval = CRIMES.reduce((s, c) => s + sf(qsc({ crime: c })), 0);
-  const totalAnt  = CRIMES.reduce((s, c) => s + sf(qsc({ crime: c }), 'anterior'), 0);
-  const varGeral  = totalAnt > 0 ? parseFloat(((totalAval - totalAnt) / totalAnt * 100).toFixed(0)) : 0;
+  // Crime com maior crescimento percentual vs anterior (somente crimes com vol > 0)
+  const crimesVar = CRIMES.map(c => {
+    const a = sf(qsc({ crime: c })), ant = sf(qsc({ crime: c }), 'anterior');
+    const varP = ant > 0 ? parseFloat(((a - ant) / ant * 100).toFixed(0)) : (a > 0 ? 100 : 0);
+    return { c, a, ant, varP };
+  }).filter(x => x.a > 0 || x.ant > 0);
+  const crimeMaisCresceu = [...crimesVar].sort((a, b) => b.varP - a.varP)[0];
+  const crimeMaisReduciu = [...crimesVar].sort((a, b) => a.varP - b.varP)[0];
 
   // Crime mais crítico: maior desvio positivo acima da meta
   const crimesDesvio = CRIMES.map(c => {
@@ -921,13 +925,12 @@ function renderInsights() {
 
   // --- Cards ---
   const ins = [
-    // 1. Tendência geral
-    {
-      t: varGeral > 0 ? 'red' : 'green',
-      v: `${varGeral > 0 ? '▲' : '▼'}${Math.abs(varGeral)}%`,
-      title: `Tendência geral — ${lbl}`,
-      body: `Total de ${totalAval} ocorrências no período vs ${totalAnt} no anterior. ${varGeral > 0 ? 'Aumento requer atenção.' : varGeral < 0 ? 'Queda é um bom sinal.' : 'Estável em relação ao anterior.'}`
-    },
+    // 1. Crime com maior crescimento vs anterior
+    crimeMaisCresceu && crimeMaisCresceu.varP > 0
+      ? { t: 'red',   v: `▲${crimeMaisCresceu.varP}%`, title: `Maior crescimento — ${crimeMaisCresceu.c}`, body: `Passou de ${crimeMaisCresceu.ant} para ${crimeMaisCresceu.a} ocorrências vs período anterior. Crime com maior alta percentual no escopo selecionado.` }
+      : crimeMaisReduciu
+        ? { t: 'green', v: `▼${Math.abs(crimeMaisReduciu.varP)}%`, title: `Maior redução — ${crimeMaisReduciu.c}`, body: `Passou de ${crimeMaisReduciu.ant} para ${crimeMaisReduciu.a} ocorrências. Nenhum crime em alta no período — destaque para a maior queda.` }
+        : { t: '', v: '—', title: 'Sem variação', body: 'Não há dados suficientes para calcular variação entre períodos.' },
     // 2. Crime mais crítico
     crimeCritico.desvio > 0
       ? { t: 'red', v: `+${crimeCritico.desvio.toFixed(0)}%`, title: `Crítico — ${crimeCritico.c}`, body: `${crimeCritico.a} ocorrências contra meta de ${crimeCritico.m}. Desvio de ${crimeCritico.desvio.toFixed(0)}% acima do permitido.` }
