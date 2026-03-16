@@ -42,10 +42,10 @@ O painel é organizado por seções que espelham as seções do batalhão:
 
 | Seção | Status |
 |---|---|
-| P1 · Pessoal | Em desenvolvimento |
-| P2 · Inteligência | Em desenvolvimento |
-| P3 · Operações | Ativo |
-| P4 · Logística | Em desenvolvimento |
+| P1 · Seção de Pessoal | Em desenvolvimento |
+| P3 · Divisão Operacional | Ativo |
+| P4 · Seção de Materiais | Em desenvolvimento |
+| P5 · Comunicação Social | Em desenvolvimento |
 
 A seção **P3 · Operações** concentra todos os painéis de análise criminal atualmente disponíveis.
 
