@@ -991,50 +991,6 @@ function renderInsights() {
     `<div class="ins ${i.t}"><div class="ins-val">${i.v}</div><div class="ins-title">${i.title}</div><div class="ins-body">${i.body}</div></div>`
   ).join('');
 
-  // Gráfico de cumprimento por CIA (ou por crime quando filtrado)
-  const insTitle = document.getElementById('ins-chart-title');
-  if (pf.type === 'btl') {
-    if (insTitle) insTitle.textContent = 'AVALIADO VS META POR CRIME — BATALHÃO';
-    const avals  = CRIMES.map(c => sf(q({ crime: c, mes: selMeses })));
-    const metas2 = CRIMES.map(c => sf(q({ crime: c, mes: selMeses }), 'meta'));
-    const ants2  = CRIMES.map(c => sf(q({ crime: c, mes: selMeses }), 'anterior'));
-    const colors = avals.map((a, i) => {
-      const m = metas2[i], ant = ants2[i];
-      if (a <= m)  return 'rgba(61,191,122,.75)';   // verde — na meta
-      if (a < ant) return 'rgba(191,122,61,.85)';   // laranja — em evolução
-      return 'rgba(200,75,75,.75)';                  // vermelho — acima
-    });
-    mk('c-cia-ins', {
-      type: 'bar',
-      data: {
-        labels: CRIMES.map(cl),
-        datasets: [
-          { label: 'Meta',     data: metas2, backgroundColor: 'rgba(255,255,255,.08)', borderRadius: 4 },
-          { label: 'Avaliado', data: avals,  backgroundColor: colors, borderRadius: 4 }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { labels: { boxWidth: 9 } } },
-        scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } }
-      }
-    });
-  } else {
-    if (insTitle) insTitle.textContent = `AVALIADO VS META — ${pf.value?.toUpperCase()}`;
-    const aval = CRIMES.map(c => sf(qsc({ crime: c })));
-    const meta = CRIMES.map(c => sf(qsc({ crime: c }), 'meta'));
-    mk('c-cia-ins', {
-      type: 'bar',
-      data: {
-        labels: CRIMES.map(cl),
-        datasets: [
-          { label: 'Meta',     data: meta, backgroundColor: 'rgba(255,255,255,.08)', borderRadius: 4 },
-          { label: 'Avaliado', data: aval, backgroundColor: aval.map((v, j) => meta[j] > 0 && v <= meta[j] ? 'rgba(61,191,122,.75)' : 'rgba(200,75,75,.75)'), borderRadius: 4 }
-        ]
-      },
-      options: { responsive: true, plugins: { legend: { labels: { boxWidth: 9 } } }, scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } } }
-    });
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1413,8 +1369,15 @@ function goSection(id, btn) {
   const isP3 = id === 'p3';
   document.getElementById('p3-submenu').style.display = isP3 ? '' : 'none';
   document.querySelector('.sidebar-mes').style.display = isP3 ? '' : 'none';
+  if (isP3) {
+    // Sempre retorna para Visão Geral ao entrar no P3
+    currentP3Page = 'visao';
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
+    const visaoBtn = document.querySelector('.nav-btn[onclick*="visao"]');
+    if (visaoBtn) visaoBtn.classList.add('on');
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
-  document.getElementById(isP3 ? 'page-' + currentP3Page : 'page-' + id).classList.add('on');
+  document.getElementById(isP3 ? 'page-visao' : 'page-' + id).classList.add('on');
   setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
 }
 
