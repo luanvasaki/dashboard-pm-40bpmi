@@ -594,43 +594,66 @@ function renderVisao() {
   // Desvio vs Meta: ((avaliado - meta) / meta) * 100
   // Verde  → avaliado ≤ meta  |  Laranja → acima mas melhorando  |  Vermelho → acima e piorando
   const vmDetails = CRIMES.map(c => {
-    const aval = sf(q({ crime: c, mes: selMeses, ...sc }));
-    const meta = sf(q({ crime: c, mes: selMeses, ...sc }), 'meta');
-    const ant  = sf(q({ crime: c, mes: selMeses, ...sc }), 'anterior');
-    const dev  = meta === 0 ? (aval === 0 ? 0 : 100) : parseFloat(((aval - meta) / meta * 100).toFixed(1));
-    const tend = aval <= meta ? '✓ Dentro da meta' : aval < ant ? '↗ Acima da meta, melhorando' : '↘ Acima da meta, piorando';
-    return { aval, meta, ant, dev, tend };
+    const aval  = sf(q({ crime: c, mes: selMeses, ...sc }));
+    const meta  = sf(q({ crime: c, mes: selMeses, ...sc }), 'meta');
+    const ant   = sf(q({ crime: c, mes: selMeses, ...sc }), 'anterior');
+    const tendV = sf(q({ crime: c, mes: selMeses, ...sc }), 'tend');
+    const dev   = meta === 0 ? (aval === 0 ? 0 : 100) : parseFloat(((aval - meta) / meta * 100).toFixed(1));
+    const devT  = meta === 0 ? (tendV === 0 ? 0 : 100) : parseFloat(((tendV - meta) / meta * 100).toFixed(1));
+    const tendS = aval <= meta ? '✓ Dentro da meta' : aval < ant ? '↗ Acima da meta, melhorando' : '↘ Acima da meta, piorando';
+    return { aval, meta, ant, tendV, dev, devT, tendS };
   });
   mk('c-var', {
     type: 'bar',
     data: {
       labels: CRIMES.map(cl),
-      datasets: [{
-        label: 'Desvio vs Meta (%)',
-        data: vmDetails.map(d => d.dev),
-        backgroundColor: vmDetails.map(d =>
-          d.aval <= d.meta ? 'rgba(61,191,122,.80)' :
-          d.aval < d.ant   ? 'rgba(191,122,61,.85)' :
-                             'rgba(200,75,75,.80)'
-        ),
-        borderRadius: 4
-      }]
+      datasets: [
+        {
+          label: 'Desvio vs Meta (%)',
+          data: vmDetails.map(d => d.dev),
+          backgroundColor: vmDetails.map(d =>
+            d.aval <= d.meta ? 'rgba(61,191,122,.80)' :
+            d.aval < d.ant   ? 'rgba(191,122,61,.85)' :
+                               'rgba(200,75,75,.80)'
+          ),
+          borderRadius: 4,
+          order: 1
+        },
+        {
+          label: 'Tendência (%)',
+          data: vmDetails.map(d => d.devT),
+          backgroundColor: 'rgba(180,200,220,.45)',
+          borderColor: 'rgba(180,200,220,.70)',
+          borderWidth: 1,
+          borderRadius: 4,
+          order: 2
+        }
+      ]
     },
     options: {
       responsive: true,
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: true,
+          labels: { boxWidth: 12, font: { size: 11 } }
+        },
         tooltip: {
           callbacks: {
             title: ctx => CRIMES[ctx[0].dataIndex],
             label: ctx => {
               const d = vmDetails[ctx.dataIndex];
+              if (ctx.datasetIndex === 1) {
+                return [
+                  `Tendência (proj.): ${d.devT > 0 ? '+' : ''}${d.devT}% vs meta`,
+                  `Valor tendência:   ${d.tendV}`
+                ];
+              }
               return [
                 `Desvio vs Meta: ${d.dev > 0 ? '+' : ''}${d.dev}%`,
                 `Mês Anterior:   ${d.ant}`,
                 `Meta:           ${d.meta || '—'}`,
                 `Avaliado:       ${d.aval}`,
-                `Tendência:      ${d.tend}`
+                `Status:         ${d.tendS}`
               ];
             }
           }
