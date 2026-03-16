@@ -228,7 +228,7 @@ let moCh     = [];
 
 const pageFilters = {
   visao:    { type: 'btl', value: null },
-  metas:    { type: 'btl', value: null },
+  metas:    { type: 'btl', value: null, crime: '__all__' },
   cia:      { type: 'btl', value: null },
   insights: { type: 'btl', value: null },
   evolucao: { type: 'btl', value: null },
@@ -255,7 +255,7 @@ function syncSidebarMes() {
 }
 
 // Constrói a barra de filtro de uma página com dropdowns
-function buildPageFilter(containerId, key, renderFn) {
+function buildPageFilter(containerId, key, renderFn, opts = {}) {
   const el = document.getElementById(containerId);
   if (!el) return;
 
@@ -317,16 +317,17 @@ function buildPageFilter(containerId, key, renderFn) {
   }
 
   function applyFilter() {
-    const ciaVal = sCia.value;
-    const munVal = sMun.value;
+    const ciaVal   = sCia.value;
+    const munVal   = sMun.value;
+    const crimeVal = sCrime ? sCrime.value : '__all__';
     if (munVal !== '__all__') {
-      pageFilters[key] = { type: 'mun', value: munVal };
+      pageFilters[key] = { type: 'mun', value: munVal, crime: crimeVal };
       btnBtl.classList.remove('on');
     } else if (ciaVal !== '__all__') {
-      pageFilters[key] = { type: 'cia', value: ciaVal };
+      pageFilters[key] = { type: 'cia', value: ciaVal, crime: crimeVal };
       btnBtl.classList.remove('on');
     } else {
-      pageFilters[key] = { type: 'btl', value: null };
+      pageFilters[key] = { type: 'btl', value: null, crime: crimeVal };
       btnBtl.classList.add('on');
     }
     renderFn();
@@ -350,10 +351,24 @@ function buildPageFilter(containerId, key, renderFn) {
     sCia.value = '__all__';
     repopulateMuns(MUNS);
     sMun.value = '__all__';
-    pageFilters[key] = { type: 'btl', value: null };
+    pageFilters[key] = { type: 'btl', value: null, crime: sCrime ? sCrime.value : '__all__' };
     btnBtl.classList.add('on');
     renderFn();
   });
+
+  // (opcional) Select de crime — exibido apenas quando opts.showCrime for true
+  let sCrime = null;
+  if (opts.showCrime) {
+    const { wrap: wCrime, sel: _sCrime } = makeField('CRIME:', [
+      ['Todos os crimes', '__all__'],
+      ...CRIMES.map(c => [c, c])
+    ]);
+    sCrime = _sCrime;
+    sCrime.addEventListener('change', () => {
+      pageFilters[key].crime = sCrime.value;
+      renderFn();
+    });
+  }
 
   const sep = document.createElement('span');
   sep.className = 'pf-sep';
@@ -363,11 +378,12 @@ function buildPageFilter(containerId, key, renderFn) {
   el.appendChild(sep);
   el.appendChild(wCia);
   el.appendChild(wMun);
+  if (sCrime) el.appendChild(sCrime.parentElement);
 }
 
 function buildPageFilters() {
   buildPageFilter('pf-visao',    'visao',    renderVisao);
-  buildPageFilter('pf-metas',   'metas',    renderMetas);
+  buildPageFilter('pf-metas',   'metas',    renderMetas, { showCrime: true });
   buildPageFilter('pf-cia',     'cia',      renderCIA);
   buildPageFilter('pf-insights','insights', renderInsights);
   buildPageFilter('pf-evolucao','evolucao', renderEvolucao);
@@ -721,6 +737,7 @@ function renderMetas() {
   const muns    = pf.type === 'mun' ? [pf.value]
                 : pf.type === 'cia' ? MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === pf.value))
                 : MUNS;
+  const crimes  = (pf.crime && pf.crime !== '__all__') ? [pf.crime] : CRIMES;
 
   let h = '<thead><tr><th>Município</th><th>CIA</th><th>Crime</th><th>Anterior</th><th>Meta</th><th>Avaliado</th><th>Var%</th><th>Status</th></tr></thead><tbody>';
   let lastCia = null;
@@ -729,7 +746,7 @@ function renderMetas() {
       const cia = munCia(mun);
       if (cia !== lastCia) { h += ciaSepRow(cia, 8); lastCia = cia; }
     }
-    CRIMES.forEach(crime => {
+    crimes.forEach(crime => {
       const rows = q({ crime, mun, mes: selMeses });
       if (!rows.length) return;
       const ant = sf(rows, 'anterior'), meta = sf(rows, 'meta'), aval = sf(rows), cia = rows[0].cia;
@@ -1386,6 +1403,8 @@ function goPage(id, btn) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
   document.getElementById('page-' + id).classList.add('on');
   btn.classList.add('on');
+  // Força Chart.js a recalcular dimensões após o display:block ser aplicado
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
 }
 
 // ---------------------------------------------------------------------------
