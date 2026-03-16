@@ -4,7 +4,7 @@
   --gold:#c8a84b;--gold2:#e8c96a;
   --blue:#3d7abf;--red:#c84b4b;--green:#3dbf7a;--orange:#bf7a3d;--purple:#7a4bbf;
   --red2:#e06060;--green2:#5ae09a;--blue2:#5a9de0;
-  --tx:#d8dce8;--tx2:#9aaabf;--tx3:#6b7d9a;
+  --tx:#d8dce8;--tx2:#b8c8dc;--tx3:#8fa4bc;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-size:14px;display:flex;min-height:100vh;overflow-x:hidden}
