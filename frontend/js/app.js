@@ -739,7 +739,7 @@ function renderMetas() {
                 : MUNS;
   const crimes  = (pf.crime && pf.crime !== '__all__') ? [pf.crime] : CRIMES;
 
-  let h = '<thead><tr><th>Município</th><th>CIA</th><th>Crime</th><th>Anterior</th><th>Meta</th><th>Avaliado</th><th style="cursor:help;white-space:nowrap" title="Variação percentual do valor avaliado em relação ao período anterior (mesmo período do ano anterior). Positivo = aumento de ocorrências. Negativo = redução.">Var% vs Ant. ⓘ</th><th>Status</th></tr></thead><tbody>';
+  let h = '<thead><tr><th>Município</th><th>CIA</th><th>Crime</th><th>Anterior</th><th>Meta</th><th>Avaliado</th><th style="cursor:help;white-space:nowrap" title="Variação percentual do valor avaliado em relação ao mês anterior. Positivo = aumento de ocorrências. Negativo = redução.">Var% vs Ant. ⓘ</th><th>Status</th></tr></thead><tbody>';
   let lastCia = null;
   muns.forEach(mun => {
     if (isBtl) {
@@ -1243,7 +1243,7 @@ function moOpen(crime, color) {
   });
 
   let lastMoCia = null;
-  let tbl = '<thead><tr><th>#</th><th>Município</th><th>Ant</th><th>Meta</th><th>Aval</th><th style="cursor:help;white-space:nowrap" title="Variação percentual do valor avaliado em relação ao período anterior (mesmo período do ano anterior). Positivo = aumento de ocorrências. Negativo = redução.">Var% vs Ant. ⓘ</th><th>Status</th></tr></thead><tbody>';
+  let tbl = '<thead><tr><th>#</th><th>Município</th><th>Ant</th><th>Meta</th><th>Aval</th><th style="cursor:help;white-space:nowrap" title="Variação percentual do valor avaliado em relação ao mês anterior. Positivo = aumento de ocorrências. Negativo = redução.">Var% vs Ant. ⓘ</th><th>Status</th></tr></thead><tbody>';
   sorted.forEach((row, i) => {
     if (row.cia !== lastMoCia) { tbl += ciaSepRow(row.cia, 7); lastMoCia = row.cia; }
     const vp2 = row.ant > 0 ? ((row.aval - row.ant) / row.ant * 100).toFixed(0) : '—';
