@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -29,13 +30,34 @@
     <div id="sb-mes"></div>
   </div>
   <nav>
-    <div class="nav-sec">Painéis</div>
-    <button class="nav-btn on" onclick="goPage('visao',this)"><span class="nav-ic">◈</span>Visão Geral</button>
-    <button class="nav-btn" onclick="goPage('metas',this)"><span class="nav-ic">◎</span>Metas × Realizado</button>
-    <button class="nav-btn" onclick="goPage('cia',this)"><span class="nav-ic">▤</span>Desempenho por CIA</button>
-    <button class="nav-btn" onclick="goPage('heatmap',this)"><span class="nav-ic">▦</span>Mapa de Calor</button>
-    <button class="nav-btn" onclick="goPage('insights',this)"><span class="nav-ic">◉</span>Insights Comando</button>
-    <button class="nav-btn" onclick="goPage('evolucao',this)"><span class="nav-ic">◌</span>Evolução Mensal</button>
+    <div class="nav-sec">Seções</div>
+    <button class="sec-btn" id="sec-p1" onclick="goSection('p1',this)">
+      <i data-lucide="users" class="sec-ic"></i>
+      <div class="sec-info"><div class="sec-name">P1 · Pessoal</div></div>
+      <span class="sec-badge-soon">Em breve</span>
+    </button>
+    <button class="sec-btn" id="sec-p2" onclick="goSection('p2',this)">
+      <i data-lucide="eye" class="sec-ic"></i>
+      <div class="sec-info"><div class="sec-name">P2 · Inteligência</div></div>
+      <span class="sec-badge-soon">Em breve</span>
+    </button>
+    <button class="sec-btn on" id="sec-p3" onclick="goSection('p3',this)">
+      <i data-lucide="shield" class="sec-ic"></i>
+      <div class="sec-info"><div class="sec-name">P3 · Operacional</div></div>
+    </button>
+    <div id="p3-submenu">
+      <button class="nav-btn on" onclick="goPage('visao',this)"><span class="nav-ic">◈</span>Visão Geral</button>
+      <button class="nav-btn" onclick="goPage('metas',this)"><span class="nav-ic">◎</span>Metas × Realizado</button>
+      <button class="nav-btn" onclick="goPage('cia',this)"><span class="nav-ic">▤</span>Desempenho por CIA</button>
+      <button class="nav-btn" onclick="goPage('heatmap',this)"><span class="nav-ic">▦</span>Mapa de Calor</button>
+      <button class="nav-btn" onclick="goPage('insights',this)"><span class="nav-ic">◉</span>Insights Comando</button>
+      <button class="nav-btn" onclick="goPage('evolucao',this)"><span class="nav-ic">◌</span>Evolução Mensal</button>
+    </div>
+    <button class="sec-btn" id="sec-p4" onclick="goSection('p4',this)">
+      <i data-lucide="package" class="sec-ic"></i>
+      <div class="sec-info"><div class="sec-name">P4 · Logística</div></div>
+      <span class="sec-badge-soon">Em breve</span>
+    </button>
   </nav>
   <div class="sidebar-foot">
     PERÍODO<br><b style="color:var(--gold2)" id="sb-periodo">—</b><br><br>
@@ -141,6 +163,45 @@
 </div>
 
 <main>
+<!-- P1 EM BREVE -->
+<div id="page-p1" class="page">
+  <div class="ph">
+    <div><div class="ph-tag">SEÇÃO P1</div><div class="ph-title">SEÇÃO DE <span>PESSOAL</span></div></div>
+  </div>
+  <div class="soon-wrap">
+    <div class="soon-icon-wrap"><i data-lucide="users" style="width:36px;height:36px;color:var(--gold)"></i></div>
+    <div class="soon-title">P1 · Seção de Pessoal</div>
+    <div class="soon-desc">Módulo em desenvolvimento. Em breve: gerenciamento de efetivo, escalas de serviço e indicadores de pessoal do batalhão.</div>
+    <div class="soon-pill">EM BREVE</div>
+  </div>
+</div>
+
+<!-- P2 EM BREVE -->
+<div id="page-p2" class="page">
+  <div class="ph">
+    <div><div class="ph-tag">SEÇÃO P2</div><div class="ph-title">SEÇÃO DE <span>INTELIGÊNCIA</span></div></div>
+  </div>
+  <div class="soon-wrap">
+    <div class="soon-icon-wrap"><i data-lucide="eye" style="width:36px;height:36px;color:var(--gold)"></i></div>
+    <div class="soon-title">P2 · Inteligência</div>
+    <div class="soon-desc">Módulo em desenvolvimento. Em breve: análise de inteligência, mapeamento de alvos e relatórios estratégicos.</div>
+    <div class="soon-pill">EM BREVE</div>
+  </div>
+</div>
+
+<!-- P4 EM BREVE -->
+<div id="page-p4" class="page">
+  <div class="ph">
+    <div><div class="ph-tag">SEÇÃO P4</div><div class="ph-title">SEÇÃO DE <span>LOGÍSTICA</span></div></div>
+  </div>
+  <div class="soon-wrap">
+    <div class="soon-icon-wrap"><i data-lucide="package" style="width:36px;height:36px;color:var(--gold)"></i></div>
+    <div class="soon-title">P4 · Logística</div>
+    <div class="soon-desc">Módulo em desenvolvimento. Em breve: controle de viaturas, armamento, material e indicadores de logística operacional.</div>
+    <div class="soon-pill">EM BREVE</div>
+  </div>
+</div>
+
 <!-- VISÃO GERAL -->
 <div id="page-visao" class="page on">
   <div class="ph">

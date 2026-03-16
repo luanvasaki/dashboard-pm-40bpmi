@@ -481,6 +481,7 @@ async function init() {
     buildPageFilters();
     renderAll();
     updateSyncStatus();
+    if (window.lucide) lucide.createIcons();
 
   } catch (err) {
     console.error('Erro ao carregar dados da API:', err);
@@ -1398,12 +1399,25 @@ async function confirmUpload() {
 // Navegação entre páginas
 // ---------------------------------------------------------------------------
 
+let currentP3Page = 'visao';
+
+function goSection(id, btn) {
+  document.querySelectorAll('.sec-btn').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  const isP3 = id === 'p3';
+  document.getElementById('p3-submenu').style.display = isP3 ? '' : 'none';
+  document.querySelector('.sidebar-mes').style.display = isP3 ? '' : 'none';
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  document.getElementById(isP3 ? 'page-' + currentP3Page : 'page-' + id).classList.add('on');
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+}
+
 function goPage(id, btn) {
+  currentP3Page = id;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
   document.getElementById('page-' + id).classList.add('on');
   btn.classList.add('on');
-  // Força Chart.js a recalcular dimensões após o display:block ser aplicado
   setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
 }
 
