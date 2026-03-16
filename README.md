@@ -10,11 +10,12 @@
 
 Painel web interativo que transforma dados brutos de registros operacionais em visualizações e indicadores para apoio à gestão. Com ele é possível:
 
-- Verificar se os indicadores estão **acima ou abaixo da meta** por área
+- Verificar se os indicadores estão **acima ou abaixo da meta** por área e por CIA
 - Identificar regiões com **tendência de crescimento**
 - Priorizar onde concentrar esforços operacionais
 - Acompanhar a **evolução mês a mês** de cada indicador
 - Ler **insights gerados automaticamente** com base nos dados
+- **Importar dados via CSV** diretamente pelo painel
 
 ---
 
@@ -22,40 +23,66 @@ Painel web interativo que transforma dados brutos de registros operacionais em v
 
 ### Frontend
 Feito com tecnologias web puras, sem frameworks:
-- **HTML** — estrutura das páginas
-- **CSS** — estilo visual do painel
-- **JavaScript** — lógica de gráficos e interações
-- **Chart.js** — biblioteca para renderização dos gráficos
+- **HTML / CSS / JavaScript** — estrutura, estilo e lógica
+- **Chart.js** — renderização de gráficos
+- **PapaParse** — leitura e validação de arquivos CSV no navegador
 
 ### Backend
 Feito em **Node.js com Express**, responsável por:
-- Servir os dados via API REST
-- Autenticar os usuários com **JWT**
+- Servir os dados e o frontend via API REST
+- Autenticar usuários com **JWT** (token com expiração de 8h)
 - Criptografar senhas com **bcryptjs**
 - Sincronizar dados com o banco via **Supabase**
+- Calcular indicadores analíticos automaticamente
 
 ### Banco de dados
-**Supabase** (PostgreSQL na nuvem) — armazena os registros e os usuários do sistema.
+**Supabase** (PostgreSQL na nuvem) — armazena os registros operacionais e os usuários do sistema.
 
 ### Deploy
 **Vercel** — hospedagem e publicação automática via GitHub.
 
 ---
 
+## Indicadores acompanhados
+
+| Crime |
+|---|
+| Homicídio |
+| Estupro |
+| Estupro de Vulnerável |
+| Roubo |
+| Furto |
+| Roubo de Veículos |
+| Furto de Veículos |
+
+Cada registro contém: ano, mês, CIA, município, valor anterior, meta e valor avaliado.
+
+---
+
 ## Funcionalidades
 
 ### Painéis
+
 | Painel | O que mostra |
 |---|---|
-| Visão Geral | KPIs consolidados |
+| Visão Geral | KPIs consolidados por crime e período |
 | Metas × Realizado | Comparativo por área e tipo de indicador |
-| Mapa de Calor | Intensidade por região |
+| Desempenho por CIA | Barras empilhadas com escala linear ou logarítmica |
+| Mapa de Calor | Intensidade por município × crime, agrupado por CIA |
 | Evolução Mensal | Gráfico de tendência por indicador |
-| Desempenho por Unidade | Comparativo entre unidades |
-| Diagnósticos | Insights automáticos gerados pelo sistema |
+| Insights Comando | Diagnósticos automáticos gerados a partir dos dados |
+
+### Janela de detalhe por crime
+
+Ao clicar em qualquer indicador, abre uma janela com:
+- KPIs do crime (total, variação, município crítico, status de meta)
+- Gráfico de barras por município
+- Evolução mensal
+- Comparativo meta × avaliado
+- Distribuição por CIA (gráfico rosca)
+- **Tabela de municípios agrupada por CIA** — com separador visual por unidade, ordenada da 1ª à 3ª CIA, e municípios ordenados por valor dentro de cada grupo
 
 ### Módulo de Analytics
-O servidor calcula automaticamente indicadores avançados:
 
 | Indicador | O que mede |
 |---|---|
@@ -65,16 +92,34 @@ O servidor calcula automaticamente indicadores avançados:
 | Desvio de Meta | Diferença percentual em relação à meta |
 | Insights Automáticos | Frases geradas a partir dos indicadores |
 
+### Importação de dados
+
+Upload de arquivo `.csv` direto pelo painel. O sistema valida, exibe prévia e faz upsert no banco de dados.
+
+**Colunas obrigatórias no CSV:**
+```
+Ano, Mes, Cia, Municipio, Crime, Anterior, Meta, Avaliado
+```
+
 ### Controle de Acesso
-Cadastro com aprovação obrigatória por um gestor autorizado. Níveis de acesso configuráveis por perfil de usuário.
+
+Cadastro com aprovação obrigatória. Níveis de acesso:
+
+| Nível | Permissões |
+|---|---|
+| Visualizador | Acesso de leitura a todos os painéis |
+| Cmt de Cia | Acesso de leitura a todos os painéis |
+| Cmt de Batalhão | Acesso de leitura a todos os painéis |
+| P1 / P3 | Aprovam, recusam, alteram nível e excluem usuários |
+| admin | Protegido — não pode ser alterado nem excluído |
 
 ---
 
 ## Como rodar localmente
 
 ### Pré-requisitos
-- [Node.js](https://nodejs.org/) instalado na máquina (versão 18 ou superior)
-- Conta no [Supabase](https://supabase.com) com as tabelas configuradas
+- [Node.js](https://nodejs.org/) v18 ou superior
+- Conta no [Supabase](https://supabase.com) com as tabelas configuradas *(opcional — há fallback local)*
 
 ### Passo a passo
 
@@ -92,7 +137,7 @@ npm install
 
 **3. Configure as credenciais**
 
-Abra o arquivo `backend/server.js` e preencha com suas credenciais do Supabase:
+Abra `backend/server.js` e preencha com suas credenciais do Supabase:
 ```js
 const SUPABASE_URL = 'sua_url_aqui';
 const SUPABASE_KEY = 'sua_chave_aqui';
@@ -116,22 +161,21 @@ http://localhost:3001
 
 ```
 ├── backend/
-│   ├── analytics/              ← módulos de análise de dados
-│   │   ├── crimePressureIndex.js
-│   │   ├── trendAnalysis.js
-│   │   ├── priorityScore.js
-│   │   ├── cityRanking.js
-│   │   ├── targetDeviation.js
-│   │   └── insightGenerator.js
-│   └── server.js               ← API REST principal
+│   ├── analytics/
+│   │   ├── crimePressureIndex.js   ← índice de pressão por crime/área
+│   │   ├── trendAnalysis.js        ← análise de tendência de crescimento
+│   │   ├── priorityScore.js        ← score de prioridade operacional
+│   │   ├── cityRanking.js          ← ranking de municípios
+│   │   ├── targetDeviation.js      ← desvio em relação à meta
+│   │   └── insightGenerator.js     ← geração de insights em linguagem natural
+│   └── server.js                   ← API REST principal (porta 3001)
 ├── frontend/
-│   ├── index.html              ← dashboard principal
-│   ├── login.html              ← tela de acesso
-│   ├── js/app.js               ← lógica, gráficos e chamadas à API
-│   └── css/style.css           ← estilo visual
-├── backup_legado/              ← versões anteriores preservadas
-├── raw_data.json               ← dados de fallback local
-├── vercel.json                 ← configuração de deploy
+│   ├── index.html                  ← dashboard principal
+│   ├── login.html                  ← tela de acesso e cadastro
+│   ├── js/app.js                   ← lógica, gráficos e chamadas à API
+│   └── css/style.css               ← estilo visual
+├── raw_data.json                   ← dados de fallback local
+├── vercel.json                     ← configuração de deploy
 └── README.md
 ```
 
