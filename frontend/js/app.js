@@ -34,7 +34,7 @@ function initUserBlock() {
     const ROLE_LABEL = { comandante: 'Cmt Batalhão', comandante_cia: 'Cmt de Cia', p1: 'Seção P1', p3: 'Seção P3', viewer: 'Visualizador' };
     document.getElementById('user-nome').textContent = u.nome || '—';
     document.getElementById('user-info').textContent = `${u.secao || '—'} · ${ROLE_LABEL[u.role] || u.role || '—'}`;
-    if (['admin', 'p1', 'p3'].includes(u.role)) {
+    if (['admin', 'p3'].includes(u.role)) {
       document.getElementById('btn-admin').style.display = 'block';
       checkPendingUsers();
     }
@@ -116,9 +116,9 @@ function buildUserTable(users, me) {
 
   users.forEach(u => {
     const sStyle = STATUS_STYLE[u.status] || '';
-    const canEditRole = ['admin', 'p1', 'p3'].includes(me.role);
+    const canEditRole = ['admin', 'p3'].includes(me.role);
     const roleOpts = canEditRole
-      ? ['viewer','p1','p3','comandante_cia','comandante'].map(r =>
+      ? ['viewer','p3'].map(r =>
           `<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABEL[r]||r}</option>`).join('')
       : `<option>${ROLE_LABEL[u.role]||u.role}</option>`;
 
