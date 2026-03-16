@@ -471,7 +471,7 @@ async function init() {
     selMeses = [...MESES];
     hmMeses  = [...MESES];
 
-    Chart.defaults.color       = '#4a5568';
+    Chart.defaults.color       = '#8fa4bc';
     Chart.defaults.borderColor = '#1c2235';
     Chart.defaults.font.family = "'DM Mono', monospace";
     Chart.defaults.font.size   = 11;
