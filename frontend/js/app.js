@@ -728,18 +728,19 @@ function renderMetas() {
       const rows = q({ crime, mun, mes: selMeses });
       if (!rows.length) return;
       const ant = sf(rows, 'anterior'), meta = sf(rows, 'meta'), aval = sf(rows), cia = rows[0].cia;
-      const vp = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : '—';
+      const vp = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : (aval === 0 ? '0' : '—');
       const vc = parseFloat(vp) > 0 ? 'var(--red2)' : parseFloat(vp) < 0 ? 'var(--green2)' : 'var(--tx3)';
-      const vt = vp !== '—' ? (parseFloat(vp) > 0 ? '▲' : '▼') + Math.abs(vp) + '%' : vp;
+      const vt = vp === '—' ? '—' : parseFloat(vp) === 0 ? '0%' : (parseFloat(vp) > 0 ? '▲' : '▼') + Math.abs(vp) + '%';
       let pc, pt;
       if (meta > 0) {
         if (aval <= meta * 0.8) { pc = 'p-ok'; pt = 'Ótimo'; }
         else if (aval <= meta)  { pc = 'p-warn'; pt = 'Na Meta'; }
+        else if (aval < ant)    { pc = 'p-evol'; pt = 'Em Evolução'; }
         else                    { pc = 'p-bad'; pt = 'Acima'; }
       } else {
-        if (aval === 0)       { pc = 'p-ok';   pt = 'Zero'; }
+        if (aval === 0)       { pc = 'p-ok';   pt = 'Meta'; }
         else if (aval < ant)  { pc = 'p-evol'; pt = 'Em Evolução'; }
-        else                  { pc = 'p-warn'; pt = 'Sem Meta'; }
+        else                  { pc = 'p-bad';  pt = 'Acima'; }
       }
       h += `<tr><td style="font-weight:600">${mun}</td><td style="color:var(--tx3);font-size:11px">${cia}</td><td>${crime}</td><td class="num">${ant}</td><td class="num">${meta}</td><td class="num" style="font-weight:700">${aval}</td><td class="num" style="color:${vc}">${vt}</td><td><span class="pill ${pc}">${pt}</span></td></tr>`;
     });
@@ -1224,20 +1225,20 @@ function moOpen(crime, color) {
   let tbl = '<thead><tr><th>#</th><th>Município</th><th>Ant</th><th>Meta</th><th>Aval</th><th style="cursor:help;white-space:nowrap" title="Variação percentual do valor avaliado em relação ao mês anterior. Positivo = aumento de ocorrências. Negativo = redução.">Var% vs Ant. ⓘ</th><th>Status</th></tr></thead><tbody>';
   sorted.forEach((row, i) => {
     if (row.cia !== lastMoCia) { tbl += ciaSepRow(row.cia, 7); lastMoCia = row.cia; }
-    const vp2 = row.ant > 0 ? ((row.aval - row.ant) / row.ant * 100).toFixed(0) : '—';
+    const vp2 = row.ant > 0 ? ((row.aval - row.ant) / row.ant * 100).toFixed(0) : (row.aval === 0 ? '0' : '—');
     const vc2 = parseFloat(vp2) > 0 ? 'var(--red2)' : parseFloat(vp2) < 0 ? 'var(--green2)' : 'var(--tx3)';
-    const vt2 = vp2 !== '—' ? (parseFloat(vp2) > 0 ? '▲' : '▼') + Math.abs(vp2) + '%' : vp2;
+    const vt2 = vp2 === '—' ? '—' : parseFloat(vp2) === 0 ? '0%' : (parseFloat(vp2) > 0 ? '▲' : '▼') + Math.abs(vp2) + '%';
     let st, sc;
     if (row.meta > 0) {
-      if (row.aval <= row.meta)        { st = '✓ Meta';       sc = 'var(--green2)'; }
+      if (row.aval <= row.meta)        { st = '✓ Meta';        sc = 'var(--green2)'; }
       else if (row.aval < row.ant)     { st = '↗ Em Evolução'; sc = '#e8965a'; }
-      else                             { st = '✗ Acima';      sc = 'var(--red2)'; }
+      else                             { st = '✗ Acima';       sc = 'var(--red2)'; }
     } else {
-      if (row.aval === 0)              { st = '✓ Zero';       sc = 'var(--green2)'; }
+      if (row.aval === 0)              { st = '✓ Meta';        sc = 'var(--green2)'; }
       else if (row.aval < row.ant)     { st = '↗ Em Evolução'; sc = '#e8965a'; }
-      else                             { st = 'Sem Meta';     sc = 'var(--tx3)'; }
+      else                             { st = '✗ Acima';       sc = 'var(--red2)'; }
     }
-    tbl += `<tr><td style="font-family:'DM Mono',monospace;color:var(--tx3);font-size:10px">${i + 1}</td><td style="font-weight:600">${row.m}</td><td class="num" style="color:var(--tx3)">${row.ant}</td><td class="num">${row.meta || '—'}</td><td class="num" style="font-weight:700;color:${color}">${row.aval}</td><td class="num" style="color:${vc2}">${vt2}</td><td style="font-family:'DM Mono',monospace;font-size:10px;color:${sc}">${st}</td></tr>`;
+    tbl += `<tr><td style="font-family:'DM Mono',monospace;color:var(--tx3);font-size:10px">${i + 1}</td><td style="font-weight:600">${row.m}</td><td class="num" style="color:var(--tx3)">${row.ant}</td><td class="num">${row.meta}</td><td class="num" style="font-weight:700;color:${color}">${row.aval}</td><td class="num" style="color:${vc2}">${vt2}</td><td style="font-family:'DM Mono',monospace;font-size:10px;color:${sc}">${st}</td></tr>`;
   });
   document.getElementById('mo-tbl').innerHTML = tbl + '</tbody>';
   document.getElementById('mo').classList.add('on');
