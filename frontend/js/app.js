@@ -34,7 +34,7 @@ function initUserBlock() {
     const ROLE_LABEL = { comandante: 'Cmt Batalhão', comandante_cia: 'Cmt de Cia', p1: 'Seção P1', p3: 'Seção P3', viewer: 'Visualizador' };
     document.getElementById('user-nome').textContent = u.nome || '—';
     document.getElementById('user-info').textContent = `${u.secao || '—'} · ${ROLE_LABEL[u.role] || u.role || '—'}`;
-    if (['admin', 'comandante', 'p1', 'p3', 'comandante_cia'].includes(u.role)) {
+    if (['admin', 'p1', 'p3'].includes(u.role)) {
       document.getElementById('btn-admin').style.display = 'block';
       checkPendingUsers();
     }
@@ -116,7 +116,7 @@ function buildUserTable(users, me) {
 
   users.forEach(u => {
     const sStyle = STATUS_STYLE[u.status] || '';
-    const canEditRole = ['admin', 'comandante', 'p1', 'p3'].includes(me.role);
+    const canEditRole = ['admin', 'p1', 'p3'].includes(me.role);
     const roleOpts = canEditRole
       ? ['viewer','p1','p3','comandante_cia','comandante'].map(r =>
           `<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABEL[r]||r}</option>`).join('')
@@ -1210,13 +1210,25 @@ function moOpen(crime, color) {
     options: { responsive: true, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, padding: 10, font: { size: 10 } } } } }
   }));
 
-  const sorted = MUNS.map(m => {
-    const rows = q({ crime, mun: m, mes: selMeses });
-    return { m, cia: rows[0]?.cia || '—', aval: sf(rows), meta: sf(rows, 'meta'), ant: sf(rows, 'anterior') };
-  }).sort((a, b) => b.aval - a.aval);
+  // Agrupa municípios por CIA (preservando ordem de MUNS) e ordena por avaliado dentro de cada CIA
+  const _ciaMuns = {}, _ciaOrder = [];
+  MUNS.forEach(m => {
+    const cia = munCia(m) || '—';
+    if (!_ciaMuns[cia]) { _ciaMuns[cia] = []; _ciaOrder.push(cia); }
+    _ciaMuns[cia].push(m);
+  });
+  const sorted = [];
+  _ciaOrder.forEach(cia => {
+    _ciaMuns[cia].map(m => {
+      const rows = q({ crime, mun: m, mes: selMeses });
+      return { m, cia, aval: sf(rows), meta: sf(rows, 'meta'), ant: sf(rows, 'anterior') };
+    }).sort((a, b) => b.aval - a.aval).forEach(r => sorted.push(r));
+  });
 
-  let tbl = '<thead><tr><th>#</th><th>Município</th><th>CIA</th><th>Ant</th><th>Meta</th><th>Aval</th><th>Var%</th><th>Status</th></tr></thead><tbody>';
+  let lastMoCia = null;
+  let tbl = '<thead><tr><th>#</th><th>Município</th><th>Ant</th><th>Meta</th><th>Aval</th><th>Var%</th><th>Status</th></tr></thead><tbody>';
   sorted.forEach((row, i) => {
+    if (row.cia !== lastMoCia) { tbl += ciaSepRow(row.cia, 7); lastMoCia = row.cia; }
     const vp2 = row.ant > 0 ? ((row.aval - row.ant) / row.ant * 100).toFixed(0) : '—';
     const vc2 = parseFloat(vp2) > 0 ? 'var(--red2)' : parseFloat(vp2) < 0 ? 'var(--green2)' : 'var(--tx3)';
     const vt2 = vp2 !== '—' ? (parseFloat(vp2) > 0 ? '▲' : '▼') + Math.abs(vp2) + '%' : vp2;
@@ -1230,7 +1242,7 @@ function moOpen(crime, color) {
       else if (row.aval < row.ant)     { st = '↗ Em Evolução'; sc = '#e8965a'; }
       else                             { st = 'Sem Meta';     sc = 'var(--tx3)'; }
     }
-    tbl += `<tr><td style="font-family:'DM Mono',monospace;color:var(--tx3);font-size:10px">${i + 1}</td><td style="font-weight:600">${row.m}</td><td style="color:var(--tx3);font-size:11px">${row.cia}</td><td class="num" style="color:var(--tx3)">${row.ant}</td><td class="num">${row.meta || '—'}</td><td class="num" style="font-weight:700;color:${color}">${row.aval}</td><td class="num" style="color:${vc2}">${vt2}</td><td style="font-family:'DM Mono',monospace;font-size:10px;color:${sc}">${st}</td></tr>`;
+    tbl += `<tr><td style="font-family:'DM Mono',monospace;color:var(--tx3);font-size:10px">${i + 1}</td><td style="font-weight:600">${row.m}</td><td class="num" style="color:var(--tx3)">${row.ant}</td><td class="num">${row.meta || '—'}</td><td class="num" style="font-weight:700;color:${color}">${row.aval}</td><td class="num" style="color:${vc2}">${vt2}</td><td style="font-family:'DM Mono',monospace;font-size:10px;color:${sc}">${st}</td></tr>`;
   });
   document.getElementById('mo-tbl').innerHTML = tbl + '</tbody>';
   document.getElementById('mo').classList.add('on');

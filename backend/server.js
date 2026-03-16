@@ -301,11 +301,11 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// Rotas de administração de usuários (p1, p3, comandante e comandante_cia)
+// Rotas de administração de usuários (somente p1 e p3)
 // ---------------------------------------------------------------------------
 
 // GET /api/admin/users — lista todos os usuários
-app.get('/api/admin/users', requireAuth, requireRole('admin', 'comandante', 'p1', 'p3', 'comandante_cia'), async (req, res) => {
+app.get('/api/admin/users', requireAuth, requireRole('admin', 'p1', 'p3'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
   try {
     const { data, error } = await supabase
@@ -320,13 +320,13 @@ app.get('/api/admin/users', requireAuth, requireRole('admin', 'comandante', 'p1'
 });
 
 // PATCH /api/admin/users/:id — aprova/rejeita/altera role
-app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'comandante', 'p1', 'p3', 'comandante_cia'), async (req, res) => {
+app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'p1', 'p3'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { status, role } = req.body;
   const updates = {};
   if (status) updates.status = status;
-  // Apenas comandante de batalhão pode alterar o nível de acesso (role)
-  if (role && ['admin', 'comandante', 'p1', 'p3'].includes(req.user.role)) updates.role = role;
+  // Apenas p1 e p3 podem alterar o nível de acesso (role)
+  if (role && ['admin', 'p1', 'p3'].includes(req.user.role)) updates.role = role;
 
   if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nenhuma alteração informada' });
 
@@ -343,8 +343,8 @@ app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'comandante'
   }
 });
 
-// DELETE /api/admin/users/:id — exclui usuário definitivamente (apenas comandante)
-app.delete('/api/admin/users/:id', requireAuth, requireRole('admin', 'comandante', 'p1', 'p3', 'comandante_cia'), async (req, res) => {
+// DELETE /api/admin/users/:id — exclui usuário definitivamente (apenas p1 e p3)
+app.delete('/api/admin/users/:id', requireAuth, requireRole('admin', 'p1', 'p3'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
   try {
     const { data: target } = await supabase.from(USUARIOS_TABLE).select('role').eq('id', req.params.id).single();
