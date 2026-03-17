@@ -1055,14 +1055,28 @@ function moOpen(crime, color) {
   const meta = sf(q({ crime, mes: selMeses }), 'meta');
   const ant  = sf(q({ crime, mes: selMeses }), 'anterior');
   const vp   = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : 0;
-  const topM = MUNS.map(m => ({ m, v: sf(q({ crime, mun: m, mes: selMeses })) })).sort((a, b) => b.v - a.v)[0];
+  // Município crítico = maior desvio % acima da meta; se todos dentro da meta, maior volume
+  const munDesvio = MUNS.map(m => {
+    const v  = sf(q({ crime, mun: m, mes: selMeses }));
+    const mt = sf(q({ crime, mun: m, mes: selMeses }), 'meta');
+    const desvio = mt > 0 ? (v - mt) / mt * 100 : (v > 0 ? Infinity : -Infinity);
+    return { m, v, mt, desvio };
+  });
+  const acimaDoMeta = munDesvio.filter(x => x.desvio > 0);
+  const topM = acimaDoMeta.length
+    ? acimaDoMeta.sort((a, b) => b.desvio - a.desvio)[0]
+    : munDesvio.sort((a, b) => b.v - a.v)[0];
+  const topMLabel = acimaDoMeta.length
+    ? `+${topM.desvio.toFixed(0)}% acima da meta`
+    : `${topM.v} casos`;
+
   const vc   = parseFloat(vp) <= 0 ? 'var(--green2)' : 'var(--red2)';
   const mok  = meta > 0 && aval <= meta;
 
   document.getElementById('mo-kpis').innerHTML = `
     <div class="mk"><div class="mk-lbl">Total Avaliado</div><div class="mk-val" style="color:${color}">${aval}</div><div class="mk-sub">${pLbl(selMeses)}</div></div>
     <div class="mk"><div class="mk-lbl">Var vs Anterior</div><div class="mk-val" style="color:${vc}">${parseFloat(vp) <= 0 ? '▼' : '▲'}${Math.abs(vp)}%</div><div class="mk-sub">Ant: ${ant}</div></div>
-    <div class="mk"><div class="mk-lbl">Município Crítico</div><div class="mk-val" style="color:${color};font-size:16px;padding-top:6px">${topM.m}</div><div class="mk-sub">${topM.v} casos</div></div>
+    <div class="mk"><div class="mk-lbl">Município Crítico</div><div class="mk-val" style="color:var(--red2);font-size:16px;padding-top:6px">${topM.m}</div><div class="mk-sub">${topMLabel}</div></div>
     <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok ? 'var(--green2)' : 'var(--red2)'};font-size:16px;padding-top:6px">${mok ? '✓ Ok' : '✗ Acima'}</div><div class="mk-sub">Meta:${meta} | Real:${aval}</div></div>`;
 
   const munVals   = MUNS.map(m => sf(q({ crime, mun: m, mes: selMeses })));
