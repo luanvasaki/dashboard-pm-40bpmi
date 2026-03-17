@@ -114,6 +114,8 @@ function buildUserTable(users, me) {
       <th style="padding:7px 8px;border-bottom:1px solid #1c2235"></th>
     </tr></thead><tbody>`;
 
+  const SECAO_OPTS = ['Comandante Batalhão','SubComandante','Coordop','Comandante de Cia','P1','P2','P3','P4','P5','CFP','1ª Cia PM','2ª Cia PM','3ª Cia PM'];
+
   users.forEach(u => {
     const sStyle = STATUS_STYLE[u.status] || '';
     const canEditRole = ['admin', 'p3'].includes(me.role);
@@ -121,6 +123,9 @@ function buildUserTable(users, me) {
       ? ['viewer','p3'].map(r =>
           `<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABEL[r]||r}</option>`).join('')
       : `<option>${ROLE_LABEL[u.role]||u.role}</option>`;
+    const secaoOpts = canEditRole
+      ? SECAO_OPTS.map(s => `<option value="${s}" ${u.secao===s?'selected':''}>${s}</option>`).join('')
+      : `<option>${u.secao}</option>`;
 
     let actions = '';
     if (u.status === 'pending') {
@@ -137,7 +142,9 @@ function buildUserTable(users, me) {
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:#d8dce8">${u.nome}</td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:#8090a8">${u.posto||'—'}</td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-family:'DM Mono',monospace;color:#8090a8">${u.matricula}</td>
-      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:#8090a8">${u.secao}</td>
+      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
+        <select onchange="admChangeSecao('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${secaoOpts}</select>
+      </td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)"><span style="padding:2px 8px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;${sStyle}">${STATUS_LABEL[u.status]||u.status}</span></td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
         <select onchange="admChangeRole('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${roleOpts}</select>
@@ -189,6 +196,21 @@ async function admChangeRole(id, role) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     showAdmMsg('Nível de acesso atualizado.', 'ok');
+  } catch (err) {
+    showAdmMsg(err.message, 'err');
+  }
+}
+
+async function admChangeSecao(id, secao) {
+  try {
+    const res = await authFetch(`${API}/admin/users/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secao })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showAdmMsg('Função atualizada.', 'ok');
   } catch (err) {
     showAdmMsg(err.message, 'err');
   }

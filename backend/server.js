@@ -337,11 +337,11 @@ app.get('/api/admin/users', requireAuth, requireRole('admin', 'p3'), async (req,
 // PATCH /api/admin/users/:id — aprova/rejeita/altera role
 app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
-  const { status, role } = req.body;
+  const { status, role, secao } = req.body;
   const updates = {};
   if (status) updates.status = status;
-  // Apenas p3 pode alterar o nível de acesso (role)
-  if (role && ['admin', 'p3'].includes(req.user.role)) updates.role = role;
+  if (role   && ['admin', 'p3'].includes(req.user.role)) updates.role  = role;
+  if (secao  && ['admin', 'p3'].includes(req.user.role)) updates.secao = secao;
 
   if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nenhuma alteração informada' });
 
