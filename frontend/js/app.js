@@ -28,6 +28,13 @@ function doLogout() {
   window.location.replace('/login.html');
 }
 
+function toggleSidebar() {
+  const aside = document.querySelector('aside');
+  const overlay = document.querySelector('.sidebar-overlay');
+  const open = aside.classList.toggle('open');
+  overlay.style.display = open ? 'block' : 'none';
+}
+
 function initUserBlock() {
   try {
     const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
@@ -1337,7 +1344,16 @@ async function confirmUpload() {
 
 let currentP3Page = 'visao';
 
+function closeSidebarMobile() {
+  const aside = document.querySelector('aside');
+  if (aside.classList.contains('open')) {
+    aside.classList.remove('open');
+    document.querySelector('.sidebar-overlay').style.display = 'none';
+  }
+}
+
 function goSection(id, btn) {
+  closeSidebarMobile();
   document.querySelectorAll('.sec-btn').forEach(b => b.classList.remove('on'));
   if (btn) btn.classList.add('on');
   const isP3 = id === 'p3';
@@ -1356,6 +1372,7 @@ function goSection(id, btn) {
 }
 
 function goPage(id, btn) {
+  closeSidebarMobile();
   currentP3Page = id;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
