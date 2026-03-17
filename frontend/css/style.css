@@ -116,7 +116,7 @@ canvas{max-height:240px}
 .ins-body{font-size:14px;color:var(--tx2);line-height:1.6}
 .mo{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
 .mo.on{opacity:1;pointer-events:all}
-.mo-box{background:var(--s1);border:1px solid var(--bd2);border-radius:12px;width:100%;max-width:900px;max-height:88vh;overflow-y:auto;transform:translateY(16px);transition:transform .2s}
+.mo-box{background:var(--s1);border:1px solid var(--bd2);border-radius:12px;width:100%;max-width:1200px;max-height:92vh;overflow-y:auto;transform:translateY(16px);transition:transform .2s}
 .mo.on .mo-box{transform:translateY(0)}
 .mo-head{display:flex;align-items:center;justify-content:space-between;padding:18px 24px 14px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--s1);z-index:10;border-radius:12px 12px 0 0}
 .mo-accent{width:4px;height:32px;border-radius:2px;flex-shrink:0}
@@ -134,7 +134,7 @@ canvas{max-height:240px}
 .mo-g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .mo-card{background:var(--s2);border:1px solid var(--bd);border-radius:7px;padding:14px}
 .mo-ct{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px}
-.mo-card canvas{max-height:180px}
+.mo-card canvas{max-height:240px}
 .ctbl{width:100%;border-collapse:collapse}
 .ctbl th{font-family:'DM Mono',monospace;font-size:13px;letter-spacing:1px;color:var(--tx3);text-transform:uppercase;padding:7px 8px;border-bottom:1px solid var(--bd);text-align:left}
 .ctbl td{padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-size:14px}

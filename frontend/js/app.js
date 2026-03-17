@@ -667,7 +667,7 @@ function renderVisao() {
       plugins: {
         legend: {
           display: true,
-          labels: { boxWidth: 14, font: { size: 13 } }
+          labels: { boxWidth: 16, font: { size: 16 } }
         },
         tooltip: {
           callbacks: {
@@ -744,7 +744,7 @@ function renderEvolMuns() {
     options: {
       responsive: true,
       plugins: {
-        legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12, font: { size: 13 }, usePointStyle: true } }
+        legend: { position: 'bottom', labels: { boxWidth: 15, padding: 12, font: { size: 16 }, usePointStyle: true } }
       },
       scales: {
         x: { grid: GR },
@@ -1002,7 +1002,7 @@ function renderEvolucao() {
     },
     options: {
       responsive: true,
-      plugins: { legend: { labels: { boxWidth: 12, font: { size: 13 } } } },
+      plugins: { legend: { labels: { boxWidth: 15, font: { size: 16 } } } },
       scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } }
     }
   });
@@ -1138,7 +1138,7 @@ function moOpen(crime, color) {
         borderDash: i % 2 === 1 ? [5, 3] : [], pointStyle: i % 2 === 1 ? 'triangle' : 'circle', pointBackgroundColor: lc2[i % lc2.length]
       }))
     },
-    options: { responsive: true, plugins: { legend: { labels: { boxWidth: 12, padding: 10, font: { size: 13 }, usePointStyle: true } } }, scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1 } } } }
+    options: { responsive: true, plugins: { legend: { labels: { boxWidth: 15, padding: 10, font: { size: 16 }, usePointStyle: true } } }, scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1 } } } }
   }));
 
   const mm   = MUNS.map(m => sf(q({ crime, mun: m, mes: selMeses }), 'meta'));
@@ -1153,7 +1153,7 @@ function moOpen(crime, color) {
         { label: 'Avaliado', data: ma, backgroundColor: ma.map((v, i) => mm[i] > 0 && v <= mm[i] ? 'rgba(61,191,122,.75)' : 'rgba(200,75,75,.75)'), borderRadius: 3 }
       ]
     },
-    options: { responsive: true, plugins: { legend: { labels: { boxWidth: 12, font: { size: 13 } } } }, scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } } }
+    options: { responsive: true, plugins: { legend: { labels: { boxWidth: 15, font: { size: 16 } } } }, scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } } }
   }));
 
   const cv   = CIAS.map(c => sf(q({ crime, cia: c, mes: selMeses })));
@@ -1161,7 +1161,7 @@ function moOpen(crime, color) {
   moCh.push(new Chart(ctx4, {
     type: 'doughnut',
     data: { labels: ['1ª CIA','2ª CIA','3ª CIA'], datasets: [{ data: cv, backgroundColor: ['#c8a84b','#3d7abf','#c84b4b'], borderWidth: 0, hoverOffset: 5 }] },
-    options: { responsive: true, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12, font: { size: 13 } } } } }
+    options: { responsive: true, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 15, padding: 12, font: { size: 16 } } } } }
   }));
 
   // Agrupa municípios por CIA (preservando ordem de MUNS) e ordena por avaliado dentro de cada CIA
