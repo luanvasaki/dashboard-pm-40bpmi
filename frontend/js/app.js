@@ -415,7 +415,7 @@ const hcol = (v, max) => {
   return '#c84b4b';
 };
 const mk  = (id, cfg) => { if (charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), cfg); };
-const cl  = c => c.replace(' Vulnerável', 'Vuln.').replace(' Veículos', 'Veíc.');
+const cl  = c => c.replace(' Vulnerável', ' Vuln.').replace(' Veículos', ' Veíc.');
 
 // ---------------------------------------------------------------------------
 // Inicialização — busca dados da API
