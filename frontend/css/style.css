@@ -72,12 +72,12 @@ main{flex:1;overflow-y:auto;padding:26px 26px 60px;min-width:0}
 .card-badge{font-family:'DM Mono',monospace;font-size:9px;padding:3px 9px;border-radius:20px;background:var(--s3);color:var(--tx2)}
 canvas{max-height:240px}
 .tbl{width:100%;border-collapse:collapse}
-.tbl th{font-family:'DM Mono',monospace;font-size:13px;letter-spacing:1.5px;color:var(--tx3);text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}
-.tbl td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.03);font-size:15px}
+.tbl th{font-family:'DM Mono',monospace;font-size:15px;letter-spacing:1.5px;color:var(--tx3);text-transform:uppercase;padding:10px 12px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:17px}
 .tbl tr:last-child td{border-bottom:none}
 .tbl tr:hover td{background:rgba(255,255,255,.02)}
-.num{font-family:'DM Mono',monospace;font-size:14px}
-.pill{display:inline-flex;padding:3px 10px;border-radius:20px;font-family:'DM Mono',monospace;font-size:12px}
+.num{font-family:'DM Mono',monospace;font-size:16px}
+.pill{display:inline-flex;padding:4px 12px;border-radius:20px;font-family:'DM Mono',monospace;font-size:14px}
 .p-ok{background:rgba(61,191,122,.12);color:var(--green2)}
 .p-warn{background:rgba(200,168,75,.12);color:var(--gold2)}
 .p-bad{background:rgba(200,75,75,.12);color:var(--red2)}

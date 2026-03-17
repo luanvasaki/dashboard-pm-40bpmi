@@ -777,7 +777,7 @@ function renderMetas() {
         else if (aval < ant)  { pc = 'p-evol'; pt = 'Em Evolução'; }
         else                  { pc = 'p-bad';  pt = 'Acima'; }
       }
-      h += `<tr><td style="font-weight:600">${mun}</td><td style="color:var(--tx3);font-size:11px">${cia}</td><td>${crime}</td><td class="num">${ant}</td><td class="num">${meta}</td><td class="num" style="font-weight:700">${aval}</td><td class="num" style="color:${vc}">${vt}</td><td><span class="pill ${pc}">${pt}</span></td></tr>`;
+      h += `<tr><td style="font-weight:600">${mun}</td><td style="color:var(--tx3)">${cia}</td><td>${crime}</td><td class="num">${ant}</td><td class="num">${meta}</td><td class="num" style="font-weight:700">${aval}</td><td class="num" style="color:${vc}">${vt}</td><td><span class="pill ${pc}">${pt}</span></td></tr>`;
     });
   });
   document.getElementById('tbl-metas').innerHTML = h + '</tbody>';
