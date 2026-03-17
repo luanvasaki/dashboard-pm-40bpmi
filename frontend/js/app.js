@@ -1021,17 +1021,17 @@ function renderEvolucao() {
       const hasRec = q({ crime, mun, mes: MESES[i] }).length > 0;
       return `<td style="text-align:center;padding:6px 8px">
         ${hasRec ? `<div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${color}">${a}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);margin-top:2px">meta: ${mt}</div>` : '<div style="color:var(--tx3)">—</div>'}
+        <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--tx3);margin-top:2px">meta: ${mt}</div>` : '<div style="color:var(--tx3)">—</div>'}
       </td>`;
     }).join('');
 
     h += `<tr style="border-top:1px solid var(--bd)">
       <td style="font-weight:600">${mun}</td>
-      <td style="color:var(--tx3);font-size:11px">${cia}</td>
+      <td style="color:var(--tx3);font-size:13px;font-weight:500">${cia}</td>
       ${cells}
       <td style="text-align:center;padding:6px 8px">
         <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700">${tot}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);margin-top:2px">meta: ${totMeta}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--tx3);margin-top:2px">meta: ${totMeta}</div>
       </td>
       <td><span class="pill ${pc}">${pt}</span></td>
     </tr>`;
