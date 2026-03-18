@@ -716,7 +716,7 @@ function renderVisao() {
       },
       scales: {
         x: { grid: GR },
-        y: { grid: GR, ticks: { callback: v => v + '%' } }
+        y: { grid: { color: ctx => ctx.tick.value === 0 ? 'rgba(255,255,255,.45)' : 'rgba(255,255,255,.04)', lineWidth: ctx => ctx.tick.value === 0 ? 2 : 1 }, ticks: { callback: v => v + '%' } }
       },
       onClick: (evt, elements) => {
         if (elements.length) moOpen(CRIMES[elements[0].index], PAL[elements[0].index]);
