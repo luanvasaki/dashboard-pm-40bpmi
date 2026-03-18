@@ -282,11 +282,12 @@ function scope(key) {
   return {};
 }
 
-// Sincroniza o sidebar de meses com selMeses atual
+// Sincroniza a barra de meses da Visão Geral com selMeses atual
 function syncSidebarMes() {
-  document.querySelectorAll('#sb-mes .mes-btn').forEach((b, i) => {
-    if (i === 0) b.classList.toggle('on', selMeses.length === MESES.length);
-    else         b.classList.toggle('on', selMeses.length === 1 && selMeses[0] === MESES[i - 1]);
+  const allBtn = document.getElementById('mes-btn-all');
+  if (allBtn) allBtn.classList.toggle('on', selMeses.length === MESES.length);
+  document.querySelectorAll('.mes-btn-vis').forEach((b, i) => {
+    b.classList.toggle('on', selMeses.length === 1 && selMeses[0] === MESES[i]);
   });
   // Sincroniza selects de mês nas barras de filtro
   document.querySelectorAll('.pf-mes').forEach(s => {
@@ -532,9 +533,12 @@ async function init() {
 // ---------------------------------------------------------------------------
 
 function buildSbMes() {
-  let h = `<button class="mes-btn on" onclick="sbAll(this)">Todos os meses</button>`;
-  MESES.forEach(m => h += `<button class="mes-btn" onclick="sbTog('${m}',this)">${m}</button>`);
-  document.getElementById('sb-mes').innerHTML = h;
+  const ano = new Date().getFullYear();
+  let h = `<span class="pf-label">Período</span>`;
+  h += `<button class="pf-btn on" id="mes-btn-all" onclick="sbAll(this)">${ano}</button>`;
+  MESES.forEach(m => h += `<button class="pf-btn mes-btn-vis" onclick="sbTog('${m}',this)">${m}</button>`);
+  const el = document.getElementById('vis-mes-bar');
+  if (el) el.innerHTML = h;
 }
 
 function buildHmFilter() {
@@ -1358,7 +1362,6 @@ function goSection(id, btn) {
   if (btn) btn.classList.add('on');
   const isP3 = id === 'p3';
   document.getElementById('p3-submenu').style.display = isP3 ? '' : 'none';
-  document.querySelector('.sidebar-mes').style.display = isP3 ? '' : 'none';
   if (isP3) {
     // Sempre retorna para Visão Geral ao entrar no P3
     currentP3Page = 'visao';
