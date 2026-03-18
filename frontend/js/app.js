@@ -44,8 +44,36 @@ function initUserBlock() {
     if (['admin', 'p3'].includes(u.role)) {
       document.getElementById('btn-admin').style.display = 'block';
       checkPendingUsers();
+      // Mostra botão de editar período apenas para P3/admin
+      const btnEdit = document.getElementById('btn-edit-periodo');
+      if (btnEdit) btnEdit.style.display = 'inline-block';
     }
+    // Restaura período salvo no label
+    const periodoSalvo = localStorage.getItem('periodo_texto');
+    const inp = document.getElementById('inp-periodo');
+    if (periodoSalvo && inp) inp.value = periodoSalvo;
   } catch (_) {}
+}
+
+function toggleEditPeriodo() {
+  const inp  = document.getElementById('inp-periodo');
+  const lbl  = document.getElementById('lbl-p1');
+  const btn  = document.getElementById('btn-edit-periodo');
+  const open = inp.style.display === 'none' || inp.style.display === '';
+  inp.style.display = open ? 'inline-block' : 'none';
+  lbl.style.display = open ? 'none' : 'inline-block';
+  btn.textContent   = open ? '✔ Salvar' : '✎ Editar';
+  if (!open) {
+    const val = inp.value.trim();
+    localStorage.setItem('periodo_texto', val);
+    lbl.textContent = val || pLbl(selMeses);
+  }
+}
+
+function savePeriodo(val) {
+  // Atualiza label em tempo real enquanto digita
+  const lbl = document.getElementById('lbl-p1');
+  if (lbl) lbl.textContent = val || pLbl(selMeses);
 }
 
 async function checkPendingUsers() {
@@ -596,11 +624,14 @@ function hmTog(mes, btn) {
 
 function renderAll() {
   const p = pLbl(selMeses);
-  ['lbl-p1','lbl-p2'].forEach(id => {
+  ['lbl-p2'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = p;
   });
-  document.getElementById('sb-periodo').textContent  = p;
+  // Período da Visão Geral: usa texto manual se salvo, senão usa seleção de meses
+  const periodoSalvo = localStorage.getItem('periodo_texto');
+  const lblP1 = document.getElementById('lbl-p1');
+  if (lblP1) lblP1.textContent = periodoSalvo || p;
   document.getElementById('metas-badge').textContent = p;
   renderKPIs();
   renderVisaoAndInsights();
