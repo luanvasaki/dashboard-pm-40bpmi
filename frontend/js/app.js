@@ -1451,12 +1451,12 @@ function openOcorrModal() {
   document.getElementById('ocorr-confirm').disabled = true;
   document.getElementById('ocorr-confirm').textContent = 'Importar';
   showOcorrMsg('', '');
-  document.getElementById('ocorr-upl-mo').style.display = 'flex';
+  document.getElementById('ocorr-upl-mo').classList.add('on');
   document.body.style.overflow = 'hidden';
 }
 
 function closeOcorrModal() {
-  document.getElementById('ocorr-upl-mo').style.display = 'none';
+  document.getElementById('ocorr-upl-mo').classList.remove('on');
   document.body.style.overflow = '';
 }
 
