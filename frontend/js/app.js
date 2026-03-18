@@ -121,7 +121,7 @@ function buildUserTable(users, me) {
       <th style="padding:7px 8px;border-bottom:1px solid #1c2235"></th>
     </tr></thead><tbody>`;
 
-  const SECAO_OPTS = ['Comandante Batalhão','SubComandante','Coordop','Comandante de Cia','P1','P2','P3','P4','P5','CFP','CGP','1ª Cia Operacional','2ª Cia Operacional','3ª Cia Operacional','Força Tatica Operacional'];
+  const SECAO_OPTS = ['Comandante de Batalhão','Subcomandante de Batalhão','CoordOp','Comandante de Cia','CFP','P1','P2','P3','P4','P5','Sargentante','CGP','1ª Cia Operacional','2ª Cia Operacional','3ª Cia Operacional','Força Tatica Operacional'];
 
   users.forEach(u => {
     const sStyle = STATUS_STYLE[u.status] || '';
