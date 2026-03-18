@@ -44,14 +44,24 @@ function initUserBlock() {
     if (['admin', 'p3'].includes(u.role)) {
       document.getElementById('btn-admin').style.display = 'block';
       checkPendingUsers();
-      // Mostra botão de editar período apenas para P3/admin
+      // Mostra botões de editar período e fonte apenas para P3/admin
       const btnEdit = document.getElementById('btn-edit-periodo');
       if (btnEdit) btnEdit.style.display = 'inline-block';
+      const btnFonte = document.getElementById('btn-edit-fonte');
+      if (btnFonte) btnFonte.style.display = 'inline-block';
     }
     // Restaura período salvo no label
     const periodoSalvo = localStorage.getItem('periodo_texto');
     const inp = document.getElementById('inp-periodo');
     if (periodoSalvo && inp) inp.value = periodoSalvo;
+    // Restaura fonte salva
+    const fonteSalva = localStorage.getItem('fonte_texto');
+    const inpF = document.getElementById('inp-fonte');
+    if (inpF) {
+      inpF.value = fonteSalva || 'Banco de Dados RAC';
+      const lblF = document.getElementById('lbl-fonte');
+      if (lblF && fonteSalva) lblF.textContent = fonteSalva;
+    }
   } catch (_) {}
 }
 
@@ -71,9 +81,28 @@ function toggleEditPeriodo() {
 }
 
 function savePeriodo(val) {
-  // Atualiza label em tempo real enquanto digita
   const lbl = document.getElementById('lbl-p1');
   if (lbl) lbl.textContent = val || pLbl(selMeses);
+}
+
+function toggleEditFonte() {
+  const inp = document.getElementById('inp-fonte');
+  const lbl = document.getElementById('lbl-fonte');
+  const btn = document.getElementById('btn-edit-fonte');
+  const open = inp.style.display === 'none' || inp.style.display === '';
+  inp.style.display = open ? 'inline-block' : 'none';
+  lbl.style.display = open ? 'none' : 'inline-block';
+  btn.textContent   = open ? '✔ Salvar' : '✎ Editar';
+  if (!open) {
+    const val = inp.value.trim();
+    localStorage.setItem('fonte_texto', val);
+    lbl.textContent = val || 'Banco de Dados RAC';
+  }
+}
+
+function saveFonte(val) {
+  const lbl = document.getElementById('lbl-fonte');
+  if (lbl) lbl.textContent = val || 'Banco de Dados RAC';
 }
 
 async function checkPendingUsers() {
@@ -505,7 +534,7 @@ async function updateSyncStatus() {
       const d = new Date(s.lastSync);
       elTime.textContent = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     }
-    if (elFonte) {
+    if (elFonte && !localStorage.getItem('fonte_texto')) {
       const labels = {
         supabase: 'Banco de Dados RAC - Supabase',
         sheets:   'Banco de Dados RAC - Google Sheets',
