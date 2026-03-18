@@ -34,7 +34,14 @@ const PORT = 3001;
 // Troque JWT_SECRET por uma string longa e aleatória em produção
 // ============================================================
 const JWT_SECRET      = '40bpmi_painel_intel_2026_chave_secreta';
-const USUARIOS_TABLE  = 'usuarios';
+const USUARIOS_TABLE     = 'usuarios';
+const OCORRENCIAS_TABLE  = 'ocorrencias';
+
+// Helpers de normalização para dados InfoCrim
+function normCia(s) { return (s||'').replace(/^(\d+ª)CIA$/,'$1 CIA').trim(); }
+function titleCase(s){ return (s||'').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()); }
+function parseDateBR(s){ if(!s)return null; const[d,m,y]=(s||'').split('/'); if(!d||!m||!y)return null; return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; }
+function parseHora(s){ if(!s||!s.trim())return null; const p=s.trim().split(':'); return p.length<2?null:`${p[0].padStart(2,'0')}:${p[1].padStart(2,'0')}`; }
 
 function requireAuth(req, res, next) {
   const auth = req.headers.authorization;
@@ -452,6 +459,60 @@ app.post('/api/upload', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('✗ Erro no upload:', err.message);
     res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// POST /api/upload/ocorrencias — importa CSV do InfoCrim
+app.post('/api/upload/ocorrencias', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  const { records } = req.body;
+  if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
+  try {
+    const rows = records.map(r => ({
+      data_ocorrencia: parseDateBR(r.DataOcorrencia),
+      hora_ocorrencia: parseHora(r.HoraOcorrencia),
+      periodo:         (r.PeriodoEstimado || '').trim(),
+      dia_semana:      (r.DiaSemana       || '').trim(),
+      flagrante:       (r.Flagrante || '').toLowerCase() === 'sim',
+      rubrica:         (r.Rubrica   || '').trim(),
+      conduta:         (r.Conduta   || '').trim(),
+      batalhao:        (r.BatalhaoCircunscricao       || '').trim(),
+      cia:             normCia(r.CompanhiaCircunscricao || ''),
+      municipio:       titleCase(r.MunicipioCircunscricao || ''),
+      bairro:          titleCase(r.Bairro     || ''),
+      tipo_local:      (r.TipoLocal || '').trim(),
+    })).filter(r => r.data_ocorrencia && r.rubrica);
+    if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
+    const BATCH = 500;
+    let total = 0;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const { error } = await supabase.from(OCORRENCIAS_TABLE).insert(rows.slice(i, i + BATCH));
+      if (error) throw new Error(error.message);
+      total += rows.slice(i, i + BATCH).length;
+    }
+    res.json({ ok: true, inserted: total });
+  } catch (err) {
+    console.error('✗ Erro no upload de ocorrências:', err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// GET /api/ocorrencias — consulta ocorrências com filtros
+app.get('/api/ocorrencias', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  const { rubrica, cia, municipio, limit = 2000 } = req.query;
+  try {
+    let q = supabase.from(OCORRENCIAS_TABLE).select('*')
+      .order('data_ocorrencia', { ascending: false })
+      .limit(parseInt(limit));
+    if (rubrica)    q = q.ilike('rubrica', `%${rubrica}%`);
+    if (cia)        q = q.eq('cia', cia);
+    if (municipio)  q = q.eq('municipio', municipio);
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

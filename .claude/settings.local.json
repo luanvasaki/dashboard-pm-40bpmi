@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd.exe /c \"taskkill /PID 20648 /F\")",
+      "Bash(cmd.exe /c \"taskkill /PID 20648 /F 2>&1\")",
+      "Bash(powershell -Command \"Stop-Process -Id 20648 -Force; Write-Host 'Process killed'\")",
+      "Bash(cd:*)",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 3001 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force }\")",
+      "Bash(powershell -Command \"Stop-Process -Id \\(Get-NetTCPConnection -LocalPort 3001 -State Listen\\).OwningProcess -Force -ErrorAction SilentlyContinue; Write-Host 'done'\")",
+      "Bash(powershell -Command \"Get-Content 'C:\\\\Users\\\\Luan\\\\OneDrive\\\\Documentos\\\\Projeto PM RAC - HTML Backup - teste\\\\raw_data.json' | ConvertFrom-Json | Where-Object { $_.mun -like '*Tapira*' -and $_.crime -like '*Furto*' -and $_.crime -notlike '*Veic*' -and $_.crime -notlike '*Ve*' } | Format-Table mes, mun, crime, anterior, meta, avaliado -AutoSize\")",
+      "Bash(node:*)"
+    ]
+  }
+}

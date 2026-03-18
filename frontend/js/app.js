@@ -1177,12 +1177,14 @@ function moOpen(crime, color) {
   moCrime = crime; moColor = color;
   moMeses = [...selMeses];
   moScopeType = 'btl'; moScopeVal = null;
+  moOcorrAll = []; moOcorrCiaFilter = null;
   document.getElementById('mo-crime').textContent      = crime.toUpperCase();
   document.getElementById('mo-accent').style.background = color;
   buildMoFilter();
   moRender();
   document.getElementById('mo').classList.add('on');
   document.body.style.overflow = 'hidden';
+  loadMoOcorr();
 }
 
 function moQScope() {
@@ -1293,8 +1295,17 @@ function moRender() {
   moCh.push(new Chart(document.getElementById('mo-donut').getContext('2d'), {
     type: 'doughnut',
     data: { labels: CIAS, datasets: [{ data: cv, backgroundColor: ['#c8a84b','#3d7abf','#c84b4b'], borderWidth: 0, hoverOffset: 5 }] },
-    options: { responsive: true, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 15, padding: 12, font: { size: 16 } } } } }
+    options: {
+      responsive: true, cutout: '65%',
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 15, padding: 12, font: { size: 16 } } } },
+      onClick(evt, items) {
+        if (!items.length) return;
+        setOcorrCia(CIAS[items[0].index]);
+      }
+    }
   }));
+
+  applyOcorrFilters();
 }
 
 function moClickOut(e) { if (e.target === document.getElementById('mo')) moClose(); }
@@ -1423,6 +1434,171 @@ async function confirmUpload() {
     btn.disabled = false;
     btn.textContent = 'Importar';
   }
+}
+
+// ---------------------------------------------------------------------------
+// Upload de Ocorrências InfoCrim
+// ---------------------------------------------------------------------------
+
+let ocorrData = null;
+let moOcorrAll = [];
+let moOcorrCiaFilter = null;
+
+function openOcorrModal() {
+  ocorrData = null;
+  document.getElementById('ocorr-file').value = '';
+  document.getElementById('ocorr-preview').style.display = 'none';
+  document.getElementById('ocorr-confirm').disabled = true;
+  document.getElementById('ocorr-confirm').textContent = 'Importar';
+  showOcorrMsg('', '');
+  document.getElementById('ocorr-upl-mo').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeOcorrModal() {
+  document.getElementById('ocorr-upl-mo').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function ocorrClickOut(e) {
+  if (e.target === document.getElementById('ocorr-upl-mo')) closeOcorrModal();
+}
+
+function showOcorrMsg(txt, type) {
+  const el = document.getElementById('ocorr-msg');
+  el.textContent = txt;
+  el.style.display = txt ? 'block' : 'none';
+  el.style.color = type === 'err' ? '#e06060' : type === 'ok' ? '#5ae09a' : '#5a9de0';
+}
+
+function handleOcorrFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  showOcorrMsg('Lendo arquivo...', 'info');
+  ocorrData = null;
+  document.getElementById('ocorr-preview').style.display = 'none';
+  document.getElementById('ocorr-confirm').disabled = true;
+
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    transformHeader: h => h.trim(),
+    complete: (results) => {
+      if (!results.data.length) { showOcorrMsg('Arquivo vazio ou sem registros válidos.', 'err'); return; }
+
+      const required = ['DataOcorrencia', 'Rubrica', 'CompanhiaCircunscricao', 'MunicipioCircunscricao'];
+      const headers  = Object.keys(results.data[0]);
+      const missing  = required.filter(r => !headers.some(h => h.toLowerCase() === r.toLowerCase()));
+      if (missing.length) { showOcorrMsg(`Colunas ausentes: ${missing.join(', ')}`, 'err'); return; }
+
+      ocorrData = results.data
+        .map(row => { const n = {}; Object.entries(row).forEach(([k, v]) => { n[k.trim()] = (v || '').trim(); }); return n; })
+        .filter(r => r.DataOcorrencia && r.Rubrica);
+
+      document.getElementById('ocorr-fn').textContent   = file.name;
+      document.getElementById('ocorr-rows').textContent = ocorrData.length;
+      document.getElementById('ocorr-preview').style.display = 'block';
+      document.getElementById('ocorr-confirm').disabled = false;
+      showOcorrMsg(`${ocorrData.length} registros prontos para importar.`, 'info');
+    },
+    error: (err) => { showOcorrMsg('Erro ao ler o arquivo: ' + err.message, 'err'); }
+  });
+}
+
+async function confirmOcorrUpload() {
+  if (!ocorrData?.length) return;
+  const btn = document.getElementById('ocorr-confirm');
+  btn.disabled = true;
+  btn.textContent = 'Importando...';
+  showOcorrMsg('Enviando para o Supabase...', 'info');
+
+  try {
+    const res  = await authFetch(`${API}/upload/ocorrencias`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ records: ocorrData })
+    });
+    const json = await res.json();
+    if (!res.ok || !json.ok) throw new Error(json.error || 'Erro desconhecido');
+    showOcorrMsg(`✓ ${json.inserted} registros importados com sucesso.`, 'ok');
+    btn.textContent = 'Importar';
+  } catch (err) {
+    showOcorrMsg('✗ ' + err.message, 'err');
+    btn.disabled = false;
+    btn.textContent = 'Importar';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Ocorrências InfoCrim no Modal de Crime
+// ---------------------------------------------------------------------------
+
+async function loadMoOcorr() {
+  const el = document.getElementById('mo-ocorr-table');
+  if (!el) return;
+  el.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:8px 0">Carregando ocorrências...</div>';
+  const filtersEl = document.getElementById('mo-ocorr-filters');
+  if (filtersEl) filtersEl.innerHTML = '';
+
+  try {
+    const params = new URLSearchParams({ rubrica: moCrime, limit: '2000' });
+    const res  = await authFetch(`${API}/ocorrencias?${params}`);
+    const data = await res.json();
+    moOcorrAll = Array.isArray(data) ? data : [];
+    applyOcorrFilters();
+  } catch (err) {
+    if (el) el.innerHTML = `<div style="color:#e06060;font-size:12px;padding:8px 0">Erro ao carregar ocorrências: ${err.message}</div>`;
+  }
+}
+
+function applyOcorrFilters() {
+  let filtered = moOcorrAll.filter(r => {
+    if (!r.data_ocorrencia) return true;
+    const m = parseInt(r.data_ocorrencia.split('-')[1]) - 1;
+    return moMeses.includes(MES_ORD[m]);
+  });
+  if (moOcorrCiaFilter) filtered = filtered.filter(r => r.cia === moOcorrCiaFilter);
+  renderMoOcorrFilters();
+  renderOcorrTable(filtered);
+}
+
+function setOcorrCia(cia) {
+  moOcorrCiaFilter = moOcorrCiaFilter === cia ? null : cia;
+  applyOcorrFilters();
+}
+
+function renderMoOcorrFilters() {
+  const el = document.getElementById('mo-ocorr-filters');
+  if (!el) return;
+  let h = '';
+  if (moOcorrAll.length) {
+    h += `<span style="font-size:11px;color:var(--tx3)">${moOcorrAll.length} registro(s) total</span>`;
+  }
+  if (moOcorrCiaFilter) {
+    h += `<button onclick="setOcorrCia('${moOcorrCiaFilter}')" style="margin-left:8px;padding:3px 10px;border-radius:12px;border:1px solid rgba(200,75,75,.4);background:rgba(200,75,75,.1);color:#e06060;cursor:pointer;font-size:11px">✕ ${moOcorrCiaFilter}</button>`;
+  }
+  el.innerHTML = h;
+}
+
+function renderOcorrTable(data) {
+  const el = document.getElementById('mo-ocorr-table');
+  if (!el) return;
+  if (!data.length) {
+    el.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:8px 0">Nenhuma ocorrência encontrada para os filtros selecionados.</div>';
+    return;
+  }
+  const th = s => `<th style="padding:6px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:1px;text-align:left;white-space:nowrap">${s}</th>`;
+  const td = (s, mono) => `<td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--tx2);white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis${mono?';font-family:\'DM Mono\',monospace;font-size:11px':''}" title="${(s||'').replace(/"/g,'&quot;')}">${s||'—'}</td>`;
+  let h = `<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>
+    ${th('DATA')}${th('HORA')}${th('PERÍODO')}${th('DIA')}${th('FLAGRANTE')}${th('CONDUTA')}${th('BAIRRO')}${th('TIPO LOCAL')}${th('MUNICÍPIO')}${th('CIA')}
+  </tr></thead><tbody>`;
+  data.forEach(r => {
+    const df = r.data_ocorrencia ? r.data_ocorrencia.split('-').reverse().join('/') : '—';
+    const flag = r.flagrante === true ? 'Sim' : r.flagrante === false ? 'Não' : (r.flagrante || '—');
+    h += `<tr>${td(df,true)}${td(r.hora_ocorrencia)}${td(r.periodo)}${td(r.dia_semana)}${td(flag)}${td(r.conduta)}${td(r.bairro)}${td(r.tipo_local)}${td(r.municipio)}${td(r.cia)}</tr>`;
+  });
+  h += '</tbody></table>';
+  el.innerHTML = h;
 }
 
 // ---------------------------------------------------------------------------

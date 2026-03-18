@@ -57,7 +57,8 @@
   </nav>
   <div class="sidebar-foot">
     <button onclick="forceSync()" id="sync-btn" style="width:100%;padding:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:4px;cursor:pointer;font-size:11px">↻ Sincronizar</button>
-    <button onclick="openUploadModal()" style="margin-top:6px;width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar CSV</button>
+    <button onclick="openUploadModal()" style="margin-top:6px;width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar CSV (Metas)</button>
+    <button onclick="openOcorrModal()" style="margin-top:4px;width:100%;padding:6px;background:rgba(61,122,191,.12);border:1px solid rgba(61,122,191,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Ocorrências (InfoCrim)</button>
     <!-- Bloco de usuário (preenchido por JS) -->
     <div id="user-block" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)">
       <div style="font-size:10px;color:var(--tx3);margin-bottom:4px">USUÁRIO</div>
@@ -115,7 +116,14 @@
       <div class="mo-card" style="margin-bottom:12px"><div class="mo-ct">Meta vs Avaliado</div><canvas id="mo-meta"></canvas></div>
       <div class="mo-g2">
         <div class="mo-card"><div class="mo-ct">Evolução por Município</div><canvas id="mo-line"></canvas></div>
-        <div class="mo-card"><div class="mo-ct">Distribuição por CIA</div><canvas id="mo-donut"></canvas></div>
+        <div class="mo-card"><div class="mo-ct">Distribuição por CIA <span style="font-size:10px;color:var(--tx3)">(clique para filtrar)</span></div><canvas id="mo-donut"></canvas></div>
+      </div>
+      <div style="margin-top:14px;border-top:1px solid var(--bd);padding-top:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <div class="mo-ct">Ocorrências Registradas — InfoCrim</div>
+          <div id="mo-ocorr-filters" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+        </div>
+        <div id="mo-ocorr-table" style="overflow-x:auto;max-height:340px;overflow-y:auto;font-size:13px"></div>
       </div>
     </div>
   </div>
@@ -145,6 +153,34 @@
     <div class="upl-actions">
       <button class="upl-btn cancel" onclick="closeUploadModal()">Cancelar</button>
       <button class="upl-btn confirm" id="upl-confirm" onclick="confirmUpload()">Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL UPLOAD OCORRÊNCIAS INFOCRIM -->
+<div id="ocorr-upl-mo" onclick="ocorrClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:9998;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:12px;width:min(540px,95vw);padding:28px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">IMPORTAÇÃO</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800">OCORRÊNCIAS <span style="color:#5a9de0">INFOCRIM</span></div>
+      </div>
+      <button onclick="closeOcorrModal()" style="background:var(--s3);border:1px solid var(--bd);color:var(--tx2);border-radius:4px;padding:6px 14px;cursor:pointer;font-size:13px">✕</button>
+    </div>
+    <label style="border:2px dashed var(--bd2);border-radius:8px;padding:24px;text-align:center;cursor:pointer;display:block" onclick="document.getElementById('ocorr-file').click()">
+      <input type="file" id="ocorr-file" accept=".csv" style="display:none" onchange="handleOcorrFile(this)">
+      <div style="font-size:28px;margin-bottom:8px">📂</div>
+      <div style="font-weight:600;color:var(--tx);margin-bottom:4px">Selecione o CSV exportado do InfoCrim</div>
+      <div style="font-size:12px;color:var(--tx3)">Colunas: DataOcorrencia · HoraOcorrencia · PeriodoEstimado · DiaSemana · Flagrante · Rubrica · Conduta · BatalhaoCircunscricao · CompanhiaCircunscricao · MunicipioCircunscricao · Bairro · TipoLocal</div>
+    </label>
+    <div id="ocorr-preview" style="display:none;background:var(--s2);border-radius:6px;padding:12px;font-size:13px">
+      <b id="ocorr-fn" style="color:var(--tx)">—</b><br>
+      <span style="color:var(--tx3)">Registros válidos: </span><b id="ocorr-rows" style="color:var(--gold)">—</b>
+    </div>
+    <div id="ocorr-msg" style="font-size:13px;display:none"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeOcorrModal()" style="padding:9px 20px;border-radius:6px;border:1px solid var(--bd2);background:none;color:var(--tx2);cursor:pointer;font-size:14px">Cancelar</button>
+      <button id="ocorr-confirm" onclick="confirmOcorrUpload()" disabled style="padding:9px 20px;border-radius:6px;border:none;background:#3d7abf;color:#fff;cursor:pointer;font-size:14px;font-weight:600">Importar</button>
     </div>
   </div>
 </div>
