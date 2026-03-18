@@ -287,7 +287,7 @@ function syncSidebarMes() {
   const allBtn = document.getElementById('mes-btn-all');
   if (allBtn) allBtn.classList.toggle('on', selMeses.length === MESES.length);
   document.querySelectorAll('.mes-btn-vis').forEach((b, i) => {
-    b.classList.toggle('on', selMeses.length === 1 && selMeses[0] === MESES[i]);
+    b.classList.toggle('on', selMeses.includes(MESES[i]));
   });
   // Sincroniza selects de mês nas barras de filtro
   document.querySelectorAll('.pf-mes').forEach(s => {
@@ -553,8 +553,20 @@ function sbAll(btn) {
   renderAll();
 }
 
-function sbTog(mes, btn) {
-  selMeses = [mes];
+function sbTog(mes) {
+  if (selMeses.length === MESES.length) {
+    // Saindo do "todos" — começa só com esse mês
+    selMeses = [mes];
+  } else {
+    const idx = selMeses.indexOf(mes);
+    if (idx >= 0) {
+      selMeses.splice(idx, 1);
+      if (selMeses.length === 0) selMeses = [...MESES]; // não deixa vazio
+    } else {
+      selMeses.push(mes);
+      selMeses.sort((a, b) => MESES.indexOf(a) - MESES.indexOf(b));
+    }
+  }
   syncSidebarMes();
   renderAll();
 }
