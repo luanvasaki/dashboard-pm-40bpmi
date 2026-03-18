@@ -654,7 +654,7 @@ function renderVisao() {
     const ant   = sf(q({ crime: c, mes: selMeses, ...sc }), 'anterior');
     const tendV = sf(q({ crime: c, mes: selMeses, ...sc }), 'tend');
     const dev   = meta === 0 ? (aval === 0 ? 0 : 100) : parseFloat(((aval - meta) / meta * 100).toFixed(1));
-    const devT  = meta === 0 ? (tendV === 0 ? 0 : 100) : parseFloat(((tendV - meta) / meta * 100).toFixed(1));
+    const devT  = tendV === 0 ? null : meta === 0 ? 100 : parseFloat(((tendV - meta) / meta * 100).toFixed(1));
     const tendS = aval <= meta ? '✓ Dentro da meta' : aval < ant ? '↗ Acima da meta, melhorando' : '↘ Acima da meta, piorando';
     return { aval, meta, ant, tendV, dev, devT, tendS };
   });
