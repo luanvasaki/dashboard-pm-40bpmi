@@ -705,9 +705,9 @@ function renderVisao() {
               }
               return [
                 `Desvio vs Meta: ${d.dev > 0 ? '+' : ''}${d.dev}%`,
+                `Avaliado:       ${d.aval}`,
                 `Mês Anterior:   ${d.ant}`,
                 `Meta:           ${d.meta || '—'}`,
-                `Avaliado:       ${d.aval}`,
                 `Status:         ${d.tendS}`
               ];
             }
