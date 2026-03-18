@@ -244,13 +244,15 @@ app.post('/api/auth/register', async (req, res) => {
 
   try {
     const hash = await bcrypt.hash(senha, 10);
+    const secaoTrim = secao.trim();
+    const autoRole = ['P1', 'Sargentante'].includes(secaoTrim) ? 'p3' : 'viewer';
     const { error } = await supabase.from(USUARIOS_TABLE).insert({
       nome:       nome.trim(),
       posto:      posto.trim(),
       matricula:  matricula.trim().toUpperCase(),
       senha_hash: hash,
-      secao:      secao.trim(),
-      role:       'viewer',
+      secao:      secaoTrim,
+      role:       autoRole,
       status:     'pending'
     });
     if (error) {
