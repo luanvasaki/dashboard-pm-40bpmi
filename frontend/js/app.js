@@ -792,9 +792,9 @@ function renderMetas() {
       const rows = q({ crime, mun, mes: selMeses });
       if (!rows.length) return;
       const ant = sf(rows, 'anterior'), meta = sf(rows, 'meta'), aval = sf(rows), cia = rows[0].cia;
-      const vp = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : (aval === 0 ? '0' : '—');
-      const vc = parseFloat(vp) > 0 ? 'var(--red2)' : parseFloat(vp) < 0 ? 'var(--green2)' : 'var(--tx3)';
-      const vt = vp === '—' ? '—' : parseFloat(vp) === 0 ? '0%' : (parseFloat(vp) > 0 ? '▲' : '▼') + Math.abs(vp) + '%';
+      const vp = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : (aval === 0 ? '0' : 'novo');
+      const vc = vp === 'novo' ? 'var(--red2)' : parseFloat(vp) > 0 ? 'var(--red2)' : parseFloat(vp) < 0 ? 'var(--green2)' : 'var(--tx3)';
+      const vt = vp === 'novo' ? 'Novo' : parseFloat(vp) === 0 ? '0%' : (parseFloat(vp) > 0 ? '▲' : '▼') + Math.abs(vp) + '%';
       let pc, pt;
       if (meta > 0) {
         if (aval <= meta * 0.8) { pc = 'p-ok'; pt = 'Ótimo'; }
