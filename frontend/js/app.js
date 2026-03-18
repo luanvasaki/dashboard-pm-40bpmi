@@ -263,6 +263,11 @@ let selMeses = [];
 let hmMeses  = [];
 let charts   = {};
 let moCh     = [];
+let moCrime  = '';
+let moColor  = '';
+let moMeses  = [];
+let moScopeType = 'btl';
+let moScopeVal  = null;
 
 // ---------------------------------------------------------------------------
 // Filtros por página
@@ -1092,87 +1097,127 @@ function moDestroy() { moCh.forEach(c => c.destroy()); moCh = []; }
 
 function moOpen(crime, color) {
   moDestroy();
-  document.getElementById('mo-crime').textContent     = crime.toUpperCase();
+  moCrime = crime; moColor = color;
+  moMeses = [...selMeses];
+  moScopeType = 'btl'; moScopeVal = null;
+  document.getElementById('mo-crime').textContent      = crime.toUpperCase();
   document.getElementById('mo-accent').style.background = color;
-  document.getElementById('mo-sub').textContent       = 'ANÁLISE DETALHADA — ' + pLbl(selMeses).toUpperCase();
+  buildMoFilter();
+  moRender();
+  document.getElementById('mo').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
 
-  const aval = sf(q({ crime, mes: selMeses }));
-  const meta = sf(q({ crime, mes: selMeses }), 'meta');
-  const ant  = sf(q({ crime, mes: selMeses }), 'anterior');
+function moQScope() {
+  if (moScopeType === 'cia') return { cia: moScopeVal };
+  if (moScopeType === 'mun') return { mun: moScopeVal };
+  return {};
+}
+
+function moScopeMuns() {
+  if (moScopeType === 'mun') return [moScopeVal];
+  if (moScopeType === 'cia') return MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === moScopeVal));
+  return MUNS;
+}
+
+function buildMoFilter() {
+  const ano = new Date().getFullYear();
+  let h = '<span class="pf-label">Período</span>';
+  h += `<button class="pf-btn ${moMeses.length === MESES.length ? 'on' : ''}" onclick="moSetAllMes()">${ano}</button>`;
+  MESES.forEach(m => h += `<button class="pf-btn ${moMeses.includes(m) ? 'on' : ''}" onclick="moTogMes('${m}')">${m}</button>`);
+  h += '<span class="pf-sep"></span>';
+  h += `<button class="pf-btn ${moScopeType === 'btl' ? 'on' : ''}" onclick="moSetScope('btl',null)">Batalhão</button>`;
+  h += '<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" style="min-width:90px" onchange="moSetScope(\'cia\',this.value)"><option value="">—</option>';
+  CIAS.forEach(c => h += `<option value="${c}" ${moScopeType==='cia'&&moScopeVal===c?'selected':''}>${c}</option>`);
+  h += '</select></div>';
+  h += '<div class="pf-field"><span class="pf-label">Município</span><select class="pf-select" style="min-width:130px" onchange="moSetScope(\'mun\',this.value)"><option value="">—</option>';
+  MUNS.forEach(m => h += `<option value="${m}" ${moScopeType==='mun'&&moScopeVal===m?'selected':''}>${m}</option>`);
+  h += '</select></div>';
+  document.getElementById('mo-filter-bar').innerHTML = h;
+}
+
+function moSetAllMes() { moMeses = [...MESES]; buildMoFilter(); moRender(); }
+
+function moTogMes(mes) {
+  if (moMeses.length === MESES.length) { moMeses = [mes]; }
+  else {
+    const idx = moMeses.indexOf(mes);
+    if (idx >= 0) { moMeses.splice(idx, 1); if (!moMeses.length) moMeses = [...MESES]; }
+    else { moMeses.push(mes); moMeses.sort((a,b) => MESES.indexOf(a)-MESES.indexOf(b)); }
+  }
+  buildMoFilter(); moRender();
+}
+
+function moSetScope(type, val) {
+  if (type === 'btl' || !val) { moScopeType = 'btl'; moScopeVal = null; }
+  else { moScopeType = type; moScopeVal = val; }
+  buildMoFilter(); moRender();
+}
+
+function moRender() {
+  moDestroy();
+  const crime = moCrime, color = moColor;
+  const sc  = moQScope();
+  const muns = moScopeMuns();
+
+  document.getElementById('mo-sub').textContent = 'ANÁLISE DETALHADA — ' + pLbl(moMeses).toUpperCase();
+
+  const aval = sf(q({ crime, mes: moMeses, ...sc }));
+  const meta = sf(q({ crime, mes: moMeses, ...sc }), 'meta');
+  const ant  = sf(q({ crime, mes: moMeses, ...sc }), 'anterior');
   const vp   = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : 0;
-  // Municípios acima da meta — desvio % apenas quando meta > 0
-  const munDesvio = MUNS.map(m => {
-    const v  = sf(q({ crime, mun: m, mes: selMeses }));
-    const mt = sf(q({ crime, mun: m, mes: selMeses }), 'meta');
-    const desvio = mt > 0 ? (v - mt) / mt * 100 : -Infinity; // sem meta não entra como crítico
-    return { m, v, mt, desvio };
-  });
-  const acimaDoMeta = munDesvio.filter(x => x.mt > 0 && x.v > x.mt).sort((a, b) => b.desvio - a.desvio);
 
+  const munDesvio   = muns.map(m => {
+    const v  = sf(q({ crime, mun: m, mes: moMeses }));
+    const mt = sf(q({ crime, mun: m, mes: moMeses }), 'meta');
+    return { m, v, mt, desvio: mt > 0 ? (v - mt) / mt * 100 : -Infinity };
+  });
+  const acimaDoMeta = munDesvio.filter(x => x.mt > 0 && x.v > x.mt).sort((a,b) => b.desvio - a.desvio);
   const vc  = parseFloat(vp) <= 0 ? 'var(--green2)' : 'var(--red2)';
   const mok = meta > 0 && aval <= meta;
 
-  let munCriticoHtml;
-  if (acimaDoMeta.length === 0) {
-    munCriticoHtml = `<div class="mk-val" style="color:var(--green2);font-size:15px;padding-top:4px">✓ Todos na meta</div><div class="mk-sub">Nenhum município acima</div>`;
-  } else {
-    const lista = acimaDoMeta.map(x =>
-      `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
-        <span style="font-size:13px;font-weight:600;color:var(--tx)">${x.m}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red2);margin-left:8px">+${x.desvio.toFixed(0)}%</span>
-      </div>`
-    ).join('');
-    munCriticoHtml = lista;
-  }
+  const munCriticoHtml = acimaDoMeta.length === 0
+    ? `<div class="mk-val" style="color:var(--green2);font-size:15px;padding-top:4px">✓ Todos na meta</div><div class="mk-sub">Nenhum município acima</div>`
+    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="font-size:13px;font-weight:600;color:var(--tx)">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red2);margin-left:8px">+${x.desvio.toFixed(0)}%</span></div>`).join('');
 
   document.getElementById('mo-kpis').innerHTML = `
-    <div class="mk"><div class="mk-lbl">Total Avaliado</div><div class="mk-val" style="color:${color}">${aval}</div><div class="mk-sub">${pLbl(selMeses)}</div></div>
+    <div class="mk"><div class="mk-lbl">Total Avaliado</div><div class="mk-val" style="color:${color}">${aval}</div><div class="mk-sub">${pLbl(moMeses)}</div></div>
     <div class="mk"><div class="mk-lbl">Var vs Anterior</div><div class="mk-val" style="color:${vc}">${parseFloat(vp) <= 0 ? '▼' : '▲'}${Math.abs(vp)}%</div><div class="mk-sub">Ant: ${ant}</div></div>
     <div class="mk" style="grid-column:span 1"><div class="mk-lbl">Municípios Fora da Meta (${acimaDoMeta.length})</div>${munCriticoHtml}</div>
-    <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok ? 'var(--green2)' : 'var(--red2)'};font-size:16px;padding-top:6px">${mok ? '✓ Ok' : '✗ Acima'}</div><div class="mk-sub">Meta:${meta} | Real:${aval}</div></div>`;
+    <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:16px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub">Meta:${meta} | Real:${aval}</div></div>`;
 
-  const withOcc = MUNS.map(m => ({ m, v: sf(q({ crime, mun: m, mes: selMeses })) })).filter(x => x.v > 0).sort((a, b) => b.v - a.v);
-  const lc2     = ['#c8a84b','#3d7abf','#c84b4b','#3dbf7a','#bf7a3d','#7a4bbf','#4bbfbf','#e06060','#5ae09a'];
-  const ctx2    = document.getElementById('mo-line').getContext('2d');
-  moCh.push(new Chart(ctx2, {
-    type: 'line',
-    data: {
-      labels: MESES,
-      datasets: withOcc.map(({ m }, i) => ({
-        label: m,
-        data: MESES.map(mes => sf(q({ crime, mun: m, mes }))),
-        borderColor: lc2[i % lc2.length], backgroundColor: 'transparent', tension: 0, pointRadius: 5, borderWidth: 2,
-        borderDash: i % 2 === 1 ? [5, 3] : [], pointStyle: i % 2 === 1 ? 'triangle' : 'circle', pointBackgroundColor: lc2[i % lc2.length]
-      }))
-    },
-    options: { responsive: true, plugins: { legend: { labels: { boxWidth: 15, padding: 10, font: { size: 16 }, usePointStyle: true } } }, scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1 } } } }
-  }));
-
-  const mm   = MUNS.map(m => sf(q({ crime, mun: m, mes: selMeses }), 'meta'));
-  const ma   = MUNS.map(m => sf(q({ crime, mun: m, mes: selMeses })));
-  const ctx3 = document.getElementById('mo-meta').getContext('2d');
-  moCh.push(new Chart(ctx3, {
+  // Meta vs Avaliado
+  const mm  = muns.map(m => sf(q({ crime, mun: m, mes: moMeses }), 'meta'));
+  const ma  = muns.map(m => sf(q({ crime, mun: m, mes: moMeses })));
+  moCh.push(new Chart(document.getElementById('mo-meta').getContext('2d'), {
     type: 'bar',
-    data: {
-      labels: MUNS.map(m => m.split(' ')[0]),
-      datasets: [
-        { label: 'Meta',     data: mm, backgroundColor: 'rgba(255,255,255,.09)', borderRadius: 3 },
-        { label: 'Avaliado', data: ma, backgroundColor: ma.map((v, i) => mm[i] > 0 && v <= mm[i] ? 'rgba(61,191,122,.75)' : 'rgba(200,75,75,.75)'), borderRadius: 3 }
-      ]
-    },
+    data: { labels: muns.map(m => m.split(' ')[0]), datasets: [
+      { label: 'Meta',     data: mm, backgroundColor: 'rgba(255,255,255,.09)', borderRadius: 3 },
+      { label: 'Avaliado', data: ma, backgroundColor: ma.map((v,i) => mm[i]>0&&v<=mm[i]?'rgba(61,191,122,.75)':'rgba(200,75,75,.75)'), borderRadius: 3 }
+    ]},
     options: { responsive: true, plugins: { legend: { labels: { boxWidth: 15, font: { size: 16 } } } }, scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } } }
   }));
 
-  const cv   = CIAS.map(c => sf(q({ crime, cia: c, mes: selMeses })));
-  const ctx4 = document.getElementById('mo-donut').getContext('2d');
-  moCh.push(new Chart(ctx4, {
-    type: 'doughnut',
-    data: { labels: ['1ª CIA','2ª CIA','3ª CIA'], datasets: [{ data: cv, backgroundColor: ['#c8a84b','#3d7abf','#c84b4b'], borderWidth: 0, hoverOffset: 5 }] },
-    options: { responsive: true, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 15, padding: 12, font: { size: 16 } } } } }
+  // Evolução por Município (sempre todos os MESES no eixo X)
+  const withOcc = muns.map(m => ({ m, v: sf(q({ crime, mun: m, mes: moMeses })) })).filter(x => x.v > 0).sort((a,b) => b.v - a.v);
+  const lc2 = ['#c8a84b','#3d7abf','#c84b4b','#3dbf7a','#bf7a3d','#7a4bbf','#4bbfbf','#e06060','#5ae09a'];
+  moCh.push(new Chart(document.getElementById('mo-line').getContext('2d'), {
+    type: 'line',
+    data: { labels: MESES, datasets: withOcc.map(({m},i) => ({
+      label: m, data: MESES.map(mes => sf(q({ crime, mun: m, mes }))),
+      borderColor: lc2[i%lc2.length], backgroundColor: 'transparent', tension: 0, pointRadius: 5, borderWidth: 2,
+      borderDash: i%2===1?[5,3]:[], pointStyle: i%2===1?'triangle':'circle', pointBackgroundColor: lc2[i%lc2.length]
+    }))},
+    options: { responsive: true, plugins: { legend: { labels: { boxWidth: 15, padding: 10, font: { size: 16 }, usePointStyle: true } } }, scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1 } } } }
   }));
 
-  document.getElementById('mo').classList.add('on');
-  document.body.style.overflow = 'hidden';
+  // Distribuição por CIA
+  const cv = CIAS.map(c => sf(q({ crime, cia: c, mes: moMeses })));
+  moCh.push(new Chart(document.getElementById('mo-donut').getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: CIAS, datasets: [{ data: cv, backgroundColor: ['#c8a84b','#3d7abf','#c84b4b'], borderWidth: 0, hoverOffset: 5 }] },
+    options: { responsive: true, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 15, padding: 12, font: { size: 16 } } } } }
+  }));
 }
 
 function moClickOut(e) { if (e.target === document.getElementById('mo')) moClose(); }
