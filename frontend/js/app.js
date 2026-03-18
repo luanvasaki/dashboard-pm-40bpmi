@@ -721,7 +721,7 @@ function renderVisao() {
       },
       scales: {
         x: { grid: GR },
-        y: { grid: { color: ctx => ctx.tick.value === 0 ? 'rgba(255,255,255,.85)' : 'rgba(255,255,255,.04)', lineWidth: ctx => ctx.tick.value === 0 ? 2 : 1 }, ticks: { callback: v => v + '%' } }
+        y: { grid: GR, ticks: { callback: v => v + '%' } }
       },
       onClick: (evt, elements) => {
         if (elements.length) moOpen(CRIMES[elements[0].index], PAL[elements[0].index]);
@@ -729,7 +729,24 @@ function renderVisao() {
       onHover: (evt, elements) => {
         evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
       }
-    }
+    },
+    plugins: [{
+      id: 'zeroLine',
+      afterDraw(chart) {
+        const yScale = chart.scales.y;
+        if (yScale.min > 0 || yScale.max < 0) return;
+        const y = yScale.getPixelForValue(0);
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(chart.chartArea.left, y);
+        ctx.lineTo(chart.chartArea.right, y);
+        ctx.strokeStyle = 'rgba(255,255,255,.85)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
+    }]
   });
 }
 
