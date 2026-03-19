@@ -1431,8 +1431,10 @@ function moRender() {
     <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:16px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub">Meta:${meta} | Real:${aval}</div></div>`;
 
   // Meta vs Avaliado
-  const mm  = muns.map(m => sf(q({ crime, mun: m, mes: moMeses }), 'meta'));
-  const ma  = muns.map(m => sf(q({ crime, mun: m, mes: moMeses })));
+  const mm   = muns.map(m => sf(q({ crime, mun: m, mes: moMeses }), 'meta'));
+  const ma   = muns.map(m => sf(q({ crime, mun: m, mes: moMeses })));
+  const mant = muns.map(m => sf(q({ crime, mun: m, mes: moMeses }), 'anterior'));
+  const mtnd = muns.map(m => sf(q({ crime, mun: m, mes: moMeses }), 'tend'));
   moCh.push(new Chart(document.getElementById('mo-meta').getContext('2d'), {
     type: 'bar',
     plugins: [ciaSepPlugin(muns)],
@@ -1440,7 +1442,32 @@ function moRender() {
       { label: 'Meta',     data: mm, backgroundColor: 'rgba(255,255,255,.09)', borderRadius: 3 },
       { label: 'Avaliado', data: ma, backgroundColor: ma.map((v,i) => mm[i]>0&&v<=mm[i]?'rgba(61,191,122,.75)':'rgba(200,75,75,.75)'), borderRadius: 3 }
     ]},
-    options: { responsive: true, plugins: { legend: { labels: { boxWidth: 15, font: { size: 16 } } } }, scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } } }
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { boxWidth: 15, font: { size: 16 } } },
+        tooltip: {
+          callbacks: {
+            title: items => muns[items[0].dataIndex],
+            label: () => '',
+            afterBody: items => {
+              const i = items[0].dataIndex;
+              const dev = mm[i] > 0 ? ((ma[i] - mm[i]) / mm[i] * 100).toFixed(1) : '—';
+              const status = ma[i] <= mm[i] ? '✓ Dentro da meta' : ma[i] < mant[i] ? '↗ Acima, melhorando' : '↘ Acima, piorando';
+              return [
+                `Avaliado:   ${ma[i]}`,
+                `Meta:       ${mm[i] || '—'}`,
+                `Anterior:   ${mant[i]}`,
+                `Tendência:  ${mtnd[i] || '—'}`,
+                `Desvio:     ${mm[i] > 0 ? (dev > 0 ? '+' : '') + dev + '%' : '—'}`,
+                `Status:     ${status}`
+              ];
+            }
+          }
+        }
+      },
+      scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } }
+    }
   }));
 
   // Evolução por Município (sempre todos os MESES no eixo X)
@@ -1459,7 +1486,32 @@ function moRender() {
         borderColor: col, backgroundColor: 'transparent', tension: 0, pointRadius: 5, borderWidth: 2,
         borderDash: dashes[idx % 3], pointStyle: styles[idx % 3], pointBackgroundColor: col };
     })},
-    options: { responsive: true, plugins: { legend: { labels: { boxWidth: 15, padding: 10, font: { size: 16 }, usePointStyle: true } } }, scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1 } } } }
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { boxWidth: 15, padding: 10, font: { size: 16 }, usePointStyle: true } },
+        tooltip: {
+          callbacks: {
+            afterLabel: ctx => {
+              const m = withOcc[ctx.datasetIndex]?.m;
+              if (!m) return [];
+              const mes = MESES[ctx.dataIndex];
+              const metaV = sf(q({ crime, mun: m, mes }), 'meta');
+              const antV  = sf(q({ crime, mun: m, mes }), 'anterior');
+              const tndV  = sf(q({ crime, mun: m, mes }), 'tend');
+              const dev   = metaV > 0 ? ((ctx.parsed.y - metaV) / metaV * 100).toFixed(1) : null;
+              return [
+                `Meta:      ${metaV || '—'}`,
+                `Anterior:  ${antV}`,
+                `Tendência: ${tndV || '—'}`,
+                dev !== null ? `Desvio:    ${dev > 0 ? '+' : ''}${dev}%` : `Desvio:    —`
+              ];
+            }
+          }
+        }
+      },
+      scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1 } } }
+    }
   }));
 
   applyOcorrFilters();
