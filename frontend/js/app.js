@@ -351,8 +351,7 @@ function scope(key) {
 
 // Sincroniza a barra de meses da Visão Geral com selMeses atual
 function syncSidebarMes() {
-  const allBtn = document.getElementById('mes-btn-all');
-  if (allBtn) allBtn.classList.toggle('on', selMeses.length === MESES.length);
+  document.querySelectorAll('.mes-btn-all').forEach(b => b.classList.toggle('on', selMeses.length === MESES.length));
   document.querySelectorAll('.mes-btn-vis').forEach((b, i) => {
     b.classList.toggle('on', selMeses.includes(MESES[i]));
   });
@@ -615,7 +614,7 @@ function buildSbMes() {
   const ano = new Date().getFullYear();
   const pf  = pageFilters.visao;
   let h = `<span class="pf-label">Período</span>`;
-  h += `<button class="pf-btn on" id="mes-btn-all" onclick="sbAll(this)">${ano}</button>`;
+  h += `<button class="pf-btn mes-btn-all" onclick="sbAll(this)">${ano}</button>`;
   MESES.forEach(m => h += `<button class="pf-btn mes-btn-vis" onclick="sbTog('${m}',this)">${m}</button>`);
 
   // Espaço separador
@@ -634,8 +633,10 @@ function buildSbMes() {
   munList.forEach(m => h += `<option value="${m}" ${pf.type==='mun'&&pf.value===m?'selected':''}>${m}</option>`);
   h += `</select></div>`;
 
-  const el = document.getElementById('vis-mes-bar');
-  if (el) el.innerHTML = h;
+  ['vis-mes-bar', 'vis-mes-bar-2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = h;
+  });
   syncSidebarMes();
 }
 
