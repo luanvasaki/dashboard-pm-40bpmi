@@ -586,7 +586,14 @@ async function init() {
 
   } catch (err) {
     console.error('Erro ao carregar dados da API:', err);
-    alert('Não foi possível conectar à API. Certifique-se de que o backend está rodando em http://localhost:3001');
+    // Mostra erro na página em vez de alert intrusivo
+    document.querySelector('main').innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px;text-align:center;padding:20px">
+        <div style="font-size:36px">⚠️</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--tx)">Falha ao carregar dados</div>
+        <div style="font-size:13px;color:var(--tx3);max-width:380px">Não foi possível conectar à API. Verifique sua conexão com a internet e tente novamente.</div>
+        <button onclick="location.reload()" style="margin-top:8px;padding:10px 28px;background:rgba(61,122,191,.15);border:1px solid rgba(61,122,191,.3);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600">↻ Tentar novamente</button>
+      </div>`;
   }
 }
 
