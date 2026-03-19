@@ -1379,44 +1379,6 @@ function moRender() {
     options: { responsive: true, plugins: { legend: { labels: { boxWidth: 15, padding: 10, font: { size: 16 }, usePointStyle: true } } }, scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1 } } } }
   }));
 
-  // Distribuição por CIA
-  const cv = CIAS.map(c => sf(q({ crime, cia: c, mes: moMeses })));
-  moCh.push(new Chart(document.getElementById('mo-donut').getContext('2d'), {
-    type: 'doughnut',
-    data: { labels: CIAS, datasets: [{ data: cv, backgroundColor: ['#c8a84b','#3d7abf','#c84b4b'], borderWidth: 0, hoverOffset: 8 }] },
-    options: {
-      responsive: true, cutout: '65%',
-      plugins: {
-        legend: { position: 'bottom', labels: { boxWidth: 15, padding: 12, font: { size: 16 } } },
-        tooltip: {
-          callbacks: {
-            title: (items) => items[0].label,
-            label: () => '',
-            afterBody: (items) => {
-              const cia = CIAS[items[0].dataIndex];
-              const filtered = moOcorrAll.filter(r => {
-                if (normCiaKey(r.cia) !== normCiaKey(cia)) return false;
-                if (!r.data_ocorrencia) return true;
-                const m = parseInt(r.data_ocorrencia.split('-')[1]) - 1;
-                return moMeses.includes(MES_ORD[m]);
-              });
-              if (!filtered.length) return ['  Sem ocorrências registradas'];
-              const counts = {};
-              filtered.forEach(r => { const rub = r.rubrica || 'Não informado'; counts[rub] = (counts[rub] || 0) + 1; });
-              return Object.entries(counts)
-                .sort((a, b) => b[1] - a[1])
-                .map(([rub, cnt]) => `  ${rub}: ${cnt}`);
-            }
-          }
-        }
-      },
-      onClick(evt, items) {
-        if (!items.length) return;
-        setOcorrCia(CIAS[items[0].index]);
-      }
-    }
-  }));
-
   applyOcorrFilters();
 }
 
