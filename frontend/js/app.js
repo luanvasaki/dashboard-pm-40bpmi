@@ -1698,10 +1698,22 @@ async function loadMoOcorr() {
   if (filtersEl) filtersEl.innerHTML = '';
 
   try {
-    const rubricaQuery = Array.isArray(moCrime) ? 'Veículo' : moCrime;
-    const params = new URLSearchParams({ rubrica: rubricaQuery, limit: '2000' });
-    const res  = await authFetch(`${API}/ocorrencias?${params}`);
-    const data = await res.json();
+    let data;
+    if (Array.isArray(moCrime)) {
+      // Crime agrupado: busca cada rubrica base separadamente e filtra por conduta veículo
+      const rubricas = ['Roubo', 'Furto'];
+      const results = await Promise.all(rubricas.map(r =>
+        authFetch(`${API}/ocorrencias?${new URLSearchParams({ rubrica: r, limit: '2000' })}`).then(res => res.json())
+      ));
+      const merged = results.flat().filter(r => (r.conduta || '').toLowerCase().includes('veíc'));
+      // Remove duplicatas por id
+      const seen = new Set();
+      data = merged.filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; });
+    } else {
+      const params = new URLSearchParams({ rubrica: moCrime, limit: '2000' });
+      const res = await authFetch(`${API}/ocorrencias?${params}`);
+      data = await res.json();
+    }
     moOcorrAll = Array.isArray(data) ? data : [];
     applyOcorrFilters();
   } catch (err) {
