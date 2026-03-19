@@ -608,11 +608,48 @@ async function init() {
 
 function buildSbMes() {
   const ano = new Date().getFullYear();
+  const pf  = pageFilters.visao;
   let h = `<span class="pf-label">Período</span>`;
   h += `<button class="pf-btn on" id="mes-btn-all" onclick="sbAll(this)">${ano}</button>`;
   MESES.forEach(m => h += `<button class="pf-btn mes-btn-vis" onclick="sbTog('${m}',this)">${m}</button>`);
+
+  // Espaço separador
+  h += `<div style="flex:1"></div>`;
+
+  // Select CIA
+  h += `<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" id="sb-cia-sel" onchange="sbSetScope('cia',this.value)">`;
+  h += `<option value="">Todas</option>`;
+  CIAS.forEach(c => h += `<option value="${c}" ${pf.type==='cia'&&pf.value===c?'selected':''}>${c}</option>`);
+  h += `</select></div>`;
+
+  // Select Cidade
+  const munList = pf.type === 'cia' && pf.value ? MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === pf.value)) : MUNS;
+  h += `<div class="pf-field"><span class="pf-label">Cidade</span><select class="pf-select" id="sb-mun-sel" onchange="sbSetScope('mun',this.value)">`;
+  h += `<option value="">Todas</option>`;
+  munList.forEach(m => h += `<option value="${m}" ${pf.type==='mun'&&pf.value===m?'selected':''}>${m}</option>`);
+  h += `</select></div>`;
+
   const el = document.getElementById('vis-mes-bar');
   if (el) el.innerHTML = h;
+  syncSidebarMes();
+}
+
+function sbSetScope(type, val) {
+  if (!val) {
+    pageFilters.visao = { type: 'btl', value: null };
+  } else {
+    pageFilters.visao = { type, value: val };
+    // ao trocar CIA, repopula cidades e reseta município
+    if (type === 'cia') {
+      const munSel = document.getElementById('sb-mun-sel');
+      if (munSel) {
+        const muns = MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === val));
+        munSel.innerHTML = '<option value="">Todas</option>';
+        muns.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; munSel.appendChild(o); });
+      }
+    }
+  }
+  renderVisaoAndInsights();
 }
 
 function buildHmFilter() {
