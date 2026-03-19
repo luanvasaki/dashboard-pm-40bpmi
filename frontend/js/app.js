@@ -1759,17 +1759,28 @@ function renderOcorrHeatmap(data) {
     if (DIAS.includes(dia) && bloco !== null) matrix[dia][bloco]++;
   });
 
-  const total = data.filter(r => r.dia_semana && r.hora_ocorrencia).length;
-  if (total === 0) { el.innerHTML = '<div style="color:var(--tx3);font-size:12px">Sem dados de horário disponíveis.</div>'; return; }
+  // Total para % do pico (apenas registros com horário)
+  const totalComHora = data.filter(r => r.dia_semana && r.hora_ocorrencia).length;
+  if (totalComHora === 0 && !data.some(r => r.dia_semana)) {
+    el.innerHTML = '<div style="color:var(--tx3);font-size:12px">Sem dados de dia disponíveis.</div>'; return;
+  }
 
-  // Pico absoluto (dia + período)
+  // Pico absoluto (dia + período) — usa apenas registros com horário
   let picoDia = '', picoBlocoIdx = 0, picoVal = 0;
   DIAS.forEach(d => matrix[d].forEach((v, b) => { if (v > picoVal) { picoVal = v; picoDia = d; picoBlocoIdx = b; } }));
 
-  // Dia mais crítico (soma dos blocos)
-  const totDia = DIAS.map(d => ({ d, v: matrix[d].reduce((s,x) => s+x, 0) })).sort((a,b) => b.v-a.v)[0];
+  // Dia mais crítico — usa TODOS os registros com dia_semana, independente de horário
+  const countsPorDia = {};
+  DIAS.forEach(d => { countsPorDia[d] = 0; });
+  data.forEach(r => {
+    const dia = normDia(r.dia_semana);
+    if (DIAS.includes(dia)) countsPorDia[dia]++;
+  });
+  const totalTodos = data.filter(r => r.dia_semana).length;
+  const totDia = DIAS.map(d => ({ d, v: countsPorDia[d] })).sort((a,b) => b.v-a.v)[0];
 
-  const pct = v => total > 0 ? Math.round(v / total * 100) : 0;
+  const pctHora  = v => totalComHora > 0 ? Math.round(v / totalComHora * 100) : 0;
+  const pctTodos = v => totalTodos   > 0 ? Math.round(v / totalTodos   * 100) : 0;
 
   const card = (icon, label, value, sub) => `
     <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px">
@@ -1781,10 +1792,13 @@ function renderOcorrHeatmap(data) {
       </div>
     </div>`;
 
-  el.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-    ${card('🔴', 'Pico de ocorrências', `${DIAS_FULL[picoDia]} · ${BLOCOS_LABEL[picoBlocoIdx]}`, `${picoVal} ocorrência${picoVal !== 1 ? 's' : ''} — ${pct(picoVal)}% do total`)}
-    ${card('📅', 'Dia mais crítico', DIAS_FULL[totDia.d], `${totDia.v} ocorrência${totDia.v !== 1 ? 's' : ''} — ${pct(totDia.v)}% do total`)}
-  </div>`;
+  let cards = '';
+  if (picoVal > 0) {
+    cards += card('🔴', 'Pico de ocorrências', `${DIAS_FULL[picoDia]} · ${BLOCOS_LABEL[picoBlocoIdx]}`, `${picoVal} ocorrência${picoVal !== 1 ? 's' : ''} — ${pctHora(picoVal)}% dos registros com horário`);
+  }
+  cards += card('📅', 'Dia mais crítico', DIAS_FULL[totDia.d], `${totDia.v} ocorrência${totDia.v !== 1 ? 's' : ''} — ${pctTodos(totDia.v)}% do total`);
+
+  el.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${cards}</div>`;
 }
 
 function renderTipoLocal(data) {
