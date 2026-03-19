@@ -553,7 +553,6 @@ async function forceSync() {
     await loadData();
     selMeses = [...MESES];
     hmMeses  = [...MESES];
-    buildSbMes();
     buildHmFilter();
     renderAll();
     await updateSyncStatus();
@@ -592,7 +591,6 @@ async function init() {
     Chart.defaults.font.family = "'DM Mono', monospace";
     Chart.defaults.font.size   = 17;
 
-    buildSbMes();
     buildHmFilter();
     buildPageFilters();
     renderAll();
@@ -607,43 +605,10 @@ async function init() {
 // Sidebar de meses
 // ---------------------------------------------------------------------------
 
-function buildSbMes() {
-  const ano = new Date().getFullYear();
-  let h = `<span class="pf-label">Período</span>`;
-  h += `<button class="pf-btn on" id="mes-btn-all" onclick="sbAll(this)">${ano}</button>`;
-  MESES.forEach(m => h += `<button class="pf-btn mes-btn-vis" onclick="sbTog('${m}',this)">${m}</button>`);
-  const el = document.getElementById('vis-mes-bar');
-  if (el) el.innerHTML = h;
-}
-
 function buildHmFilter() {
   let h = `<button class="hm-mbtn on" onclick="hmAll(this)">Todos</button>`;
   MESES.forEach(m => h += `<button class="hm-mbtn" onclick="hmTog('${m}',this)">${m}</button>`);
   document.getElementById('hm-filter-btns').innerHTML = h;
-}
-
-function sbAll(btn) {
-  selMeses = [...MESES];
-  syncSidebarMes();
-  renderAll();
-}
-
-function sbTog(mes) {
-  if (selMeses.length === MESES.length) {
-    // Saindo do "todos" — começa só com esse mês
-    selMeses = [mes];
-  } else {
-    const idx = selMeses.indexOf(mes);
-    if (idx >= 0) {
-      selMeses.splice(idx, 1);
-      if (selMeses.length === 0) selMeses = [...MESES]; // não deixa vazio
-    } else {
-      selMeses.push(mes);
-      selMeses.sort((a, b) => MESES.indexOf(a) - MESES.indexOf(b));
-    }
-  }
-  syncSidebarMes();
-  renderAll();
 }
 
 function hmAll(btn) {
@@ -1463,7 +1428,6 @@ async function confirmUpload() {
     await loadData();
     selMeses = [...MESES];
     hmMeses  = [...MESES];
-    buildSbMes();
     buildHmFilter();
     buildPageFilters();
     renderAll();
