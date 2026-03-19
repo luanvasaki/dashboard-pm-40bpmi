@@ -1306,7 +1306,7 @@ function moRender() {
             afterBody: (items) => {
               const cia = CIAS[items[0].dataIndex];
               const filtered = moOcorrAll.filter(r => {
-                if (r.cia !== cia) return false;
+                if (normCiaKey(r.cia) !== normCiaKey(cia)) return false;
                 if (!r.data_ocorrencia) return true;
                 const m = parseInt(r.data_ocorrencia.split('-')[1]) - 1;
                 return moMeses.includes(MES_ORD[m]);
@@ -1556,6 +1556,12 @@ async function confirmOcorrUpload() {
 // Ocorrências InfoCrim no Modal de Crime
 // ---------------------------------------------------------------------------
 
+// Extrai o número da CIA para comparação fuzzy (ex: "1ª CIA PM" e "1ª CIA" → "1")
+function normCiaKey(s) {
+  const m = (s || '').match(/(\d+)/);
+  return m ? m[1] : (s || '').toLowerCase().trim();
+}
+
 async function loadMoOcorr() {
   const el = document.getElementById('mo-ocorr-table');
   if (!el) return;
@@ -1580,7 +1586,7 @@ function applyOcorrFilters() {
     const m = parseInt(r.data_ocorrencia.split('-')[1]) - 1;
     return moMeses.includes(MES_ORD[m]);
   });
-  if (moOcorrCiaFilter) filtered = filtered.filter(r => r.cia === moOcorrCiaFilter);
+  if (moOcorrCiaFilter) filtered = filtered.filter(r => normCiaKey(r.cia) === normCiaKey(moOcorrCiaFilter));
   renderMoOcorrFilters();
   renderOcorrTable(filtered);
 }
