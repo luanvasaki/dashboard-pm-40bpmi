@@ -1801,6 +1801,16 @@ function renderOcorrHeatmap(data) {
   el.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${cards}</div>`;
 }
 
+function safeChart(id, config) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return null;
+  const existing = Chart.getChart(canvas);
+  if (existing) existing.destroy();
+  const chart = new Chart(canvas.getContext('2d'), config);
+  moIntelChs.push(chart);
+  return chart;
+}
+
 function renderTipoLocal(data) {
   const counts = {};
   data.forEach(r => { const t = r.tipo_local || 'Não informado'; counts[t] = (counts[t]||0)+1; });
@@ -1812,14 +1822,13 @@ function renderTipoLocal(data) {
     if (idx >= 0) top[idx] = ['Outros', top[idx][1] + outros];
     else top.push(['Outros', outros]);
   }
-  const ctx = document.getElementById('mo-tipolocal')?.getContext('2d');
-  if (!ctx) return;
+  if (!top.length) return;
   const colors = ['#c8a84b','#3d7abf','#c84b4b','#3dbf7a','#bf7a3d','#7a4bbf','#4bbfbf','#808080'];
-  moIntelChs.push(new Chart(ctx, {
+  safeChart('mo-tipolocal', {
     type: 'doughnut',
     data: { labels: top.map(([k])=>k), datasets: [{ data: top.map(([,v])=>v), backgroundColor: colors.slice(0,top.length), borderWidth:0 }] },
     options: { responsive:true, cutout:'60%', plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11}, padding:8 } } } }
-  }));
+  });
 }
 
 function renderBairros(data) {
@@ -1833,14 +1842,12 @@ function renderBairros(data) {
   });
   const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0,10);
   if (!sorted.length) return;
-  const ctx = document.getElementById('mo-bairros')?.getContext('2d');
-  if (!ctx) return;
   const labels = sorted.map(([k]) => muns[k] ? [muns[k], k] : k);
-  moIntelChs.push(new Chart(ctx, {
+  safeChart('mo-bairros', {
     type: 'bar',
     data: { labels, datasets: [{ label:'Ocorrências', data: sorted.map(([,v])=>v), backgroundColor:'rgba(200,75,75,.7)', borderRadius:4 }] },
     options: { indexAxis:'y', responsive:true, plugins:{ legend:{display:false} }, scales:{ x:{ grid:GR, ticks:{stepSize:1} }, y:{ grid:GR } } }
-  }));
+  });
 }
 
 function renderRubrica(data) {
