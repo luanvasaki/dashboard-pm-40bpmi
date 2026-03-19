@@ -1354,28 +1354,6 @@ function moRender() {
     <div class="mk" style="grid-column:span 1"><div class="mk-lbl">Municípios Fora da Meta (${acimaDoMeta.length})</div>${munCriticoHtml}</div>
     <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:16px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub">Meta:${meta} | Real:${aval}</div></div>`;
 
-  // Breakdown para crimes agrupados
-  const breakdownEl = document.getElementById('mo-breakdown');
-  const breakdownCtx = document.getElementById('mo-breakdown-chart')?.getContext('2d');
-  if (Array.isArray(crime) && breakdownEl && breakdownCtx) {
-    breakdownEl.style.display = 'block';
-    const bAval = crime.map(c => sf(q({ crime: c, mes: moMeses, ...sc })));
-    const bMeta = crime.map(c => sf(q({ crime: c, mes: moMeses, ...sc }), 'meta'));
-    const bAnt  = crime.map(c => sf(q({ crime: c, mes: moMeses, ...sc }), 'anterior'));
-    const bColors = ['rgba(61,122,191,.75)', 'rgba(61,191,122,.75)'];
-    moCh.push(new Chart(breakdownCtx, {
-      type: 'bar',
-      data: { labels: crime.map(cl), datasets: [
-        { label: 'Avaliado',  data: bAval, backgroundColor: bColors, borderRadius: 4 },
-        { label: 'Meta',      data: bMeta, backgroundColor: 'rgba(255,255,255,.09)', borderRadius: 4 },
-        { label: 'Anterior',  data: bAnt,  backgroundColor: 'rgba(255,255,255,.05)', borderRadius: 4 }
-      ]},
-      options: { responsive: true, plugins: { legend: { labels: { boxWidth: 14, font: { size: 13 } } } }, scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } } }
-    }));
-  } else if (breakdownEl) {
-    breakdownEl.style.display = 'none';
-  }
-
   // Meta vs Avaliado
   const mm  = muns.map(m => sf(q({ crime, mun: m, mes: moMeses }), 'meta'));
   const ma  = muns.map(m => sf(q({ crime, mun: m, mes: moMeses })));
