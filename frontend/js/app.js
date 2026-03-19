@@ -1719,35 +1719,55 @@ function renderMoIntel(data) {
 function renderOcorrHeatmap(data) {
   const el = document.getElementById('mo-heatmap');
   if (!el) return;
+  const DIAS_FULL = { Dom:'Domingo', Seg:'Segunda-feira', Ter:'Terça-feira', Qua:'Quarta-feira', Qui:'Quinta-feira', Sex:'Sexta-feira', 'Sáb':'Sábado' };
   const DIAS   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-  const BLOCOS = ['Madrugada<br>00–05','Manhã<br>06–11','Tarde<br>12–17','Noite<br>18–23'];
+  const BLOCOS_LABEL = ['Madrugada (00–05h)', 'Manhã (06–11h)', 'Tarde (12–17h)', 'Noite (18–23h)'];
   const matrix = {};
   DIAS.forEach(d => { matrix[d] = [0,0,0,0]; });
-  let maxVal = 0;
   data.forEach(r => {
     const dia   = normDia(r.dia_semana);
     const bloco = horaBlock(r.hora_ocorrencia);
-    if (DIAS.includes(dia) && bloco !== null) {
-      matrix[dia][bloco]++;
-      if (matrix[dia][bloco] > maxVal) maxVal = matrix[dia][bloco];
-    }
+    if (DIAS.includes(dia) && bloco !== null) matrix[dia][bloco]++;
   });
-  if (maxVal === 0) { el.innerHTML = '<div style="color:var(--tx3);font-size:12px">Sem dados de horário disponíveis.</div>'; return; }
-  const cellStyle = count => {
-    const i = count / maxVal;
-    const a = (0.08 + i * 0.88).toFixed(2);
-    return `background:rgba(200,75,75,${a});color:${i > 0.45 ? '#fff' : 'var(--tx3)'};font-weight:${count ? 600 : 400}`;
-  };
-  let h = `<table style="width:100%;border-collapse:separate;border-spacing:3px;font-size:11px"><thead><tr>
-    <th style="padding:4px 6px;color:var(--tx3);font-family:'DM Mono',monospace;font-size:9px;text-align:left"></th>`;
-  BLOCOS.forEach(b => h += `<th style="padding:4px;color:var(--tx3);font-family:'DM Mono',monospace;font-size:9px;text-align:center">${b}</th>`);
-  h += '</tr></thead><tbody>';
-  DIAS.forEach(dia => {
-    h += `<tr><td style="padding:4px 8px;color:var(--tx3);font-family:'DM Mono',monospace;font-size:9px;white-space:nowrap">${dia}</td>`;
-    matrix[dia].forEach(cnt => h += `<td style="padding:7px 4px;border-radius:4px;text-align:center;${cellStyle(cnt)}">${cnt || ''}</td>`);
-    h += '</tr>';
-  });
-  el.innerHTML = h + '</tbody></table>';
+
+  const total = data.filter(r => r.dia_semana && r.hora_ocorrencia).length;
+  if (total === 0) { el.innerHTML = '<div style="color:var(--tx3);font-size:12px">Sem dados de horário disponíveis.</div>'; return; }
+
+  // Pico absoluto (dia + período)
+  let picoDia = '', picoBlocoIdx = 0, picoVal = 0;
+  DIAS.forEach(d => matrix[d].forEach((v, b) => { if (v > picoVal) { picoVal = v; picoDia = d; picoBlocoIdx = b; } }));
+
+  // Dia mais crítico (soma dos blocos)
+  const totDia = DIAS.map(d => ({ d, v: matrix[d].reduce((s,x) => s+x, 0) })).sort((a,b) => b.v-a.v)[0];
+
+  // Período mais crítico (soma dos dias)
+  const totBloco = BLOCOS_LABEL.map((lbl, i) => ({ lbl, v: DIAS.reduce((s,d) => s+matrix[d][i], 0) })).sort((a,b) => b.v-a.v)[0];
+
+  // Concentração nos dois períodos mais quentes (dia × bloco)
+  const allCells = [];
+  DIAS.forEach(d => matrix[d].forEach((v,b) => allCells.push({ d, b, v })));
+  allCells.sort((a,b) => b.v-a.v);
+  const top2Sum = allCells.slice(0,2).reduce((s,c) => s+c.v, 0);
+  const concPct = total > 0 ? Math.round(top2Sum / total * 100) : 0;
+
+  const pct = v => total > 0 ? Math.round(v / total * 100) : 0;
+
+  const card = (icon, label, value, sub) => `
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px">
+      <span style="font-size:22px;line-height:1">${icon}</span>
+      <div>
+        <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">${label}</div>
+        <div style="font-size:14px;font-weight:700;color:var(--tx)">${value}</div>
+        ${sub ? `<div style="font-size:11px;color:var(--tx3);margin-top:2px">${sub}</div>` : ''}
+      </div>
+    </div>`;
+
+  el.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    ${card('🔴', 'Pico de ocorrências', `${DIAS_FULL[picoDia]} · ${BLOCOS_LABEL[picoBlocoIdx]}`, `${picoVal} ocorrência${picoVal !== 1 ? 's' : ''} — ${pct(picoVal)}% do total`)}
+    ${card('📅', 'Dia mais crítico', DIAS_FULL[totDia.d], `${totDia.v} ocorrência${totDia.v !== 1 ? 's' : ''} — ${pct(totDia.v)}% do total`)}
+    ${card('🕐', 'Período mais crítico', totBloco.lbl, `${totBloco.v} ocorrência${totBloco.v !== 1 ? 's' : ''} — ${pct(totBloco.v)}% do total`)}
+    ${card('⚠️', 'Concentração nos 2 pontos mais quentes', `${concPct}% das ocorrências`, `${top2Sum} de ${total} registros no topo`)}
+  </div>`;
 }
 
 function renderTipoLocal(data) {
