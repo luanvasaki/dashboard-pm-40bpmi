@@ -800,10 +800,10 @@ function renderVisao() {
   // Desvio vs Meta: ((avaliado - meta) / meta) * 100
   // Verde  → avaliado ≤ meta  |  Laranja → acima mas melhorando  |  Vermelho → acima e piorando
   const vmDetails = CRIMES.map(c => {
-    const aval  = sf(q({ crime: c, mes: MESES, ...sc }));
-    const meta  = sf(q({ crime: c, mes: MESES, ...sc }), 'meta');
-    const ant   = sf(q({ crime: c, mes: MESES, ...sc }), 'anterior');
-    const tendV = sf(q({ crime: c, mes: MESES, ...sc }), 'tend');
+    const aval  = sf(q({ crime: c, mes: selMeses, ...sc }));
+    const meta  = sf(q({ crime: c, mes: selMeses, ...sc }), 'meta');
+    const ant   = sf(q({ crime: c, mes: selMeses, ...sc }), 'anterior');
+    const tendV = sf(q({ crime: c, mes: selMeses, ...sc }), 'tend');
     const dev   = meta === 0 ? (aval === 0 ? 0 : 100) : parseFloat(((aval - meta) / meta * 100).toFixed(1));
     const devT  = tendV === 0 ? null : meta === 0 ? 100 : parseFloat(((tendV - meta) / meta * 100).toFixed(1));
     const tendS = aval <= meta ? '✓ Dentro da meta' : aval < ant ? '↗ Acima da meta, melhorando' : '↘ Acima da meta, piorando';
