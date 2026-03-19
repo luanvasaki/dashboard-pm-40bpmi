@@ -319,11 +319,12 @@ function ciaColor(mun) {
 
 // Plugin inline Chart.js: linha pontilhada + label de CIA entre grupos (para gráficos de barra com municípios no eixo X)
 function ciaSepPlugin(muns) {
+  // Inclui a 1ª CIA (idx=0) e todas as mudanças seguintes
   const seps = [];
   let prevCia = null;
   muns.forEach((mun, i) => {
     const cia = munCia(mun);
-    if (cia !== prevCia) { if (i > 0) seps.push({ idx: i, name: cia }); prevCia = cia; }
+    if (cia !== prevCia) { seps.push({ idx: i, name: cia }); prevCia = cia; }
   });
   return {
     id: 'ciaSep',
@@ -335,18 +336,21 @@ function ciaSepPlugin(muns) {
       seps.forEach(({ idx, name }) => {
         const x = chartArea.left + w * idx;
         ctx.save();
-        ctx.setLineDash([4, 4]);
-        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x, chartArea.top);
-        ctx.lineTo(x, chartArea.bottom);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = 'rgba(180,200,255,0.55)';
-        ctx.font = '600 10px "DM Mono", monospace';
+        // Linha pontilhada (não desenha na posição 0 — borda já existe)
+        if (idx > 0) {
+          ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x, chartArea.top);
+          ctx.lineTo(x, chartArea.bottom);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        ctx.fillStyle = 'rgba(180,200,255,0.75)';
+        ctx.font = '700 13px "DM Mono", monospace';
         ctx.textAlign = 'left';
-        ctx.fillText(name.toUpperCase(), x + 4, chartArea.top + 13);
+        ctx.fillText(name.toUpperCase(), x + 4, chartArea.top + 16);
         ctx.restore();
       });
     }
