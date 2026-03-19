@@ -1740,16 +1740,6 @@ function renderOcorrHeatmap(data) {
   // Dia mais crítico (soma dos blocos)
   const totDia = DIAS.map(d => ({ d, v: matrix[d].reduce((s,x) => s+x, 0) })).sort((a,b) => b.v-a.v)[0];
 
-  // Período mais crítico (soma dos dias)
-  const totBloco = BLOCOS_LABEL.map((lbl, i) => ({ lbl, v: DIAS.reduce((s,d) => s+matrix[d][i], 0) })).sort((a,b) => b.v-a.v)[0];
-
-  // Concentração nos dois períodos mais quentes (dia × bloco)
-  const allCells = [];
-  DIAS.forEach(d => matrix[d].forEach((v,b) => allCells.push({ d, b, v })));
-  allCells.sort((a,b) => b.v-a.v);
-  const top2Sum = allCells.slice(0,2).reduce((s,c) => s+c.v, 0);
-  const concPct = total > 0 ? Math.round(top2Sum / total * 100) : 0;
-
   const pct = v => total > 0 ? Math.round(v / total * 100) : 0;
 
   const card = (icon, label, value, sub) => `
@@ -1765,8 +1755,6 @@ function renderOcorrHeatmap(data) {
   el.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
     ${card('🔴', 'Pico de ocorrências', `${DIAS_FULL[picoDia]} · ${BLOCOS_LABEL[picoBlocoIdx]}`, `${picoVal} ocorrência${picoVal !== 1 ? 's' : ''} — ${pct(picoVal)}% do total`)}
     ${card('📅', 'Dia mais crítico', DIAS_FULL[totDia.d], `${totDia.v} ocorrência${totDia.v !== 1 ? 's' : ''} — ${pct(totDia.v)}% do total`)}
-    ${card('🕐', 'Período mais crítico', totBloco.lbl, `${totBloco.v} ocorrência${totBloco.v !== 1 ? 's' : ''} — ${pct(totBloco.v)}% do total`)}
-    ${card('⚠️', 'Concentração nos 2 pontos mais quentes', `${concPct}% das ocorrências`, `${top2Sum} de ${total} registros no topo`)}
   </div>`;
 }
 
