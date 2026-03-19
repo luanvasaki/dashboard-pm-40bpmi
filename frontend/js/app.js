@@ -310,6 +310,49 @@ const CRIME_GROUPS = [
 ];
 const GR  = { color: 'rgba(255,255,255,.04)' };
 
+// Cores fixas por CIA (extraída pelo número)
+const CIA_COLORS = { '1': '#c8a84b', '2': '#3d7abf', '3': '#c84b4b' };
+function ciaColor(mun) {
+  const key = normCiaKey(munCia(mun));
+  return CIA_COLORS[key] || '#808080';
+}
+
+// Plugin inline Chart.js: linha pontilhada + label de CIA entre grupos (para gráficos de barra com municípios no eixo X)
+function ciaSepPlugin(muns) {
+  const seps = [];
+  let prevCia = null;
+  muns.forEach((mun, i) => {
+    const cia = munCia(mun);
+    if (cia !== prevCia) { if (i > 0) seps.push({ idx: i, name: cia }); prevCia = cia; }
+  });
+  return {
+    id: 'ciaSep',
+    afterDraw(chart) {
+      if (!seps.length) return;
+      const { ctx, chartArea } = chart;
+      const n = muns.length;
+      const w = (chartArea.right - chartArea.left) / n;
+      seps.forEach(({ idx, name }) => {
+        const x = chartArea.left + w * idx;
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, chartArea.top);
+        ctx.lineTo(x, chartArea.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(180,200,255,0.55)';
+        ctx.font = '600 10px "DM Mono", monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(name.toUpperCase(), x + 4, chartArea.top + 13);
+        ctx.restore();
+      });
+    }
+  };
+}
+
 // Ordem canônica dos meses
 const MES_ORD = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -894,35 +937,38 @@ function renderEvolMuns() {
   const crime = sel.value || CRIMES[0];
   const sc    = scope('visao');
 
-  const LC = ['#c8a84b','#3d7abf','#c84b4b','#3dbf7a','#bf7a3d','#7a4bbf','#4bbfbf','#e06060','#5ae09a'];
-
   // Municípios no escopo atual
   const muns = sc.mun ? [sc.mun]
              : sc.cia ? MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === sc.cia))
              : MUNS;
 
-  // Apenas municípios com pelo menos uma ocorrência no período
+  // Apenas municípios com pelo menos uma ocorrência no período, ordenados por CIA
   const withOcc = muns
     .map(m => ({ m, total: MESES.reduce((s, mes) => s + sf(q({ crime, mun: m, mes })), 0) }))
     .filter(x => x.total > 0)
-    .sort((a, b) => b.total - a.total);
+    .sort((a, b) => munCia(a.m).localeCompare(munCia(b.m)) || b.total - a.total);
 
+  const ciaStyleIdx2 = {};
   mk('c-evol-muns', {
     type: 'line',
     data: {
       labels: MESES,
-      datasets: withOcc.map(({ m }, i) => ({
-        label: m,
-        data: MESES.map(mes => sf(q({ crime, mun: m, mes }))),
-        borderColor: LC[i % LC.length],
-        backgroundColor: 'transparent',
-        tension: 0.3,
-        pointRadius: 5,
-        borderWidth: 2,
-        borderDash: i % 2 === 1 ? [5, 3] : [],
-        pointStyle: i % 2 === 1 ? 'triangle' : 'circle',
-        pointBackgroundColor: LC[i % LC.length]
-      }))
+      datasets: withOcc.map(({ m }) => {
+        const col = ciaColor(m);
+        const cia = munCia(m);
+        ciaStyleIdx2[cia] = (ciaStyleIdx2[cia] ?? -1) + 1;
+        const idx = ciaStyleIdx2[cia];
+        const dashes = [[],[5,3],[2,3]];
+        const styles = ['circle','triangle','rect'];
+        return {
+          label: m,
+          data: MESES.map(mes => sf(q({ crime, mun: m, mes }))),
+          borderColor: col, backgroundColor: 'transparent',
+          tension: 0.3, pointRadius: 5, borderWidth: 2,
+          borderDash: dashes[idx % 3], pointStyle: styles[idx % 3],
+          pointBackgroundColor: col
+        };
+      })
     },
     options: {
       responsive: true,
@@ -1380,6 +1426,7 @@ function moRender() {
   const ma  = muns.map(m => sf(q({ crime, mun: m, mes: moMeses })));
   moCh.push(new Chart(document.getElementById('mo-meta').getContext('2d'), {
     type: 'bar',
+    plugins: [ciaSepPlugin(muns)],
     data: { labels: muns.map(m => m.split(' ')[0]), datasets: [
       { label: 'Meta',     data: mm, backgroundColor: 'rgba(255,255,255,.09)', borderRadius: 3 },
       { label: 'Avaliado', data: ma, backgroundColor: ma.map((v,i) => mm[i]>0&&v<=mm[i]?'rgba(61,191,122,.75)':'rgba(200,75,75,.75)'), borderRadius: 3 }
@@ -1388,15 +1435,21 @@ function moRender() {
   }));
 
   // Evolução por Município (sempre todos os MESES no eixo X)
-  const withOcc = muns.map(m => ({ m, v: sf(q({ crime, mun: m, mes: moMeses })) })).filter(x => x.v > 0).sort((a,b) => b.v - a.v);
-  const lc2 = ['#c8a84b','#3d7abf','#c84b4b','#3dbf7a','#bf7a3d','#7a4bbf','#4bbfbf','#e06060','#5ae09a'];
+  const withOcc = muns.map(m => ({ m, v: sf(q({ crime, mun: m, mes: moMeses })) })).filter(x => x.v > 0).sort((a,b) => munCia(a.m).localeCompare(munCia(b.m)) || b.v - a.v);
+  const ciaStyleIdx = {};
   moCh.push(new Chart(document.getElementById('mo-line').getContext('2d'), {
     type: 'line',
-    data: { labels: MESES, datasets: withOcc.map(({m},i) => ({
-      label: m, data: MESES.map(mes => sf(q({ crime, mun: m, mes }))),
-      borderColor: lc2[i%lc2.length], backgroundColor: 'transparent', tension: 0, pointRadius: 5, borderWidth: 2,
-      borderDash: i%2===1?[5,3]:[], pointStyle: i%2===1?'triangle':'circle', pointBackgroundColor: lc2[i%lc2.length]
-    }))},
+    data: { labels: MESES, datasets: withOcc.map(({m}) => {
+      const col = ciaColor(m);
+      const cia = munCia(m);
+      ciaStyleIdx[cia] = (ciaStyleIdx[cia] ?? -1) + 1;
+      const idx = ciaStyleIdx[cia];
+      const dashes = [[],[5,3],[2,3]];
+      const styles = ['circle','triangle','rect'];
+      return { label: m, data: MESES.map(mes => sf(q({ crime, mun: m, mes }))),
+        borderColor: col, backgroundColor: 'transparent', tension: 0, pointRadius: 5, borderWidth: 2,
+        borderDash: dashes[idx % 3], pointStyle: styles[idx % 3], pointBackgroundColor: col };
+    })},
     options: { responsive: true, plugins: { legend: { labels: { boxWidth: 15, padding: 10, font: { size: 16 }, usePointStyle: true } } }, scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1 } } } }
   }));
 
