@@ -1710,14 +1710,14 @@ function renderMoIntel(data) {
   if (!sec) return;
   if (!data.length) { sec.style.display = 'none'; return; }
   sec.style.display = 'block';
-  renderHeatmap(data);
+  renderOcorrHeatmap(data);
   renderTipoLocal(data);
   renderBairros(data);
   renderRubrica(data);
   renderReincidencia(data);
 }
 
-function renderHeatmap(data) {
+function renderOcorrHeatmap(data) {
   const el = document.getElementById('mo-heatmap');
   if (!el) return;
   const DIAS   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
