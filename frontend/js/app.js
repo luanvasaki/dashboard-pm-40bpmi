@@ -303,6 +303,11 @@ function showAdmMsg(text, type) {
 
 // Paleta de cores por crime (mesma ordem da API)
 const PAL = ['#c84b4b','#bf7a3d','#c8a84b','#3d7abf','#e8c96a','#3dbf7a','#7a4bbf'];
+
+// Crimes agrupados num único card na visão geral
+const CRIME_GROUPS = [
+  { label: 'Veículos', crimes: ['Roubo de Veículos', 'Furto de Veículos'], color: '#5a9de0' }
+];
 const GR  = { color: 'rgba(255,255,255,.04)' };
 
 // Ordem canônica dos meses
@@ -728,12 +733,17 @@ function renderVisaoAndInsights() {
 // ---------------------------------------------------------------------------
 
 function renderKPIs() {
-  document.getElementById('kpi-row').innerHTML = CRIMES.map((c, i) => {
+  const groupedCrimes = CRIME_GROUPS.flatMap(g => g.crimes);
+  let html = '';
+
+  // Cards individuais (pula os que fazem parte de um grupo)
+  CRIMES.forEach((c, i) => {
+    if (groupedCrimes.includes(c)) return;
     const aval = sf(q({ crime: c, mes: selMeses }));
     const ant  = sf(q({ crime: c, mes: selMeses }), 'anterior');
     const vp   = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : 0;
     const up   = parseFloat(vp) > 0;
-    return `<div class="kpi" onclick="moOpen('${c}','${PAL[i]}')" title="Clique para detalhes">
+    html += `<div class="kpi" onclick="moOpen('${c}','${PAL[i]}')" title="Clique para detalhes">
       <div class="kpi-top" style="background:${PAL[i]}"></div>
       <div class="kpi-lbl">${cl(c)}</div>
       <div class="kpi-val" style="color:${PAL[i]}">${aval}</div>
@@ -743,7 +753,32 @@ function renderKPIs() {
       </div>
       <div class="kpi-hint">▸ clique p/ detalhes</div>
     </div>`;
-  }).join('');
+  });
+
+  // Cards agrupados
+  CRIME_GROUPS.forEach(g => {
+    const aval = sf(q({ crime: g.crimes, mes: selMeses }));
+    const ant  = sf(q({ crime: g.crimes, mes: selMeses }), 'anterior');
+    const vp   = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : 0;
+    const up   = parseFloat(vp) > 0;
+    html += `<div class="kpi" onclick="moOpenGroup('${g.label}')" title="Clique para detalhes">
+      <div class="kpi-top" style="background:${g.color}"></div>
+      <div class="kpi-lbl">${g.label}</div>
+      <div class="kpi-val" style="color:${g.color}">${aval}</div>
+      <div class="kpi-row2">
+        <div class="kpi-sub">ant: ${ant}</div>
+        <div class="tag ${up ? 'tbad' : 'tok'}">${up ? '▲' : '▼'}${Math.abs(vp)}%</div>
+      </div>
+      <div class="kpi-hint">▸ clique p/ detalhes</div>
+    </div>`;
+  });
+
+  document.getElementById('kpi-row').innerHTML = html;
+}
+
+function moOpenGroup(label) {
+  const g = CRIME_GROUPS.find(g => g.label === label);
+  if (g) moOpen(g.crimes, g.color, g.label);
 }
 
 // ---------------------------------------------------------------------------
@@ -1225,13 +1260,14 @@ function moDestroy() {
   moIntelChs.forEach(c => c.destroy()); moIntelChs = [];
 }
 
-function moOpen(crime, color) {
+function moOpen(crime, color, displayLabel) {
   moDestroy();
   moCrime = crime; moColor = color;
   moMeses = [...selMeses];
   moScopeType = 'btl'; moScopeVal = null;
   moOcorrAll = []; moOcorrCiaFilter = null;
-  document.getElementById('mo-crime').textContent      = crime.toUpperCase();
+  const label = displayLabel || (Array.isArray(crime) ? crime.join(' + ') : crime);
+  document.getElementById('mo-crime').textContent      = label.toUpperCase();
   document.getElementById('mo-accent').style.background = color;
   buildMoFilter();
   moRender();
@@ -1317,6 +1353,28 @@ function moRender() {
     <div class="mk"><div class="mk-lbl">Var vs Anterior</div><div class="mk-val" style="color:${vc}">${parseFloat(vp) <= 0 ? '▼' : '▲'}${Math.abs(vp)}%</div><div class="mk-sub">Ant: ${ant}</div></div>
     <div class="mk" style="grid-column:span 1"><div class="mk-lbl">Municípios Fora da Meta (${acimaDoMeta.length})</div>${munCriticoHtml}</div>
     <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:16px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub">Meta:${meta} | Real:${aval}</div></div>`;
+
+  // Breakdown para crimes agrupados
+  const breakdownEl = document.getElementById('mo-breakdown');
+  const breakdownCtx = document.getElementById('mo-breakdown-chart')?.getContext('2d');
+  if (Array.isArray(crime) && breakdownEl && breakdownCtx) {
+    breakdownEl.style.display = 'block';
+    const bAval = crime.map(c => sf(q({ crime: c, mes: moMeses, ...sc })));
+    const bMeta = crime.map(c => sf(q({ crime: c, mes: moMeses, ...sc }), 'meta'));
+    const bAnt  = crime.map(c => sf(q({ crime: c, mes: moMeses, ...sc }), 'anterior'));
+    const bColors = ['rgba(61,122,191,.75)', 'rgba(61,191,122,.75)'];
+    moCh.push(new Chart(breakdownCtx, {
+      type: 'bar',
+      data: { labels: crime.map(cl), datasets: [
+        { label: 'Avaliado',  data: bAval, backgroundColor: bColors, borderRadius: 4 },
+        { label: 'Meta',      data: bMeta, backgroundColor: 'rgba(255,255,255,.09)', borderRadius: 4 },
+        { label: 'Anterior',  data: bAnt,  backgroundColor: 'rgba(255,255,255,.05)', borderRadius: 4 }
+      ]},
+      options: { responsive: true, plugins: { legend: { labels: { boxWidth: 14, font: { size: 13 } } } }, scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } } }
+    }));
+  } else if (breakdownEl) {
+    breakdownEl.style.display = 'none';
+  }
 
   // Meta vs Avaliado
   const mm  = muns.map(m => sf(q({ crime, mun: m, mes: moMeses }), 'meta'));
@@ -1623,7 +1681,8 @@ async function loadMoOcorr() {
   if (filtersEl) filtersEl.innerHTML = '';
 
   try {
-    const params = new URLSearchParams({ rubrica: moCrime, limit: '2000' });
+    const rubricaQuery = Array.isArray(moCrime) ? 'Veículo' : moCrime;
+    const params = new URLSearchParams({ rubrica: rubricaQuery, limit: '2000' });
     const res  = await authFetch(`${API}/ocorrencias?${params}`);
     const data = await res.json();
     moOcorrAll = Array.isArray(data) ? data : [];
