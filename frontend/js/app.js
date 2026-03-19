@@ -838,11 +838,16 @@ function renderVisao() {
 
   // Desvio vs Meta: ((avaliado - meta) / meta) * 100
   // Verde  → avaliado ≤ meta  |  Laranja → acima mas melhorando  |  Vermelho → acima e piorando
-  const vmDetails = CRIMES.map(c => {
-    const aval  = sf(q({ crime: c, mes: selMeses, ...sc }));
-    const meta  = sf(q({ crime: c, mes: selMeses, ...sc }), 'meta');
-    const ant   = sf(q({ crime: c, mes: selMeses, ...sc }), 'anterior');
-    const tendV = sf(q({ crime: c, mes: selMeses, ...sc }), 'tend');
+  const groupedCrimes = CRIME_GROUPS.flatMap(g => g.crimes);
+  const vmEntries = [
+    ...CRIMES.filter(c => !groupedCrimes.includes(c)).map(c => ({ label: cl(c), crimes: [c] })),
+    ...CRIME_GROUPS.map(g => ({ label: g.label, crimes: g.crimes }))
+  ];
+  const vmDetails = vmEntries.map(({ crimes: cs }) => {
+    const aval  = cs.reduce((s,c) => s + sf(q({ crime: c, mes: selMeses, ...sc })), 0);
+    const meta  = cs.reduce((s,c) => s + sf(q({ crime: c, mes: selMeses, ...sc }), 'meta'), 0);
+    const ant   = cs.reduce((s,c) => s + sf(q({ crime: c, mes: selMeses, ...sc }), 'anterior'), 0);
+    const tendV = cs.reduce((s,c) => s + sf(q({ crime: c, mes: selMeses, ...sc }), 'tend'), 0);
     const dev   = meta === 0 ? (aval === 0 ? 0 : 100) : parseFloat(((aval - meta) / meta * 100).toFixed(1));
     const devT  = tendV === 0 ? null : meta === 0 ? 100 : parseFloat(((tendV - meta) / meta * 100).toFixed(1));
     const tendS = aval <= meta ? '✓ Dentro da meta' : aval < ant ? '↗ Acima da meta, melhorando' : '↘ Acima da meta, piorando';
@@ -851,7 +856,7 @@ function renderVisao() {
   mk('c-var', {
     type: 'bar',
     data: {
-      labels: CRIMES.map(cl),
+      labels: vmEntries.map(e => e.label),
       datasets: [
         {
           label: 'Desvio vs Meta (%)',
@@ -884,7 +889,7 @@ function renderVisao() {
         },
         tooltip: {
           callbacks: {
-            title: ctx => CRIMES[ctx[0].dataIndex],
+            title: ctx => vmEntries[ctx[0].dataIndex]?.label,
             label: ctx => {
               const d = vmDetails[ctx.dataIndex];
               if (ctx.datasetIndex === 1) {
