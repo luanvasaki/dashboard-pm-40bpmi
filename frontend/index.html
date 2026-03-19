@@ -39,7 +39,6 @@
     </button>
     <div id="p3-submenu">
       <button class="nav-btn on" onclick="goPage('visao',this)"><span class="nav-ic">◈</span>Visão Geral</button>
-      <button class="nav-btn" onclick="goPage('heatmap',this)"><span class="nav-ic">▦</span>Mapa de Calor</button>
     </div>
     <button class="sec-btn" id="sec-p4" onclick="goSection('p4',this)">
       <i data-lucide="package" class="sec-ic"></i>
@@ -279,6 +278,18 @@
       <select id="evol-mun-crime" class="pf-select" style="font-size:10px;min-width:160px" onchange="renderEvolMuns()"></select>
     </div>
     <canvas id="c-evol-muns" style="max-height:280px"></canvas>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-head"><div class="card-title">Mapa de Calor — Intensidade por Município e Crime</div></div>
+    <div class="hm-wrap"><table class="hm-tbl" id="vis-hm-tbl"></table></div>
+    <div class="hm-legend">
+      <span>ESCALA:</span>
+      <span class="sw" style="background:rgba(74,158,232,.15)"></span><span>Zero</span>
+      <span class="sw" style="background:rgba(200,168,75,.25)"></span><span>Baixo</span>
+      <span class="sw" style="background:rgba(200,168,75,.6)"></span><span>Médio</span>
+      <span class="sw" style="background:#c8a84b"></span><span>Alto</span>
+      <span class="sw" style="background:#c84b4b"></span><span>Crítico</span>
+    </div>
   </div>
   <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin:22px 0 10px">Insights Comando</div>
   <div class="ig" id="ins-grid"></div>
