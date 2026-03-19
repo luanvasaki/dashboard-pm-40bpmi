@@ -306,7 +306,7 @@ const PAL = ['#c84b4b','#bf7a3d','#c8a84b','#3d7abf','#e8c96a','#3dbf7a','#7a4bb
 
 // Crimes agrupados num único card na visão geral
 const CRIME_GROUPS = [
-  { label: 'Veículos', crimes: ['Roubo de Veículos', 'Furto de Veículos'], color: '#5a9de0' }
+  { label: 'Roubo / Furto Veículos', crimes: ['Roubo de Veículos', 'Furto de Veículos'], color: '#5a9de0' }
 ];
 const GR  = { color: 'rgba(255,255,255,.04)' };
 
