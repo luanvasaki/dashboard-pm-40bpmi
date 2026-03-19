@@ -645,16 +645,8 @@ function sbSetScope(type, val) {
     pageFilters.visao = { type: 'btl', value: null };
   } else {
     pageFilters.visao = { type, value: val };
-    // ao trocar CIA, repopula cidades e reseta município
-    if (type === 'cia') {
-      const munSel = document.getElementById('sb-mun-sel');
-      if (munSel) {
-        const muns = MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === val));
-        munSel.innerHTML = '<option value="">Todas</option>';
-        muns.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; munSel.appendChild(o); });
-      }
-    }
   }
+  buildSbMes();
   renderVisaoAndInsights();
 }
 
