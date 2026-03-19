@@ -1676,6 +1676,10 @@ function applyOcorrFilters() {
     const m = parseInt(r.data_ocorrencia.split('-')[1]) - 1;
     return moMeses.includes(MES_ORD[m]);
   });
+  if (moScopeType === 'cia' && moScopeVal)
+    filtered = filtered.filter(r => normCiaKey(r.cia) === normCiaKey(moScopeVal));
+  if (moScopeType === 'mun' && moScopeVal)
+    filtered = filtered.filter(r => r.municipio === moScopeVal);
   if (moOcorrCiaFilter) filtered = filtered.filter(r => normCiaKey(r.cia) === normCiaKey(moOcorrCiaFilter));
   renderMoOcorrFilters();
   renderOcorrTable(filtered);
