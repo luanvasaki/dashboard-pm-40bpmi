@@ -1781,7 +1781,7 @@ function renderBairros(data) {
   if (!sorted.length) return;
   const ctx = document.getElementById('mo-bairros')?.getContext('2d');
   if (!ctx) return;
-  const labels = sorted.map(([k]) => muns[k] ? `${muns[k]} — ${k}` : k);
+  const labels = sorted.map(([k]) => muns[k] ? [muns[k], k] : k);
   moIntelChs.push(new Chart(ctx, {
     type: 'bar',
     data: { labels, datasets: [{ label:'Ocorrências', data: sorted.map(([,v])=>v), backgroundColor:'rgba(200,75,75,.7)', borderRadius:4 }] },
