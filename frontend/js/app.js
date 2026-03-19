@@ -485,7 +485,6 @@ function buildPageFilter(containerId, key, renderFn, opts = {}) {
 }
 
 function buildPageFilters() {
-  buildPageFilter('pf-visao',    'visao',    renderVisaoAndInsights);
   buildPageFilter('pf-metas',   'metas',    renderMetas, { showCrime: true });
   buildPageFilter('pf-evolucao','evolucao', renderEvolucao);
 }
