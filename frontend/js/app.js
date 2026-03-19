@@ -1794,7 +1794,11 @@ function renderTipoLocal(data) {
   const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
   const top = sorted.slice(0,7);
   const outros = sorted.slice(7).reduce((s,[,v]) => s+v, 0);
-  if (outros > 0) top.push(['Outros', outros]);
+  if (outros > 0) {
+    const idx = top.findIndex(([k]) => k === 'Outros');
+    if (idx >= 0) top[idx] = ['Outros', top[idx][1] + outros];
+    else top.push(['Outros', outros]);
+  }
   const ctx = document.getElementById('mo-tipolocal')?.getContext('2d');
   if (!ctx) return;
   const colors = ['#c8a84b','#3d7abf','#c84b4b','#3dbf7a','#bf7a3d','#7a4bbf','#4bbfbf','#808080'];
