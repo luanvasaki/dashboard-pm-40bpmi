@@ -1265,7 +1265,7 @@ function moOpen(crime, color, displayLabel) {
   moCrime = crime; moColor = color;
   moMeses = [...selMeses];
   moScopeType = 'btl'; moScopeVal = null;
-  moOcorrAll = []; moOcorrCiaFilter = null;
+  moOcorrAll = [];
   const label = displayLabel || (Array.isArray(crime) ? crime.join(' + ') : crime);
   document.getElementById('mo-crime').textContent      = label.toUpperCase();
   document.getElementById('mo-accent').style.background = color;
@@ -1554,7 +1554,6 @@ async function confirmUpload() {
 
 let ocorrData = null;
 let moOcorrAll = [];
-let moOcorrCiaFilter = null;
 
 function openOcorrModal() {
   ocorrData = null;
@@ -1680,15 +1679,15 @@ function applyOcorrFilters() {
     filtered = filtered.filter(r => normCiaKey(r.cia) === normCiaKey(moScopeVal));
   if (moScopeType === 'mun' && moScopeVal)
     filtered = filtered.filter(r => r.municipio === moScopeVal);
-  if (moOcorrCiaFilter) filtered = filtered.filter(r => normCiaKey(r.cia) === normCiaKey(moOcorrCiaFilter));
   renderMoOcorrFilters();
   renderOcorrTable(filtered);
   renderMoIntel(filtered);
 }
 
 function setOcorrCia(cia) {
-  moOcorrCiaFilter = moOcorrCiaFilter === cia ? null : cia;
-  applyOcorrFilters();
+  // Toggle: se já está selecionada, volta para Batalhão; senão seleciona a CIA
+  if (moScopeType === 'cia' && moScopeVal === cia) moSetScope('btl', null);
+  else moSetScope('cia', cia);
 }
 
 function renderMoOcorrFilters() {
@@ -1697,9 +1696,6 @@ function renderMoOcorrFilters() {
   let h = '';
   if (moOcorrAll.length) {
     h += `<span style="font-size:11px;color:var(--tx3)">${moOcorrAll.length} registro(s) total</span>`;
-  }
-  if (moOcorrCiaFilter) {
-    h += `<button onclick="setOcorrCia('${moOcorrCiaFilter}')" style="margin-left:8px;padding:3px 10px;border-radius:12px;border:1px solid rgba(200,75,75,.4);background:rgba(200,75,75,.1);color:#e06060;cursor:pointer;font-size:11px">✕ ${moOcorrCiaFilter}</button>`;
   }
   el.innerHTML = h;
 }
