@@ -1750,7 +1750,7 @@ function renderMoIntel(data) {
   renderOcorrHeatmap(data);
   renderTipoLocal(data);
   renderBairros(data);
-  renderRubrica(data);
+
   renderReincidencia(data);
 }
 
