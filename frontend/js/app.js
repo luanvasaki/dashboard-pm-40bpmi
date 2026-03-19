@@ -1170,7 +1170,11 @@ function renderEvolucao() {
 // Modal de detalhes
 // ---------------------------------------------------------------------------
 
-function moDestroy() { moCh.forEach(c => c.destroy()); moCh = []; }
+let moIntelChs = [];
+function moDestroy() {
+  moCh.forEach(c => c.destroy()); moCh = [];
+  moIntelChs.forEach(c => c.destroy()); moIntelChs = [];
+}
 
 function moOpen(crime, color) {
   moDestroy();
@@ -1589,6 +1593,7 @@ function applyOcorrFilters() {
   if (moOcorrCiaFilter) filtered = filtered.filter(r => normCiaKey(r.cia) === normCiaKey(moOcorrCiaFilter));
   renderMoOcorrFilters();
   renderOcorrTable(filtered);
+  renderMoIntel(filtered);
 }
 
 function setOcorrCia(cia) {
@@ -1628,6 +1633,149 @@ function renderOcorrTable(data) {
   });
   h += '</tbody></table>';
   el.innerHTML = h;
+}
+
+// ---------------------------------------------------------------------------
+// Inteligência Operacional — InfoCrim
+// ---------------------------------------------------------------------------
+
+function normDia(s) {
+  const key = (s || '').toLowerCase().replace(/-feira/, '').trim();
+  const MAP = { domingo:'Dom', segunda:'Seg', 'terça':'Ter', terca:'Ter', quarta:'Qua', quinta:'Qui', sexta:'Sex', 'sábado':'Sáb', sabado:'Sáb' };
+  return MAP[key] || s;
+}
+
+function horaBlock(h) {
+  if (!h) return null;
+  const hr = parseInt((h || '').split(':')[0]);
+  if (isNaN(hr)) return null;
+  if (hr < 6) return 0;
+  if (hr < 12) return 1;
+  if (hr < 18) return 2;
+  return 3;
+}
+
+function renderMoIntel(data) {
+  moIntelChs.forEach(c => c.destroy()); moIntelChs = [];
+  const sec = document.getElementById('mo-intel');
+  if (!sec) return;
+  if (!data.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  renderHeatmap(data);
+  renderTipoLocal(data);
+  renderBairros(data);
+  renderRubrica(data);
+  renderReincidencia(data);
+}
+
+function renderHeatmap(data) {
+  const el = document.getElementById('mo-heatmap');
+  if (!el) return;
+  const DIAS   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const BLOCOS = ['Madrugada<br>00–05','Manhã<br>06–11','Tarde<br>12–17','Noite<br>18–23'];
+  const matrix = {};
+  DIAS.forEach(d => { matrix[d] = [0,0,0,0]; });
+  let maxVal = 0;
+  data.forEach(r => {
+    const dia   = normDia(r.dia_semana);
+    const bloco = horaBlock(r.hora_ocorrencia);
+    if (DIAS.includes(dia) && bloco !== null) {
+      matrix[dia][bloco]++;
+      if (matrix[dia][bloco] > maxVal) maxVal = matrix[dia][bloco];
+    }
+  });
+  if (maxVal === 0) { el.innerHTML = '<div style="color:var(--tx3);font-size:12px">Sem dados de horário disponíveis.</div>'; return; }
+  const cellStyle = count => {
+    const i = count / maxVal;
+    const a = (0.08 + i * 0.88).toFixed(2);
+    return `background:rgba(200,75,75,${a});color:${i > 0.45 ? '#fff' : 'var(--tx3)'};font-weight:${count ? 600 : 400}`;
+  };
+  let h = `<table style="width:100%;border-collapse:separate;border-spacing:3px;font-size:11px"><thead><tr>
+    <th style="padding:4px 6px;color:var(--tx3);font-family:'DM Mono',monospace;font-size:9px;text-align:left"></th>`;
+  BLOCOS.forEach(b => h += `<th style="padding:4px;color:var(--tx3);font-family:'DM Mono',monospace;font-size:9px;text-align:center">${b}</th>`);
+  h += '</tr></thead><tbody>';
+  DIAS.forEach(dia => {
+    h += `<tr><td style="padding:4px 8px;color:var(--tx3);font-family:'DM Mono',monospace;font-size:9px;white-space:nowrap">${dia}</td>`;
+    matrix[dia].forEach(cnt => h += `<td style="padding:7px 4px;border-radius:4px;text-align:center;${cellStyle(cnt)}">${cnt || ''}</td>`);
+    h += '</tr>';
+  });
+  el.innerHTML = h + '</tbody></table>';
+}
+
+function renderTipoLocal(data) {
+  const counts = {};
+  data.forEach(r => { const t = r.tipo_local || 'Não informado'; counts[t] = (counts[t]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+  const top = sorted.slice(0,7);
+  const outros = sorted.slice(7).reduce((s,[,v]) => s+v, 0);
+  if (outros > 0) top.push(['Outros', outros]);
+  const ctx = document.getElementById('mo-tipolocal')?.getContext('2d');
+  if (!ctx) return;
+  const colors = ['#c8a84b','#3d7abf','#c84b4b','#3dbf7a','#bf7a3d','#7a4bbf','#4bbfbf','#808080'];
+  moIntelChs.push(new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels: top.map(([k])=>k), datasets: [{ data: top.map(([,v])=>v), backgroundColor: colors.slice(0,top.length), borderWidth:0 }] },
+    options: { responsive:true, cutout:'60%', plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11}, padding:8 } } } }
+  }));
+}
+
+function renderBairros(data) {
+  const counts = {};
+  data.forEach(r => { if (r.bairro) counts[r.bairro] = (counts[r.bairro]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  if (!sorted.length) return;
+  const ctx = document.getElementById('mo-bairros')?.getContext('2d');
+  if (!ctx) return;
+  moIntelChs.push(new Chart(ctx, {
+    type: 'bar',
+    data: { labels: sorted.map(([k])=>k), datasets: [{ label:'Ocorrências', data: sorted.map(([,v])=>v), backgroundColor:'rgba(200,75,75,.7)', borderRadius:4 }] },
+    options: { indexAxis:'y', responsive:true, plugins:{ legend:{display:false} }, scales:{ x:{ grid:GR, ticks:{stepSize:1} }, y:{ grid:GR } } }
+  }));
+}
+
+function renderRubrica(data) {
+  const counts = {};
+  data.forEach(r => { const rub = r.rubrica||'Não informado'; counts[rub]=(counts[rub]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  if (!sorted.length) return;
+  const ctx = document.getElementById('mo-rubrica')?.getContext('2d');
+  if (!ctx) return;
+  const colors = ['#c84b4b','#bf7a3d','#c8a84b','#3d7abf','#3dbf7a','#7a4bbf','#4bbfbf','#e06060','#5ae09a'];
+  moIntelChs.push(new Chart(ctx, {
+    type: 'bar',
+    data: { labels: sorted.map(([k])=>k), datasets: [{ label:'Ocorrências', data: sorted.map(([,v])=>v), backgroundColor: sorted.map((_,i)=>colors[i%colors.length]), borderRadius:4 }] },
+    options: { indexAxis:'y', responsive:true, plugins:{ legend:{display:false} }, scales:{ x:{ grid:GR, ticks:{stepSize:1} }, y:{ grid:GR } } }
+  }));
+}
+
+function renderReincidencia(data) {
+  const el = document.getElementById('mo-reincidencia');
+  if (!el) return;
+  const bd = {};
+  data.forEach(r => {
+    if (!r.bairro) return;
+    if (!bd[r.bairro]) bd[r.bairro] = { meses: new Set(), total: 0 };
+    bd[r.bairro].total++;
+    if (r.data_ocorrencia) bd[r.bairro].meses.add(r.data_ocorrencia.substring(0,7));
+  });
+  const lista = Object.entries(bd)
+    .filter(([,d]) => d.meses.size >= 2)
+    .sort((a,b) => b[1].meses.size - a[1].meses.size || b[1].total - a[1].total)
+    .slice(0,10);
+  if (!lista.length) { el.innerHTML = '<div style="color:var(--tx3);font-size:12px">Nenhum bairro com ocorrências em múltiplos meses.</div>'; return; }
+  const maxM = lista[0][1].meses.size;
+  el.innerHTML = lista.map(([bairro,d]) => {
+    const pct = (d.meses.size / maxM * 100).toFixed(0);
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-size:12px;font-weight:600;color:var(--tx)">${bairro}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${d.meses.size} mês(es) · ${d.total} ocorr.</span>
+      </div>
+      <div style="height:5px;background:var(--s3);border-radius:3px">
+        <div style="height:5px;width:${pct}%;background:#c84b4b;border-radius:3px"></div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ---------------------------------------------------------------------------
