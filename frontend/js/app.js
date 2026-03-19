@@ -1354,6 +1354,17 @@ function moRender() {
     <div class="mk" style="grid-column:span 1"><div class="mk-lbl">Municípios Fora da Meta (${acimaDoMeta.length})</div>${munCriticoHtml}</div>
     <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:16px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub">Meta:${meta} | Real:${aval}</div></div>`;
 
+  // Meta vs Avaliado
+  const mm  = muns.map(m => sf(q({ crime, mun: m, mes: moMeses }), 'meta'));
+  const ma  = muns.map(m => sf(q({ crime, mun: m, mes: moMeses })));
+  moCh.push(new Chart(document.getElementById('mo-meta').getContext('2d'), {
+    type: 'bar',
+    data: { labels: muns.map(m => m.split(' ')[0]), datasets: [
+      { label: 'Meta',     data: mm, backgroundColor: 'rgba(255,255,255,.09)', borderRadius: 3 },
+      { label: 'Avaliado', data: ma, backgroundColor: ma.map((v,i) => mm[i]>0&&v<=mm[i]?'rgba(61,191,122,.75)':'rgba(200,75,75,.75)'), borderRadius: 3 }
+    ]},
+    options: { responsive: true, plugins: { legend: { labels: { boxWidth: 15, font: { size: 16 } } } }, scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } } }
+  }));
 
   // Evolução por Município (sempre todos os MESES no eixo X)
   const withOcc = muns.map(m => ({ m, v: sf(q({ crime, mun: m, mes: moMeses })) })).filter(x => x.v > 0).sort((a,b) => b.v - a.v);
