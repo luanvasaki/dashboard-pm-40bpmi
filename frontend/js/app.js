@@ -400,8 +400,8 @@ function scope(key) {
 
 // Sincroniza a barra de meses da Visão Geral com selMeses atual
 function syncSidebarMes() {
-  document.querySelectorAll('.mes-btn-ano').forEach(b => b.classList.toggle('on', parseInt(b.textContent) === selAno));
-  document.querySelectorAll('.mes-btn-all').forEach(b => { b.classList.toggle('on', selMeses.length === MESES.length); b.textContent = selAno || new Date().getFullYear(); });
+  document.querySelectorAll('.pf-ano-sel').forEach(s => { s.value = selAno; });
+  document.querySelectorAll('.mes-btn-all').forEach(b => b.classList.toggle('on', selMeses.length === MESES.length));
   document.querySelectorAll('.mes-btn-vis').forEach((b, i) => {
     b.classList.toggle('on', selMeses.includes(MESES[i]));
   });
@@ -672,11 +672,10 @@ async function init() {
 function buildSbMes() {
   const pf  = pageFilters.visao;
   let h = `<span class="pf-label">Período</span>`;
-  if (ANOS.length > 1) {
-    ANOS.forEach(a => h += `<button class="pf-btn mes-btn-ano" onclick="sbSetAno(${a})">${a}</button>`);
-    h += `<span style="color:rgba(255,255,255,0.15);margin:0 4px;align-self:center">|</span>`;
-  }
-  h += `<button class="pf-btn mes-btn-all" onclick="sbAll(this)">${selAno || ANOS[0] || new Date().getFullYear()}</button>`;
+  h += `<div class="pf-field"><span class="pf-label">ANO</span><select class="pf-select pf-ano-sel" onchange="sbSetAno(parseInt(this.value))">`;
+  ANOS.forEach(a => h += `<option value="${a}" ${a === selAno ? 'selected' : ''}>${a}</option>`);
+  h += `</select></div>`;
+  h += `<button class="pf-btn mes-btn-all" onclick="sbAll(this)">Todos</button>`;
   MESES.forEach(m => h += `<button class="pf-btn mes-btn-vis" onclick="sbTog('${m}',this)">${m}</button>`);
 
   // Espaço separador
