@@ -402,8 +402,8 @@ function scope(key) {
 function syncSidebarMes() {
   document.querySelectorAll('.pf-ano-sel').forEach(s => { s.value = selAno || ''; });
   document.querySelectorAll('.mes-btn-all').forEach(b => b.classList.toggle('on', selMeses.length === MESES.length));
-  document.querySelectorAll('.mes-btn-vis').forEach((b, i) => {
-    b.classList.toggle('on', selMeses.includes(MESES[i]));
+  document.querySelectorAll('.mes-btn-vis').forEach(b => {
+    b.classList.toggle('on', selMeses.includes(b.textContent.trim()));
   });
   // Sincroniza selects de mês nas barras de filtro
   document.querySelectorAll('.pf-mes').forEach(s => {
@@ -1569,17 +1569,27 @@ function moRender() {
       };
 
       // ── Gráfico 1: Comparação Ano a Ano + Tendência ─────────────────────
+      // null = mês sem dados (ainda não aconteceu ou não preenchido)
       const yrDatasets = [];
       ANOS.forEach((ano, i) => {
-        const vals = MES_ORD.map(m => yrVal(ano, m));
+        const vals = MES_ORD.map(m => { const v = yrVal(ano, m); return v > 0 ? v : null; });
+        const valsNum = vals.filter(v => v !== null);
         const col  = YR_COLORS[i % YR_COLORS.length];
         yrDatasets.push({ label: String(ano), data: vals,
           borderColor: col, backgroundColor: 'transparent',
-          tension: 0, pointRadius: 5, borderWidth: 2, pointBackgroundColor: col });
-        yrDatasets.push({ label: `Tendência ${ano}`, data: lrTrend(vals),
-          borderColor: col, backgroundColor: 'transparent',
-          borderDash: [6,4], pointRadius: 0, borderWidth: 1.5,
-          tension: 0.3, pointBackgroundColor: col });
+          tension: 0, pointRadius: 5, borderWidth: 2, pointBackgroundColor: col,
+          spanGaps: false });
+        if (valsNum.length >= 2) {
+          const trend = lrTrend(valsNum);
+          const trendFull = vals.map((v, idx) => {
+            const numIdx = vals.slice(0, idx+1).filter(x => x !== null).length - 1;
+            return v !== null ? trend[numIdx] : null;
+          });
+          yrDatasets.push({ label: `Tendência ${ano}`, data: trendFull,
+            borderColor: col, backgroundColor: 'transparent',
+            borderDash: [6,4], pointRadius: 0, borderWidth: 1.5,
+            tension: 0.3, spanGaps: false });
+        }
       });
       const ch1 = Chart.getChart(document.getElementById('mo-year-comp'));
       if (ch1) ch1.destroy();
@@ -1598,7 +1608,8 @@ function moRender() {
       const varVals  = MES_ORD.map(m => {
         const base = yrVal(baseAno, m);
         const comp = yrVal(compAno, m);
-        return base > 0 ? Math.round((comp - base) / base * 100) : null;
+        // só calcula se ambos os anos têm dados nesse mês
+        return base > 0 && comp > 0 ? Math.round((comp - base) / base * 100) : null;
       });
       const ch2 = Chart.getChart(document.getElementById('mo-var-chart'));
       if (ch2) ch2.destroy();
@@ -1618,13 +1629,21 @@ function moRender() {
       }));
 
       // ── Cards: Sazonalidade e Projeção ───────────────────────────────────
-      const allVals  = MES_ORD.map(m => ANOS.reduce((s, a) => s + yrVal(a, m), 0) / ANOS.length);
-      const avgTotal = allVals.reduce((s,v) => s+v, 0) / 12 || 1;
-      const sazonIdx = allVals.map(v => Math.round(v / avgTotal * 100));
-      const peakMes  = [...MES_ORD].sort((a,b) => sazonIdx[MES_ORD.indexOf(b)] - sazonIdx[MES_ORD.indexOf(a)]).slice(0,3);
-      const lowMes   = [...MES_ORD].sort((a,b) => sazonIdx[MES_ORD.indexOf(a)] - sazonIdx[MES_ORD.indexOf(b)]).slice(0,3);
+      // Só usa meses que tenham dados em pelo menos um ano (ignora futuros zerados)
+      const allVals = MES_ORD.map(m => {
+        const anosComDados = ANOS.filter(a => yrVal(a, m) > 0);
+        return anosComDados.length > 0
+          ? anosComDados.reduce((s, a) => s + yrVal(a, m), 0) / anosComDados.length
+          : null;
+      });
+      const validVals = allVals.filter(v => v !== null);
+      const avgTotal  = validVals.reduce((s,v) => s+v, 0) / (validVals.length || 1) || 1;
+      const sazonIdx  = allVals.map(v => v !== null ? Math.round(v / avgTotal * 100) : null);
+      const mesesComIdx = MES_ORD.filter((_, i) => sazonIdx[i] !== null);
+      const peakMes   = [...mesesComIdx].sort((a,b) => sazonIdx[MES_ORD.indexOf(b)] - sazonIdx[MES_ORD.indexOf(a)]).slice(0,3);
+      const lowMes    = [...mesesComIdx].sort((a,b) => sazonIdx[MES_ORD.indexOf(a)] - sazonIdx[MES_ORD.indexOf(b)]).slice(0,3);
 
-      // Tendência geral (slope do ano mais recente)
+      // Tendência geral (slope do ano mais recente, apenas meses com dados)
       const recentVals = MES_ORD.map(m => yrVal(compAno, m)).filter(v => v > 0);
       const trend = lrTrend(recentVals);
       const slopeDir = trend.length > 1 ? trend[trend.length-1] - trend[0] : 0;
