@@ -400,7 +400,7 @@ function scope(key) {
 
 // Sincroniza a barra de meses da Visão Geral com selMeses atual
 function syncSidebarMes() {
-  document.querySelectorAll('.pf-ano-sel').forEach(s => { s.value = selAno; });
+  document.querySelectorAll('.pf-ano-sel').forEach(s => { s.value = selAno || ''; });
   document.querySelectorAll('.mes-btn-all').forEach(b => b.classList.toggle('on', selMeses.length === MESES.length));
   document.querySelectorAll('.mes-btn-vis').forEach((b, i) => {
     b.classList.toggle('on', selMeses.includes(MESES[i]));
@@ -672,7 +672,8 @@ async function init() {
 function buildSbMes() {
   const pf  = pageFilters.visao;
   let h = `<span class="pf-label">Período</span>`;
-  h += `<div class="pf-field"><span class="pf-label">ANO</span><select class="pf-select pf-ano-sel" onchange="sbSetAno(parseInt(this.value))">`;
+  h += `<div class="pf-field"><span class="pf-label">ANO</span><select class="pf-select pf-ano-sel" onchange="sbSetAno(this.value ? parseInt(this.value) : null)">`;
+  h += `<option value="" ${!selAno ? 'selected' : ''}>Todos</option>`;
   ANOS.forEach(a => h += `<option value="${a}" ${a === selAno ? 'selected' : ''}>${a}</option>`);
   h += `</select></div>`;
   h += `<button class="pf-btn mes-btn-all" onclick="sbAll(this)">Todos</button>`;
@@ -725,7 +726,7 @@ function sbAll(btn) {
 
 function sbSetAno(ano) {
   selAno   = ano;
-  MESES    = getMesForAno(ano);
+  MESES    = ano ? getMesForAno(ano) : [...new Set(RAW.map(r => r.mes))].sort((a,b) => MES_ORD.indexOf(a) - MES_ORD.indexOf(b));
   selMeses = [...MESES];
   hmMeses  = [...MESES];
   buildSbMes();
@@ -1538,6 +1539,46 @@ function moRender() {
       scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1 } } }
     }
   }));
+
+  // Comparação Ano a Ano (só exibe quando há múltiplos anos)
+  const compCard = document.getElementById('mo-year-comp-card');
+  if (compCard) {
+    if (ANOS.length > 1) {
+      compCard.style.display = '';
+      const YR_COLORS = ['#5a9de0','#c8a84b','#c84b4b','#4bc87a','#c84bc8'];
+      const sc = moScopeFilter();
+      const crimes = Array.isArray(moCrime) ? moCrime : [moCrime];
+      const yrDatasets = ANOS.map((ano, i) => ({
+        label: String(ano),
+        data: MES_ORD.map(mes =>
+          crimes.reduce((s, cr) =>
+            s + RAW.filter(r => r.ano === ano && r.crime === cr && r.mes === mes
+              && (!sc.cia || r.cia === sc.cia) && (!sc.mun || r.mun === sc.mun))
+              .reduce((a, r) => a + (r.avaliado || 0), 0), 0)
+        ),
+        borderColor: YR_COLORS[i % YR_COLORS.length],
+        backgroundColor: 'transparent',
+        tension: 0, pointRadius: 5, borderWidth: 2,
+        pointBackgroundColor: YR_COLORS[i % YR_COLORS.length]
+      }));
+      const existing = Chart.getChart(document.getElementById('mo-year-comp'));
+      if (existing) existing.destroy();
+      moCh.push(new Chart(document.getElementById('mo-year-comp').getContext('2d'), {
+        type: 'line',
+        data: { labels: MES_ORD, datasets: yrDatasets },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { labels: { boxWidth: 15, padding: 10, font: { size: 16 } } },
+            tooltip: { callbacks: { title: items => MES_ORD[items[0].dataIndex] } }
+          },
+          scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+      }));
+    } else {
+      compCard.style.display = 'none';
+    }
+  }
 
   applyOcorrFilters();
 }
