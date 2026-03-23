@@ -367,8 +367,10 @@ let CRIMES   = [];
 let MESES    = [];
 let MUNS     = [];
 let CIAS     = [];
+let ANOS     = [];
 
 let selMeses = [];
+let selAno   = null;
 let hmMeses  = [];
 let charts   = {};
 let moCh     = [];
@@ -398,7 +400,8 @@ function scope(key) {
 
 // Sincroniza a barra de meses da Visão Geral com selMeses atual
 function syncSidebarMes() {
-  document.querySelectorAll('.mes-btn-all').forEach(b => b.classList.toggle('on', selMeses.length === MESES.length));
+  document.querySelectorAll('.mes-btn-ano').forEach(b => b.classList.toggle('on', parseInt(b.textContent) === selAno));
+  document.querySelectorAll('.mes-btn-all').forEach(b => { b.classList.toggle('on', selMeses.length === MESES.length); b.textContent = selAno || new Date().getFullYear(); });
   document.querySelectorAll('.mes-btn-vis').forEach((b, i) => {
     b.classList.toggle('on', selMeses.includes(MESES[i]));
   });
@@ -544,7 +547,7 @@ function buildPageFilters() {
 // Utilitários (idênticos ao original)
 // ---------------------------------------------------------------------------
 
-const q    = f => RAW.filter(r => Object.entries(f).every(([k,v]) => Array.isArray(v) ? v.includes(r[k]) : r[k] === v));
+const q    = f => RAW.filter(r => (!selAno || r.ano === selAno) && Object.entries(f).every(([k,v]) => Array.isArray(v) ? v.includes(r[k]) : r[k] === v));
 const sf   = (arr, field = 'avaliado') => arr.reduce((s, r) => s + (r[field] || 0), 0);
 const pLbl = m => m.length === MESES.length ? 'Todos os meses' : m.join(' + ');
 const hcol = (v, max) => {
@@ -569,10 +572,15 @@ async function loadData() {
     authFetch(`${API}/registros`).then(r => r.json())
   ]);
   CRIMES = meta.crimes;
-  MESES  = meta.meses;
   MUNS   = meta.muns;
   CIAS   = meta.cias;
+  ANOS   = (meta.anos || []).sort((a, b) => b - a);
   RAW    = registros;
+}
+
+function getMesForAno(ano) {
+  return [...new Set(RAW.filter(r => r.ano === ano).map(r => r.mes))]
+    .sort((a, b) => MES_ORD.indexOf(a) - MES_ORD.indexOf(b));
 }
 
 async function updateSyncStatus() {
@@ -601,6 +609,8 @@ async function forceSync() {
   try {
     await authFetch(`${API}/sync`);
     await loadData();
+    selAno   = ANOS[0] || new Date().getFullYear();
+    MESES    = getMesForAno(selAno);
     selMeses = [...MESES];
     hmMeses  = [...MESES];
     buildSbMes();
@@ -634,6 +644,8 @@ async function init() {
 
   // Etapa 2: inicializar e renderizar (erros aqui não bloqueiam a página)
   try {
+    selAno   = ANOS[0] || new Date().getFullYear();
+    MESES    = getMesForAno(selAno);
     selMeses = [...MESES];
     hmMeses  = [...MESES];
 
@@ -658,10 +670,13 @@ async function init() {
 // ---------------------------------------------------------------------------
 
 function buildSbMes() {
-  const ano = new Date().getFullYear();
   const pf  = pageFilters.visao;
   let h = `<span class="pf-label">Período</span>`;
-  h += `<button class="pf-btn mes-btn-all" onclick="sbAll(this)">${ano}</button>`;
+  if (ANOS.length > 1) {
+    ANOS.forEach(a => h += `<button class="pf-btn mes-btn-ano" onclick="sbSetAno(${a})">${a}</button>`);
+    h += `<span style="color:rgba(255,255,255,0.15);margin:0 4px;align-self:center">|</span>`;
+  }
+  h += `<button class="pf-btn mes-btn-all" onclick="sbAll(this)">${selAno || ANOS[0] || new Date().getFullYear()}</button>`;
   MESES.forEach(m => h += `<button class="pf-btn mes-btn-vis" onclick="sbTog('${m}',this)">${m}</button>`);
 
   // Espaço separador
@@ -705,6 +720,18 @@ function buildHmFilter() {
 
 function sbAll(btn) {
   selMeses = [...MESES];
+  syncSidebarMes();
+  renderAll();
+}
+
+function sbSetAno(ano) {
+  selAno   = ano;
+  MESES    = getMesForAno(ano);
+  selMeses = [...MESES];
+  hmMeses  = [...MESES];
+  buildSbMes();
+  buildHmFilter();
+  buildPageFilters();
   syncSidebarMes();
   renderAll();
 }
@@ -1365,9 +1392,8 @@ function moScopeMuns() {
 }
 
 function buildMoFilter() {
-  const ano = new Date().getFullYear();
   let h = '<span class="pf-label">Período</span>';
-  h += `<button class="pf-btn ${moMeses.length === MESES.length ? 'on' : ''}" onclick="moSetAllMes()">${ano}</button>`;
+  h += `<button class="pf-btn ${moMeses.length === MESES.length ? 'on' : ''}" onclick="moSetAllMes()">${selAno || new Date().getFullYear()}</button>`;
   MESES.forEach(m => h += `<button class="pf-btn ${moMeses.includes(m) ? 'on' : ''}" onclick="moTogMes('${m}')">${m}</button>`);
   h += '<span class="pf-sep"></span>';
   h += `<button class="pf-btn ${moScopeType === 'btl' ? 'on' : ''}" onclick="moSetScope('btl',null)">Batalhão</button>`;
@@ -1630,6 +1656,8 @@ async function confirmUpload() {
 
     // Recarrega o dashboard com os novos dados
     await loadData();
+    selAno   = ANOS[0] || new Date().getFullYear();
+    MESES    = getMesForAno(selAno);
     selMeses = [...MESES];
     hmMeses  = [...MESES];
     buildSbMes();

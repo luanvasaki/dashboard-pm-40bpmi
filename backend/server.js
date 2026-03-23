@@ -525,7 +525,8 @@ app.get('/api/meta', requireAuth, (req, res) => {
     return ciaA !== ciaB ? ciaA.localeCompare(ciaB) : a.localeCompare(b);
   });
   const cias   = uniq(cache.data.map(r => r.cia)).sort();
-  res.json({ crimes: CRIMES_ORD.filter(c => crimes.includes(c)), meses, muns, cias });
+  const anos   = uniq(cache.data.map(r => r.ano).filter(a => a > 0)).sort((a, b) => b - a);
+  res.json({ crimes: CRIMES_ORD.filter(c => crimes.includes(c)), meses, muns, cias, anos });
 });
 
 app.get('/api/registros', requireAuth, (req, res) => {
