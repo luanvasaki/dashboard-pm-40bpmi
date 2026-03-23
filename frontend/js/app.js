@@ -1569,10 +1569,12 @@ function moRender() {
       };
 
       // ── Gráfico 1: Comparação Ano a Ano + Tendência ─────────────────────
-      // null = mês sem dados (ainda não aconteceu ou não preenchido)
+      // null = mês não existe na base daquele ano (futuro/não importado)
+      // 0 = mês existe mas não houve crime naquele filtro (CIA sem ocorrência)
+      const mesExiste = (ano, mes) => RAW.some(r => r.ano === ano && r.mes === mes);
       const yrDatasets = [];
       ANOS.forEach((ano, i) => {
-        const vals = MES_ORD.map(m => { const v = yrVal(ano, m); return v > 0 ? v : null; });
+        const vals = MES_ORD.map(m => mesExiste(ano, m) ? yrVal(ano, m) : null);
         const valsNum = vals.filter(v => v !== null);
         const col  = YR_COLORS[i % YR_COLORS.length];
         yrDatasets.push({ label: String(ano), data: vals,
@@ -1606,10 +1608,10 @@ function moRender() {
       const baseAno = ANOS[ANOS.length - 1]; // ano mais antigo como base
       const compAno = ANOS[0];               // ano mais recente
       const varVals  = MES_ORD.map(m => {
+        // só calcula se ambos os anos têm o mês na base
+        if (!mesExiste(baseAno, m) || !mesExiste(compAno, m)) return null;
         const base = yrVal(baseAno, m);
-        const comp = yrVal(compAno, m);
-        // só calcula se ambos os anos têm dados nesse mês
-        return base > 0 && comp > 0 ? Math.round((comp - base) / base * 100) : null;
+        return base > 0 ? Math.round((yrVal(compAno, m) - base) / base * 100) : null;
       });
       const ch2 = Chart.getChart(document.getElementById('mo-var-chart'));
       if (ch2) ch2.destroy();
@@ -1631,7 +1633,7 @@ function moRender() {
       // ── Cards: Sazonalidade e Projeção ───────────────────────────────────
       // Só usa meses que tenham dados em pelo menos um ano (ignora futuros zerados)
       const allVals = MES_ORD.map(m => {
-        const anosComDados = ANOS.filter(a => yrVal(a, m) > 0);
+        const anosComDados = ANOS.filter(a => mesExiste(a, m));
         return anosComDados.length > 0
           ? anosComDados.reduce((s, a) => s + yrVal(a, m), 0) / anosComDados.length
           : null;
