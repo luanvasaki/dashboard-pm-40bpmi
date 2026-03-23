@@ -430,18 +430,21 @@ app.post('/api/upload', requireAuth, async (req, res) => {
   if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
 
   try {
+    // Helper: busca campo case-insensitive no objeto
+    const gf = (r, name) => { const k = Object.keys(r).find(k => k.toLowerCase() === name.toLowerCase()); return k ? r[k] : ''; };
+
     // Mapeia os campos do CSV para as colunas exatas da tabela no Supabase
     const rows = records.map(r => ({
-      'Ano':       overrideAno ? parseInt(overrideAno) : (parseInt(r.Ano) || 0),
-      'Mes':       (r.Mes          || '').trim(),
-      'Cia':       (r.Cia          || '').trim(),
-      'Municipio': (r.Municipio    || '').trim(),
-      'Crime':     (r.Crime        || '').trim(),
-      'Anterior':  parseFloat(r.Anterior)                        || 0,
-      'Meta':      parseFloat(r.Meta)                            || 0,
-      'Avaliado':  parseFloat(r.Avaliado)                        || 0,
-      'Tendencia': parseFloat(r.Tendencia || r['Tendência'])     || 0,
-      'Variação':  (r['Variação'] || r.Variacao || '').trim()
+      'Ano':       overrideAno ? parseInt(overrideAno) : (parseInt(gf(r,'ano')) || 0),
+      'Mes':       (gf(r,'mes')        || '').trim(),
+      'Cia':       (gf(r,'cia')        || '').trim(),
+      'Municipio': (gf(r,'municipio')  || '').trim(),
+      'Crime':     (gf(r,'crime')      || '').trim(),
+      'Anterior':  parseFloat(gf(r,'anterior'))                              || 0,
+      'Meta':      parseFloat(gf(r,'meta'))                                  || 0,
+      'Avaliado':  parseFloat(gf(r,'avaliado'))                              || 0,
+      'Tendencia': parseFloat(gf(r,'tendencia') || gf(r,'tendência'))        || 0,
+      'Variação':  (gf(r,'variação') || gf(r,'variacao') || '').trim()
     })).filter(r => r['Mes'] && r['Crime'] && r['Ano'] > 0);
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });

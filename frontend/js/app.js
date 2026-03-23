@@ -1594,10 +1594,18 @@ function handleFileSelect(input) {
   document.getElementById('upl-preview').classList.remove('on');
   document.getElementById('upl-confirm').classList.remove('on');
 
+  // Mapa de normalização: qualquer variação de caixa → nome canônico
+  const HEADER_MAP = {
+    ano:'Ano', mes:'Mes', cia:'Cia', municipio:'Municipio', crime:'Crime',
+    anterior:'Anterior', meta:'Meta', avaliado:'Avaliado',
+    tendencia:'Tendencia', tendência:'Tendencia',
+    variacao:'Variacao', variação:'Variacao'
+  };
+
   Papa.parse(file, {
     header: true,
     skipEmptyLines: true,
-    transformHeader: h => h.trim(),
+    transformHeader: h => HEADER_MAP[h.trim().toLowerCase()] || h.trim(),
     complete: (results) => {
       if (!results.data.length) {
         showUplMsg('Arquivo vazio ou sem registros válidos.', 'err');
@@ -1606,16 +1614,16 @@ function handleFileSelect(input) {
 
       const required = ['Ano', 'Mes', 'Cia', 'Municipio', 'Crime', 'Anterior', 'Meta', 'Avaliado'];
       const headers  = Object.keys(results.data[0]);
-      const missing  = required.filter(r => !headers.some(h => h.toLowerCase() === r.toLowerCase()));
+      const missing  = required.filter(r => !headers.includes(r));
 
       if (missing.length) {
         showUplMsg(`Colunas ausentes: ${missing.join(', ')}`, 'err');
         return;
       }
 
-      // Normaliza chaves (trim) e filtra linhas válidas
+      // Filtra linhas válidas (Ano já está normalizado pelo transformHeader)
       uploadData = results.data
-        .map(row => { const n = {}; Object.entries(row).forEach(([k, v]) => { n[k.trim()] = (v || '').trim(); }); return n; })
+        .map(row => { const n = {}; Object.entries(row).forEach(([k, v]) => { n[k] = (v || '').trim(); }); return n; })
         .filter(r => r.Mes && r.Crime);
 
       const meses = [...new Set(uploadData.map(r => r.Mes))].filter(Boolean);
