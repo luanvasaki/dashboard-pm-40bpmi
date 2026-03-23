@@ -1546,7 +1546,7 @@ function moRender() {
     if (ANOS.length > 1) {
       temporal.style.display = '';
       const YR_COLORS = ['#5a9de0','#c8a84b','#c84b4b','#4bc87a'];
-      const sc = moScopeFilter();
+      const sc = moQScope();
       const crimes = Array.isArray(moCrime) ? moCrime : [moCrime];
 
       // Helper: valor mensal por ano
