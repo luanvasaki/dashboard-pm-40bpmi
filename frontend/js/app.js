@@ -1560,6 +1560,7 @@ let uploadData = null;
 function openUploadModal() {
   uploadData = null;
   document.getElementById('upl-file').value = '';
+  document.getElementById('upl-ano').value = '';
   document.getElementById('upl-preview').classList.remove('on');
   const msg = document.getElementById('upl-msg');
   msg.className = 'upl-msg';
@@ -1636,6 +1637,12 @@ function handleFileSelect(input) {
 
 async function confirmUpload() {
   if (!uploadData?.length) return;
+  const anoInput = document.getElementById('upl-ano');
+  const overrideAno = anoInput?.value ? parseInt(anoInput.value) : null;
+  if (!overrideAno || overrideAno < 2020 || overrideAno > 2035) {
+    showUplMsg('Informe o ano dos dados (ex: 2025) antes de importar.', 'err');
+    return;
+  }
   const btn = document.getElementById('upl-confirm');
   btn.disabled = true;
   btn.textContent = 'Importando...';
@@ -1645,7 +1652,7 @@ async function confirmUpload() {
     const res  = await authFetch(`${API}/upload`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ records: uploadData })
+      body:    JSON.stringify({ records: uploadData, overrideAno })
     });
     const json = await res.json();
 

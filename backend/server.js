@@ -426,13 +426,15 @@ app.post('/api/upload', requireAuth, async (req, res) => {
     });
   }
 
-  const { records } = req.body;
+  const { records, overrideAno } = req.body;
   if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
+  if (!overrideAno || overrideAno < 2020 || overrideAno > 2035)
+    return res.status(400).json({ error: 'Informe um ano válido (2020–2035).' });
 
   try {
     // Mapeia os campos do CSV para as colunas exatas da tabela no Supabase
     const rows = records.map(r => ({
-      'Ano':       parseInt(r.Ano)                               || 0,
+      'Ano':       parseInt(overrideAno),
       'Mes':       (r.Mes          || '').trim(),
       'Cia':       (r.Cia          || '').trim(),
       'Municipio': (r.Municipio    || '').trim(),
@@ -445,6 +447,13 @@ app.post('/api/upload', requireAuth, async (req, res) => {
     })).filter(r => r['Mes'] && r['Crime']);
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
+
+    // Apaga todos os registros do ano informado antes de inserir (evita dados misturados)
+    const { error: delError } = await supabase
+      .from(TABLE_NAME)
+      .delete()
+      .eq('Ano', parseInt(overrideAno));
+    if (delError) throw new Error(delError.message);
 
     const { error } = await supabase
       .from(TABLE_NAME)
