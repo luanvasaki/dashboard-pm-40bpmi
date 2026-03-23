@@ -1540,43 +1540,118 @@ function moRender() {
     }
   }));
 
-  // Comparação Ano a Ano (só exibe quando há múltiplos anos)
-  const compCard = document.getElementById('mo-year-comp-card');
-  if (compCard) {
+  // ── Análise Temporal (só exibe quando há múltiplos anos) ──────────────────
+  const temporal = document.getElementById('mo-temporal');
+  if (temporal) {
     if (ANOS.length > 1) {
-      compCard.style.display = '';
-      const YR_COLORS = ['#5a9de0','#c8a84b','#c84b4b','#4bc87a','#c84bc8'];
+      temporal.style.display = '';
+      const YR_COLORS = ['#5a9de0','#c8a84b','#c84b4b','#4bc87a'];
       const sc = moScopeFilter();
       const crimes = Array.isArray(moCrime) ? moCrime : [moCrime];
-      const yrDatasets = ANOS.map((ano, i) => ({
-        label: String(ano),
-        data: MES_ORD.map(mes =>
-          crimes.reduce((s, cr) =>
-            s + RAW.filter(r => r.ano === ano && r.crime === cr && r.mes === mes
-              && (!sc.cia || r.cia === sc.cia) && (!sc.mun || r.mun === sc.mun))
-              .reduce((a, r) => a + (r.avaliado || 0), 0), 0)
-        ),
-        borderColor: YR_COLORS[i % YR_COLORS.length],
-        backgroundColor: 'transparent',
-        tension: 0, pointRadius: 5, borderWidth: 2,
-        pointBackgroundColor: YR_COLORS[i % YR_COLORS.length]
-      }));
-      const existing = Chart.getChart(document.getElementById('mo-year-comp'));
-      if (existing) existing.destroy();
+
+      // Helper: valor mensal por ano
+      const yrVal = (ano, mes) => crimes.reduce((s, cr) =>
+        s + RAW.filter(r => r.ano === ano && r.crime === cr && r.mes === mes
+          && (!sc.cia || r.cia === sc.cia) && (!sc.mun || r.mun === sc.mun))
+          .reduce((a, r) => a + (r.avaliado || 0), 0), 0);
+
+      // Regressão linear simples → linha de tendência
+      const lrTrend = vals => {
+        const n = vals.length;
+        const sx = n*(n-1)/2, sx2 = n*(n-1)*(2*n-1)/6;
+        const sy = vals.reduce((a,b) => a+b, 0);
+        const sxy = vals.reduce((s,v,i) => s + i*v, 0);
+        const denom = n*sx2 - sx*sx;
+        if (!denom) return vals.map(() => sy/n);
+        const slope = (n*sxy - sx*sy) / denom;
+        const intercept = (sy - slope*sx) / n;
+        return vals.map((_,i) => Math.max(0, Math.round((intercept + slope*i)*10)/10));
+      };
+
+      // ── Gráfico 1: Comparação Ano a Ano + Tendência ─────────────────────
+      const yrDatasets = [];
+      ANOS.forEach((ano, i) => {
+        const vals = MES_ORD.map(m => yrVal(ano, m));
+        const col  = YR_COLORS[i % YR_COLORS.length];
+        yrDatasets.push({ label: String(ano), data: vals,
+          borderColor: col, backgroundColor: 'transparent',
+          tension: 0, pointRadius: 5, borderWidth: 2, pointBackgroundColor: col });
+        yrDatasets.push({ label: `Tendência ${ano}`, data: lrTrend(vals),
+          borderColor: col, backgroundColor: 'transparent',
+          borderDash: [6,4], pointRadius: 0, borderWidth: 1.5,
+          tension: 0.3, pointBackgroundColor: col });
+      });
+      const ch1 = Chart.getChart(document.getElementById('mo-year-comp'));
+      if (ch1) ch1.destroy();
       moCh.push(new Chart(document.getElementById('mo-year-comp').getContext('2d'), {
         type: 'line',
         data: { labels: MES_ORD, datasets: yrDatasets },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { labels: { boxWidth: 15, padding: 10, font: { size: 16 } } },
-            tooltip: { callbacks: { title: items => MES_ORD[items[0].dataIndex] } }
-          },
-          scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1 } } }
-        }
+        options: { responsive: true,
+          plugins: { legend: { labels: { boxWidth: 15, padding: 8, font: { size: 13 }, filter: i => !i.text.startsWith('Tendência') || true } },
+            tooltip: { callbacks: { title: items => MES_ORD[items[0].dataIndex] } } },
+          scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } } }
       }));
+
+      // ── Gráfico 2: Variação % vs Ano Anterior ───────────────────────────
+      const baseAno = ANOS[ANOS.length - 1]; // ano mais antigo como base
+      const compAno = ANOS[0];               // ano mais recente
+      const varVals  = MES_ORD.map(m => {
+        const base = yrVal(baseAno, m);
+        const comp = yrVal(compAno, m);
+        return base > 0 ? Math.round((comp - base) / base * 100) : null;
+      });
+      const ch2 = Chart.getChart(document.getElementById('mo-var-chart'));
+      if (ch2) ch2.destroy();
+      moCh.push(new Chart(document.getElementById('mo-var-chart').getContext('2d'), {
+        type: 'bar',
+        data: { labels: MES_ORD, datasets: [{
+          label: `${compAno} vs ${baseAno} (%)`,
+          data: varVals,
+          backgroundColor: varVals.map(v => v === null ? 'transparent' : v > 0 ? 'rgba(200,75,75,.7)' : 'rgba(75,200,122,.7)'),
+          borderColor:     varVals.map(v => v === null ? 'transparent' : v > 0 ? '#c84b4b' : '#4bc87a'),
+          borderWidth: 1, borderRadius: 4
+        }]},
+        options: { responsive: true,
+          plugins: { legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ctx.raw !== null ? `${ctx.raw > 0 ? '+' : ''}${ctx.raw}%` : 'Sem dado' } } },
+          scales: { x: { grid: GR }, y: { grid: GR, ticks: { callback: v => `${v}%` } } } }
+      }));
+
+      // ── Cards: Sazonalidade e Projeção ───────────────────────────────────
+      const allVals  = MES_ORD.map(m => ANOS.reduce((s, a) => s + yrVal(a, m), 0) / ANOS.length);
+      const avgTotal = allVals.reduce((s,v) => s+v, 0) / 12 || 1;
+      const sazonIdx = allVals.map(v => Math.round(v / avgTotal * 100));
+      const peakMes  = [...MES_ORD].sort((a,b) => sazonIdx[MES_ORD.indexOf(b)] - sazonIdx[MES_ORD.indexOf(a)]).slice(0,3);
+      const lowMes   = [...MES_ORD].sort((a,b) => sazonIdx[MES_ORD.indexOf(a)] - sazonIdx[MES_ORD.indexOf(b)]).slice(0,3);
+
+      // Tendência geral (slope do ano mais recente)
+      const recentVals = MES_ORD.map(m => yrVal(compAno, m)).filter(v => v > 0);
+      const trend = lrTrend(recentVals);
+      const slopeDir = trend.length > 1 ? trend[trend.length-1] - trend[0] : 0;
+      const trendTxt = slopeDir > 0.5 ? '↑ Tendência de alta em ' + compAno : slopeDir < -0.5 ? '↓ Tendência de queda em ' + compAno : '→ Estável em ' + compAno;
+      const trendCol = slopeDir > 0.5 ? '#c84b4b' : slopeDir < -0.5 ? '#4bc87a' : '#c8a84b';
+
+      // Projeção: meses sem dados em compAno → estimativa com base no índice sazonal
+      const compTotal = MES_ORD.reduce((s,m) => s + yrVal(compAno,m), 0);
+      const mesesComDados = MES_ORD.filter(m => yrVal(compAno,m) > 0).length;
+      const baseTotal = MES_ORD.reduce((s,m) => s + yrVal(baseAno,m), 0);
+      const projTotal = mesesComDados > 0 && mesesComDados < 12
+        ? Math.round((compTotal / mesesComDados) * 12) : null;
+
+      const card = (title, body, color='var(--tx2)') =>
+        `<div style="background:var(--s2);border:1px solid var(--bd2);border-radius:8px;padding:12px 14px">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);margin-bottom:6px">${title}</div>
+          <div style="font-size:13px;color:${color};line-height:1.6">${body}</div>
+        </div>`;
+
+      document.getElementById('mo-sazon').innerHTML =
+        card('Tendência Geral', trendTxt, trendCol) +
+        card('Pico Histórico (sazonalidade)', `Meses mais críticos: <b>${peakMes.join(', ')}</b><br>Índice: ${peakMes.map(m => sazonIdx[MES_ORD.indexOf(m)]+'%').join(' · ')}`, '#c84b4b') +
+        card('Período de Menor Incidência', `Meses mais baixos: <b>${lowMes.join(', ')}</b><br>Índice: ${lowMes.map(m => sazonIdx[MES_ORD.indexOf(m)]+'%').join(' · ')}`, '#4bc87a') +
+        (projTotal ? card('Projeção Anual ' + compAno, `Com base nos ${mesesComDados} meses disponíveis:<br><b style="font-size:20px">${projTotal}</b> ocorrências estimadas<br><span style="font-size:11px;color:var(--tx3)">${baseTotal} registradas em ${baseAno}</span>`, '#5a9de0') : '');
+
     } else {
-      compCard.style.display = 'none';
+      temporal.style.display = 'none';
     }
   }
 
