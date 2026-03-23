@@ -1943,6 +1943,10 @@ async function loadMoOcorr() {
       const params = new URLSearchParams({ rubrica: moCrime, limit: '2000' });
       const res = await authFetch(`${API}/ocorrencias?${params}`);
       data = await res.json();
+      // Exclui condutas de veículo — pertencem à tela Roubo/Furto Veículos
+      if (['Roubo','Furto'].includes(moCrime)) {
+        data = data.filter(r => !(r.conduta || '').toLowerCase().includes('veíc'));
+      }
     }
     moOcorrAll = Array.isArray(data) ? data : [];
     applyOcorrFilters();
