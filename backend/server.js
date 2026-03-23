@@ -428,13 +428,11 @@ app.post('/api/upload', requireAuth, async (req, res) => {
 
   const { records, overrideAno } = req.body;
   if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
-  if (!overrideAno || overrideAno < 2020 || overrideAno > 2035)
-    return res.status(400).json({ error: 'Informe um ano válido (2020–2035).' });
 
   try {
     // Mapeia os campos do CSV para as colunas exatas da tabela no Supabase
     const rows = records.map(r => ({
-      'Ano':       parseInt(overrideAno),
+      'Ano':       overrideAno ? parseInt(overrideAno) : (parseInt(r.Ano) || 0),
       'Mes':       (r.Mes          || '').trim(),
       'Cia':       (r.Cia          || '').trim(),
       'Municipio': (r.Municipio    || '').trim(),
@@ -444,16 +442,16 @@ app.post('/api/upload', requireAuth, async (req, res) => {
       'Avaliado':  parseFloat(r.Avaliado)                        || 0,
       'Tendencia': parseFloat(r.Tendencia || r['Tendência'])     || 0,
       'Variação':  (r['Variação'] || r.Variacao || '').trim()
-    })).filter(r => r['Mes'] && r['Crime']);
+    })).filter(r => r['Mes'] && r['Crime'] && r['Ano'] > 0);
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
 
-    // Apaga todos os registros do ano informado antes de inserir (evita dados misturados)
-    const { error: delError } = await supabase
-      .from(TABLE_NAME)
-      .delete()
-      .eq('Ano', parseInt(overrideAno));
-    if (delError) throw new Error(delError.message);
+    // Apaga todos os registros dos anos presentes no arquivo antes de inserir
+    const anosPresentes = [...new Set(rows.map(r => r['Ano']))];
+    for (const ano of anosPresentes) {
+      const { error: delError } = await supabase.from(TABLE_NAME).delete().eq('Ano', ano);
+      if (delError) throw new Error(delError.message);
+    }
 
     const { error } = await supabase
       .from(TABLE_NAME)

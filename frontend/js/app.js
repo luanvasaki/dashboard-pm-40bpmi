@@ -1638,10 +1638,6 @@ async function confirmUpload() {
   if (!uploadData?.length) return;
   const anoInput = document.getElementById('upl-ano');
   const overrideAno = anoInput?.value ? parseInt(anoInput.value) : null;
-  if (!overrideAno || overrideAno < 2020 || overrideAno > 2035) {
-    showUplMsg('Informe o ano dos dados (ex: 2025) antes de importar.', 'err');
-    return;
-  }
   const btn = document.getElementById('upl-confirm');
   btn.disabled = true;
   btn.textContent = 'Importando...';
