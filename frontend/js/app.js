@@ -1618,6 +1618,8 @@ function moRender() {
       if (el1) el1.innerHTML = txt1;
 
       // ── Cards: Sazonalidade e Projeção ───────────────────────────────────
+      const baseAno = ANOS[ANOS.length - 1]; // ano mais antigo como base
+      const compAno = ANOS[0];               // ano mais recente
       // Só usa meses que tenham dados em pelo menos um ano (ignora futuros zerados)
       const allVals = MES_ORD.map(m => {
         const anosComDados = ANOS.filter(a => mesExiste(a, m));
