@@ -1617,47 +1617,6 @@ function moRender() {
       const el1 = document.getElementById('mo-text-comp');
       if (el1) el1.innerHTML = txt1;
 
-      // ── Gráfico 2: Variação % vs Ano Anterior ───────────────────────────
-      const baseAno = ANOS[ANOS.length - 1]; // ano mais antigo como base
-      const compAno = ANOS[0];               // ano mais recente
-      const varVals  = MES_ORD.map(m => {
-        // só calcula se ambos os anos têm o mês na base
-        if (!mesExiste(baseAno, m) || !mesExiste(compAno, m)) return null;
-        const base = yrVal(baseAno, m);
-        return base > 0 ? Math.round((yrVal(compAno, m) - base) / base * 100) : null;
-      });
-      const ch2 = Chart.getChart(document.getElementById('mo-var-chart'));
-      if (ch2) ch2.destroy();
-      moCh.push(new Chart(document.getElementById('mo-var-chart').getContext('2d'), {
-        type: 'bar',
-        data: { labels: MES_ORD, datasets: [{
-          label: `${compAno} vs ${baseAno} (%)`,
-          data: varVals,
-          backgroundColor: varVals.map(v => v === null ? 'transparent' : v > 0 ? 'rgba(200,75,75,.7)' : 'rgba(75,200,122,.7)'),
-          borderColor:     varVals.map(v => v === null ? 'transparent' : v > 0 ? '#c84b4b' : '#4bc87a'),
-          borderWidth: 1, borderRadius: 4
-        }]},
-        options: { responsive: true,
-          plugins: { legend: { display: false },
-            tooltip: { callbacks: { label: ctx => ctx.raw !== null ? `${ctx.raw > 0 ? '+' : ''}${ctx.raw}%` : 'Sem dado' } } },
-          scales: { x: { grid: GR }, y: { grid: GR, ticks: { callback: v => `${v}%` } } } }
-      }));
-
-      // Texto explicativo — Gráfico 2
-      const varValidos = varVals.filter(v => v !== null);
-      const el2 = document.getElementById('mo-text-var');
-      if (el2 && varValidos.length > 0) {
-        const piores   = MES_ORD.filter((_,i) => varVals[i] !== null).sort((a,b) => varVals[MES_ORD.indexOf(b)] - varVals[MES_ORD.indexOf(a)]);
-        const melhores = [...piores].reverse();
-        const nAlta    = varValidos.filter(v => v > 0).length;
-        const nQueda   = varValidos.filter(v => v <= 0).length;
-        const piorMes  = piores[0],   piorVal   = varVals[MES_ORD.indexOf(piorMes)];
-        const melhorMes = melhores[0], melhorVal = varVals[MES_ORD.indexOf(melhorMes)];
-        el2.innerHTML = `Dos ${varValidos.length} meses comparáveis, <b style="color:#c84b4b">${nAlta} tiveram alta</b> e <b style="color:#4bc87a">${nQueda} tiveram queda</b> em relação a ${baseAno}. `
-          + (piorVal > 0   ? `Maior aumento: <b style="color:#c84b4b">${piorMes} (+${piorVal}%)</b>. ` : '')
-          + (melhorVal < 0 ? `Maior redução: <b style="color:#4bc87a">${melhorMes} (${melhorVal}%)</b>.` : '');
-      } else if (el2) { el2.innerHTML = 'Nenhum mês com dados em ambos os anos para comparar.'; }
-
       // ── Cards: Sazonalidade e Projeção ───────────────────────────────────
       // Só usa meses que tenham dados em pelo menos um ano (ignora futuros zerados)
       const allVals = MES_ORD.map(m => {
