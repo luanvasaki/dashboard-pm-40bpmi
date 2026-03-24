@@ -1604,6 +1604,19 @@ function moRender() {
           scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } } }
       }));
 
+      // Texto explicativo — Gráfico 1
+      const totBase1 = MES_ORD.filter(m => mesExiste(ANOS[ANOS.length-1], m)).reduce((s,m) => s + yrVal(ANOS[ANOS.length-1], m), 0);
+      const totComp1 = MES_ORD.filter(m => mesExiste(ANOS[0], m)).reduce((s,m) => s + yrVal(ANOS[0], m), 0);
+      const mesesComuns = MES_ORD.filter(m => ANOS.every(a => mesExiste(a, m)));
+      const totBase1c  = mesesComuns.reduce((s,m) => s + yrVal(ANOS[ANOS.length-1], m), 0);
+      const totComp1c  = mesesComuns.reduce((s,m) => s + yrVal(ANOS[0], m), 0);
+      const diffPct1   = totBase1c > 0 ? ((totComp1c - totBase1c) / totBase1c * 100).toFixed(1) : null;
+      const txt1 = mesesComuns.length > 0
+        ? `Comparando os ${mesesComuns.length} meses disponíveis em ambos os anos: <b>${ANOS[0]}</b> registrou <b>${totComp1c}</b> ocorrências contra <b>${totBase1c}</b> em <b>${ANOS[ANOS.length-1]}</b> — variação de <b style="color:${diffPct1 > 0 ? '#c84b4b' : '#4bc87a'}">${diffPct1 > 0 ? '+' : ''}${diffPct1}%</b>. As linhas tracejadas indicam a direção da tendência dentro de cada ano.`
+        : 'Selecione um período com dados em ambos os anos para comparação.';
+      const el1 = document.getElementById('mo-text-comp');
+      if (el1) el1.innerHTML = txt1;
+
       // ── Gráfico 2: Variação % vs Ano Anterior ───────────────────────────
       const baseAno = ANOS[ANOS.length - 1]; // ano mais antigo como base
       const compAno = ANOS[0];               // ano mais recente
@@ -1629,6 +1642,21 @@ function moRender() {
             tooltip: { callbacks: { label: ctx => ctx.raw !== null ? `${ctx.raw > 0 ? '+' : ''}${ctx.raw}%` : 'Sem dado' } } },
           scales: { x: { grid: GR }, y: { grid: GR, ticks: { callback: v => `${v}%` } } } }
       }));
+
+      // Texto explicativo — Gráfico 2
+      const varValidos = varVals.filter(v => v !== null);
+      const el2 = document.getElementById('mo-text-var');
+      if (el2 && varValidos.length > 0) {
+        const piores   = MES_ORD.filter((_,i) => varVals[i] !== null).sort((a,b) => varVals[MES_ORD.indexOf(b)] - varVals[MES_ORD.indexOf(a)]);
+        const melhores = [...piores].reverse();
+        const nAlta    = varValidos.filter(v => v > 0).length;
+        const nQueda   = varValidos.filter(v => v <= 0).length;
+        const piorMes  = piores[0],   piorVal   = varVals[MES_ORD.indexOf(piorMes)];
+        const melhorMes = melhores[0], melhorVal = varVals[MES_ORD.indexOf(melhorMes)];
+        el2.innerHTML = `Dos ${varValidos.length} meses comparáveis, <b style="color:#c84b4b">${nAlta} tiveram alta</b> e <b style="color:#4bc87a">${nQueda} tiveram queda</b> em relação a ${baseAno}. `
+          + (piorVal > 0   ? `Maior aumento: <b style="color:#c84b4b">${piorMes} (+${piorVal}%)</b>. ` : '')
+          + (melhorVal < 0 ? `Maior redução: <b style="color:#4bc87a">${melhorMes} (${melhorVal}%)</b>.` : '');
+      } else if (el2) { el2.innerHTML = 'Nenhum mês com dados em ambos os anos para comparar.'; }
 
       // ── Cards: Sazonalidade e Projeção ───────────────────────────────────
       // Só usa meses que tenham dados em pelo menos um ano (ignora futuros zerados)
@@ -1665,11 +1693,24 @@ function moRender() {
           <div style="font-size:13px;color:${color};line-height:1.6">${body}</div>
         </div>`;
 
+      const peakIdxs = peakMes.map(m => sazonIdx[MES_ORD.indexOf(m)]);
+      const lowIdxs  = lowMes.map(m  => sazonIdx[MES_ORD.indexOf(m)]);
+      const trendBody = slopeDir > 0.5
+        ? `Os registros de ${compAno} mostram crescimento mês a mês. Atenção redobrada nos próximos períodos.`
+        : slopeDir < -0.5
+        ? `Os registros de ${compAno} mostram redução progressiva — as ações em curso parecem surtir efeito.`
+        : `O volume de ${compAno} permanece estável, sem variação significativa entre os meses disponíveis.`;
+      const peakBody = `Historicamente, <b>${peakMes[0]}</b> é o mês mais crítico (índice ${peakIdxs[0]}% da média), seguido de <b>${peakMes[1]}</b> (${peakIdxs[1]}%) e <b>${peakMes[2]}</b> (${peakIdxs[2]}%). Use esses períodos para antecipar reforços operacionais.`;
+      const lowBody  = `Os meses de menor incidência são <b>${lowMes[0]}</b> (${lowIdxs[0]}%), <b>${lowMes[1]}</b> (${lowIdxs[1]}%) e <b>${lowMes[2]}</b> (${lowIdxs[2]}%). São janelas para reorganização e capacitação.`;
+      const projBody = projTotal
+        ? `Com ${mesesComDados} meses registrados (${compTotal} ocorrências), a projeção linear aponta para <b style="font-size:18px">${projTotal}</b> ocorrências ao fim de ${compAno}. Em ${baseAno} foram <b>${baseTotal}</b> no total — diferença estimada de <b style="color:${projTotal > baseTotal ? '#c84b4b' : '#4bc87a'}">${projTotal > baseTotal ? '+' : ''}${projTotal - baseTotal}</b>.`
+        : null;
+
       document.getElementById('mo-sazon').innerHTML =
-        card('Tendência Geral', trendTxt, trendCol) +
-        card('Pico Histórico (sazonalidade)', `Meses mais críticos: <b>${peakMes.join(', ')}</b><br>Índice: ${peakMes.map(m => sazonIdx[MES_ORD.indexOf(m)]+'%').join(' · ')}`, '#c84b4b') +
-        card('Período de Menor Incidência', `Meses mais baixos: <b>${lowMes.join(', ')}</b><br>Índice: ${lowMes.map(m => sazonIdx[MES_ORD.indexOf(m)]+'%').join(' · ')}`, '#4bc87a') +
-        (projTotal ? card('Projeção Anual ' + compAno, `Com base nos ${mesesComDados} meses disponíveis:<br><b style="font-size:20px">${projTotal}</b> ocorrências estimadas<br><span style="font-size:11px;color:var(--tx3)">${baseTotal} registradas em ${baseAno}</span>`, '#5a9de0') : '');
+        card('Tendência Geral', `${trendTxt}<br><span style="font-size:11px">${trendBody}</span>`, trendCol) +
+        card('Pico Histórico — Sazonalidade', peakBody, '#c84b4b') +
+        card('Período de Menor Incidência', lowBody, '#4bc87a') +
+        (projBody ? card('Projeção Anual ' + compAno, projBody, '#5a9de0') : '');
 
     } else {
       temporal.style.display = 'none';
