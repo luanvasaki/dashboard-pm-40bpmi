@@ -2218,8 +2218,10 @@ function closeSidebarMobile() {
 // P1 — Gestão de Efetivo
 // ---------------------------------------------------------------------------
 
-let p1Data = [];
-let p1Parsed = []; // dados do CSV aguardando confirmação
+let p1Data       = [];
+let p1Afasts     = [];   // afastamentos carregados do Supabase
+let p1Parsed     = [];   // CSV efetivo aguardando confirmação
+let p1AfParsed   = [];   // CSV afastamentos aguardando confirmação
 
 // Categoriza posto/graduação em 4 grupos
 function p1Cat(posto) {
@@ -2237,8 +2239,12 @@ async function loadP1() {
   kpis.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:10px 0">Carregando...</div>';
   body.innerHTML = '';
   try {
-    const res = await authFetch(`${API}/efetivo`);
-    p1Data = await res.json();
+    const [r1, r2] = await Promise.all([
+      authFetch(`${API}/efetivo`),
+      authFetch(`${API}/afastamentos`)
+    ]);
+    p1Data   = await r1.json();
+    p1Afasts = await r2.json();
     renderP1();
   } catch (err) {
     kpis.innerHTML = `<div style="color:#e06060;font-size:12px">${err.message}</div>`;
@@ -2255,66 +2261,177 @@ function renderP1() {
     bodyEl.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--tx3)">
       <div style="font-size:32px;margin-bottom:12px">👥</div>
       <div style="font-size:14px">Nenhum dado de efetivo importado ainda.</div>
-      <div style="font-size:12px;margin-top:6px">Use o botão <b style="color:var(--gold)">↑ Importar Efetivo</b> para carregar o CSV.</div>
+      <div style="font-size:12px;margin-top:6px">Use o botão <b style="color:var(--gold)">↑ Importar Efetivo</b> na barra lateral.</div>
     </div>`;
     return;
   }
 
+  const hoje = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const anoAtual = new Date().getFullYear();
+  const fmtDate  = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
+
+  // Afastamentos ativos hoje por RE
+  const afastHoje = {};
+  p1Afasts.forEach(a => {
+    if (a.inicio && a.termino && a.inicio <= hoje && a.termino >= hoje) {
+      if (!afastHoje[a.re]) afastHoje[a.re] = [];
+      afastHoje[a.re].push(a);
+    }
+  });
+
+  // Status de cada PM
+  const pmAfastados   = p1Data.filter(r => afastHoje[r.re]);
+  const pmAptos       = p1Data.filter(r => !afastHoje[r.re]);
+  const pmComRestricao = p1Data.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s'));
+  const pmEapPendente  = p1Data.filter(r => {
+    if (!r.eap_ano_atual) return true;
+    const d = new Date(r.eap_ano_atual);
+    return isNaN(d) || d.getFullYear() !== anoAtual;
+  });
+
+  // Restrições vencendo em 30 dias
+  const em30 = new Date(); em30.setDate(em30.getDate() + 30);
+  const em30s = em30.toISOString().split('T')[0];
+  const vencendoRestricao = p1Data.filter(r =>
+    (r.possui_restricao || '').toLowerCase().startsWith('s') &&
+    r.restricao_termino && r.restricao_termino >= hoje && r.restricao_termino <= em30s
+  );
+
+  // Afastamentos vencendo em 7 dias
+  const em7 = new Date(); em7.setDate(em7.getDate() + 7);
+  const em7s = em7.toISOString().split('T')[0];
+  const retornando = p1Afasts.filter(a =>
+    a.inicio <= hoje && a.termino >= hoje && a.termino <= em7s
+  );
+
   const CATS = { cbsd: 'Cb / Sd', sgt: 'Sargentos', sub: 'Subtenentes', of: 'Oficiais' };
   const CATS_COLOR = { cbsd: '#5a9de0', sgt: '#c8a84b', sub: '#4bc87a', of: '#c84b4b' };
-
   const count = (arr, cat) => arr.filter(r => p1Cat(r.posto) === cat).length;
-  const total  = p1Data.length;
-  const comRestricao = p1Data.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s')).length;
+  const total = p1Data.length;
 
   // ── KPI cards
-  const kpiCard = (label, val, color) =>
+  const kpiCard = (label, val, sub, color) =>
     `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px 16px">
       <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);margin-bottom:6px;text-transform:uppercase">${label}</div>
       <div style="font-size:26px;font-weight:700;color:${color};font-family:'Barlow Condensed',sans-serif">${val}</div>
+      ${sub ? `<div style="font-size:10px;color:var(--tx3);margin-top:3px">${sub}</div>` : ''}
     </div>`;
 
-  kpisEl.innerHTML =
-    kpiCard('Total Efetivo', total, 'var(--tx)') +
-    Object.entries(CATS).map(([k, l]) => kpiCard(l, count(p1Data, k), CATS_COLOR[k])).join('') +
-    kpiCard('Com Restrição', comRestricao, '#c84b4b');
+  // Tipos de afastamento agrupados
+  const tiposCount = {};
+  pmAfastados.forEach(r => { (afastHoje[r.re] || []).forEach(a => { tiposCount[a.tipo_afastamento] = (tiposCount[a.tipo_afastamento] || 0) + 1; }); });
+  const tiposSub = Object.entries(tiposCount).map(([t,n]) => `${n} ${t}`).join(' · ') || '';
 
-  // ── Agrupa por OPM
+  kpisEl.innerHTML =
+    kpiCard('Total Efetivo', total, `${count(p1Data,'cbsd')} Cb/Sd · ${count(p1Data,'sgt')} Sgt · ${count(p1Data,'sub')} Sub · ${count(p1Data,'of')} Of`, 'var(--tx)') +
+    kpiCard('Aptos Hoje', pmAptos.length, `${Math.round(pmAptos.length/total*100)}% do efetivo`, '#4bc87a') +
+    kpiCard('Afastados Hoje', pmAfastados.length, tiposSub || '—', pmAfastados.length > 0 ? '#c84b4b' : 'var(--tx3)') +
+    kpiCard('Em Restrição', pmComRestricao.length, vencendoRestricao.length > 0 ? `⚠ ${vencendoRestricao.length} vencem em 30 dias` : '—', pmComRestricao.length > 0 ? '#c8a84b' : 'var(--tx3)') +
+    kpiCard('EAP Pendente', pmEapPendente.length, `${anoAtual}`, pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a');
+
+  const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:right';
+  const thL = thS.replace('text-align:right','text-align:left');
+  const tdS = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-family:"DM Mono",monospace;font-size:12px;color:var(--tx3);text-align:right';
+  const tdL = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;font-weight:600;color:var(--tx)';
+  const badge = (txt, color) => `<span style="padding:2px 7px;border-radius:20px;font-size:10px;font-family:'DM Mono',monospace;background:${color}22;color:${color}">${txt}</span>`;
+
+  // ── Seção: Afastados agora
+  let afastSection = '';
+  if (pmAfastados.length) {
+    const afRows = pmAfastados.map(r => {
+      const ats = afastHoje[r.re] || [];
+      const tipo = ats.map(a => a.tipo_afastamento).join(', ');
+      const termino = ats[0]?.termino || '';
+      const diasRest = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : '—';
+      return `<tr>
+        <td style="${tdL}">${r.nome_guerra || r.nome}</td>
+        <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx2)">${r.posto || '—'}</td>
+        <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${r.opm || '—'}</td>
+        <td style="${tdS.replace('text-align:right','text-align:left')}">${badge(tipo, '#c84b4b')}</td>
+        <td style="${tdS}">${fmtDate(ats[0]?.inicio)}</td>
+        <td style="${tdS}">${fmtDate(termino)}</td>
+        <td style="${tdS};color:${diasRest <= 3 ? '#4bc87a' : 'var(--tx3)'}">${diasRest !== '—' ? diasRest + 'd' : '—'}</td>
+      </tr>`;
+    }).join('');
+    afastSection = `
+      <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow-x:auto;margin-bottom:14px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#c84b4b;padding:14px 16px 0;text-transform:uppercase">Afastados Hoje — ${pmAfastados.length}</div>
+        <table style="width:100%;border-collapse:collapse;margin-top:8px">
+          <thead><tr>
+            <th style="${thL}">Nome de Guerra</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th>
+            <th style="${thL}">Tipo</th><th style="${thS}">Início</th><th style="${thS}">Término</th><th style="${thS}">Dias restantes</th>
+          </tr></thead><tbody>${afRows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  // ── Alertas
+  let alertSection = '';
+  const alertItems = [];
+  if (vencendoRestricao.length) {
+    vencendoRestricao.forEach(r => {
+      const dias = Math.ceil((new Date(r.restricao_termino) - new Date(hoje)) / 86400000);
+      alertItems.push(`<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center">
+        ${badge('RESTRIÇÃO', '#c8a84b')}
+        <span style="font-size:12px;color:var(--tx)">${r.nome_guerra || r.nome}</span>
+        <span style="font-size:11px;color:var(--tx3)">${r.opm || ''}</span>
+        <span style="font-size:11px;color:var(--tx3);margin-left:auto">Vence em <b style="color:#c8a84b">${dias}d</b> — ${fmtDate(r.restricao_termino)}</span>
+      </div>`);
+    });
+  }
+  if (retornando.length) {
+    retornando.forEach(a => {
+      const pm = p1Data.find(r => r.re === a.re);
+      const dias = Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000);
+      alertItems.push(`<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center">
+        ${badge('RETORNO', '#4bc87a')}
+        <span style="font-size:12px;color:var(--tx)">${pm?.nome_guerra || a.nome || a.re}</span>
+        <span style="font-size:11px;color:var(--tx3)">${a.tipo_afastamento}</span>
+        <span style="font-size:11px;color:var(--tx3);margin-left:auto">Retorna em <b style="color:#4bc87a">${dias}d</b> — ${fmtDate(a.termino)}</span>
+      </div>`);
+    });
+  }
+  if (alertItems.length) {
+    alertSection = `
+      <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-bottom:14px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#c8a84b;padding:14px 16px 8px;text-transform:uppercase">Alertas</div>
+        ${alertItems.join('')}
+      </div>`;
+  }
+
+  // ── Tabela por OPM
   const byUnit = {};
   p1Data.forEach(r => {
     const u = r.opm || 'Não Informada';
     if (!byUnit[u]) byUnit[u] = [];
     byUnit[u].push(r);
   });
-
   const unitsSorted = Object.entries(byUnit).sort((a, b) => b[1].length - a[1].length);
-
-  // ── Tabela por OPM
-  const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:right';
-  const thL = thS.replace('text-align:right', 'text-align:left');
-  const tdS = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-family:"DM Mono",monospace;font-size:12px;color:var(--tx3);text-align:right';
-  const tdL = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;font-weight:600;color:var(--tx)';
-
   const tableRows = unitsSorted.map(([unit, d]) => {
-    const cats = Object.keys(CATS).map(k => `<td style="${tdS};color:${CATS_COLOR[k]}">${count(d, k)}</td>`).join('');
+    const afst = d.filter(r => afastHoje[r.re]).length;
     const restr = d.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s')).length;
+    const presentes = d.length - afst;
+    const pct = Math.round(presentes / d.length * 100);
+    const pctColor = pct >= 85 ? '#4bc87a' : pct >= 70 ? '#c8a84b' : '#c84b4b';
+    const cats = Object.keys(CATS).map(k => `<td style="${tdS};color:${CATS_COLOR[k]}">${count(d, k)}</td>`).join('');
     return `<tr>
       <td style="${tdL}">${unit}</td>
       ${cats}
       <td style="${tdS};font-weight:700;color:var(--tx)">${d.length}</td>
-      <td style="${tdS};color:${restr > 0 ? '#c84b4b' : 'var(--tx3)'}">${restr > 0 ? restr : '—'}</td>
+      <td style="${tdS};color:${afst > 0 ? '#c84b4b' : 'var(--tx3)'}">${afst > 0 ? afst : '—'}</td>
+      <td style="${tdS};color:${restr > 0 ? '#c8a84b' : 'var(--tx3)'}">${restr > 0 ? restr : '—'}</td>
+      <td style="${tdS};color:${pctColor};font-weight:700">${pct}%</td>
     </tr>`;
   }).join('');
 
-  bodyEl.innerHTML = `
+  bodyEl.innerHTML = afastSection + alertSection + `
     <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow-x:auto">
       <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);padding:14px 16px 0;text-transform:uppercase">Efetivo por OPM</div>
       <table style="width:100%;border-collapse:collapse;margin-top:8px">
         <thead><tr>
           <th style="${thL}">OPM</th>
           ${Object.entries(CATS).map(([,l]) => `<th style="${thS}">${l}</th>`).join('')}
-          <th style="${thS}">Total</th>
-          <th style="${thS}">Restrições</th>
+          <th style="${thS}">Total</th><th style="${thS}">Afastados</th><th style="${thS}">Restrição</th><th style="${thS}">% Presente</th>
         </tr></thead>
         <tbody>${tableRows}</tbody>
       </table>
@@ -2426,11 +2543,88 @@ async function p1ConfirmUpload() {
   }
 }
 
+// ── Upload Afastamentos
+function openAfUpload() {
+  const mo = document.getElementById('af-upl-mo');
+  mo.style.display = 'flex';
+  document.getElementById('af-upl-file').value = '';
+  document.getElementById('af-upl-preview').textContent = '';
+  document.getElementById('af-upl-msg').textContent = '';
+  document.getElementById('af-upl-btn').disabled = true;
+  document.getElementById('af-upl-btn').style.opacity = '.5';
+  p1AfParsed = [];
+}
+function closeAfUpload() { document.getElementById('af-upl-mo').style.display = 'none'; }
+function afUplClickOut(e) { if (e.target === document.getElementById('af-upl-mo')) closeAfUpload(); }
+
+function afFileChange() {
+  const file = document.getElementById('af-upl-file').files[0];
+  const prev = document.getElementById('af-upl-preview');
+  const btn  = document.getElementById('af-upl-btn');
+  p1AfParsed = [];
+  btn.disabled = true; btn.style.opacity = '.5';
+  prev.innerHTML = ''; document.getElementById('af-upl-msg').innerHTML = '';
+  if (!file) return;
+  const HEADER_MAP = {
+    're': 'RE', 'nome': 'Nome', 'nome completo': 'Nome', 'opm': 'OPM',
+    'tipo de afastamento': 'Tipo', 'tipo afastamento': 'Tipo', 'tipo': 'Tipo',
+    'n° de dias': 'NDias', 'nº de dias': 'NDias', 'n de dias': 'NDias', 'n_dias': 'NDias', 'dias': 'NDias',
+    'início': 'Inicio', 'inicio': 'Inicio',
+    'término': 'Termino', 'termino': 'Termino',
+    'nbi': 'NBI', 'bol g': 'BolG', 'bol. g': 'BolG', 'bolg': 'BolG',
+    'sipa': 'SIPA', 'sgp': 'SGP', 'paf': 'PAF',
+    'obs': 'Obs', 'observação': 'Obs', 'observacao': 'Obs'
+  };
+  Papa.parse(file, {
+    header: true, skipEmptyLines: true,
+    transformHeader: h => HEADER_MAP[h.trim().toLowerCase()] || h.trim(),
+    complete: r => {
+      if (!r.data.length) { prev.innerHTML = '<span style="color:#e06060">Arquivo vazio.</span>'; return; }
+      const required = ['RE', 'Tipo', 'Inicio', 'Termino'];
+      const missing  = required.filter(c => !Object.keys(r.data[0]).includes(c));
+      if (missing.length) {
+        prev.innerHTML = `<span style="color:#e06060">Colunas ausentes: <b>${missing.join(', ')}</b>.<br>Esperadas: RE, Tipo de Afastamento, Início, Término.</span>`;
+        return;
+      }
+      p1AfParsed = r.data.map(row => { const n = {}; Object.entries(row).forEach(([k,v]) => { n[k] = (v||'').trim(); }); return n; })
+        .filter(row => row.RE && row.Tipo && row.Inicio && row.Termino);
+      const tipos = [...new Set(p1AfParsed.map(r => r.Tipo).filter(Boolean))];
+      prev.innerHTML = `<span style="color:#4bc87a">✓ <b>${p1AfParsed.length}</b> registros lidos — tipos: ${tipos.join(', ')}.</span>`;
+      btn.disabled = false; btn.style.opacity = '1';
+    },
+    error: err => { prev.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`; }
+  });
+}
+
+async function afConfirmUpload() {
+  const btn = document.getElementById('af-upl-btn');
+  const msg = document.getElementById('af-upl-msg');
+  if (!p1AfParsed.length) return;
+  btn.disabled = true; btn.style.opacity = '.5';
+  msg.innerHTML = '<span style="color:var(--tx3)">Enviando...</span>';
+  try {
+    const res = await authFetch(`${API}/afastamentos/upload`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ records: p1AfParsed })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
+    msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.inserted} afastamentos importados.</span>`;
+    await loadP1();
+    setTimeout(closeAfUpload, 1500);
+  } catch (err) {
+    msg.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`;
+    btn.disabled = false; btn.style.opacity = '1';
+  }
+}
+
 function updateSidebarImports(section) {
   const el = document.getElementById('sidebar-imports');
   if (!el) return;
   if (section === 'p1') {
-    el.innerHTML = `<button onclick="openP1Upload()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Efetivo</button>`;
+    el.innerHTML = `
+      <button onclick="openP1Upload()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Efetivo</button>
+      <button onclick="openAfUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Afastamentos</button>`;
   } else if (section === 'p3') {
     el.innerHTML = `
       <button onclick="openUploadModal()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar CSV (Metas)</button>

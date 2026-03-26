@@ -714,6 +714,79 @@ app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3'), async (
   }
 });
 
+// ── AFASTAMENTOS P1 ─────────────────────────────────────────────────────────
+const AFASTAMENTOS_TABLE = 'afastamentos_pm';
+
+app.get('/api/afastamentos', requireAuth, async (req, res) => {
+  try {
+    if (!supabase) return res.json([]);
+    const { data, error } = await supabase.from(AFASTAMENTOS_TABLE).select('*');
+    if (error) throw new Error(error.message);
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/afastamentos/upload', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+    const { records } = req.body;
+    if (!Array.isArray(records) || !records.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
+
+    const gf = (r, ...names) => {
+      for (const name of names) {
+        const k = Object.keys(r).find(k => k.toLowerCase() === name.toLowerCase());
+        if (k) return (r[k] || '').toString().trim();
+      }
+      return '';
+    };
+
+    // Converte DD/MM/YYYY ou DD/MM/YY para YYYY-MM-DD
+    const parseDate = s => {
+      if (!s) return null;
+      // Já está em ISO
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      const p = s.split('/');
+      if (p.length !== 3) return null;
+      const [d, m, y] = p;
+      const yr = y.length === 2 ? '20' + y : y;
+      return `${yr}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    };
+
+    const rows = records.map(r => ({
+      re:               gf(r, 'RE', 're'),
+      nome:             gf(r, 'Nome', 'nome', 'Nome Completo'),
+      opm:              gf(r, 'OPM', 'opm'),
+      tipo_afastamento: gf(r, 'Tipo', 'tipo', 'Tipo de Afastamento', 'TipoAfastamento'),
+      n_dias:           parseInt(gf(r, 'NDias', 'n_dias', 'N° de dias', 'N de dias', 'Nº de dias')) || null,
+      inicio:           parseDate(gf(r, 'Inicio', 'inicio', 'Início')),
+      termino:          parseDate(gf(r, 'Termino', 'termino', 'Término')),
+      nbi:              gf(r, 'NBI', 'nbi'),
+      bol_g:            gf(r, 'BolG', 'bol_g', 'Bol G', 'Bol. G'),
+      sipa:             gf(r, 'SIPA', 'sipa'),
+      sgp:              gf(r, 'SGP', 'sgp'),
+      paf:              gf(r, 'PAF', 'paf'),
+      obs:              gf(r, 'Obs', 'obs', 'Observação', 'Observacao'),
+    })).filter(r => r.re && r.tipo_afastamento && r.inicio && r.termino);
+
+    if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique RE, Tipo, Início e Término.' });
+
+    await supabase.from(AFASTAMENTOS_TABLE).delete().not('re', 'is', null);
+
+    const BATCH = 500;
+    let inserted = 0;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const { error } = await supabase.from(AFASTAMENTOS_TABLE).insert(rows.slice(i, i + BATCH));
+      if (error) throw new Error(error.message);
+      inserted += Math.min(BATCH, rows.length - i);
+    }
+    res.json({ ok: true, inserted });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });
