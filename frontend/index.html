@@ -222,8 +222,16 @@
 <!-- P1 EFETIVO -->
 <div id="page-p1" class="page">
   <div class="ph">
-    <div><div class="ph-tag">SEÇÃO P1</div><div class="ph-title">GESTÃO DE <span>EFETIVO</span></div></div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div><div class="ph-tag">SEÇÃO P1</div><div class="ph-title">GESTÃO DE <span>EFETIVO</span></div></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:4px">
+        <input id="p1-search" type="text" placeholder="Buscar RE ou Nome..." onkeydown="if(event.key==='Enter')p1DoSearch()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:6px;padding:6px 12px;font-size:12px;width:170px;outline:none">
+        <button id="btn-vagas" onclick="openVagasModal()" style="display:none;padding:6px 14px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:12px">⚙ Vagas</button>
+        <button id="btn-exportar-p1" onclick="exportarSituacao()" style="display:none;padding:6px 14px;background:rgba(75,200,122,.1);border:1px solid rgba(75,200,122,.25);color:#4bc87a;border-radius:6px;cursor:pointer;font-size:12px">↓ Exportar CSV</button>
+      </div>
+    </div>
   </div>
+  <div id="p1-filtro-bar" style="margin-bottom:12px;display:flex;gap:6px;flex-wrap:wrap;padding-top:4px"></div>
   <div id="p1-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:20px"></div>
   <div id="p1-body"></div>
 </div>
@@ -264,6 +272,122 @@
       <button id="af-upl-btn" onclick="afConfirmUpload()" disabled style="padding:7px 18px;background:rgba(90,157,224,.2);border:1px solid rgba(90,157,224,.4);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;opacity:.5">Importar</button>
     </div>
     <div id="af-upl-msg" style="margin-top:12px;font-size:12px;min-height:18px"></div>
+  </div>
+</div>
+
+<!-- MODAL PRONTUÁRIO PM -->
+<div id="pronto-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:2050;align-items:center;justify-content:center;padding:20px;overflow-y:auto" onclick="prontoClickOut(event)">
+  <div style="background:#0d1018;border:1px solid #1c2235;border-radius:10px;padding:26px;width:100%;max-width:600px;margin:auto">
+    <div style="display:flex;align-items:flex-start;gap:18px;margin-bottom:20px">
+      <!-- Foto -->
+      <div style="position:relative;width:80px;height:80px;border-radius:50%;overflow:hidden;border:2px solid var(--bd);background:#111620;flex-shrink:0">
+        <div id="pronto-foto-ph" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--tx3)">👤</div>
+        <img id="pronto-foto" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0" alt="">
+      </div>
+      <!-- Dados -->
+      <div style="flex:1;min-width:0">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px" id="pronto-re">RE —</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:1px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="pronto-nome">—</div>
+        <div style="font-size:12px;color:var(--tx3);margin-bottom:6px" id="pronto-posto">—</div>
+        <div id="pronto-status"></div>
+      </div>
+      <button onclick="closeProntuario()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:12px;flex-shrink:0">✕</button>
+    </div>
+    <!-- Detalhe -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:18px;font-size:12px">
+      <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">OPM</div>
+        <div style="color:var(--tx);font-weight:600" id="pronto-opm">—</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Função</div>
+        <div style="color:var(--tx)" id="pronto-func">—</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Nome de Guerra</div>
+        <div style="color:var(--tx)" id="pronto-guerra">—</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Gênero</div>
+        <div style="color:var(--tx)" id="pronto-gen">—</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">EAP</div>
+        <div id="pronto-eap">—</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Restrição Médica</div>
+        <div id="pronto-restr">—</div>
+      </div>
+    </div>
+    <!-- Extrato cronológico -->
+    <div style="border-top:1px solid var(--bd);padding-top:16px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px">Extrato de Afastamentos</div>
+      <div style="overflow-x:auto;max-height:260px;overflow-y:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">TIPO</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">INÍCIO</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">TÉRMINO</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">DIAS</th>
+            <th style="padding:6px 10px;border-bottom:1px solid var(--bd)"></th>
+          </tr></thead>
+          <tbody id="pronto-extrato"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VAGAS (EFETIVO FIXADO) -->
+<div id="vagas-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:2050;align-items:center;justify-content:center;padding:20px" onclick="vagasClickOut(event)">
+  <div style="background:#0d1018;border:1px solid #1c2235;border-radius:10px;padding:26px;width:100%;max-width:480px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">SEÇÃO P1</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px">EFETIVO <span style="color:#5a9de0">FIXADO</span></div>
+      </div>
+      <button onclick="closeVagasModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:12px">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--tx3);margin-bottom:16px">Defina o efetivo autorizado (vagas) por unidade para calcular o claro operacional.</div>
+    <div id="vagas-tbl" style="max-height:360px;overflow-y:auto"></div>
+    <div id="vagas-msg" style="margin-top:10px;font-size:12px;min-height:16px"></div>
+  </div>
+</div>
+
+<!-- MODAL FOTO PM -->
+<div id="foto-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:2100;align-items:center;justify-content:center;padding:20px" onclick="fotoClickOut(event)">
+  <div style="background:#0d1018;border:1px solid #1c2235;border-radius:10px;padding:26px;width:100%;max-width:360px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px">
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px" id="foto-mo-re">RE —</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px;color:var(--tx)" id="foto-mo-nome">—</div>
+        <div style="font-size:12px;color:var(--tx3)" id="foto-mo-posto">—</div>
+      </div>
+      <button onclick="closeFotoModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:12px;flex-shrink:0">✕</button>
+    </div>
+    <!-- Foto atual -->
+    <div style="display:flex;justify-content:center;margin-bottom:18px">
+      <div style="position:relative;width:140px;height:140px;border-radius:50%;overflow:hidden;border:2px solid var(--bd);background:#111620;flex-shrink:0">
+        <div id="foto-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:48px;color:var(--tx3)">👤</div>
+        <img id="foto-img" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0" alt="Foto PM">
+      </div>
+    </div>
+    <!-- Nota para usuários sem permissão de edição -->
+    <div id="foto-readonly-note" style="display:none;font-size:11px;color:var(--tx3);text-align:center;margin-bottom:10px">Foto gerenciada pela <span style="color:var(--gold)">Seção P1</span></div>
+    <!-- Área de edição — visível apenas para role 'p1' / 'admin' -->
+    <div id="foto-edit-area" style="display:none">
+      <div style="border-top:1px solid var(--bd);padding-top:14px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Gerenciar Foto</div>
+        <input type="file" id="foto-file-input" accept="image/*" onchange="fotoPreviewChange()" style="display:block;width:100%;margin-bottom:10px;color:var(--tx);font-size:12px">
+        <div style="display:flex;gap:8px">
+          <button onclick="p1SaveFoto()" style="flex:1;padding:7px;background:rgba(200,168,75,.2);border:1px solid rgba(200,168,75,.4);color:var(--gold);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600">Salvar</button>
+          <button onclick="p1RemoveFoto()" style="padding:7px 12px;background:rgba(200,75,75,.1);border:1px solid rgba(200,75,75,.2);color:#e06060;border-radius:4px;cursor:pointer;font-size:12px">Remover</button>
+        </div>
+      </div>
+    </div>
+    <input type="hidden" id="foto-mo-re-data">
+    <div id="foto-mo-msg" style="margin-top:10px;font-size:12px;text-align:center;min-height:16px"></div>
   </div>
 </div>
 

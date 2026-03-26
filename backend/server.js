@@ -252,7 +252,7 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const hash = await bcrypt.hash(senha, 10);
     const secaoTrim = secao.trim();
-    const autoRole = ['P1', 'Sargentante'].includes(secaoTrim) ? 'p3' : 'viewer';
+    const autoRole = secaoTrim === 'P1' ? 'p1' : 'viewer';
     const { error } = await supabase.from(USUARIOS_TABLE).insert({
       nome:       nome.trim(),
       posto:      posto.trim(),
@@ -782,6 +782,88 @@ app.post('/api/afastamentos/upload', requireAuth, requireRole('admin', 'p3'), as
       inserted += Math.min(BATCH, rows.length - i);
     }
     res.json({ ok: true, inserted });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── FOTOS PM ─────────────────────────────────────────────────────────────────
+const FOTOS_TABLE = 'fotos_pm';
+
+// GET /api/p1/foto/:re — qualquer usuário autenticado pode visualizar
+app.get('/api/p1/foto/:re', requireAuth, async (req, res) => {
+  try {
+    if (!supabase) return res.json({ foto_base64: null });
+    const { data, error } = await supabase
+      .from(FOTOS_TABLE)
+      .select('re, foto_base64, updated_at')
+      .eq('re', req.params.re)
+      .single();
+    if (error && error.code !== 'PGRST116') throw new Error(error.message);
+    res.json(data || { foto_base64: null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/p1/foto/:re — somente perfil 'p1' ou 'admin' pode fazer upload/alterar
+app.post('/api/p1/foto/:re', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+    const { foto_base64 } = req.body;
+    if (!foto_base64 || !foto_base64.startsWith('data:image/'))
+      return res.status(400).json({ error: 'Imagem inválida. Envie um arquivo de imagem (JPG, PNG).' });
+    if (foto_base64.length > 1_100_000)
+      return res.status(400).json({ error: 'Imagem muito grande. Máximo 800 KB após compressão.' });
+    const { error } = await supabase.from(FOTOS_TABLE).upsert(
+      { re: req.params.re, foto_base64, updated_at: new Date().toISOString() },
+      { onConflict: 're' }
+    );
+    if (error) throw new Error(error.message);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/p1/foto/:re — somente perfil 'p1' ou 'admin' pode remover
+app.delete('/api/p1/foto/:re', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+    const { error } = await supabase.from(FOTOS_TABLE).delete().eq('re', req.params.re);
+    if (error) throw new Error(error.message);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── VAGAS PM (EFETIVO FIXADO) ────────────────────────────────────────────────
+const VAGAS_TABLE = 'vagas_pm';
+
+app.get('/api/p1/vagas', requireAuth, async (req, res) => {
+  try {
+    if (!supabase) return res.json([]);
+    const { data, error } = await supabase.from(VAGAS_TABLE).select('*').order('opm');
+    if (error) throw new Error(error.message);
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/p1/vagas', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+    const { opm, vagas } = req.body;
+    if (!opm || vagas == null || isNaN(Number(vagas)) || Number(vagas) < 0)
+      return res.status(400).json({ error: 'OPM e vagas (número ≥ 0) são obrigatórios.' });
+    const { error } = await supabase.from(VAGAS_TABLE).upsert(
+      { opm: opm.trim(), vagas: Number(vagas), updated_at: new Date().toISOString() },
+      { onConflict: 'opm' }
+    );
+    if (error) throw new Error(error.message);
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -184,7 +184,7 @@ function buildUserTable(users, me) {
     const sStyle = STATUS_STYLE[u.status] || '';
     const canEditRole = ['admin', 'p3'].includes(me.role);
     const roleOpts = canEditRole
-      ? ['viewer','p3'].map(r =>
+      ? ['viewer','p1','p3'].map(r =>
           `<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABEL[r]||r}</option>`).join('')
       : `<option>${ROLE_LABEL[u.role]||u.role}</option>`;
     const secaoOpts = canEditRole
@@ -2222,6 +2222,11 @@ let p1Data       = [];
 let p1Afasts     = [];   // afastamentos carregados do Supabase
 let p1Parsed     = [];   // CSV efetivo aguardando confirmação
 let p1AfParsed   = [];   // CSV afastamentos aguardando confirmação
+let p1Fotos      = {};   // RE → foto_base64 | null
+let p1ByUnit     = {};   // OPM → PM[] (populado em renderP1)
+let p1AfastHoje  = {};   // RE → afastamentos ativos hoje (populado em renderP1)
+let p1Vagas      = [];   // efetivo fixado por OPM
+let p1FiltroOpm  = '';   // filtro ativo por OPM
 
 // Categoriza posto/graduação em 4 grupos
 function p1Cat(posto) {
@@ -2239,12 +2244,15 @@ async function loadP1() {
   kpis.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:10px 0">Carregando...</div>';
   body.innerHTML = '';
   try {
-    const [r1, r2] = await Promise.all([
+    const [r1, r2, r3] = await Promise.all([
       authFetch(`${API}/efetivo`),
-      authFetch(`${API}/afastamentos`)
+      authFetch(`${API}/afastamentos`),
+      authFetch(`${API}/p1/vagas`)
     ]);
     p1Data   = await r1.json();
     p1Afasts = await r2.json();
+    const vagasRaw = await r3.json();
+    p1Vagas  = Array.isArray(vagasRaw) ? vagasRaw : [];
     renderP1();
   } catch (err) {
     kpis.innerHTML = `<div style="color:#e06060;font-size:12px">${err.message}</div>`;
@@ -2278,16 +2286,30 @@ function renderP1() {
       afastHoje[a.re].push(a);
     }
   });
+  p1AfastHoje = afastHoje;
+
+  // Filtro ativo por OPM
+  const dataF = p1FiltroOpm ? p1Data.filter(r => r.opm === p1FiltroOpm) : p1Data;
+  const reSetF = new Set(dataF.map(r => r.re));
 
   // Status de cada PM
-  const pmAfastados   = p1Data.filter(r => afastHoje[r.re]);
-  const pmAptos       = p1Data.filter(r => !afastHoje[r.re]);
-  const pmComRestricao = p1Data.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s'));
-  const pmEapPendente  = p1Data.filter(r => {
-    if (!r.eap_ano_atual) return true;
-    const d = new Date(r.eap_ano_atual);
+  const pmAfastados    = dataF.filter(r => afastHoje[r.re]);
+  const pmAptos        = dataF.filter(r => !afastHoje[r.re]);
+  const pmComRestricao = dataF.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s'));
+  const pmEapPendente  = dataF.filter(r => {
+    if (!r.data_eap) return true;
+    const d = new Date(r.data_eap);
     return isNaN(d) || d.getFullYear() !== anoAtual;
   });
+
+  // ── Controle de Férias
+  const isFer = t => /f[eé]rias/i.test(t || '');
+  const em15s = (() => { const d = new Date(); d.setDate(d.getDate() + 15); return d.toISOString().split('T')[0]; })();
+  const afastsF      = p1FiltroOpm ? p1Afasts.filter(a => reSetF.has(a.re)) : p1Afasts;
+  const ferEmGozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && a.termino >= hoje);
+  const ferEm15Dias  = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio > hoje && a.inicio <= em15s);
+  const resFeriasAno = new Set(p1Afasts.filter(a => isFer(a.tipo_afastamento) && (a.inicio||'').startsWith(String(anoAtual))).map(a => a.re));
+  const semFeriasAno = dataF.filter(r => !resFeriasAno.has(r.re));
 
   // Restrições vencendo em 30 dias
   const em30 = new Date(); em30.setDate(em30.getDate() + 30);
@@ -2307,7 +2329,7 @@ function renderP1() {
   const CATS = { cbsd: 'Cb / Sd', sgt: 'Sargentos', sub: 'Subtenentes', of: 'Oficiais' };
   const CATS_COLOR = { cbsd: '#5a9de0', sgt: '#c8a84b', sub: '#4bc87a', of: '#c84b4b' };
   const count = (arr, cat) => arr.filter(r => p1Cat(r.posto) === cat).length;
-  const total = p1Data.length;
+  const total = dataF.length;
 
   // ── KPI cards
   const kpiCard = (label, val, sub, color) =>
@@ -2323,11 +2345,13 @@ function renderP1() {
   const tiposSub = Object.entries(tiposCount).map(([t,n]) => `${n} ${t}`).join(' · ') || '';
 
   kpisEl.innerHTML =
-    kpiCard('Total Efetivo', total, `${count(p1Data,'cbsd')} Cb/Sd · ${count(p1Data,'sgt')} Sgt · ${count(p1Data,'sub')} Sub · ${count(p1Data,'of')} Of`, 'var(--tx)') +
-    kpiCard('Aptos Hoje', pmAptos.length, `${Math.round(pmAptos.length/total*100)}% do efetivo`, '#4bc87a') +
+    kpiCard('Total Efetivo', total, `${count(dataF,'cbsd')} Cb/Sd · ${count(dataF,'sgt')} Sgt · ${count(dataF,'sub')} Sub · ${count(dataF,'of')} Of`, 'var(--tx)') +
+    kpiCard('Aptos Hoje', pmAptos.length, total > 0 ? `${Math.round(pmAptos.length/total*100)}% do efetivo` : '—', '#4bc87a') +
     kpiCard('Afastados Hoje', pmAfastados.length, tiposSub || '—', pmAfastados.length > 0 ? '#c84b4b' : 'var(--tx3)') +
     kpiCard('Em Restrição', pmComRestricao.length, vencendoRestricao.length > 0 ? `⚠ ${vencendoRestricao.length} vencem em 30 dias` : '—', pmComRestricao.length > 0 ? '#c8a84b' : 'var(--tx3)') +
-    kpiCard('EAP Pendente', pmEapPendente.length, `${anoAtual}`, pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a');
+    kpiCard('EAP Pendente', pmEapPendente.length, `${anoAtual}`, pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a') +
+    kpiCard('Férias em Gozo', ferEmGozo.length, ferEm15Dias.length > 0 ? `⚡ ${ferEm15Dias.length} iniciam em 15d` : '—', ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)') +
+    kpiCard('Sem Férias no Ano', semFeriasAno.length, `${anoAtual}`, semFeriasAno.length > 0 ? '#c84b4b' : '#4bc87a');
 
   const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:right';
   const thL = thS.replace('text-align:right','text-align:left');
@@ -2343,8 +2367,13 @@ function renderP1() {
       const tipo = ats.map(a => a.tipo_afastamento).join(', ');
       const termino = ats[0]?.termino || '';
       const diasRest = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : '—';
+      const _fotoRe = JSON.stringify(r.re);
+      const _fotoNm = JSON.stringify(r.nome_guerra || r.nome);
+      const _fotoPt = JSON.stringify(r.posto || '');
+      const _av = `<div data-foto-re="${r.re}" data-nome="${(r.nome_guerra||r.nome).replace(/"/g,'&quot;')}" data-posto="${(r.posto||'').replace(/"/g,'&quot;')}" onclick="openFotoModal(${_fotoRe},${_fotoNm},${_fotoPt})" style="cursor:pointer;display:inline-block">${p1AvatarSVG(r.nome_guerra||r.nome, r.posto)}</div>`;
       return `<tr>
-        <td style="${tdL}">${r.nome_guerra || r.nome}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.03);width:44px;vertical-align:middle">${_av}</td>
+        <td style="${tdL};cursor:pointer" onclick="openFotoModal(${_fotoRe},${_fotoNm},${_fotoPt})">${r.nome_guerra || r.nome}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx2)">${r.posto || '—'}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${r.opm || '—'}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')}">${badge(tipo, '#c84b4b')}</td>
@@ -2358,7 +2387,7 @@ function renderP1() {
         <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#c84b4b;padding:14px 16px 0;text-transform:uppercase">Afastados Hoje — ${pmAfastados.length}</div>
         <table style="width:100%;border-collapse:collapse;margin-top:8px">
           <thead><tr>
-            <th style="${thL}">Nome de Guerra</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th>
+            <th style="${thL};width:44px;padding:8px 4px 8px 8px"></th><th style="${thL}">Nome de Guerra</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th>
             <th style="${thL}">Tipo</th><th style="${thS}">Início</th><th style="${thS}">Término</th><th style="${thS}">Dias restantes</th>
           </tr></thead><tbody>${afRows}</tbody>
         </table>
@@ -2401,11 +2430,12 @@ function renderP1() {
 
   // ── Tabela por OPM
   const byUnit = {};
-  p1Data.forEach(r => {
+  dataF.forEach(r => {
     const u = r.opm || 'Não Informada';
     if (!byUnit[u]) byUnit[u] = [];
     byUnit[u].push(r);
   });
+  p1ByUnit = byUnit;
   const unitsSorted = Object.entries(byUnit).sort((a, b) => b[1].length - a[1].length);
   const tableRows = unitsSorted.map(([unit, d]) => {
     const afst = d.filter(r => afastHoje[r.re]).length;
@@ -2414,8 +2444,8 @@ function renderP1() {
     const pct = Math.round(presentes / d.length * 100);
     const pctColor = pct >= 85 ? '#4bc87a' : pct >= 70 ? '#c8a84b' : '#c84b4b';
     const cats = Object.keys(CATS).map(k => `<td style="${tdS};color:${CATS_COLOR[k]}">${count(d, k)}</td>`).join('');
-    return `<tr>
-      <td style="${tdL}">${unit}</td>
+    return `<tr style="cursor:pointer" onclick="p1ShowUnit(${JSON.stringify(unit)})">
+      <td style="${tdL};color:var(--gold)">${unit} <span style="opacity:.45;font-size:10px">↗</span></td>
       ${cats}
       <td style="${tdS};font-weight:700;color:var(--tx)">${d.length}</td>
       <td style="${tdS};color:${afst > 0 ? '#c84b4b' : 'var(--tx3)'}">${afst > 0 ? afst : '—'}</td>
@@ -2424,9 +2454,100 @@ function renderP1() {
     </tr>`;
   }).join('');
 
-  bodyEl.innerHTML = afastSection + alertSection + `
+  // ── Claro Operacional
+  let claroSection = '';
+  if (p1Vagas.length) {
+    const vagasMap = {};
+    p1Vagas.forEach(v => { vagasMap[v.opm] = Number(v.vagas); });
+    const claroData = unitsSorted.map(([unit, d]) => {
+      const vagas = vagasMap[unit];
+      if (!vagas) return null;
+      const afst     = d.filter(r => afastHoje[r.re]).length;
+      const presentes = d.length - afst;
+      const pct       = Math.min(100, Math.round(presentes / vagas * 100));
+      const claro     = Math.max(0, vagas - presentes);
+      const pctColor  = pct >= 85 ? '#4bc87a' : pct >= 70 ? '#c8a84b' : '#c84b4b';
+      return { unit, vagas, presentes, afst, pct, pctColor, claro };
+    }).filter(Boolean).sort((a, b) => a.pct - b.pct);
+
+    if (claroData.length) {
+      const rows = claroData.map(r => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.03)">
+          <div style="width:160px;font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.unit}</div>
+          <div style="flex:1;background:rgba(255,255,255,.05);border-radius:4px;height:8px;overflow:hidden">
+            <div style="height:100%;width:${r.pct}%;background:${r.pctColor};border-radius:4px;transition:width .4s"></div>
+          </div>
+          <div style="width:38px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${r.pctColor}">${r.pct}%</div>
+          <div style="width:90px;font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);text-align:right">${r.presentes}/${r.vagas} vagas</div>
+          <div style="width:60px;font-family:'DM Mono',monospace;font-size:10px;text-align:right;color:${r.claro > 0 ? '#c84b4b' : '#4bc87a'}">${r.claro > 0 ? '−' + r.claro + ' claro' : 'completo'}</div>
+        </div>`).join('');
+      claroSection = `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase">Claro Operacional — Ranking por Disponibilidade</div>
+          <button onclick="openVagasModal()" style="font-size:10px;padding:3px 10px;background:rgba(90,157,224,.1);border:1px solid rgba(90,157,224,.25);color:#5a9de0;border-radius:4px;cursor:pointer">⚙ Editar Vagas</button>
+        </div>
+        ${rows}
+      </div>`;
+    }
+  } else {
+    const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
+    if (['admin','p1'].includes(u.role)) {
+      claroSection = `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;margin-bottom:4px">Claro Operacional</div>
+          <div style="font-size:12px;color:var(--tx3)">Configure o efetivo fixado (vagas) para calcular o claro operacional por unidade.</div>
+        </div>
+        <button onclick="openVagasModal()" style="padding:7px 16px;background:rgba(90,157,224,.15);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap">⚙ Configurar Vagas</button>
+      </div>`;
+    }
+  }
+
+  // ── Controle de Férias
+  let feriasSection = '';
+  if (ferEmGozo.length || ferEm15Dias.length) {
+    const fmtPM = a => {
+      const pm = p1Data.find(r => r.re === a.re);
+      const nm = pm?.nome_guerra || pm?.nome || a.nome || a.re;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.03)">
+        <div style="font-size:12px;font-weight:600;color:var(--tx);min-width:160px">${nm}</div>
+        <div style="font-size:10px;color:var(--tx3);flex:1">${pm?.opm || a.opm || '—'}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">${fmtDate(a.inicio)} → ${fmtDate(a.termino)}</div>
+      </div>`;
+    };
+    let fRows = '';
+    if (ferEmGozo.length) fRows += `<div style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1.5px;color:#5a9de0;padding:10px 14px 4px;text-transform:uppercase">Em Gozo (${ferEmGozo.length})</div>${ferEmGozo.map(fmtPM).join('')}`;
+    if (ferEm15Dias.length) fRows += `<div style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1.5px;color:#c8a84b;padding:10px 14px 4px;text-transform:uppercase">Iniciando em 15 dias (${ferEm15Dias.length})</div>${ferEm15Dias.map(fmtPM).join('')}`;
+    feriasSection = `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin-bottom:14px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#5a9de0;padding:14px 16px 0;text-transform:uppercase">Controle de Férias</div>
+      ${fRows}
+    </div>`;
+  }
+
+  // ── EAP pendente — lista rápida
+  let eapSection = '';
+  if (pmEapPendente.length) {
+    const eapRows = pmEapPendente.slice(0, 10).map(r =>
+      `<span onclick="openProntuario('${r.re}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.18);border-radius:20px;font-size:11px;color:#c8a84b;margin:3px">${r.nome_guerra || r.nome.split(' ').slice(0,2).join(' ')} <span style="font-family:'DM Mono',monospace;font-size:9px;opacity:.6">${r.opm||''}</span></span>`
+    ).join('');
+    const mais = pmEapPendente.length > 10 ? `<span style="font-size:11px;color:var(--tx3);margin:3px 6px">+ ${pmEapPendente.length - 10} mais</span>` : '';
+    eapSection = `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;margin-bottom:14px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#c8a84b;margin-bottom:10px;text-transform:uppercase">EAP Pendente ${anoAtual} — ${pmEapPendente.length} PMs</div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center">${eapRows}${mais}</div>
+    </div>`;
+  }
+
+  // ── Filtro bar por OPM
+  const opmsDisp = Object.keys(p1ByUnit).sort();
+  const filtroBar = document.getElementById('p1-filtro-bar');
+  if (filtroBar) {
+    filtroBar.innerHTML = `
+      <button onclick="p1SetFiltroOpm('')" style="padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid ${!p1FiltroOpm?'var(--gold)':'rgba(255,255,255,.12)'};background:${!p1FiltroOpm?'rgba(200,168,75,.15)':'rgba(255,255,255,.04)'};color:${!p1FiltroOpm?'var(--gold)':'var(--tx3)'};font-family:'DM Mono',monospace">Todos</button>
+      ${opmsDisp.map(o => `<button onclick="p1SetFiltroOpm(${JSON.stringify(o)})" style="padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid ${p1FiltroOpm===o?'var(--gold)':'rgba(255,255,255,.12)'};background:${p1FiltroOpm===o?'rgba(200,168,75,.15)':'rgba(255,255,255,.04)'};color:${p1FiltroOpm===o?'var(--gold)':'var(--tx3)'};font-family:'DM Mono',monospace">${o}</button>`).join('')}`;
+  }
+
+  bodyEl.innerHTML = claroSection + feriasSection + afastSection + alertSection + eapSection + `
     <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow-x:auto">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);padding:14px 16px 0;text-transform:uppercase">Efetivo por OPM</div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);padding:14px 16px 0;text-transform:uppercase">Efetivo por OPM <span style="opacity:.4;font-weight:400;font-size:8px">· clique na unidade para ver os PMs</span></div>
       <table style="width:100%;border-collapse:collapse;margin-top:8px">
         <thead><tr>
           <th style="${thL}">OPM</th>
@@ -2435,7 +2556,12 @@ function renderP1() {
         </tr></thead>
         <tbody>${tableRows}</tbody>
       </table>
-    </div>`;
+    </div>
+    <div id="p1-unit-detail"></div>`;
+
+  // Mostra botão exportar quando há dados
+  const btnE = document.getElementById('btn-exportar-p1');
+  if (btnE) btnE.style.display = 'inline-block';
 }
 
 // ── Upload modal P1
@@ -2618,6 +2744,206 @@ async function afConfirmUpload() {
   }
 }
 
+// ── Módulo de Fotos PM ───────────────────────────────────────────────────────
+
+// Gera avatar SVG com iniciais coloridas por posto
+function p1AvatarSVG(nome, posto) {
+  const cat = p1Cat(posto);
+  const colors = { cbsd: '#5a9de0', sgt: '#c8a84b', sub: '#4bc87a', of: '#c84b4b' };
+  const bg = colors[cat] || '#607090';
+  const initials = (nome || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="16" fill="${bg}33"/>
+    <circle cx="16" cy="16" r="15.5" fill="none" stroke="${bg}" stroke-width="1"/>
+    <text x="16" y="21" text-anchor="middle" fill="${bg}" font-family="DM Mono,monospace" font-size="12" font-weight="600">${initials}</text>
+  </svg>`;
+}
+
+// Atualiza um elemento avatar com foto real ou SVG de initials
+function renderAvatarEl(el, re, foto) {
+  if (!el) return;
+  if (foto) {
+    el.innerHTML = `<img src="${foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(255,255,255,.18)">`;
+  } else {
+    el.innerHTML = p1AvatarSVG(el.dataset.nome || '', el.dataset.posto || '');
+  }
+}
+
+// Abre modal de foto para um PM
+async function openFotoModal(re, nome, posto) {
+  const mo = document.getElementById('foto-mo');
+  if (!mo) return;
+  mo.style.display = 'flex';
+  document.getElementById('foto-mo-nome').textContent = nome || re;
+  document.getElementById('foto-mo-posto').textContent = posto || '—';
+  document.getElementById('foto-mo-re').textContent = `RE ${re}`;
+  document.getElementById('foto-mo-re-data').value = re;
+  document.getElementById('foto-mo-msg').textContent = '';
+  document.getElementById('foto-mo-msg').style.color = 'var(--tx3)';
+  const img = document.getElementById('foto-img');
+  img.style.display = 'none';
+  img.src = '';
+  document.getElementById('foto-placeholder').style.display = 'flex';
+
+  const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
+  const canEdit = ['admin', 'p1'].includes(u.role);
+  document.getElementById('foto-edit-area').style.display = canEdit ? 'block' : 'none';
+  document.getElementById('foto-readonly-note').style.display = canEdit ? 'none' : 'block';
+  document.getElementById('foto-file-input').value = '';
+
+  // Usa cache se disponível
+  if (p1Fotos[re] !== undefined) {
+    if (p1Fotos[re]) {
+      img.src = p1Fotos[re]; img.style.display = 'block';
+      document.getElementById('foto-placeholder').style.display = 'none';
+    }
+    return;
+  }
+
+  // Busca do servidor
+  try {
+    const data = await authFetch(`${API}/p1/foto/${encodeURIComponent(re)}`).then(r => r.json());
+    if (data?.foto_base64) {
+      img.src = data.foto_base64; img.style.display = 'block';
+      document.getElementById('foto-placeholder').style.display = 'none';
+      p1Fotos[re] = data.foto_base64;
+      document.querySelectorAll(`[data-foto-re="${re}"]`).forEach(el => renderAvatarEl(el, re, data.foto_base64));
+    } else {
+      p1Fotos[re] = null;
+    }
+  } catch (_) {}
+}
+
+function closeFotoModal() {
+  const mo = document.getElementById('foto-mo');
+  if (mo) mo.style.display = 'none';
+  const fi = document.getElementById('foto-file-input');
+  if (fi) fi.value = '';
+}
+
+function fotoClickOut(e) { if (e.target.id === 'foto-mo') closeFotoModal(); }
+
+// Comprime imagem via canvas antes do upload
+function compressImage(dataUrl, maxDim, quality, callback) {
+  const img = new Image();
+  img.onload = () => {
+    let w = img.width, h = img.height;
+    if (w > maxDim || h > maxDim) {
+      if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+      else { w = Math.round(w * maxDim / h); h = maxDim; }
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    callback(canvas.toDataURL('image/jpeg', quality));
+  };
+  img.src = dataUrl;
+}
+
+function fotoPreviewChange() {
+  const file = document.getElementById('foto-file-input').files[0];
+  const msg  = document.getElementById('foto-mo-msg');
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    msg.style.color = '#e06060';
+    msg.textContent = 'Selecione um arquivo de imagem (JPG, PNG, etc).';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    compressImage(e.target.result, 400, 0.82, compressed => {
+      document.getElementById('foto-img').src = compressed;
+      document.getElementById('foto-img').style.display = 'block';
+      document.getElementById('foto-placeholder').style.display = 'none';
+      msg.textContent = '';
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+async function p1SaveFoto() {
+  const re  = document.getElementById('foto-mo-re-data').value;
+  const img = document.getElementById('foto-img');
+  const msg = document.getElementById('foto-mo-msg');
+  if (!img.src || img.style.display === 'none') {
+    msg.style.color = '#e06060';
+    msg.textContent = 'Selecione uma imagem primeiro.';
+    return;
+  }
+  msg.style.color = 'var(--tx3)'; msg.textContent = 'Salvando...';
+  try {
+    const res = await authFetch(`${API}/p1/foto/${encodeURIComponent(re)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ foto_base64: img.src })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    p1Fotos[re] = img.src;
+    document.querySelectorAll(`[data-foto-re="${re}"]`).forEach(el => renderAvatarEl(el, re, img.src));
+    msg.style.color = '#4bc87a'; msg.textContent = 'Foto salva com sucesso.';
+  } catch (err) {
+    msg.style.color = '#e06060'; msg.textContent = err.message;
+  }
+}
+
+async function p1RemoveFoto() {
+  const re  = document.getElementById('foto-mo-re-data').value;
+  const msg = document.getElementById('foto-mo-msg');
+  if (!confirm('Remover a foto deste PM?')) return;
+  try {
+    const res = await authFetch(`${API}/p1/foto/${encodeURIComponent(re)}`, { method: 'DELETE' });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+    p1Fotos[re] = null;
+    document.getElementById('foto-img').style.display = 'none';
+    document.getElementById('foto-img').src = '';
+    document.getElementById('foto-placeholder').style.display = 'flex';
+    document.getElementById('foto-file-input').value = '';
+    document.querySelectorAll(`[data-foto-re="${re}"]`).forEach(el => renderAvatarEl(el, re, null));
+    msg.style.color = '#4bc87a'; msg.textContent = 'Foto removida.';
+  } catch (err) {
+    msg.style.color = '#e06060'; msg.textContent = err.message;
+  }
+}
+
+// Expande painel de efetivo por unidade com cards fotográficos
+function p1ShowUnit(unit) {
+  const det = document.getElementById('p1-unit-detail');
+  if (!det) return;
+  const pms   = p1ByUnit[unit] || [];
+  const hoje  = new Date().toISOString().split('T')[0];
+  const fmtD  = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
+
+  const cards = pms.map(r => {
+    const afst       = p1AfastHoje[r.re];
+    const statusColor = afst ? '#c84b4b' : '#4bc87a';
+    const statusTxt  = afst ? 'AFASTADO' : 'APTO';
+    const afstTipo   = afst ? afst[0]?.tipo_afastamento || '' : '';
+    const _re  = JSON.stringify(r.re);
+    const _nm  = JSON.stringify(r.nome_guerra || r.nome);
+    const _pt  = JSON.stringify(r.posto || '');
+    const fotoCached = p1Fotos[r.re];
+    const avatarContent = fotoCached
+      ? `<img src="${fotoCached}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.18)">`
+      : p1AvatarSVG(r.nome_guerra || r.nome, r.posto).replace('width="32" height="32" viewBox="0 0 32 32"','width="56" height="56" viewBox="0 0 32 32"');
+    return `<div onclick="openFotoModal(${_re},${_nm},${_pt})" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)'">
+      <div data-foto-re="${r.re}" data-nome="${(r.nome_guerra||r.nome).replace(/"/g,'&quot;')}" data-posto="${(r.posto||'').replace(/"/g,'&quot;')}">${avatarContent}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--tx);text-align:center;line-height:1.3">${r.nome_guerra || r.nome}</div>
+      <div style="font-size:10px;color:var(--tx3)">${r.posto || '—'}</div>
+      <div style="font-size:9px;padding:2px 7px;border-radius:10px;background:${statusColor}22;color:${statusColor};font-family:'DM Mono',monospace">${statusTxt}</div>
+      ${afstTipo ? `<div style="font-size:9px;color:var(--tx3);text-align:center">${afstTipo}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  det.innerHTML = `<div style="margin-top:14px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase">Efetivo — ${unit} (${pms.length} PMs)</div>
+      <button onclick="document.getElementById('p1-unit-detail').innerHTML=''" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--tx3);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:11px">✕ Fechar</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px">${cards}</div>
+  </div>`;
+}
+
 function updateSidebarImports(section) {
   const el = document.getElementById('sidebar-imports');
   if (!el) return;
@@ -2651,7 +2977,13 @@ function goSection(id, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
   document.getElementById(isP3 ? 'page-visao' : 'page-' + id).classList.add('on');
   updateSidebarImports(id);
-  if (id === 'p1') loadP1();
+  if (id === 'p1') {
+    p1FiltroOpm = '';
+    const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
+    const btnV = document.getElementById('btn-vagas');
+    if (btnV) btnV.style.display = ['admin','p1'].includes(u.role) ? 'inline-block' : 'none';
+    loadP1();
+  }
   setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
 }
 
