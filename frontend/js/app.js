@@ -2932,17 +2932,100 @@ function p1SetFiltroOpm(opm) {
   renderP1();
 }
 
+let p1SearchIdx = -1; // índice selecionado no dropdown
+
+function p1SearchInput(val) {
+  const drop = document.getElementById('p1-search-drop');
+  if (!drop) return;
+  const q = (val || '').trim().toLowerCase();
+  p1SearchIdx = -1;
+  if (!q || q.length < 1) { drop.style.display = 'none'; return; }
+
+  const matches = p1Data.filter(r =>
+    (r.re || '').toLowerCase().includes(q) ||
+    (r.nome || '').toLowerCase().includes(q) ||
+    (r.nome_guerra || '').toLowerCase().includes(q)
+  ).slice(0, 30);
+
+  if (!matches.length) { drop.style.display = 'none'; return; }
+
+  const norm = s => (s || '').replace(/</g,'&lt;');
+  const hi = s => {
+    const idx = s.toLowerCase().indexOf(q);
+    if (idx < 0) return norm(s);
+    return norm(s.slice(0, idx)) + `<span style="color:var(--gold);font-weight:700">${norm(s.slice(idx, idx + q.length))}</span>` + norm(s.slice(idx + q.length));
+  };
+
+  drop.innerHTML = matches.map((r, i) => {
+    const afst = p1AfastHoje[r.re];
+    const statusColor = afst ? '#c84b4b' : '#4bc87a';
+    const statusTxt   = afst ? (afst[0]?.tipo_afastamento || 'Afastado') : 'Apto';
+    const nomePrinc   = r.nome_guerra || r.nome || '—';
+    return `<div data-re="${r.re}" data-i="${i}"
+      onmousedown="p1SearchSelect('${r.re.replace(/'/g,"\\'")}')"
+      onmouseover="p1SearchHover(${i})"
+      style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s"
+      id="p1-sdrop-${i}">
+      <div style="flex-shrink:0">${p1AvatarSVG(nomePrinc, r.posto)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${hi(nomePrinc)}</div>
+        <div style="font-size:10px;color:var(--tx3)">${hi(r.nome || '')} · ${r.posto || '—'} · ${r.opm || '—'}</div>
+      </div>
+      <div style="font-size:9px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:10px;background:${statusColor}22;color:${statusColor};white-space:nowrap">${statusTxt}</div>
+    </div>`;
+  }).join('');
+
+  drop.style.display = 'block';
+}
+
+function p1SearchHover(i) {
+  p1SearchIdx = i;
+  document.querySelectorAll('#p1-search-drop > div').forEach((el, j) => {
+    el.style.background = j === i ? 'rgba(255,255,255,.06)' : '';
+  });
+}
+
+function p1SearchKey(e) {
+  const drop = document.getElementById('p1-search-drop');
+  if (!drop || drop.style.display === 'none') {
+    if (e.key === 'Enter') {
+      const val = document.getElementById('p1-search')?.value.trim();
+      if (val) p1SearchInput(val);
+    }
+    return;
+  }
+  const items = drop.querySelectorAll('div[data-re]');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    p1SearchHover(Math.min(p1SearchIdx + 1, items.length - 1));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    p1SearchHover(Math.max(p1SearchIdx - 1, 0));
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const sel = drop.querySelector(`[data-i="${p1SearchIdx}"]`) || items[0];
+    if (sel) p1SearchSelect(sel.dataset.re);
+  } else if (e.key === 'Escape') {
+    p1SearchHide();
+  }
+}
+
+function p1SearchSelect(re) {
+  p1SearchHide();
+  const inp = document.getElementById('p1-search');
+  const pm = p1Data.find(r => r.re === re);
+  if (inp && pm) inp.value = pm.nome_guerra || pm.nome || re;
+  openProntuario(re);
+}
+
+function p1SearchHide() {
+  const drop = document.getElementById('p1-search-drop');
+  if (drop) drop.style.display = 'none';
+}
+
 function p1DoSearch() {
-  const val = (document.getElementById('p1-search')?.value || '').trim().toLowerCase();
-  if (!val) return;
-  const found = p1Data.find(r =>
-    (r.re || '').toLowerCase() === val ||
-    (r.re || '').toLowerCase().includes(val) ||
-    (r.nome || '').toLowerCase().includes(val) ||
-    (r.nome_guerra || '').toLowerCase().includes(val)
-  );
-  if (found) openProntuario(found.re);
-  else alert('Nenhum PM encontrado para "' + val + '".');
+  const val = (document.getElementById('p1-search')?.value || '').trim();
+  if (val) p1SearchInput(val);
 }
 
 // ── Prontuário Individual ────────────────────────────────────────────────────

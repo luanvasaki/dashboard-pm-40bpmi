@@ -224,7 +224,15 @@
     <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
       <div><div class="ph-tag">SEÇÃO P1</div><div class="ph-title">SEÇÃO DE <span>PESSOAL</span></div></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:4px">
-        <input id="p1-search" type="text" placeholder="Buscar RE ou Nome..." onkeydown="if(event.key==='Enter')p1DoSearch()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:6px;padding:6px 12px;font-size:12px;width:170px;outline:none">
+        <div style="position:relative">
+          <input id="p1-search" type="text" placeholder="Buscar RE ou Nome..." autocomplete="off"
+            oninput="p1SearchInput(this.value)"
+            onkeydown="p1SearchKey(event)"
+            onfocus="p1SearchInput(this.value)"
+            onblur="setTimeout(()=>p1SearchHide(),180)"
+            style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:6px;padding:6px 12px;font-size:12px;width:200px;outline:none">
+          <div id="p1-search-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;width:320px;background:#0d1018;border:1px solid #1c2235;border-radius:7px;z-index:3000;max-height:260px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.6)"></div>
+        </div>
         <button id="btn-vagas" onclick="openVagasModal()" style="display:none;padding:6px 14px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:12px">⚙ Vagas</button>
         <button id="btn-exportar-p1" onclick="exportarSituacao()" style="display:none;padding:6px 14px;background:rgba(75,200,122,.1);border:1px solid rgba(75,200,122,.25);color:#4bc87a;border-radius:6px;cursor:pointer;font-size:12px">↓ Exportar CSV</button>
       </div>
