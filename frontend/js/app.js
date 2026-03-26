@@ -2233,7 +2233,7 @@ function p1Cat(posto) {
   const p = (posto || '').toLowerCase().replace(/[º°ª]/g, '');
   if (/\b(soldado|sd pm|sd$)\b/.test(p) || /\bcabo\b/.test(p) || /\bcb pm\b/.test(p) || p === 'sd' || p === 'cb') return 'cbsd';
   if (/\bsargento\b/.test(p) || /\bsgt\b/.test(p)) return 'sgt';
-  if (/\bsubtenente\b/.test(p) || /\bsub ten\b/.test(p) || /\bst pm\b/.test(p) || /^st$/.test(p.trim())) return 'sub';
+  if (/\bsubten(ente)?\b/.test(p) || /\bsub ten\b/.test(p) || /\bst pm\b/.test(p) || /^st$/.test(p.trim())) return 'sub';
   return 'of'; // Asp, Ten, Cap, Maj, TC, Cel
 }
 
