@@ -1939,7 +1939,8 @@ async function loadMoOcorr() {
       const results = await Promise.all(rubricas.map(r =>
         authFetch(`${API}/ocorrencias?${new URLSearchParams({ rubrica: r, limit: '2000' })}`).then(res => res.json())
       ));
-      const merged = results.flat().filter(r => (r.conduta || '').toLowerCase().includes('veíc'));
+      const isCondutaVeiculo = c => { const l = (c || '').toLowerCase(); return l.includes('veíc') && !l.includes('interior'); };
+      const merged = results.flat().filter(r => isCondutaVeiculo(r.conduta));
       // Remove duplicatas por id
       const seen = new Set();
       data = merged.filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; });
@@ -1949,7 +1950,8 @@ async function loadMoOcorr() {
       data = await res.json();
       // Exclui condutas de veículo — pertencem à tela Roubo/Furto Veículos
       if (['Roubo','Furto'].includes(moCrime)) {
-        data = data.filter(r => !(r.conduta || '').toLowerCase().includes('veíc'));
+        const isCondutaVeiculo = c => { const l = (c || '').toLowerCase(); return l.includes('veíc') && !l.includes('interior'); };
+        data = data.filter(r => !isCondutaVeiculo(r.conduta));
       }
     }
     moOcorrAll = Array.isArray(data) ? data : [];
