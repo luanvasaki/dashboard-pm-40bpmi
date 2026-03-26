@@ -2227,6 +2227,7 @@ let p1ByUnit     = {};   // OPM → PM[] (populado em renderP1)
 let p1AfastHoje  = {};   // RE → afastamentos ativos hoje (populado em renderP1)
 let p1Vagas      = [];   // efetivo fixado por OPM
 let p1FiltroOpm  = '';   // filtro ativo por OPM
+let prontoCurrentRe = '';// RE do prontuário aberto
 
 // Categoriza posto/graduação em 4 grupos
 function p1Cat(posto) {
@@ -2950,6 +2951,7 @@ async function openProntuario(re) {
   const mo = document.getElementById('pronto-mo');
   if (!mo) return;
   mo.style.display = 'flex';
+  prontoCurrentRe = re;
   const pm = p1Data.find(r => r.re === re);
   if (!pm) { mo.style.display = 'none'; return; }
 
@@ -2996,16 +2998,33 @@ async function openProntuario(re) {
   const imgEl = document.getElementById('pronto-foto');
   const phEl  = document.getElementById('pronto-foto-ph');
   imgEl.style.display = 'none'; phEl.style.display = 'flex';
+  // Controles de upload (somente p1/admin)
+  const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
+  const canEdit = ['admin','p1'].includes(u.role);
+  const editArea = document.getElementById('pronto-foto-edit-area');
+  if (editArea) {
+    editArea.style.display = canEdit ? 'block' : 'none';
+    const fi = document.getElementById('pronto-foto-file');
+    if (fi) fi.value = '';
+    const salvarBtn = document.getElementById('pronto-btn-salvar');
+    if (salvarBtn) salvarBtn.style.display = 'none';
+    const msg = document.getElementById('pronto-foto-msg');
+    if (msg) msg.textContent = '';
+  }
   if (p1Fotos[re]) {
     imgEl.src = p1Fotos[re]; imgEl.style.display = 'block'; phEl.style.display = 'none';
+  } else if (p1Fotos[re] === null) {
+    // já buscou antes, não tem foto
   } else {
     try {
       const data = await authFetch(`${API}/p1/foto/${encodeURIComponent(re)}`).then(r => r.json());
       if (data?.foto_base64) {
         p1Fotos[re] = data.foto_base64;
         imgEl.src = data.foto_base64; imgEl.style.display = 'block'; phEl.style.display = 'none';
+      } else {
+        p1Fotos[re] = null;
       }
-    } catch (_) {}
+    } catch (_) { p1Fotos[re] = null; }
   }
 
   // Extrato cronológico
@@ -3028,8 +3047,73 @@ async function openProntuario(re) {
 function closeProntuario() {
   const mo = document.getElementById('pronto-mo');
   if (mo) mo.style.display = 'none';
+  prontoCurrentRe = '';
 }
 function prontoClickOut(e) { if (e.target.id === 'pronto-mo') closeProntuario(); }
+
+function prontoFotoPreview() {
+  const file = document.getElementById('pronto-foto-file').files[0];
+  const msg  = document.getElementById('pronto-foto-msg');
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    msg.style.color = '#e06060';
+    msg.textContent = 'Selecione uma imagem.';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    compressImage(e.target.result, 400, 0.82, compressed => {
+      const imgEl = document.getElementById('pronto-foto');
+      imgEl.src = compressed; imgEl.style.display = 'block';
+      document.getElementById('pronto-foto-ph').style.display = 'none';
+      document.getElementById('pronto-btn-salvar').style.display = 'block';
+      if (msg) msg.textContent = '';
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+async function prontoSaveFoto() {
+  const re  = prontoCurrentRe;
+  const img = document.getElementById('pronto-foto');
+  const msg = document.getElementById('pronto-foto-msg');
+  if (!re || !img.src || img.style.display === 'none') {
+    msg.style.color = '#e06060'; msg.textContent = 'Nenhuma imagem selecionada.'; return;
+  }
+  msg.style.color = 'var(--tx3)'; msg.textContent = 'Salvando...';
+  try {
+    await authFetch(`${API}/p1/foto/${encodeURIComponent(re)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ foto_base64: img.src })
+    });
+    p1Fotos[re] = img.src;
+    document.querySelectorAll(`[data-foto-re="${re}"]`).forEach(el => renderAvatarEl(el, re, img.src));
+    document.getElementById('pronto-btn-salvar').style.display = 'none';
+    document.getElementById('pronto-foto-file').value = '';
+    msg.style.color = '#4bc87a'; msg.textContent = 'Foto salva!';
+    setTimeout(() => { if (msg) msg.textContent = ''; }, 2500);
+  } catch (_) { msg.style.color = '#e06060'; msg.textContent = 'Erro ao salvar.'; }
+}
+
+async function prontoRemoveFoto() {
+  const re  = prontoCurrentRe;
+  const msg = document.getElementById('pronto-foto-msg');
+  if (!re) return;
+  msg.style.color = 'var(--tx3)'; msg.textContent = 'Removendo...';
+  try {
+    await authFetch(`${API}/p1/foto/${encodeURIComponent(re)}`, { method: 'DELETE' });
+    p1Fotos[re] = null;
+    const imgEl = document.getElementById('pronto-foto');
+    imgEl.style.display = 'none'; imgEl.src = '';
+    document.getElementById('pronto-foto-ph').style.display = 'flex';
+    document.getElementById('pronto-btn-salvar').style.display = 'none';
+    document.getElementById('pronto-foto-file').value = '';
+    document.querySelectorAll(`[data-foto-re="${re}"]`).forEach(el => renderAvatarEl(el, re, null));
+    msg.style.color = '#4bc87a'; msg.textContent = 'Foto removida.';
+    setTimeout(() => { if (msg) msg.textContent = ''; }, 2500);
+  } catch (_) { msg.style.color = '#e06060'; msg.textContent = 'Erro ao remover.'; }
+}
 
 // ── Vagas (Efetivo Fixado) ───────────────────────────────────────────────────
 
@@ -3311,7 +3395,7 @@ function p1ShowUnit(unit) {
     const avatarContent = fotoCached
       ? `<img src="${fotoCached}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.18)">`
       : p1AvatarSVG(r.nome_guerra || r.nome, r.posto).replace('width="32" height="32" viewBox="0 0 32 32"','width="56" height="56" viewBox="0 0 32 32"');
-    return `<div onclick="openFotoModal('${_re}','${_nm}','${_pt}')" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)'">
+    return `<div onclick="openProntuario('${_re}')" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)'">
       <div data-foto-re="${r.re}" data-nome="${(r.nome_guerra||r.nome).replace(/"/g,'&quot;')}" data-posto="${(r.posto||'').replace(/"/g,'&quot;')}">${avatarContent}</div>
       <div style="font-size:11px;font-weight:600;color:var(--tx);text-align:center;line-height:1.3">${r.nome_guerra || r.nome}</div>
       <div style="font-size:10px;color:var(--tx3)">${r.posto || '—'}</div>
