@@ -682,11 +682,18 @@ app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3'), async (
     };
 
     const rows = records.map(r => ({
-      nome:      gf(r, 'nome'),
-      posto:     gf(r, 'posto', 'graduacao', 'graduação', 'posto/graduacao', 'posto/graduação'),
-      unidade:   gf(r, 'unidade', 'cia', 'seção', 'secao', 'subunidade'),
-      municipio: gf(r, 'municipio', 'município', 'cidade'),
-      status:    gf(r, 'status', 'situacao', 'situação') || 'Ativo',
+      opm:               gf(r, 'OPM', 'opm'),
+      posto:             gf(r, 'Posto', 'posto', 'Posto / Grad', 'posto / grad'),
+      re:                gf(r, 'RE', 're'),
+      nome:              gf(r, 'Nome', 'nome', 'Nome Completo', 'nome completo'),
+      funcao:            gf(r, 'Funcao', 'funcao', 'Função', 'função'),
+      genero:            gf(r, 'Genero', 'genero', 'Gênero', 'gênero'),
+      nome_guerra:       gf(r, 'NomeGuerra', 'nomeguerra', 'Nome de Guerra', 'nome de guerra'),
+      data_eap:          gf(r, 'DataEAP', 'dataeap', 'DATA EAP', 'data eap') || null,
+      possui_restricao:  gf(r, 'PossuiRestricao', 'possui_restricao', 'Possui Restrição', 'possui restrição'),
+      tipos_restricao:   gf(r, 'TiposRestricao', 'tipos_restricao', 'Tipos de Restrição', 'tipos de restrição'),
+      restricao_inicio:  gf(r, 'RestricaoInicio', 'restricao_inicio', 'Restrição Inicio', 'restrição inicio') || null,
+      restricao_termino: gf(r, 'RestricaoTermino', 'restricao_termino', 'Restrição Término', 'restrição término') || null,
     })).filter(r => r.nome && r.posto);
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique as colunas do CSV.' });

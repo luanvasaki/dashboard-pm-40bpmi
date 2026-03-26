@@ -2264,7 +2264,8 @@ function renderP1() {
   const CATS_COLOR = { cbsd: '#5a9de0', sgt: '#c8a84b', sub: '#4bc87a', of: '#c84b4b' };
 
   const count = (arr, cat) => arr.filter(r => p1Cat(r.posto) === cat).length;
-  const total = p1Data.length;
+  const total  = p1Data.length;
+  const comRestricao = p1Data.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s')).length;
 
   // ── KPI cards
   const kpiCard = (label, val, color) =>
@@ -2275,45 +2276,47 @@ function renderP1() {
 
   kpisEl.innerHTML =
     kpiCard('Total Efetivo', total, 'var(--tx)') +
-    Object.entries(CATS).map(([k, l]) => kpiCard(l, count(p1Data, k), CATS_COLOR[k])).join('');
+    Object.entries(CATS).map(([k, l]) => kpiCard(l, count(p1Data, k), CATS_COLOR[k])).join('') +
+    kpiCard('Com Restrição', comRestricao, '#c84b4b');
 
-  // ── Agrupa por unidade
+  // ── Agrupa por OPM
   const byUnit = {};
   p1Data.forEach(r => {
-    const u = r.unidade || 'Não Informada';
-    if (!byUnit[u]) byUnit[u] = { municipio: r.municipio || '', rows: [] };
-    byUnit[u].rows.push(r);
+    const u = r.opm || 'Não Informada';
+    if (!byUnit[u]) byUnit[u] = [];
+    byUnit[u].push(r);
   });
 
-  const unitsSorted = Object.entries(byUnit).sort((a, b) => b[1].rows.length - a[1].rows.length);
+  const unitsSorted = Object.entries(byUnit).sort((a, b) => b[1].length - a[1].length);
 
-  // ── Tabela por unidade
+  // ── Tabela por OPM
   const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:right';
   const thL = thS.replace('text-align:right', 'text-align:left');
   const tdS = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-family:"DM Mono",monospace;font-size:12px;color:var(--tx3);text-align:right';
   const tdL = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;font-weight:600;color:var(--tx)';
 
-  let rows = unitsSorted.map(([unit, d]) => {
-    const cats = Object.keys(CATS).map(k => `<td style="${tdS};color:${CATS_COLOR[k]}">${count(d.rows, k)}</td>`).join('');
+  const tableRows = unitsSorted.map(([unit, d]) => {
+    const cats = Object.keys(CATS).map(k => `<td style="${tdS};color:${CATS_COLOR[k]}">${count(d, k)}</td>`).join('');
+    const restr = d.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s')).length;
     return `<tr>
       <td style="${tdL}">${unit}</td>
-      <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx2)">${d.municipio || '—'}</td>
       ${cats}
-      <td style="${tdS};font-weight:700;color:var(--tx)">${d.rows.length}</td>
+      <td style="${tdS};font-weight:700;color:var(--tx)">${d.length}</td>
+      <td style="${tdS};color:${restr > 0 ? '#c84b4b' : 'var(--tx3)'}">${restr > 0 ? restr : '—'}</td>
     </tr>`;
   }).join('');
 
   bodyEl.innerHTML = `
     <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow-x:auto">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);padding:14px 16px 0;text-transform:uppercase">Efetivo por Unidade</div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);padding:14px 16px 0;text-transform:uppercase">Efetivo por OPM</div>
       <table style="width:100%;border-collapse:collapse;margin-top:8px">
         <thead><tr>
-          <th style="${thL}">Unidade</th>
-          <th style="${thL}">Município</th>
+          <th style="${thL}">OPM</th>
           ${Object.entries(CATS).map(([,l]) => `<th style="${thS}">${l}</th>`).join('')}
           <th style="${thS}">Total</th>
+          <th style="${thS}">Restrições</th>
         </tr></thead>
-        <tbody>${rows}</tbody>
+        <tbody>${tableRows}</tbody>
       </table>
     </div>`;
 }
@@ -2350,13 +2353,22 @@ function p1FileChange() {
   msg.innerHTML = '';
   if (!file) return;
 
-  // Normaliza nomes de colunas (case-insensitive + variações com acento)
+  // Normaliza cabeçalhos para nomes canônicos
   const HEADER_MAP = {
-    nome: 'Nome', posto: 'Posto', graduacao: 'Posto', graduação: 'Posto',
-    'posto/graduacao': 'Posto', 'posto/graduação': 'Posto',
-    unidade: 'Unidade', cia: 'Unidade', seção: 'Unidade', secao: 'Unidade', subunidade: 'Unidade',
-    municipio: 'Municipio', município: 'Municipio', cidade: 'Municipio',
-    status: 'Status', situacao: 'Status', situação: 'Status'
+    'opm': 'OPM',
+    'posto / grad': 'Posto', 'posto/grad': 'Posto', 'posto': 'Posto',
+    'graduacao': 'Posto', 'graduação': 'Posto',
+    're': 'RE',
+    'nome completo': 'Nome', 'nome': 'Nome',
+    'função': 'Funcao', 'funcao': 'Funcao',
+    'genero': 'Genero', 'gênero': 'Genero',
+    'nome de guerra': 'NomeGuerra',
+    'data eap': 'DataEAP',
+    'possui restrição': 'PossuiRestricao', 'possui restricao': 'PossuiRestricao',
+    'tipos de restrição': 'TiposRestricao', 'tipos de restricao': 'TiposRestricao',
+    'restrição inicio': 'RestricaoInicio', 'restricao inicio': 'RestricaoInicio',
+    'restrição término': 'RestricaoTermino', 'restricao termino': 'RestricaoTermino',
+    'restrição termino': 'RestricaoTermino'
   };
 
   Papa.parse(file, {
@@ -2367,11 +2379,11 @@ function p1FileChange() {
         prev.innerHTML = '<span style="color:#e06060">Arquivo vazio ou sem registros válidos.</span>';
         return;
       }
-      const required = ['Nome', 'Posto', 'Unidade', 'Municipio'];
+      const required = ['OPM', 'Posto', 'RE', 'Nome'];
       const headers  = Object.keys(r.data[0]);
       const missing  = required.filter(c => !headers.includes(c));
       if (missing.length) {
-        prev.innerHTML = `<span style="color:#e06060">Colunas ausentes: <b>${missing.join(', ')}</b>.<br>Renomeie as colunas do CSV e tente novamente.</span>`;
+        prev.innerHTML = `<span style="color:#e06060">Colunas ausentes: <b>${missing.join(', ')}</b>.<br>Colunas esperadas: OPM, Posto / Grad, RE, Nome Completo.</span>`;
         return;
       }
       p1Parsed = r.data.map(row => {
@@ -2380,8 +2392,8 @@ function p1FileChange() {
         return n;
       }).filter(row => row.Nome && row.Posto);
 
-      const unidades = [...new Set(p1Parsed.map(r => r.Unidade).filter(Boolean))];
-      prev.innerHTML = `<span style="color:#4bc87a">✓ <b>${p1Parsed.length}</b> militares lidos — ${unidades.length} unidade(s): ${unidades.join(', ')}.</span>`;
+      const opms = [...new Set(p1Parsed.map(r => r.OPM).filter(Boolean))];
+      prev.innerHTML = `<span style="color:#4bc87a">✓ <b>${p1Parsed.length}</b> militares lidos — ${opms.length} OPM(s): ${opms.join(', ')}.</span>`;
       btn.disabled = false;
       btn.style.opacity = '1';
     },
