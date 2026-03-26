@@ -2331,12 +2331,13 @@ function renderP1() {
   const count = (arr, cat) => arr.filter(r => p1Cat(r.posto) === cat).length;
   const total = dataF.length;
 
-  // ── KPI cards
-  const kpiCard = (label, val, sub, color) =>
-    `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px 16px">
+  // ── KPI cards (clicáveis)
+  const kpiCard = (label, val, sub, color, key) =>
+    `<div onclick="p1ShowKpiDetail('${key}')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px 16px;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='${color}'" onmouseout="this.style.borderColor='var(--bd)'">
       <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);margin-bottom:6px;text-transform:uppercase">${label}</div>
       <div style="font-size:26px;font-weight:700;color:${color};font-family:'Barlow Condensed',sans-serif">${val}</div>
       ${sub ? `<div style="font-size:10px;color:var(--tx3);margin-top:3px">${sub}</div>` : ''}
+      <div style="font-size:9px;color:var(--tx3);margin-top:6px;opacity:.45">▼ detalhes</div>
     </div>`;
 
   // Tipos de afastamento agrupados
@@ -2345,13 +2346,12 @@ function renderP1() {
   const tiposSub = Object.entries(tiposCount).map(([t,n]) => `${n} ${t}`).join(' · ') || '';
 
   kpisEl.innerHTML =
-    kpiCard('Total Efetivo', total, `${count(dataF,'cbsd')} Cb/Sd · ${count(dataF,'sgt')} Sgt · ${count(dataF,'sub')} Sub · ${count(dataF,'of')} Of`, 'var(--tx)') +
-    kpiCard('Aptos', pmAptos.length, total > 0 ? `${Math.round(pmAptos.length/total*100)}% do efetivo` : '—', '#4bc87a') +
-    kpiCard('Afastados Hoje', pmAfastados.length, tiposSub || '—', pmAfastados.length > 0 ? '#c84b4b' : 'var(--tx3)') +
-    kpiCard('Em Restrição', pmComRestricao.length, vencendoRestricao.length > 0 ? `⚠ ${vencendoRestricao.length} vencem em 30 dias` : '—', pmComRestricao.length > 0 ? '#c8a84b' : 'var(--tx3)') +
-    kpiCard('EAP Pendente', pmEapPendente.length, `${anoAtual}`, pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a') +
-    kpiCard('Férias em Gozo', ferEmGozo.length, ferEm15Dias.length > 0 ? `⚡ ${ferEm15Dias.length} iniciam em 15d` : '—', ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)') +
-    kpiCard('Controle de Férias', semFeriasAno.length, `sem férias em ${anoAtual}`, semFeriasAno.length > 0 ? '#c84b4b' : '#4bc87a');
+    kpiCard('Total Efetivo', total, `${count(dataF,'cbsd')} Cb/Sd · ${count(dataF,'sgt')} Sgt · ${count(dataF,'sub')} Sub · ${count(dataF,'of')} Of`, 'var(--tx)', 'total') +
+    kpiCard('Aptos', pmAptos.length, total > 0 ? `${Math.round(pmAptos.length/total*100)}% do efetivo` : '—', '#4bc87a', 'aptos') +
+    kpiCard('Afastamentos', pmAfastados.length, tiposSub || '—', pmAfastados.length > 0 ? '#c84b4b' : 'var(--tx3)', 'afastados') +
+    kpiCard('Em Restrição', pmComRestricao.length, vencendoRestricao.length > 0 ? `⚠ ${vencendoRestricao.length} vencem em 30 dias` : '—', pmComRestricao.length > 0 ? '#c8a84b' : 'var(--tx3)', 'restricao') +
+    kpiCard('EAP Pendente', pmEapPendente.length, `${anoAtual}`, pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a', 'eap') +
+    kpiCard('Controle de Férias', ferEmGozo.length, `${ferEmGozo.length} em gozo · ${ferEm15Dias.length} em 15d`, ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)', 'ferias');
 
   const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:right';
   const thL = thS.replace('text-align:right','text-align:left');
@@ -2385,7 +2385,7 @@ function renderP1() {
     }).join('');
     afastSection = `
       <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow-x:auto;margin-bottom:14px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#c84b4b;padding:14px 16px 0;text-transform:uppercase">Afastados Hoje — ${pmAfastados.length}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#c84b4b;padding:14px 16px 0;text-transform:uppercase">Afastamentos — ${pmAfastados.length}</div>
         <table style="width:100%;border-collapse:collapse;margin-top:8px">
           <thead><tr>
             <th style="${thL};width:44px;padding:8px 4px 8px 8px"></th><th style="${thL}">Nome de Guerra</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th>
@@ -2504,27 +2504,7 @@ function renderP1() {
     }
   }
 
-  // ── Controle de Férias
-  let feriasSection = '';
-  if (ferEmGozo.length || ferEm15Dias.length) {
-    const fmtPM = a => {
-      const pm = p1Data.find(r => r.re === a.re);
-      const nm = pm?.nome_guerra || pm?.nome || a.nome || a.re;
-      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.03)">
-        <div style="font-size:12px;font-weight:600;color:var(--tx);min-width:160px">${nm}</div>
-        <div style="font-size:10px;color:var(--tx3);flex:1">${pm?.opm || a.opm || '—'}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">${fmtDate(a.inicio)} → ${fmtDate(a.termino)}</div>
-      </div>`;
-    };
-    let fRows = '';
-    if (ferEmGozo.length) fRows += `<div style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1.5px;color:#5a9de0;padding:10px 14px 4px;text-transform:uppercase">Em Gozo (${ferEmGozo.length})</div>${ferEmGozo.map(fmtPM).join('')}`;
-    if (ferEm15Dias.length) fRows += `<div style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1.5px;color:#c8a84b;padding:10px 14px 4px;text-transform:uppercase">Iniciando em 15 dias (${ferEm15Dias.length})</div>${ferEm15Dias.map(fmtPM).join('')}`;
-    feriasSection = `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin-bottom:14px">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#5a9de0;padding:14px 16px 0;text-transform:uppercase">Controle de Férias</div>
-      ${fRows}
-    </div>`;
-  }
-
+  const feriasSection = '';
   const eapSection = '';
 
   // ── Filtro bar por OPM
@@ -2734,6 +2714,214 @@ async function afConfirmUpload() {
     msg.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`;
     btn.disabled = false; btn.style.opacity = '1';
   }
+}
+
+// ── KPI Detail ───────────────────────────────────────────────────────────────
+
+function wrapDetail(title, count, color, closeBtn, inner) {
+  return `<div style="background:var(--s2);border:1px solid ${color}55;border-radius:8px;overflow:hidden;margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--bd)">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:${color};text-transform:uppercase">${title}${count !== null ? ' — ' + count : ''}</div>
+      ${closeBtn}
+    </div>
+    <div style="overflow-x:auto;max-height:420px;overflow-y:auto">${inner}</div>
+  </div>`;
+}
+
+function p1ShowKpiDetail(tipo) {
+  const det = document.getElementById('p1-kpi-detail');
+  if (!det) return;
+  if (det.dataset.active === tipo && det.innerHTML) {
+    det.innerHTML = ''; det.dataset.active = ''; return;
+  }
+  det.dataset.active = tipo;
+
+  const hoje     = new Date().toISOString().split('T')[0];
+  const anoAtual = new Date().getFullYear();
+  const fmtD     = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
+  const dataF    = p1FiltroOpm ? p1Data.filter(r => r.opm === p1FiltroOpm) : p1Data;
+  const reSetF   = new Set(dataF.map(r => r.re));
+  const esc      = s => (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+
+  const TIPO_COLOR = { Férias:'#5a9de0', LP:'#9b59b6', LSV:'#e67e22', Conval:'#e74c3c',
+    Núpcias:'#f1c40f', Luto:'#95a5a6', Maternidade:'#e91e63', Paternidade:'#2196f3', LTS:'#c84b4b', Outros:'#607090' };
+  const catTipo = t => {
+    const tl = (t||'').toLowerCase();
+    if (/f[eé]rias/.test(tl)) return 'Férias';
+    if (/\blp\b|licen[cç]a.pr[eê]mio|premio/.test(tl)) return 'LP';
+    if (/\blsv\b|sem.vencimento/.test(tl)) return 'LSV';
+    if (/conval/.test(tl)) return 'Conval';
+    if (/n[uú]pcia/.test(tl)) return 'Núpcias';
+    if (/luto/.test(tl)) return 'Luto';
+    if (/maternidade/.test(tl)) return 'Maternidade';
+    if (/paternidade/.test(tl)) return 'Paternidade';
+    if (/\blts\b|licen[cç]a.trat|tratamento.sa/.test(tl)) return 'LTS';
+    return 'Outros';
+  };
+
+  const closeBtn = `<button onclick="document.getElementById('p1-kpi-detail').innerHTML='';document.getElementById('p1-kpi-detail').dataset.active=''"
+    style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--tx3);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:11px">✕ Fechar</button>`;
+
+  const thL = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:left';
+  const thR = thL.replace('text-align:left','text-align:right');
+  const tdL = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;font-weight:600;color:var(--tx)';
+  const tdS = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-family:"DM Mono",monospace;font-size:12px;color:var(--tx3)';
+
+  let html = '';
+
+  if (tipo === 'total') {
+    const rows = dataF.map(r => {
+      const afst = p1AfastHoje[r.re];
+      const s = afst
+        ? `<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#c84b4b22;color:#c84b4b;font-family:'DM Mono',monospace">${afst[0]?.tipo_afastamento||'Afastado'}</span>`
+        : `<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#4bc87a22;color:#4bc87a;font-family:'DM Mono',monospace">Apto</span>`;
+      return `<tr>
+        <td style="${tdS}">${r.re}</td>
+        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+        <td style="${tdS}">${r.posto||'—'}</td>
+        <td style="${tdS}">${r.opm||'—'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03)">${s}</td>
+      </tr>`;
+    }).join('');
+    html = wrapDetail('Todo o Efetivo', dataF.length, '#c8a84b', closeBtn,
+      `<table style="width:100%;border-collapse:collapse">
+        <thead><tr><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th><th style="${thL}">Status</th></tr></thead>
+        <tbody>${rows}</tbody></table>`);
+  }
+
+  else if (tipo === 'aptos') {
+    const list = dataF.filter(r => !p1AfastHoje[r.re]);
+    const rows = list.map(r => `<tr>
+      <td style="${tdS}">${r.re}</td>
+      <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+      <td style="${tdS}">${r.posto||'—'}</td>
+      <td style="${tdS}">${r.opm||'—'}</td>
+    </tr>`).join('');
+    html = wrapDetail('Aptos', list.length, '#4bc87a', closeBtn,
+      `<table style="width:100%;border-collapse:collapse">
+        <thead><tr><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th></tr></thead>
+        <tbody>${rows}</tbody></table>`);
+  }
+
+  else if (tipo === 'afastados') {
+    const ativos = p1Afasts.filter(a => a.inicio <= hoje && a.termino >= hoje && reSetF.has(a.re));
+    const groups = {};
+    ativos.forEach(a => { const c = catTipo(a.tipo_afastamento); (groups[c] = groups[c]||[]).push(a); });
+    const ORDER = ['Férias','LP','LSV','Conval','Núpcias','Luto','Maternidade','Paternidade','LTS','Outros'];
+    let inner = '';
+    ORDER.forEach(cat => {
+      const list = groups[cat]; if (!list?.length) return;
+      const color = TIPO_COLOR[cat];
+      inner += `<tr><td colspan="5" style="padding:10px 12px 4px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;padding:2px 8px;border-radius:10px;background:${color}22;color:${color};text-transform:uppercase">${cat} — ${list.length}</span>
+      </td></tr>`;
+      list.forEach(a => {
+        const pm = p1Data.find(r => r.re === a.re);
+        const nm = pm?.nome_guerra || pm?.nome || a.nome || a.re;
+        const dias = a.termino ? Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000) : null;
+        inner += `<tr>
+          <td style="${tdS}">${a.re}</td>
+          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(a.re)}')">${nm}</td>
+          <td style="${tdS}">${pm?.opm||a.opm||'—'}</td>
+          <td style="${tdS};text-align:right">${fmtD(a.inicio)}</td>
+          <td style="${tdS};text-align:right;color:${dias!==null&&dias<=3?'#4bc87a':'var(--tx3)'}">${dias!==null?dias+'d':'—'}</td>
+        </tr>`;
+      });
+    });
+    html = wrapDetail('Afastamentos Ativos', ativos.length, '#c84b4b', closeBtn,
+      `<table style="width:100%;border-collapse:collapse">
+        <thead><tr><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Início</th><th style="${thR}">Dias Rest.</th></tr></thead>
+        <tbody>${inner}</tbody></table>`);
+  }
+
+  else if (tipo === 'restricao') {
+    const list = dataF.filter(r => (r.possui_restricao||'').toLowerCase().startsWith('s'));
+    const rows = list.map(r => {
+      const dias = r.restricao_termino ? Math.ceil((new Date(r.restricao_termino) - new Date(hoje)) / 86400000) : null;
+      const cor  = dias === null ? 'var(--tx3)' : dias <= 0 ? '#c84b4b' : dias <= 30 ? '#c8a84b' : '#4bc87a';
+      return `<tr>
+        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+        <td style="${tdS}">${r.posto||'—'}</td>
+        <td style="${tdS}">${r.opm||'—'}</td>
+        <td style="${tdS};color:var(--tx2)">${r.tipos_restricao||'—'}</td>
+        <td style="${tdS};text-align:right">${fmtD(r.restricao_termino)}</td>
+        <td style="${tdS};text-align:right;color:${cor};font-weight:700">${dias!==null?(dias<0?'Vencida':dias+'d'):'—'}</td>
+      </tr>`;
+    }).join('');
+    html = wrapDetail('Em Restrição', list.length, '#c8a84b', closeBtn,
+      `<table style="width:100%;border-collapse:collapse">
+        <thead><tr>
+          <th style="${thL}">Nome</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th>
+          <th style="${thL}">Tipo de Restrição</th><th style="${thR}">Válida até</th><th style="${thR}">Restam</th>
+        </tr></thead><tbody>${rows}</tbody></table>`);
+  }
+
+  else if (tipo === 'eap') {
+    const list = dataF.filter(r => { if (!r.data_eap) return true; const d = new Date(r.data_eap); return isNaN(d) || d.getFullYear() !== anoAtual; });
+    const rows = list.map(r => `<tr>
+      <td style="${tdS}">${r.re}</td>
+      <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+      <td style="${tdS}">${r.posto||'—'}</td>
+      <td style="${tdS}">${r.opm||'—'}</td>
+    </tr>`).join('');
+    html = wrapDetail(`EAP Pendente ${anoAtual}`, list.length, '#c8a84b', closeBtn,
+      `<table style="width:100%;border-collapse:collapse">
+        <thead><tr><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th></tr></thead>
+        <tbody>${rows}</tbody></table>`);
+  }
+
+  else if (tipo === 'ferias') {
+    const isFer   = t => /f[eé]rias/i.test(t||'');
+    const afastsF = p1FiltroOpm ? p1Afasts.filter(a => reSetF.has(a.re)) : p1Afasts;
+    const em15s   = (() => { const d = new Date(); d.setDate(d.getDate()+15); return d.toISOString().split('T')[0]; })();
+    const gozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && a.termino >= hoje);
+    const prox    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio > hoje && a.inicio <= em15s);
+    const resFer  = new Set(p1Afasts.filter(a => isFer(a.tipo_afastamento) && (a.inicio||'').startsWith(String(anoAtual))).map(a => a.re));
+    const semFer  = dataF.filter(r => !resFer.has(r.re));
+
+    const ferRow = (a, showDias) => {
+      const pm   = p1Data.find(r => r.re === a.re);
+      const nm   = pm?.nome_guerra || pm?.nome || a.nome || a.re;
+      const dias = a.termino ? Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000) : null;
+      return `<tr>
+        <td style="${tdS}">${a.re}</td>
+        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(a.re)}')">${nm}</td>
+        <td style="${tdS}">${pm?.opm||a.opm||'—'}</td>
+        <td style="${tdS};text-align:right">${fmtD(a.inicio)}</td>
+        <td style="${tdS};text-align:right">${fmtD(a.termino)}</td>
+        ${showDias ? `<td style="${tdS};text-align:right;color:${dias!==null&&dias<=3?'#4bc87a':'var(--tx3)'}">${dias!==null?dias+'d':'—'}</td>` : ''}
+      </tr>`;
+    };
+    const colH = (showDias) => `<thead><tr>
+      <th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th>
+      <th style="${thR}">Início</th><th style="${thR}">Término</th>
+      ${showDias?`<th style="${thR}">Dias Rest.</th>`:''}
+    </tr></thead>`;
+
+    let inner = '';
+    if (gozo.length) inner += `
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:#5a9de0;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Em Gozo — ${gozo.length}</div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:4px">${colH(true)}<tbody>${gozo.map(a=>ferRow(a,true)).join('')}</tbody></table>`;
+    if (prox.length) inner += `
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:#c8a84b;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Iniciando em 15 dias — ${prox.length}</div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:4px">${colH(false)}<tbody>${prox.map(a=>ferRow(a,false)).join('')}</tbody></table>`;
+    if (semFer.length) {
+      const rows = semFer.map(r => `<tr>
+        <td style="${tdS}">${r.re}</td>
+        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+        <td style="${tdS}">${r.posto||'—'}</td>
+        <td style="${tdS}">${r.opm||'—'}</td>
+      </tr>`).join('');
+      inner += `
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:#c84b4b;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Sem Férias em ${anoAtual} — ${semFer.length}</div>
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th></tr></thead>
+          <tbody>${rows}</tbody></table>`;
+    }
+    html = wrapDetail('Controle de Férias', null, '#5a9de0', closeBtn, inner);
+  }
+
+  det.innerHTML = html;
 }
 
 // ── Filtro OPM e Busca P1 ────────────────────────────────────────────────────
