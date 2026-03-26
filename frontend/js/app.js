@@ -2342,20 +2342,50 @@ function p1FileChange() {
   const file = document.getElementById('p1-upl-file').files[0];
   const prev = document.getElementById('p1-upl-preview');
   const btn  = document.getElementById('p1-upl-btn');
+  const msg  = document.getElementById('p1-upl-msg');
   p1Parsed = [];
   btn.disabled = true;
   btn.style.opacity = '.5';
-  if (!file) { prev.textContent = ''; return; }
+  prev.innerHTML = '';
+  msg.innerHTML = '';
+  if (!file) return;
+
+  // Normaliza nomes de colunas (case-insensitive + variações com acento)
+  const HEADER_MAP = {
+    nome: 'Nome', posto: 'Posto', graduacao: 'Posto', graduação: 'Posto',
+    'posto/graduacao': 'Posto', 'posto/graduação': 'Posto',
+    unidade: 'Unidade', cia: 'Unidade', seção: 'Unidade', secao: 'Unidade', subunidade: 'Unidade',
+    municipio: 'Municipio', município: 'Municipio', cidade: 'Municipio',
+    status: 'Status', situacao: 'Status', situação: 'Status'
+  };
+
   Papa.parse(file, {
     header: true, skipEmptyLines: true,
-    transformHeader: h => h.trim(),
+    transformHeader: h => HEADER_MAP[h.trim().toLowerCase()] || h.trim(),
     complete: r => {
-      p1Parsed = r.data;
-      prev.innerHTML = `<span style="color:#4bc87a">✓ ${p1Parsed.length} registros lidos.</span>`;
+      if (!r.data.length) {
+        prev.innerHTML = '<span style="color:#e06060">Arquivo vazio ou sem registros válidos.</span>';
+        return;
+      }
+      const required = ['Nome', 'Posto', 'Unidade', 'Municipio'];
+      const headers  = Object.keys(r.data[0]);
+      const missing  = required.filter(c => !headers.includes(c));
+      if (missing.length) {
+        prev.innerHTML = `<span style="color:#e06060">Colunas ausentes: <b>${missing.join(', ')}</b>.<br>Renomeie as colunas do CSV e tente novamente.</span>`;
+        return;
+      }
+      p1Parsed = r.data.map(row => {
+        const n = {};
+        Object.entries(row).forEach(([k, v]) => { n[k] = (v || '').trim(); });
+        return n;
+      }).filter(row => row.Nome && row.Posto);
+
+      const unidades = [...new Set(p1Parsed.map(r => r.Unidade).filter(Boolean))];
+      prev.innerHTML = `<span style="color:#4bc87a">✓ <b>${p1Parsed.length}</b> militares lidos — ${unidades.length} unidade(s): ${unidades.join(', ')}.</span>`;
       btn.disabled = false;
       btn.style.opacity = '1';
     },
-    error: err => { prev.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`; }
+    error: err => { prev.innerHTML = `<span style="color:#e06060">Erro ao ler o arquivo: ${err.message}</span>`; }
   });
 }
 
