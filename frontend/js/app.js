@@ -2189,7 +2189,7 @@ function renderReincidencia(data) {
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <div>
           <span style="font-size:12px;font-weight:600;color:var(--tx)">${d.bairro}</span>
-          ${d.municipio ? `<span style="font-size:11px;color:var(--tx3);margin-left:6px">${d.municipio}</span>` : ''}
+          ${d.municipio ? `<span style="font-size:13px;color:var(--tx3);margin-left:6px">${d.municipio}</span>` : ''}
         </div>
         <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${d.meses.size} mês(es) · ${d.total} ocorr.</span>
       </div>
