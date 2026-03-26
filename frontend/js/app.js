@@ -2384,6 +2384,20 @@ async function p1ConfirmUpload() {
   }
 }
 
+function updateSidebarImports(section) {
+  const el = document.getElementById('sidebar-imports');
+  if (!el) return;
+  if (section === 'p1') {
+    el.innerHTML = `<button onclick="openP1Upload()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Efetivo</button>`;
+  } else if (section === 'p3') {
+    el.innerHTML = `
+      <button onclick="openUploadModal()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar CSV (Metas)</button>
+      <button onclick="openOcorrModal()" style="margin-top:4px;width:100%;padding:6px;background:rgba(61,122,191,.12);border:1px solid rgba(61,122,191,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Ocorrências (InfoCrim)</button>`;
+  } else {
+    el.innerHTML = '';
+  }
+}
+
 function goSection(id, btn) {
   closeSidebarMobile();
   document.querySelectorAll('.sec-btn').forEach(b => b.classList.remove('on'));
@@ -2400,6 +2414,7 @@ function goSection(id, btn) {
   }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
   document.getElementById(isP3 ? 'page-visao' : 'page-' + id).classList.add('on');
+  updateSidebarImports(id);
   if (id === 'p1') loadP1();
   setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
 }
@@ -2414,6 +2429,7 @@ function goPage(id, btn) {
   }
   document.getElementById('page-' + id).classList.add('on');
   btn.classList.add('on');
+  updateSidebarImports('p3');
   setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
 }
 

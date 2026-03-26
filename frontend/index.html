@@ -55,8 +55,10 @@
   </nav>
   <div class="sidebar-foot">
     <button onclick="forceSync()" id="sync-btn" style="width:100%;padding:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:4px;cursor:pointer;font-size:11px">↻ Sincronizar</button>
-    <button onclick="openUploadModal()" style="margin-top:6px;width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar CSV (Metas)</button>
-    <button onclick="openOcorrModal()" style="margin-top:4px;width:100%;padding:6px;background:rgba(61,122,191,.12);border:1px solid rgba(61,122,191,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Ocorrências (InfoCrim)</button>
+    <div id="sidebar-imports" style="margin-top:6px">
+      <button onclick="openUploadModal()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar CSV (Metas)</button>
+      <button onclick="openOcorrModal()" style="margin-top:4px;width:100%;padding:6px;background:rgba(61,122,191,.12);border:1px solid rgba(61,122,191,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Ocorrências (InfoCrim)</button>
+    </div>
     <!-- Bloco de usuário (preenchido por JS) -->
     <div id="user-block" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)">
       <div style="font-size:10px;color:var(--tx3);margin-bottom:4px">USUÁRIO</div>
@@ -221,9 +223,6 @@
 <div id="page-p1" class="page">
   <div class="ph">
     <div><div class="ph-tag">SEÇÃO P1</div><div class="ph-title">GESTÃO DE <span>EFETIVO</span></div></div>
-    <div class="ph-meta" style="display:flex;align-items:center">
-      <button onclick="openP1Upload()" style="padding:6px 14px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600">↑ Importar Efetivo</button>
-    </div>
   </div>
   <div id="p1-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:20px"></div>
   <div id="p1-body"></div>
