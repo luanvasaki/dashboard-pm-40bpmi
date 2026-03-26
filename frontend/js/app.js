@@ -2346,12 +2346,12 @@ function renderP1() {
 
   kpisEl.innerHTML =
     kpiCard('Total Efetivo', total, `${count(dataF,'cbsd')} Cb/Sd · ${count(dataF,'sgt')} Sgt · ${count(dataF,'sub')} Sub · ${count(dataF,'of')} Of`, 'var(--tx)') +
-    kpiCard('Aptos Hoje', pmAptos.length, total > 0 ? `${Math.round(pmAptos.length/total*100)}% do efetivo` : '—', '#4bc87a') +
+    kpiCard('Aptos', pmAptos.length, total > 0 ? `${Math.round(pmAptos.length/total*100)}% do efetivo` : '—', '#4bc87a') +
     kpiCard('Afastados Hoje', pmAfastados.length, tiposSub || '—', pmAfastados.length > 0 ? '#c84b4b' : 'var(--tx3)') +
     kpiCard('Em Restrição', pmComRestricao.length, vencendoRestricao.length > 0 ? `⚠ ${vencendoRestricao.length} vencem em 30 dias` : '—', pmComRestricao.length > 0 ? '#c8a84b' : 'var(--tx3)') +
     kpiCard('EAP Pendente', pmEapPendente.length, `${anoAtual}`, pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a') +
     kpiCard('Férias em Gozo', ferEmGozo.length, ferEm15Dias.length > 0 ? `⚡ ${ferEm15Dias.length} iniciam em 15d` : '—', ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)') +
-    kpiCard('Sem Férias no Ano', semFeriasAno.length, `${anoAtual}`, semFeriasAno.length > 0 ? '#c84b4b' : '#4bc87a');
+    kpiCard('Controle de Férias', semFeriasAno.length, `sem férias em ${anoAtual}`, semFeriasAno.length > 0 ? '#c84b4b' : '#4bc87a');
 
   const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:right';
   const thL = thS.replace('text-align:right','text-align:left');
@@ -2523,18 +2523,7 @@ function renderP1() {
     </div>`;
   }
 
-  // ── EAP pendente — lista rápida
-  let eapSection = '';
-  if (pmEapPendente.length) {
-    const eapRows = pmEapPendente.slice(0, 10).map(r =>
-      `<span onclick="openProntuario('${r.re}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.18);border-radius:20px;font-size:11px;color:#c8a84b;margin:3px">${r.nome_guerra || r.nome.split(' ').slice(0,2).join(' ')} <span style="font-family:'DM Mono',monospace;font-size:9px;opacity:.6">${r.opm||''}</span></span>`
-    ).join('');
-    const mais = pmEapPendente.length > 10 ? `<span style="font-size:11px;color:var(--tx3);margin:3px 6px">+ ${pmEapPendente.length - 10} mais</span>` : '';
-    eapSection = `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;margin-bottom:14px">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#c8a84b;margin-bottom:10px;text-transform:uppercase">EAP Pendente ${anoAtual} — ${pmEapPendente.length} PMs</div>
-      <div style="display:flex;flex-wrap:wrap;align-items:center">${eapRows}${mais}</div>
-    </div>`;
-  }
+  const eapSection = '';
 
   // ── Filtro bar por OPM
   const opmsDisp = Object.keys(p1ByUnit).sort();
