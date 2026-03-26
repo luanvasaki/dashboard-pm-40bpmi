@@ -2214,6 +2214,176 @@ function closeSidebarMobile() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// P1 — Gestão de Efetivo
+// ---------------------------------------------------------------------------
+
+let p1Data = [];
+let p1Parsed = []; // dados do CSV aguardando confirmação
+
+// Categoriza posto/graduação em 4 grupos
+function p1Cat(posto) {
+  const p = (posto || '').toLowerCase().replace(/[º°ª]/g, '');
+  if (/\b(soldado|sd pm|sd$)\b/.test(p) || /\bcabo\b/.test(p) || /\bcb pm\b/.test(p) || p === 'sd' || p === 'cb') return 'cbsd';
+  if (/\bsargento\b/.test(p) || /\bsgt\b/.test(p)) return 'sgt';
+  if (/\bsubtenente\b/.test(p) || /\bsub ten\b/.test(p) || /\bst pm\b/.test(p) || /^st$/.test(p.trim())) return 'sub';
+  return 'of'; // Asp, Ten, Cap, Maj, TC, Cel
+}
+
+async function loadP1() {
+  const kpis = document.getElementById('p1-kpis');
+  const body = document.getElementById('p1-body');
+  if (!kpis || !body) return;
+  kpis.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:10px 0">Carregando...</div>';
+  body.innerHTML = '';
+  try {
+    const res = await authFetch(`${API}/efetivo`);
+    p1Data = await res.json();
+    renderP1();
+  } catch (err) {
+    kpis.innerHTML = `<div style="color:#e06060;font-size:12px">${err.message}</div>`;
+  }
+}
+
+function renderP1() {
+  const kpisEl = document.getElementById('p1-kpis');
+  const bodyEl = document.getElementById('p1-body');
+  if (!kpisEl || !bodyEl) return;
+
+  if (!p1Data.length) {
+    kpisEl.innerHTML = '';
+    bodyEl.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--tx3)">
+      <div style="font-size:32px;margin-bottom:12px">👥</div>
+      <div style="font-size:14px">Nenhum dado de efetivo importado ainda.</div>
+      <div style="font-size:12px;margin-top:6px">Use o botão <b style="color:var(--gold)">↑ Importar Efetivo</b> para carregar o CSV.</div>
+    </div>`;
+    return;
+  }
+
+  const CATS = { cbsd: 'Cb / Sd', sgt: 'Sargentos', sub: 'Subtenentes', of: 'Oficiais' };
+  const CATS_COLOR = { cbsd: '#5a9de0', sgt: '#c8a84b', sub: '#4bc87a', of: '#c84b4b' };
+
+  const count = (arr, cat) => arr.filter(r => p1Cat(r.posto) === cat).length;
+  const total = p1Data.length;
+
+  // ── KPI cards
+  const kpiCard = (label, val, color) =>
+    `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px 16px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);margin-bottom:6px;text-transform:uppercase">${label}</div>
+      <div style="font-size:26px;font-weight:700;color:${color};font-family:'Barlow Condensed',sans-serif">${val}</div>
+    </div>`;
+
+  kpisEl.innerHTML =
+    kpiCard('Total Efetivo', total, 'var(--tx)') +
+    Object.entries(CATS).map(([k, l]) => kpiCard(l, count(p1Data, k), CATS_COLOR[k])).join('');
+
+  // ── Agrupa por unidade
+  const byUnit = {};
+  p1Data.forEach(r => {
+    const u = r.unidade || 'Não Informada';
+    if (!byUnit[u]) byUnit[u] = { municipio: r.municipio || '', rows: [] };
+    byUnit[u].rows.push(r);
+  });
+
+  const unitsSorted = Object.entries(byUnit).sort((a, b) => b[1].rows.length - a[1].rows.length);
+
+  // ── Tabela por unidade
+  const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:right';
+  const thL = thS.replace('text-align:right', 'text-align:left');
+  const tdS = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-family:"DM Mono",monospace;font-size:12px;color:var(--tx3);text-align:right';
+  const tdL = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;font-weight:600;color:var(--tx)';
+
+  let rows = unitsSorted.map(([unit, d]) => {
+    const cats = Object.keys(CATS).map(k => `<td style="${tdS};color:${CATS_COLOR[k]}">${count(d.rows, k)}</td>`).join('');
+    return `<tr>
+      <td style="${tdL}">${unit}</td>
+      <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx2)">${d.municipio || '—'}</td>
+      ${cats}
+      <td style="${tdS};font-weight:700;color:var(--tx)">${d.rows.length}</td>
+    </tr>`;
+  }).join('');
+
+  bodyEl.innerHTML = `
+    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow-x:auto">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);padding:14px 16px 0;text-transform:uppercase">Efetivo por Unidade</div>
+      <table style="width:100%;border-collapse:collapse;margin-top:8px">
+        <thead><tr>
+          <th style="${thL}">Unidade</th>
+          <th style="${thL}">Município</th>
+          ${Object.entries(CATS).map(([,l]) => `<th style="${thS}">${l}</th>`).join('')}
+          <th style="${thS}">Total</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+// ── Upload modal P1
+function openP1Upload() {
+  const mo = document.getElementById('p1-upl-mo');
+  mo.style.display = 'flex';
+  document.getElementById('p1-upl-file').value = '';
+  document.getElementById('p1-upl-preview').textContent = '';
+  document.getElementById('p1-upl-msg').textContent = '';
+  document.getElementById('p1-upl-btn').disabled = true;
+  document.getElementById('p1-upl-btn').style.opacity = '.5';
+  p1Parsed = [];
+}
+
+function closeP1Upload() {
+  document.getElementById('p1-upl-mo').style.display = 'none';
+}
+
+function p1UplClickOut(e) {
+  if (e.target === document.getElementById('p1-upl-mo')) closeP1Upload();
+}
+
+function p1FileChange() {
+  const file = document.getElementById('p1-upl-file').files[0];
+  const prev = document.getElementById('p1-upl-preview');
+  const btn  = document.getElementById('p1-upl-btn');
+  p1Parsed = [];
+  btn.disabled = true;
+  btn.style.opacity = '.5';
+  if (!file) { prev.textContent = ''; return; }
+  Papa.parse(file, {
+    header: true, skipEmptyLines: true,
+    transformHeader: h => h.trim(),
+    complete: r => {
+      p1Parsed = r.data;
+      prev.innerHTML = `<span style="color:#4bc87a">✓ ${p1Parsed.length} registros lidos.</span>`;
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    },
+    error: err => { prev.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`; }
+  });
+}
+
+async function p1ConfirmUpload() {
+  const btn = document.getElementById('p1-upl-btn');
+  const msg = document.getElementById('p1-upl-msg');
+  if (!p1Parsed.length) return;
+  btn.disabled = true;
+  btn.style.opacity = '.5';
+  msg.innerHTML = '<span style="color:var(--tx3)">Enviando...</span>';
+  try {
+    const res = await authFetch(`${API}/efetivo/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ records: p1Parsed })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
+    msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.inserted} registros importados com sucesso.</span>`;
+    await loadP1();
+    setTimeout(closeP1Upload, 1500);
+  } catch (err) {
+    msg.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`;
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+}
+
 function goSection(id, btn) {
   closeSidebarMobile();
   document.querySelectorAll('.sec-btn').forEach(b => b.classList.remove('on'));
@@ -2230,6 +2400,7 @@ function goSection(id, btn) {
   }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
   document.getElementById(isP3 ? 'page-visao' : 'page-' + id).classList.add('on');
+  if (id === 'p1') loadP1();
   setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
 }
 

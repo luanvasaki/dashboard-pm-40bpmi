@@ -653,6 +653,60 @@ app.get('/api/analytics/deviation', requireAuth, (req, res) => {
   }
 });
 
+// ── EFETIVO P1 ──────────────────────────────────────────────────────────────
+const EFETIVO_TABLE = 'efetivo_pm';
+
+app.get('/api/efetivo', requireAuth, async (req, res) => {
+  try {
+    if (!supabase) return res.json([]);
+    const { data, error } = await supabase.from(EFETIVO_TABLE).select('*');
+    if (error) throw new Error(error.message);
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+    const { records } = req.body;
+    if (!Array.isArray(records) || !records.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
+
+    const gf = (r, ...names) => {
+      for (const name of names) {
+        const k = Object.keys(r).find(k => k.toLowerCase() === name.toLowerCase());
+        if (k) return (r[k] || '').toString().trim();
+      }
+      return '';
+    };
+
+    const rows = records.map(r => ({
+      nome:      gf(r, 'nome'),
+      posto:     gf(r, 'posto', 'graduacao', 'graduação', 'posto/graduacao', 'posto/graduação'),
+      unidade:   gf(r, 'unidade', 'cia', 'seção', 'secao', 'subunidade'),
+      municipio: gf(r, 'municipio', 'município', 'cidade'),
+      status:    gf(r, 'status', 'situacao', 'situação') || 'Ativo',
+    })).filter(r => r.nome && r.posto);
+
+    if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique as colunas do CSV.' });
+
+    // Apaga tudo e re-insere
+    await supabase.from(EFETIVO_TABLE).delete().not('nome', 'is', null);
+
+    const BATCH = 500;
+    let inserted = 0;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const { error } = await supabase.from(EFETIVO_TABLE).insert(rows.slice(i, i + BATCH));
+      if (error) throw new Error(error.message);
+      inserted += Math.min(BATCH, rows.length - i);
+    }
+    res.json({ ok: true, inserted });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });

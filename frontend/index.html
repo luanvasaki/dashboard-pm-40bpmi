@@ -217,16 +217,34 @@
 </div>
 
 <main>
-<!-- P1 EM BREVE -->
+<!-- P1 EFETIVO -->
 <div id="page-p1" class="page">
   <div class="ph">
-    <div><div class="ph-tag">SEÇÃO P1</div><div class="ph-title">SEÇÃO DE <span>PESSOAL</span></div></div>
+    <div><div class="ph-tag">SEÇÃO P1</div><div class="ph-title">GESTÃO DE <span>EFETIVO</span></div></div>
+    <div class="ph-meta" style="display:flex;align-items:center">
+      <button onclick="openP1Upload()" style="padding:6px 14px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600">↑ Importar Efetivo</button>
+    </div>
   </div>
-  <div class="soon-wrap">
-    <div class="soon-icon-wrap"><i data-lucide="users" style="width:36px;height:36px;color:var(--gold)"></i></div>
-    <div class="soon-title">P1 · Seção de Pessoal</div>
-    <div class="soon-desc">Módulo em desenvolvimento. Em breve: gerenciamento de efetivo, escalas de serviço e indicadores de pessoal do batalhão.</div>
-    <div class="soon-pill">EM BREVE</div>
+  <div id="p1-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:20px"></div>
+  <div id="p1-body"></div>
+</div>
+
+<!-- MODAL UPLOAD EFETIVO P1 -->
+<div id="p1-upl-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;align-items:center;justify-content:center;padding:20px" onclick="p1UplClickOut(event)">
+  <div id="p1-upl-box" style="background:#0d1018;border:1px solid #1c2235;border-radius:10px;padding:28px;width:100%;max-width:520px">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px;margin-bottom:6px">IMPORTAR <span style="color:#c8a84b">EFETIVO</span></div>
+    <div style="font-size:12px;color:var(--tx3);margin-bottom:16px;line-height:1.7">
+      CSV com as colunas: <b style="color:var(--tx)">Nome, Posto, Unidade, Municipio</b><br>
+      Coluna <b style="color:var(--tx)">Status</b> é opcional (padrão: Ativo).<br>
+      <span style="color:#e8c96a">⚠ O upload substitui todo o efetivo anterior.</span>
+    </div>
+    <input type="file" id="p1-upl-file" accept=".csv" onchange="p1FileChange()" style="display:block;margin-bottom:14px;color:var(--tx);font-size:13px;width:100%">
+    <div id="p1-upl-preview" style="font-size:12px;color:var(--tx3);margin-bottom:14px;min-height:18px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="closeP1Upload()" style="padding:7px 18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:4px;cursor:pointer;font-size:13px">Cancelar</button>
+      <button id="p1-upl-btn" onclick="p1ConfirmUpload()" disabled style="padding:7px 18px;background:rgba(200,168,75,.2);border:1px solid rgba(200,168,75,.4);color:var(--gold);border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;opacity:.5">Importar</button>
+    </div>
+    <div id="p1-upl-msg" style="margin-top:12px;font-size:12px;min-height:18px"></div>
   </div>
 </div>
 
