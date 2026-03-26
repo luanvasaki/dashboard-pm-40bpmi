@@ -2744,6 +2744,210 @@ async function afConfirmUpload() {
   }
 }
 
+// ── Filtro OPM e Busca P1 ────────────────────────────────────────────────────
+
+function p1SetFiltroOpm(opm) {
+  p1FiltroOpm = opm;
+  renderP1();
+}
+
+function p1DoSearch() {
+  const val = (document.getElementById('p1-search')?.value || '').trim().toLowerCase();
+  if (!val) return;
+  const found = p1Data.find(r =>
+    (r.re || '').toLowerCase() === val ||
+    (r.re || '').toLowerCase().includes(val) ||
+    (r.nome || '').toLowerCase().includes(val) ||
+    (r.nome_guerra || '').toLowerCase().includes(val)
+  );
+  if (found) openProntuario(found.re);
+  else alert('Nenhum PM encontrado para "' + val + '".');
+}
+
+// ── Prontuário Individual ────────────────────────────────────────────────────
+
+async function openProntuario(re) {
+  const mo = document.getElementById('pronto-mo');
+  if (!mo) return;
+  mo.style.display = 'flex';
+  const pm = p1Data.find(r => r.re === re);
+  if (!pm) { mo.style.display = 'none'; return; }
+
+  const hoje = new Date().toISOString().split('T')[0];
+  const anoAtual = new Date().getFullYear();
+  const fmtD = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
+
+  document.getElementById('pronto-nome').textContent   = pm.nome || '—';
+  document.getElementById('pronto-posto').textContent  = pm.posto || '—';
+  document.getElementById('pronto-re').textContent     = `RE ${pm.re}`;
+  document.getElementById('pronto-opm').textContent    = pm.opm || '—';
+  document.getElementById('pronto-func').textContent   = pm.funcao || '—';
+  document.getElementById('pronto-gen').textContent    = pm.genero || '—';
+  document.getElementById('pronto-guerra').textContent = pm.nome_guerra || '—';
+
+  // Status
+  const afsts    = p1AfastHoje[re] || [];
+  const emRestr  = (pm.possui_restricao || '').toLowerCase().startsWith('s');
+  let statusHtml = '';
+  if (afsts.length) {
+    statusHtml = afsts.map(a =>
+      `<span style="padding:3px 10px;border-radius:20px;background:#c84b4b22;color:#c84b4b;font-size:11px;font-family:'DM Mono',monospace">${a.tipo_afastamento}</span>`
+    ).join(' ');
+  } else if (emRestr) {
+    statusHtml = `<span style="padding:3px 10px;border-radius:20px;background:#c8a84b22;color:#c8a84b;font-size:11px;font-family:'DM Mono',monospace">Em Restrição</span>`;
+  } else {
+    statusHtml = `<span style="padding:3px 10px;border-radius:20px;background:#4bc87a22;color:#4bc87a;font-size:11px;font-family:'DM Mono',monospace">Apto</span>`;
+  }
+  document.getElementById('pronto-status').innerHTML = statusHtml;
+
+  // EAP
+  const eapOk = pm.data_eap && !isNaN(new Date(pm.data_eap)) && new Date(pm.data_eap).getFullYear() === anoAtual;
+  document.getElementById('pronto-eap').innerHTML = eapOk
+    ? `<span style="color:#4bc87a">✓ ${fmtD(pm.data_eap)}</span>`
+    : `<span style="color:#c8a84b">⚠ Pendente ${anoAtual}</span>`;
+
+  // Restrição
+  document.getElementById('pronto-restr').innerHTML = emRestr
+    ? `<div style="font-size:12px;color:#c8a84b">${pm.tipos_restricao || 'Sim'}</div>
+       <div style="font-size:11px;color:var(--tx3)">${fmtD(pm.restricao_inicio)} → ${fmtD(pm.restricao_termino)}</div>`
+    : `<span style="font-size:12px;color:var(--tx3)">—</span>`;
+
+  // Foto
+  const imgEl = document.getElementById('pronto-foto');
+  const phEl  = document.getElementById('pronto-foto-ph');
+  imgEl.style.display = 'none'; phEl.style.display = 'flex';
+  if (p1Fotos[re]) {
+    imgEl.src = p1Fotos[re]; imgEl.style.display = 'block'; phEl.style.display = 'none';
+  } else {
+    try {
+      const data = await authFetch(`${API}/p1/foto/${encodeURIComponent(re)}`).then(r => r.json());
+      if (data?.foto_base64) {
+        p1Fotos[re] = data.foto_base64;
+        imgEl.src = data.foto_base64; imgEl.style.display = 'block'; phEl.style.display = 'none';
+      }
+    } catch (_) {}
+  }
+
+  // Extrato cronológico
+  const extrato = p1Afasts.filter(a => a.re === re).sort((a, b) => (b.inicio || '').localeCompare(a.inicio || ''));
+  const extratoHtml = extrato.length
+    ? extrato.map(a => {
+        const ativo = a.inicio <= hoje && a.termino >= hoje;
+        return `<tr>
+          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;color:${ativo?'var(--tx)':'var(--tx3)'}">${a.tipo_afastamento || '—'}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${fmtD(a.inicio)}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${fmtD(a.termino)}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${a.n_dias ? a.n_dias + 'd' : '—'}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04)">${ativo ? '<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:#c84b4b22;color:#c84b4b;font-family:DM Mono,monospace">ATIVO</span>' : ''}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="5" style="padding:14px 10px;color:var(--tx3);font-size:12px;text-align:center">Nenhum afastamento registrado.</td></tr>';
+  document.getElementById('pronto-extrato').innerHTML = extratoHtml;
+}
+
+function closeProntuario() {
+  const mo = document.getElementById('pronto-mo');
+  if (mo) mo.style.display = 'none';
+}
+function prontoClickOut(e) { if (e.target.id === 'pronto-mo') closeProntuario(); }
+
+// ── Vagas (Efetivo Fixado) ───────────────────────────────────────────────────
+
+function openVagasModal() {
+  const mo = document.getElementById('vagas-mo');
+  if (!mo) return;
+  mo.style.display = 'flex';
+  renderVagasTable();
+}
+
+function closeVagasModal() {
+  const mo = document.getElementById('vagas-mo');
+  if (mo) mo.style.display = 'none';
+}
+function vagasClickOut(e) { if (e.target.id === 'vagas-mo') closeVagasModal(); }
+
+function renderVagasTable() {
+  const tbl = document.getElementById('vagas-tbl');
+  if (!tbl) return;
+  const vagasMap = {};
+  p1Vagas.forEach(v => { vagasMap[v.opm] = v.vagas; });
+  const opms = Object.keys(p1ByUnit).sort();
+  if (!opms.length) {
+    tbl.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:10px 0">Nenhum efetivo importado.</div>';
+    return;
+  }
+  tbl.innerHTML = `<table style="width:100%;border-collapse:collapse">
+    <thead><tr>
+      <th style="text-align:left;padding:7px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">OPM</th>
+      <th style="text-align:right;padding:7px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">Efetivo Atual</th>
+      <th style="text-align:right;padding:7px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">Vagas Autorizadas</th>
+    </tr></thead>
+    <tbody>${opms.map(opm => {
+      const atual = p1ByUnit[opm]?.length || 0;
+      const vagas = vagasMap[opm] !== undefined ? vagasMap[opm] : '';
+      return `<tr>
+        <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;color:var(--tx)">${opm}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.03);text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3)">${atual}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.03);text-align:right">
+          <input type="number" min="0" value="${vagas}" onchange="saveVaga(${JSON.stringify(opm)}, this.value, this)"
+            style="width:80px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:4px;padding:4px 8px;font-size:12px;text-align:right;font-family:'DM Mono',monospace">
+        </td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+async function saveVaga(opm, vagas, inputEl) {
+  const msgEl = document.getElementById('vagas-msg');
+  try {
+    const res = await authFetch(`${API}/p1/vagas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ opm, vagas: Number(vagas) })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    const idx = p1Vagas.findIndex(v => v.opm === opm);
+    if (idx >= 0) p1Vagas[idx].vagas = Number(vagas);
+    else p1Vagas.push({ opm, vagas: Number(vagas) });
+    if (inputEl) { inputEl.style.borderColor = '#4bc87a'; setTimeout(() => { if (inputEl) inputEl.style.borderColor = ''; }, 1500); }
+    if (msgEl) { msgEl.style.color = '#4bc87a'; msgEl.textContent = 'Salvo.'; setTimeout(() => { if (msgEl) msgEl.textContent = ''; }, 2000); }
+  } catch (err) {
+    if (msgEl) { msgEl.style.color = '#e06060'; msgEl.textContent = err.message; }
+  }
+}
+
+// ── Exportar Situação do Efetivo ─────────────────────────────────────────────
+
+function exportarSituacao() {
+  if (!p1Data.length) { alert('Nenhum dado para exportar.'); return; }
+  const hoje = new Date().toISOString().split('T')[0];
+  const fmtD = s => { if (!s) return ''; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
+  const anoAtual = new Date().getFullYear();
+  const cols = ['RE','Nome','Nome de Guerra','Posto','OPM','Função','Status','Tipo Afastamento','Início Afastamento','Término Afastamento','Possui Restrição','Tipos Restrição','EAP'];
+  const rows = p1Data.map(r => {
+    const afsts = p1AfastHoje[r.re] || [];
+    const afst  = afsts[0];
+    const eapOk = r.data_eap && !isNaN(new Date(r.data_eap)) && new Date(r.data_eap).getFullYear() === anoAtual;
+    return [
+      r.re, r.nome, r.nome_guerra || '', r.posto || '', r.opm || '', r.funcao || '',
+      afst ? 'Afastado' : 'Apto',
+      afst?.tipo_afastamento || '',
+      afst ? fmtD(afst.inicio) : '',
+      afst ? fmtD(afst.termino) : '',
+      r.possui_restricao || 'N',
+      r.tipos_restricao || '',
+      eapOk ? fmtD(r.data_eap) : 'Pendente'
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+  });
+  const csv  = [cols.map(c => `"${c}"`).join(','), ...rows].join('\r\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `situacao-efetivo-${hoje}.csv`;
+  a.click();
+}
+
 // ── Módulo de Fotos PM ───────────────────────────────────────────────────────
 
 // Gera avatar SVG com iniciais coloridas por posto
