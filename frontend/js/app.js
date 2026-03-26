@@ -2238,6 +2238,9 @@ function goPage(id, btn) {
   currentP3Page = id;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
+  if (btn.classList.contains('sec-btn')) {
+    document.querySelectorAll('.sec-btn').forEach(b => b.classList.remove('on'));
+  }
   document.getElementById('page-' + id).classList.add('on');
   btn.classList.add('on');
   setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
