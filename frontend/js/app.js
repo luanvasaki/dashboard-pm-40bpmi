@@ -2219,7 +2219,8 @@ function goSection(id, btn) {
   document.querySelectorAll('.sec-btn').forEach(b => b.classList.remove('on'));
   if (btn) btn.classList.add('on');
   const isP3 = id === 'p3';
-  document.getElementById('p3-submenu').style.display = isP3 ? '' : 'none';
+  const submenu = document.getElementById('p3-submenu');
+  if (submenu) submenu.style.display = isP3 ? '' : 'none';
   if (isP3) {
     // Sempre retorna para Visão Geral ao entrar no P3
     currentP3Page = 'visao';
