@@ -2367,13 +2367,14 @@ function renderP1() {
       const tipo = ats.map(a => a.tipo_afastamento).join(', ');
       const termino = ats[0]?.termino || '';
       const diasRest = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : '—';
-      const _fotoRe = JSON.stringify(r.re);
-      const _fotoNm = JSON.stringify(r.nome_guerra || r.nome);
-      const _fotoPt = JSON.stringify(r.posto || '');
-      const _av = `<div data-foto-re="${r.re}" data-nome="${(r.nome_guerra||r.nome).replace(/"/g,'&quot;')}" data-posto="${(r.posto||'').replace(/"/g,'&quot;')}" onclick="openFotoModal(${_fotoRe},${_fotoNm},${_fotoPt})" style="cursor:pointer;display:inline-block">${p1AvatarSVG(r.nome_guerra||r.nome, r.posto)}</div>`;
+      const _escB = s => (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      const _fotoRe = _escB(r.re);
+      const _fotoNm = _escB(r.nome_guerra || r.nome);
+      const _fotoPt = _escB(r.posto || '');
+      const _av = `<div data-foto-re="${r.re}" data-nome="${(r.nome_guerra||r.nome).replace(/"/g,'&quot;')}" data-posto="${(r.posto||'').replace(/"/g,'&quot;')}" onclick="openFotoModal('${_fotoRe}','${_fotoNm}','${_fotoPt}')" style="cursor:pointer;display:inline-block">${p1AvatarSVG(r.nome_guerra||r.nome, r.posto)}</div>`;
       return `<tr>
         <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.03);width:44px;vertical-align:middle">${_av}</td>
-        <td style="${tdL};cursor:pointer" onclick="openFotoModal(${_fotoRe},${_fotoNm},${_fotoPt})">${r.nome_guerra || r.nome}</td>
+        <td style="${tdL};cursor:pointer" onclick="openFotoModal('${_fotoRe}','${_fotoNm}','${_fotoPt}')">${r.nome_guerra || r.nome}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx2)">${r.posto || '—'}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${r.opm || '—'}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')}">${badge(tipo, '#c84b4b')}</td>
@@ -2444,7 +2445,8 @@ function renderP1() {
     const pct = Math.round(presentes / d.length * 100);
     const pctColor = pct >= 85 ? '#4bc87a' : pct >= 70 ? '#c8a84b' : '#c84b4b';
     const cats = Object.keys(CATS).map(k => `<td style="${tdS};color:${CATS_COLOR[k]}">${count(d, k)}</td>`).join('');
-    return `<tr style="cursor:pointer" onclick="p1ShowUnit(${JSON.stringify(unit)})">
+    const _esc = unit.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<tr style="cursor:pointer" onclick="p1ShowUnit('${_esc}')">
       <td style="${tdL};color:var(--gold)">${unit} <span style="opacity:.45;font-size:10px">↗</span></td>
       ${cats}
       <td style="${tdS};font-weight:700;color:var(--tx)">${d.length}</td>
@@ -2529,9 +2531,10 @@ function renderP1() {
   const opmsDisp = Object.keys(p1ByUnit).sort();
   const filtroBar = document.getElementById('p1-filtro-bar');
   if (filtroBar) {
+    const esc = s => s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     filtroBar.innerHTML = `
       <button onclick="p1SetFiltroOpm('')" style="padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid ${!p1FiltroOpm?'var(--gold)':'rgba(255,255,255,.12)'};background:${!p1FiltroOpm?'rgba(200,168,75,.15)':'rgba(255,255,255,.04)'};color:${!p1FiltroOpm?'var(--gold)':'var(--tx3)'};font-family:'DM Mono',monospace">Todos</button>
-      ${opmsDisp.map(o => `<button onclick="p1SetFiltroOpm(${JSON.stringify(o)})" style="padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid ${p1FiltroOpm===o?'var(--gold)':'rgba(255,255,255,.12)'};background:${p1FiltroOpm===o?'rgba(200,168,75,.15)':'rgba(255,255,255,.04)'};color:${p1FiltroOpm===o?'var(--gold)':'var(--tx3)'};font-family:'DM Mono',monospace">${o}</button>`).join('')}`;
+      ${opmsDisp.map(o => `<button onclick="p1SetFiltroOpm('${esc(o)}')" style="padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid ${p1FiltroOpm===o?'var(--gold)':'rgba(255,255,255,.12)'};background:${p1FiltroOpm===o?'rgba(200,168,75,.15)':'rgba(255,255,255,.04)'};color:${p1FiltroOpm===o?'var(--gold)':'var(--tx3)'};font-family:'DM Mono',monospace">${o}</button>`).join('')}`;
   }
 
   bodyEl.innerHTML = claroSection + feriasSection + afastSection + alertSection + eapSection + `
@@ -2878,7 +2881,7 @@ function renderVagasTable() {
         <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;color:var(--tx)">${opm}</td>
         <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.03);text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3)">${atual}</td>
         <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.03);text-align:right">
-          <input type="number" min="0" value="${vagas}" onchange="saveVaga(${JSON.stringify(opm)}, this.value, this)"
+          <input type="number" min="0" value="${vagas}" onchange="saveVaga('${opm.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}', this.value, this)"
             style="width:80px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:4px;padding:4px 8px;font-size:12px;text-align:right;font-family:'DM Mono',monospace">
         </td>
       </tr>`;
@@ -3112,14 +3115,15 @@ function p1ShowUnit(unit) {
     const statusColor = afst ? '#c84b4b' : '#4bc87a';
     const statusTxt  = afst ? 'AFASTADO' : 'APTO';
     const afstTipo   = afst ? afst[0]?.tipo_afastamento || '' : '';
-    const _re  = JSON.stringify(r.re);
-    const _nm  = JSON.stringify(r.nome_guerra || r.nome);
-    const _pt  = JSON.stringify(r.posto || '');
+    const escA = s => s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const _re  = escA(r.re || '');
+    const _nm  = escA(r.nome_guerra || r.nome || '');
+    const _pt  = escA(r.posto || '');
     const fotoCached = p1Fotos[r.re];
     const avatarContent = fotoCached
       ? `<img src="${fotoCached}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.18)">`
       : p1AvatarSVG(r.nome_guerra || r.nome, r.posto).replace('width="32" height="32" viewBox="0 0 32 32"','width="56" height="56" viewBox="0 0 32 32"');
-    return `<div onclick="openFotoModal(${_re},${_nm},${_pt})" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)'">
+    return `<div onclick="openFotoModal('${_re}','${_nm}','${_pt}')" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)'">
       <div data-foto-re="${r.re}" data-nome="${(r.nome_guerra||r.nome).replace(/"/g,'&quot;')}" data-posto="${(r.posto||'').replace(/"/g,'&quot;')}">${avatarContent}</div>
       <div style="font-size:11px;font-weight:600;color:var(--tx);text-align:center;line-height:1.3">${r.nome_guerra || r.nome}</div>
       <div style="font-size:10px;color:var(--tx3)">${r.posto || '—'}</div>
