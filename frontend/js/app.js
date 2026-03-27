@@ -2237,25 +2237,31 @@ const CIA_STRUCT = [
   {
     label: '1ª CIA', sede: 'Votorantim', color: '#c8a84b',
     units: [
-      { label: 'Sede · Votorantim', keys: ['votorantim', '1 cia', '1a cia', '1ª cia'] },
-      { label: '1º GP · Alumínio',  keys: ['alumin', '1 gp', '1o gp', '1º gp'] },
+      { label: 'Sede · Votorantim', keys: ['votorantim', '1 cia', '1a cia'] },
+      { label: 'GP · Alumínio',     keys: ['alumin'] },
     ]
   },
   {
     label: '2ª CIA', sede: 'Ibiúna', color: '#5a9de0',
     units: [
-      { label: 'Sede · Ibiúna',  keys: ['ibiun', '2 cia', '2a cia', '2ª cia'] },
-      { label: 'Piedade',        keys: ['piedade'] },
-      { label: 'Tapiraí',        keys: ['tapira'] },
+      { label: 'Sede · Ibiúna',        keys: ['ibiun', '2 cia', '2a cia'] },
+      { label: '1º Pel · Piedade',     keys: ['piedade'] },
+      { label: 'GP · Tapiraí',         keys: ['tapira'] },
     ]
   },
   {
     label: '3ª CIA', sede: 'Salto de Pirapora', color: '#c84b4b',
     units: [
-      { label: 'Sede · Salto de Pirapora',    keys: ['salto', '3 cia', '3a cia', '3ª cia'] },
-      { label: '1º Pel · Araçoiaba da Serra', keys: ['aracoiaba', 'araçoiaba', '1 pel', '1o pel', '1º pel'] },
-      { label: '2º Pel · Pilar do Sul',       keys: ['pilar', '2 pel', '2o pel', '2º pel'] },
-      { label: '3º Pel · Iperó',              keys: ['ipero', 'iperó', '3 pel', '3o pel', '3º pel'] },
+      { label: 'Sede · Salto de Pirapora',    keys: ['salto de pirapora', 'salto pirapora', '3 cia', '3a cia'] },
+      { label: '1º Pel · Araçoiaba da Serra', keys: ['aracoiaba'] },
+      { label: '2º Pel · Pilar do Sul',       keys: ['pilar do sul', 'pilar'] },
+      { label: '3º Pel · Iperó',              keys: ['ipero'] },
+    ]
+  },
+  {
+    label: 'FT', sede: 'Votorantim', color: '#9b5de5',
+    units: [
+      { label: 'Sede · Votorantim', keys: ['ft', 'forca tatica', 'forca tatica', 'f.t.', 'f t '] },
     ]
   },
 ];
