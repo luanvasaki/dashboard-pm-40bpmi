@@ -2333,12 +2333,15 @@ function renderP1() {
   const total = dataF.length;
 
   // ── KPI cards (clicáveis)
+  kpisEl.style.gridTemplateColumns = 'repeat(auto-fill,minmax(160px,1fr))';
   const kpiCard = (label, val, sub, color, key) =>
-    `<div onclick="p1ShowKpiDetail('${key}')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px 16px;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='${color}'" onmouseout="this.style.borderColor='var(--bd)'">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);margin-bottom:6px;text-transform:uppercase">${label}</div>
-      <div style="font-size:26px;font-weight:700;color:${color};font-family:'Barlow Condensed',sans-serif">${val}</div>
-      ${sub ? `<div style="font-size:10px;color:var(--tx3);margin-top:3px">${sub}</div>` : ''}
-      <div style="font-size:9px;color:var(--tx3);margin-top:6px;opacity:.45">▼ detalhes</div>
+    `<div onclick="p1ShowKpiDetail('${key}')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px;cursor:pointer;transition:all .2s;min-height:110px;display:flex;flex-direction:column;justify-content:space-between" onmouseover="this.style.borderColor='${color}';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform=''">
+      <div style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase">${label}</div>
+      <div style="font-size:34px;font-weight:800;color:${color};font-family:'Barlow Condensed',sans-serif;line-height:1;margin:6px 0 4px">${val}</div>
+      <div>
+        ${sub ? `<div style="font-size:10px;color:var(--tx3);margin-bottom:6px;line-height:1.4">${sub}</div>` : ''}
+        <div style="height:2px;background:${color};opacity:.25;border-radius:1px"></div>
+      </div>
     </div>`;
 
   // Tipos de afastamento agrupados
@@ -2372,10 +2375,10 @@ function renderP1() {
       const _fotoRe = _escB(r.re);
       const _fotoNm = _escB(r.nome_guerra || r.nome);
       const _fotoPt = _escB(r.posto || '');
-      const _av = `<div data-foto-re="${r.re}" data-nome="${(r.nome_guerra||r.nome).replace(/"/g,'&quot;')}" data-posto="${(r.posto||'').replace(/"/g,'&quot;')}" onclick="openFotoModal('${_fotoRe}','${_fotoNm}','${_fotoPt}')" style="cursor:pointer;display:inline-block">${p1AvatarSVG(r.nome_guerra||r.nome, r.posto)}</div>`;
+      const _av = `<div data-foto-re="${r.re}" data-nome="${(r.nome_guerra||r.nome).replace(/"/g,'&quot;')}" data-posto="${(r.posto||'').replace(/"/g,'&quot;')}" onclick="openProntuario('${_fotoRe}')" style="cursor:pointer;display:inline-block">${p1AvatarSVG(r.nome_guerra||r.nome, r.posto)}</div>`;
       return `<tr>
         <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.03);width:44px;vertical-align:middle">${_av}</td>
-        <td style="${tdL};cursor:pointer" onclick="openFotoModal('${_fotoRe}','${_fotoNm}','${_fotoPt}')">${r.nome_guerra || r.nome}</td>
+        <td style="${tdL};cursor:pointer" onclick="openProntuario('${_fotoRe}')">${r.nome_guerra || r.nome}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx2)">${r.posto || '—'}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${r.opm || '—'}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')}">${badge(tipo, '#c84b4b')}</td>
@@ -2439,22 +2442,33 @@ function renderP1() {
   });
   p1ByUnit = byUnit;
   const unitsSorted = Object.entries(byUnit).sort((a, b) => b[1].length - a[1].length);
-  const tableRows = unitsSorted.map(([unit, d]) => {
-    const afst = d.filter(r => afastHoje[r.re]).length;
-    const restr = d.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s')).length;
+  const unitCards = unitsSorted.map(([unit, d]) => {
+    const afst     = d.filter(r => afastHoje[r.re]).length;
+    const restr    = d.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s')).length;
     const presentes = d.length - afst;
-    const pct = Math.round(presentes / d.length * 100);
+    const pct      = d.length ? Math.round(presentes / d.length * 100) : 0;
     const pctColor = pct >= 85 ? '#4bc87a' : pct >= 70 ? '#c8a84b' : '#c84b4b';
-    const cats = Object.keys(CATS).map(k => `<td style="${tdS};color:${CATS_COLOR[k]}">${count(d, k)}</td>`).join('');
-    const _esc = unit.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return `<tr style="cursor:pointer" onclick="p1ShowUnit('${_esc}')">
-      <td style="${tdL};color:var(--gold)">${unit} <span style="opacity:.45;font-size:10px">↗</span></td>
-      ${cats}
-      <td style="${tdS};font-weight:700;color:var(--tx)">${d.length}</td>
-      <td style="${tdS};color:${afst > 0 ? '#c84b4b' : 'var(--tx3)'}">${afst > 0 ? afst : '—'}</td>
-      <td style="${tdS};color:${restr > 0 ? '#c8a84b' : 'var(--tx3)'}">${restr > 0 ? restr : '—'}</td>
-      <td style="${tdS};color:${pctColor};font-weight:700">${pct}%</td>
-    </tr>`;
+    const _esc     = unit.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const catLine  = Object.keys(CATS).map(k => {
+      const n = count(d, k);
+      return n ? `<span style="color:${CATS_COLOR[k]}">${n} ${CATS[k]}</span>` : '';
+    }).filter(Boolean).join('<span style="color:var(--bd2);margin:0 4px">·</span>');
+    return `<div onclick="p1ShowUnit('${_esc}')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='${pctColor}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform='';this.style.boxShadow=''">
+      <div style="font-size:13px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:12px">${unit}</div>
+      <div style="background:rgba(255,255,255,.05);border-radius:3px;height:5px;overflow:hidden;margin-bottom:10px">
+        <div style="height:100%;width:${pct}%;background:${pctColor};border-radius:3px;transition:width .5s ease"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${pctColor};line-height:1">${pct}%</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">${presentes} / ${d.length}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        ${afst > 0 ? `<span style="font-family:'DM Mono',monospace;font-size:9px;padding:2px 8px;border-radius:4px;background:#c84b4b22;color:#c84b4b">${afst} afastado${afst>1?'s':''}</span>` : ''}
+        ${restr > 0 ? `<span style="font-family:'DM Mono',monospace;font-size:9px;padding:2px 8px;border-radius:4px;background:#c8a84b22;color:#c8a84b">${restr} restrição</span>` : ''}
+        ${afst === 0 && restr === 0 ? `<span style="font-family:'DM Mono',monospace;font-size:9px;color:#4bc87a">sem pendências</span>` : ''}
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);border-top:1px solid rgba(255,255,255,.05);padding-top:8px;line-height:1.6">${catLine || '—'}</div>
+    </div>`;
   }).join('');
 
   // ── Claro Operacional
@@ -2513,22 +2527,18 @@ function renderP1() {
   const filtroBar = document.getElementById('p1-filtro-bar');
   if (filtroBar) {
     const esc = s => s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    filtroBar.innerHTML = `
-      <button onclick="p1SetFiltroOpm('')" style="padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid ${!p1FiltroOpm?'var(--gold)':'rgba(255,255,255,.12)'};background:${!p1FiltroOpm?'rgba(200,168,75,.15)':'rgba(255,255,255,.04)'};color:${!p1FiltroOpm?'var(--gold)':'var(--tx3)'};font-family:'DM Mono',monospace">Todos</button>
-      ${opmsDisp.map(o => `<button onclick="p1SetFiltroOpm('${esc(o)}')" style="padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid ${p1FiltroOpm===o?'var(--gold)':'rgba(255,255,255,.12)'};background:${p1FiltroOpm===o?'rgba(200,168,75,.15)':'rgba(255,255,255,.04)'};color:${p1FiltroOpm===o?'var(--gold)':'var(--tx3)'};font-family:'DM Mono',monospace">${o}</button>`).join('')}`;
+    filtroBar.innerHTML = `<div class="pf" style="margin-bottom:0">
+      <button onclick="p1SetFiltroOpm('')" class="pf-btn${!p1FiltroOpm ? ' on' : ''}">Todos</button>
+      ${opmsDisp.map(o => `<button onclick="p1SetFiltroOpm('${esc(o)}')" class="pf-btn${p1FiltroOpm === o ? ' on' : ''}">${o}</button>`).join('')}
+    </div>`;
   }
 
   bodyEl.innerHTML = claroSection + feriasSection + afastSection + alertSection + eapSection + `
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow-x:auto">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);padding:14px 16px 0;text-transform:uppercase">Efetivo por OPM <span style="opacity:.4;font-weight:400;font-size:8px">· clique na unidade para ver os PMs</span></div>
-      <table style="width:100%;border-collapse:collapse;margin-top:8px">
-        <thead><tr>
-          <th style="${thL}">OPM</th>
-          ${Object.entries(CATS).map(([,l]) => `<th style="${thS}">${l}</th>`).join('')}
-          <th style="${thS}">Total</th><th style="${thS}">Afastados</th><th style="${thS}">Restrição</th><th style="${thS}">% Presente</th>
-        </tr></thead>
-        <tbody>${tableRows}</tbody>
-      </table>
+    <div style="margin-bottom:6px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:12px">Efetivo por Unidade <span style="opacity:.4;font-weight:400">· clique para ver os PMs</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
+        ${unitCards}
+      </div>
     </div>
     <div id="p1-unit-detail"></div>`;
 
