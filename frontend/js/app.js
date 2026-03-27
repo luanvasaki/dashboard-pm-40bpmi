@@ -2232,6 +2232,37 @@ let prontoCurrentRe = '';// RE do prontuário aberto
 let p1UnitClickOut = null; // handler de click fora do detalhe de unidade
 let p1KpiClickOut  = null; // handler de click fora do detalhe de KPI
 
+// ── Estrutura orgânica do 40º BPM/I ─────────────────────────────────────────
+const CIA_STRUCT = [
+  {
+    label: '1ª CIA', sede: 'Votorantim', color: '#c8a84b',
+    units: [
+      { label: 'Sede · Votorantim', keys: ['votorantim', '1 cia', '1a cia', '1ª cia'] },
+      { label: '1º GP · Alumínio',  keys: ['alumin', '1 gp', '1o gp', '1º gp'] },
+    ]
+  },
+  {
+    label: '2ª CIA', sede: 'Ibiúna', color: '#5a9de0',
+    units: [
+      { label: 'Sede · Ibiúna',  keys: ['ibiun', '2 cia', '2a cia', '2ª cia'] },
+      { label: 'Piedade',        keys: ['piedade'] },
+      { label: 'Tapiraí',        keys: ['tapira'] },
+    ]
+  },
+  {
+    label: '3ª CIA', sede: 'Salto de Pirapora', color: '#c84b4b',
+    units: [
+      { label: 'Sede · Salto de Pirapora',    keys: ['salto', '3 cia', '3a cia', '3ª cia'] },
+      { label: '1º Pel · Araçoiaba da Serra', keys: ['aracoiaba', 'araçoiaba', '1 pel', '1o pel', '1º pel'] },
+      { label: '2º Pel · Pilar do Sul',       keys: ['pilar', '2 pel', '2o pel', '2º pel'] },
+      { label: '3º Pel · Iperó',              keys: ['ipero', 'iperó', '3 pel', '3o pel', '3º pel'] },
+    ]
+  },
+];
+
+const _normOpm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[ºª°]/g,'').trim();
+const _opmMatch = (opm, keys) => { const n = _normOpm(opm); return keys.some(k => n.includes(_normOpm(k))); };
+
 // Categoriza posto/graduação em 4 grupos
 function p1Cat(posto) {
   const p = (posto || '').toLowerCase().replace(/[º°ª]/g, '');
@@ -2445,41 +2476,92 @@ function renderP1() {
   });
   p1ByUnit = byUnit;
   const unitsSorted = Object.entries(byUnit).sort((a, b) => b[1].length - a[1].length);
-  const unitCards = unitsSorted.map(([unit, d]) => {
-    const afst     = d.filter(r => afastHoje[r.re]).length;
-    const restr    = d.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s')).length;
-    const presentes = d.length - afst;
-    const pct      = d.length ? Math.round(presentes / d.length * 100) : 0;
-    const pctColor = pct >= 85 ? '#4bc87a' : pct >= 70 ? '#c8a84b' : '#c84b4b';
-    const _esc     = unit.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const catLine  = Object.keys(CATS).map(k => {
-      const n = count(d, k);
+  // ── Cards por CIA com sub-unidades ──────────────────────────────────────────
+  const getPms = keys => Object.entries(byUnit).filter(([opm]) => _opmMatch(opm, keys)).flatMap(([,arr]) => arr);
+  const statsOf = pms => {
+    const afst_ = pms.filter(r => afastHoje[r.re]).length;
+    const restr_ = pms.filter(r => (r.possui_restricao||'').toLowerCase().startsWith('s')).length;
+    const aptos_ = pms.length - afst_;
+    const pct_   = pms.length ? Math.round(aptos_ / pms.length * 100) : 0;
+    const color_ = pct_ >= 85 ? '#4bc87a' : pct_ >= 70 ? '#c8a84b' : '#c84b4b';
+    return { afst: afst_, restr: restr_, aptos: aptos_, pct: pct_, color: color_, total: pms.length };
+  };
+
+  // Detecta OPMs que não se encaixam em nenhuma CIA para exibir separado
+  const allCiaKeys = CIA_STRUCT.flatMap(c => c.units.flatMap(u => u.keys));
+  const unmatchedUnits = unitsSorted.filter(([opm]) => !_opmMatch(opm, allCiaKeys));
+
+  const ciaCards = CIA_STRUCT.map((cia, ci) => {
+    const ciaPms  = getPms(cia.units.flatMap(u => u.keys));
+    if (!ciaPms.length) return '';
+    const s = statsOf(ciaPms);
+    const catLine = Object.keys(CATS).map(k => {
+      const n = ciaPms.filter(r => p1Cat(r.posto) === k).length;
       return n ? `<span style="color:${CATS_COLOR[k]}">${n} ${CATS[k]}</span>` : '';
     }).filter(Boolean).join('<span style="color:var(--bd2);margin:0 4px">·</span>');
-    return `<div class="p1-uc" data-unit="${unit.replace(/"/g,'&quot;')}" onclick="p1ShowUnit('${_esc}')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:18px 20px;cursor:pointer;transition:all .2s;min-width:0" onmouseover="if(!this.classList.contains('sel')){this.style.borderColor='${pctColor}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'}" onmouseout="if(!this.classList.contains('sel')){this.style.borderColor='var(--bd)';this.style.transform='';this.style.boxShadow=''}">
-      <div style="font-size:14px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:14px">${unit}</div>
-      <div style="background:rgba(255,255,255,.06);border-radius:4px;height:6px;overflow:hidden;margin-bottom:12px">
-        <div style="height:100%;width:${pct}%;background:${pctColor};border-radius:4px;transition:width .5s ease"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${pctColor};line-height:1">${pct}%</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);text-align:right">efetivo<br><b style="font-size:13px;color:var(--tx)">${d.length}</b></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
-        <div style="background:rgba(75,200,122,.08);border:1px solid rgba(75,200,122,.18);border-radius:6px;padding:8px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4bc87a;line-height:1">${presentes}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:8px;color:#4bc87a;opacity:.7;margin-top:2px;letter-spacing:.5px">APTOS</div>
+
+    const unitBtns = cia.units.map((u, ui) => {
+      const upms = getPms(u.keys);
+      if (!upms.length) return '';
+      const us = statsOf(upms);
+      return `<button class="p1-ubtn" data-ci="${ci}" data-ui="${ui}" onclick="p1ShowByKeys(${ci},${ui},'${u.label.replace(/'/g,"\\'")}');event.stopPropagation()"
+        style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:8px 12px;cursor:pointer;text-align:left;transition:all .15s;color:var(--tx2)"
+        onmouseover="if(!this.classList.contains('sel')){this.style.borderColor='${cia.color}';this.style.color='var(--tx)'}"
+        onmouseout="if(!this.classList.contains('sel')){this.style.borderColor='rgba(255,255,255,.1)';this.style.color='var(--tx2)'}">
+        <div style="font-size:11px;font-weight:600;color:inherit;white-space:nowrap">${u.label}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;margin-top:3px;display:flex;gap:8px">
+          <span style="color:#4bc87a">${us.aptos} aptos</span>
+          ${us.afst > 0 ? `<span style="color:#c84b4b">${us.afst} afst</span>` : ''}
+          ${us.restr > 0 ? `<span style="color:#c8a84b">${us.restr} restr</span>` : ''}
         </div>
-        <div style="background:rgba(200,75,75,.08);border:1px solid rgba(200,75,75,${afst>0?'.25':'.08'});border-radius:6px;padding:8px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${afst>0?'#c84b4b':'var(--tx3)'};line-height:1">${afst}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:8px;color:${afst>0?'#c84b4b':'var(--tx3)'};opacity:.7;margin-top:2px;letter-spacing:.5px">AFST</div>
+      </button>`;
+    }).join('');
+
+    return `<div class="p1-uc" data-ci="${ci}" style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:20px;transition:all .2s">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:${cia.color};letter-spacing:2px;text-transform:uppercase;margin-bottom:2px">${cia.label}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--tx);letter-spacing:.5px">${cia.sede}</div>
         </div>
-        <div style="background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,${restr>0?'.25':'.08'});border-radius:6px;padding:8px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${restr}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:8px;color:${restr>0?'#c8a84b':'var(--tx3)'};opacity:.7;margin-top:2px;letter-spacing:.5px">RESTR</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:18px;font-weight:700;color:var(--tx)">${s.total}</span></div>
+      </div>
+      <div style="background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin-bottom:10px">
+        <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:4px;transition:width .5s ease"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
+        <div style="background:rgba(255,255,255,.03);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.color};line-height:1">${s.pct}%</div>
+          <div style="font-family:'DM Mono',monospace;font-size:7px;color:var(--tx3);margin-top:1px">DISP</div>
+        </div>
+        <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:7px;color:#4bc87a;margin-top:1px">APTOS</div>
+        </div>
+        <div style="background:rgba(200,75,75,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.afst>0?'#c84b4b':'var(--tx3)'};line-height:1">${s.afst}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:7px;color:${s.afst>0?'#c84b4b':'var(--tx3)'};margin-top:1px">AFST</div>
+        </div>
+        <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:7px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
         </div>
       </div>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);border-top:1px solid rgba(255,255,255,.05);padding-top:10px;line-height:1.8">${catLine || '—'}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);margin-bottom:12px;line-height:1.8">${catLine}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${unitBtns}</div>
+    </div>`;
+  }).join('');
+
+  // OPMs não mapeadas na estrutura orgânica
+  const unmatchedCards = unmatchedUnits.map(([unit, d]) => {
+    const s = statsOf(d);
+    const _esc = unit.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<div class="p1-uc" data-unit="${unit.replace(/"/g,'&quot;')}" onclick="p1ShowUnit('${_esc}')"
+      style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:18px 20px;cursor:pointer;transition:all .2s"
+      onmouseover="if(!this.classList.contains('sel')){this.style.borderColor='${s.color}';this.style.transform='translateY(-2px)'}"
+      onmouseout="if(!this.classList.contains('sel')){this.style.borderColor='var(--bd)';this.style.transform=''}">
+      <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:10px">${unit}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:800;color:${s.color}">${s.pct}%</div>
+      <div style="font-size:10px;color:var(--tx3)">${s.aptos} aptos · ${s.afst} afst</div>
     </div>`;
   }).join('');
 
@@ -2547,9 +2629,9 @@ function renderP1() {
 
   bodyEl.innerHTML = claroSection + feriasSection + afastSection + alertSection + eapSection + `
     <div style="margin-bottom:6px">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:12px">Efetivo por Unidade <span style="opacity:.4;font-weight:400">· clique para ver os PMs</span></div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
-        ${unitCards}
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia <span style="opacity:.4;font-weight:400">· clique na sub-unidade para ver os PMs</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+        ${ciaCards}${unmatchedCards}
       </div>
     </div>
     <div id="p1-unit-detail"></div>`;
@@ -3503,25 +3585,43 @@ function p1CloseUnit() {
     el.style.transform = '';
     el.style.boxShadow = '';
   });
+  document.querySelectorAll('.p1-ubtn').forEach(el => el.classList.remove('sel'));
   if (p1UnitClickOut) { document.removeEventListener('click', p1UnitClickOut); p1UnitClickOut = null; }
 }
 
-function p1ShowUnit(unit) {
-  const det = document.getElementById('p1-unit-detail');
-  if (!det) return;
+function p1ShowByKeys(ci, ui, label) {
+  // Deselect all unit buttons, select clicked one
+  document.querySelectorAll('.p1-ubtn').forEach(el => {
+    el.classList.remove('sel');
+    el.style.borderColor = 'rgba(255,255,255,.1)';
+    el.style.color = 'var(--tx2)';
+  });
+  const btn = document.querySelector(`.p1-ubtn[data-ci="${ci}"][data-ui="${ui}"]`);
+  if (btn) {
+    const ciaColor = CIA_STRUCT[ci]?.color || 'var(--gold)';
+    btn.classList.add('sel');
+    btn.style.borderColor = ciaColor;
+    btn.style.color = 'var(--tx)';
+    btn.style.background = `${ciaColor}18`;
+  }
+  const keys = CIA_STRUCT[ci]?.units[ui]?.keys || [];
+  const pms  = Object.entries(p1ByUnit).filter(([opm]) => _opmMatch(opm, keys)).flatMap(([,arr]) => arr);
+  p1ShowPmList(pms, label);
+}
 
-  // Se clicou na mesma unidade já aberta, fecha
+function p1ShowUnit(unit) {
   const selCard = document.querySelector(`.p1-uc[data-unit="${unit.replace(/"/g,'\\"')}"]`);
   if (selCard && selCard.classList.contains('sel')) { p1CloseUnit(); return; }
+  document.querySelectorAll('.p1-uc').forEach(el => { el.classList.remove('sel'); el.style.borderColor = ''; el.style.transform = ''; el.style.boxShadow = ''; });
+  document.querySelectorAll('.p1-ubtn').forEach(el => el.classList.remove('sel'));
+  if (selCard) selCard.classList.add('sel');
+  const pms = p1ByUnit[unit] || [];
+  p1ShowPmList(pms, unit);
+}
 
-  // Marca card como selecionado
-  document.querySelectorAll('.p1-uc').forEach(el => {
-    el.classList.remove('sel');
-    el.style.borderColor = ''; el.style.transform = ''; el.style.boxShadow = '';
-  });
-  if (selCard) { selCard.classList.add('sel'); }
-
-  const pms  = p1ByUnit[unit] || [];
+function p1ShowPmList(pms, label) {
+  const det = document.getElementById('p1-unit-detail');
+  if (!det) return;
   const escA = s => (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 
   const cards = pms.map(r => {
@@ -3544,7 +3644,7 @@ function p1ShowUnit(unit) {
 
   det.innerHTML = `<div id="p1-unit-panel" style="margin-top:14px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase">${unit} — ${pms.length} militares</div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase">${label} — ${pms.length} militares</div>
       <button onclick="p1CloseUnit()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--tx3);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:11px">✕ Fechar</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px">${cards}</div>
@@ -3552,11 +3652,10 @@ function p1ShowUnit(unit) {
 
   det.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-  // Fecha ao clicar fora
   if (p1UnitClickOut) document.removeEventListener('click', p1UnitClickOut);
   setTimeout(() => {
     p1UnitClickOut = e => {
-      if (!det.contains(e.target) && !e.target.closest('.p1-uc')) {
+      if (!det.contains(e.target) && !e.target.closest('.p1-uc') && !e.target.closest('.p1-ubtn')) {
         p1CloseUnit();
       }
     };
