@@ -130,7 +130,7 @@ async function openAdminModal() {
   document.getElementById('adm-msg').style.display = 'none';
   const badge = document.getElementById('pending-badge');
   if (badge) badge.style.display = 'none';
-  document.getElementById('adm-users').innerHTML = '<div style="color:#4a5568;font-size:12px;padding:10px 0">Carregando...</div>';
+  document.getElementById('adm-users').innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:10px 0">Carregando...</div>';
   document.getElementById('adm-pending').innerHTML = '';
   document.getElementById('adm-pending-section').style.display = 'none';
 
@@ -158,7 +158,7 @@ function renderAdminUsers(users) {
 function buildUserTable(users, me) {
   // Oculta usuários com role 'admin' — protegidos contra alteração
   users = users.filter(u => u.role !== 'admin');
-  if (!users.length) return '<div style="color:#4a5568;font-size:12px;padding:6px 0">Nenhum registro.</div>';
+  if (!users.length) return '<div style="color:var(--tx3);font-size:12px;padding:6px 0">Nenhum registro.</div>';
   const ROLE_LABEL = { comandante: 'Cmt Batalhão', comandante_cia: 'Cmt de Cia', p1: 'P1', p3: 'P3', viewer: 'Visualizador' };
   const STATUS_STYLE = {
     pending:  'background:rgba(200,168,75,.15);color:#e8c96a',
@@ -169,12 +169,12 @@ function buildUserTable(users, me) {
 
   let h = `<table style="width:100%;border-collapse:collapse;font-size:12px">
     <thead><tr>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:1px">NOME</th>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:1px">POSTO/GRAD.</th>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:1px">RE</th>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:1px">FUNÇÃO</th>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:1px">STATUS</th>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:1px">NÍVEL</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">NOME</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">POSTO/GRAD.</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">RE</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">FUNÇÃO</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">STATUS</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">NÍVEL</th>
       <th style="padding:7px 8px;border-bottom:1px solid #1c2235"></th>
     </tr></thead><tbody>`;
 
@@ -204,8 +204,8 @@ function buildUserTable(users, me) {
 
     h += `<tr>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:#d8dce8">${u.nome}</td>
-      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:#8090a8">${u.posto||'—'}</td>
-      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-family:'DM Mono',monospace;color:#8090a8">${u.matricula}</td>
+      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--tx3)">${u.posto||'—'}</td>
+      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-family:'DM Mono',monospace;color:var(--tx3)">${u.matricula}</td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
         <select onchange="admChangeSecao('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${secaoOpts}</select>
       </td>
@@ -215,7 +215,7 @@ function buildUserTable(users, me) {
       </td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);white-space:nowrap">
         ${actions}
-        <button onclick="admDelete('${u.id}','${u.nome}')" style="padding:4px 8px;background:transparent;border:1px solid rgba(200,75,75,.2);color:#4a5568;border-radius:4px;cursor:pointer;font-size:11px;margin-left:4px" title="Excluir usuário">🗑</button>
+        <button onclick="admDelete('${u.id}','${u.nome}')" style="padding:4px 8px;background:transparent;border:1px solid rgba(200,75,75,.2);color:var(--tx3);border-radius:4px;cursor:pointer;font-size:11px;margin-left:4px" title="Excluir usuário">🗑</button>
       </td>
     </tr>`;
   });
@@ -2000,7 +2000,7 @@ function renderOcorrTable(data) {
     el.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:8px 0">Nenhuma ocorrência encontrada para os filtros selecionados.</div>';
     return;
   }
-  const th = s => `<th style="padding:6px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:#4a5568;letter-spacing:1px;text-align:left;white-space:nowrap">${s}</th>`;
+  const th = s => `<th style="padding:6px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-align:left;white-space:nowrap">${s}</th>`;
   const td = (s, mono) => `<td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--tx2);white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis${mono?';font-family:\'DM Mono\',monospace;font-size:11px':''}" title="${(s||'').replace(/"/g,'&quot;')}">${s||'—'}</td>`;
   let h = `<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>
     ${th('DATA')}${th('HORA')}${th('PERÍODO')}${th('DIA')}${th('FLAGRANTE')}${th('CONDUTA')}${th('BAIRRO')}${th('TIPO LOCAL')}${th('MUNICÍPIO')}${th('CIA')}
@@ -2656,7 +2656,7 @@ function renderP1() {
 
   bodyEl.innerHTML = claroSection + feriasSection + afastSection + alertSection + eapSection + `
     <div style="margin-bottom:6px">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia <span style="opacity:.4;font-weight:400">· clique na sub-unidade para ver os PMs</span></div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia <span style="opacity:.7;font-weight:400">· clique na sub-unidade para ver os PMs</span></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
         ${ciaCards}${unmatchedCards}
       </div>
