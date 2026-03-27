@@ -3086,10 +3086,11 @@ function p1SearchInput(val) {
   p1SearchIdx = -1;
   if (!q || q.length < 1) { drop.style.display = 'none'; return; }
 
+  const isRe = /^\d+$/.test(q);
   const matches = p1Data.filter(r =>
-    (r.re || '').toLowerCase().includes(q) ||
-    (r.nome || '').toLowerCase().includes(q) ||
-    (r.nome_guerra || '').toLowerCase().includes(q)
+    (isRe
+      ? (r.re || '').toLowerCase().startsWith(q)
+      : (r.nome || '').toLowerCase().includes(q) || (r.nome_guerra || '').toLowerCase().includes(q))
   ).slice(0, 30);
 
   if (!matches.length) { drop.style.display = 'none'; return; }
