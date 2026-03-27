@@ -3072,6 +3072,7 @@ function p1ShowKpiDetail(tipo) {
   if (p1KpiClickOut) document.removeEventListener('click', p1KpiClickOut);
   setTimeout(() => {
     p1KpiClickOut = e => {
+      if (prontoCurrentRe) return; // prontuário aberto — não fecha o painel
       const kpisEl = document.getElementById('p1-kpis');
       if (!det.contains(e.target) && !(kpisEl && kpisEl.contains(e.target))) {
         det.innerHTML = ''; det.dataset.active = '';
@@ -3696,6 +3697,7 @@ function p1ShowPmList(pms, label) {
   if (p1UnitClickOut) document.removeEventListener('click', p1UnitClickOut);
   setTimeout(() => {
     p1UnitClickOut = e => {
+      if (prontoCurrentRe) return; // prontuário aberto — não fecha o painel
       if (!det.contains(e.target) && !e.target.closest('.p1-uc') && !e.target.closest('.p1-ubtn')) {
         p1CloseUnit();
       }
