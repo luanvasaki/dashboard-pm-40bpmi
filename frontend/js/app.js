@@ -3716,6 +3716,82 @@ function renderHome() {
   const saudacao = (() => { const h = new Date().getHours(); return h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'; })();
   const nome = (u.nome || '').split(' ')[0];
 
+  // ── Resumo P1 por CIA ──────────────────────────────────────────────────────
+  let ciaResumo = '';
+  if (p1Data && p1Data.length > 0) {
+    const today = new Date().toISOString().split('T')[0];
+    const afastHoje = {};
+    (p1Afasts || []).forEach(a => {
+      if (a.inicio <= today && (!a.termino || a.termino >= today)) {
+        if (!afastHoje[a.re]) afastHoje[a.re] = [];
+        afastHoje[a.re].push(a);
+      }
+    });
+    const getPms  = keys => p1Data.filter(r => _opmMatch(r.opm, keys));
+    const statsOf = pms => {
+      const total = pms.length;
+      const afst  = pms.filter(r => afastHoje[r.re]).length;
+      const restr = pms.filter(r => (r.possui_restricao||'').toLowerCase().startsWith('s')).length;
+      const aptos = total - afst;
+      const pct   = total ? Math.round(aptos / total * 100) : 0;
+      const color = pct >= 80 ? '#4bc87a' : pct >= 60 ? '#c8a84b' : '#c84b4b';
+      return { total, afst, restr, aptos, pct, color };
+    };
+
+    const ciaCards = CIA_STRUCT.map(cia => {
+      const pms = getPms(cia.units.flatMap(u => u.keys));
+      if (!pms.length) return '';
+      const s = statsOf(pms);
+      const alertas = [];
+      if (s.afst > 0)  alertas.push(`<span style="color:#c84b4b">${s.afst} afst</span>`);
+      if (s.restr > 0) alertas.push(`<span style="color:#c8a84b">${s.restr} restr</span>`);
+
+      return `<div onclick="goSection('p1',document.getElementById('sec-p1'));closeSidebarMobile()"
+        style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${cia.color};border-radius:10px;padding:18px;cursor:pointer;transition:all .2s"
+        onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 20px rgba(0,0,0,.3)'"
+        onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+          <div>
+            <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:2px">40º BPM/I</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${cia.color};line-height:1">${cia.label}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);margin-top:2px">${cia.sede}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3)">efetivo</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--tx);line-height:1">${s.total}</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px;overflow:hidden;margin-bottom:10px">
+          <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:3px;transition:width .5s ease"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+          <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:6px 4px;text-align:center">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:7px;color:#4bc87a;margin-top:1px">APTOS</div>
+          </div>
+          <div style="background:rgba(200,75,75,.07);border-radius:5px;padding:6px 4px;text-align:center">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:${s.afst>0?'#c84b4b':'var(--tx3)'};line-height:1">${s.afst}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:7px;color:${s.afst>0?'#c84b4b':'var(--tx3)'};margin-top:1px">AFST</div>
+          </div>
+          <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:6px 4px;text-align:center">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:7px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
+          </div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:${s.color};display:flex;align-items:center;gap:4px">
+          <span style="font-size:13px;font-weight:700">${s.pct}%</span> aptos
+          ${alertas.length ? `<span style="color:var(--bd2);margin:0 3px">·</span>${alertas.join('<span style="color:var(--bd2);margin:0 3px">·</span>')}` : ''}
+        </div>
+      </div>`;
+    }).filter(Boolean).join('');
+
+    ciaResumo = `
+      <div style="margin-bottom:6px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase">Situação do Efetivo — Hoje</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:28px">
+        ${ciaCards}
+      </div>`;
+  }
+
   const sections = [
     {
       id: 'p1', icon: 'users', color: '#4bc87a', label: 'P1', title: 'Seção de Pessoal',
@@ -3773,7 +3849,9 @@ function renderHome() {
         <div style="font-size:12px;color:var(--tx3);margin-top:4px;text-transform:capitalize">${data} · ${hora}</div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">
+    ${ciaResumo}
+    <div style="margin-bottom:6px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase">Seções</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
       ${cards}
     </div>`;
 
