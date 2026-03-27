@@ -2527,13 +2527,13 @@ function renderP1() {
     }).join('');
 
     return `<div class="p1-uc" data-ci="${ci}"
-      style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:20px;transition:all .2s;cursor:default"
-      onmouseover="if(!this.classList.contains('sel')){this.style.borderColor='${cia.color}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 20px rgba(0,0,0,.3)'}"
-      onmouseout="if(!this.classList.contains('sel')){this.style.borderColor='var(--bd)';this.style.transform='';this.style.boxShadow=''}">
+      style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${cia.color};border-radius:10px;padding:20px;transition:all .2s;cursor:default"
+      onmouseover="if(!this.classList.contains('sel')){this.style.boxShadow='0 4px 20px rgba(0,0,0,.3)';this.style.transform='translateY(-2px)'}"
+      onmouseout="if(!this.classList.contains('sel')){this.style.boxShadow='';this.style.transform=''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
         <div>
           <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--tx);letter-spacing:.5px;line-height:1">${cia.label}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${cia.color};letter-spacing:.5px;line-height:1">${cia.label}</div>
           <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);margin-top:2px">Sede · ${cia.sede}</div>
         </div>
         <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:20px;font-weight:700;color:var(--tx)">${s.total}</span></div>
