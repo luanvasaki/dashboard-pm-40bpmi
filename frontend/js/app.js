@@ -2237,22 +2237,22 @@ const CIA_STRUCT = [
   {
     label: '1ª CIA', sede: 'Votorantim', color: '#c8a84b',
     units: [
-      { label: 'Sede · Votorantim', keys: ['votorantim', '1 cia', '1a cia'] },
-      { label: 'GP · Alumínio',     keys: ['alumin'] },
+      { label: 'Sede · Votorantim', keys: ['1 cia - sede', 'votorantim'] },
+      { label: '1º GP · Alumínio',  keys: ['alumin'] },
     ]
   },
   {
     label: '2ª CIA', sede: 'Ibiúna', color: '#5a9de0',
     units: [
-      { label: 'Sede · Ibiúna',        keys: ['ibiun', '2 cia', '2a cia'] },
+      { label: 'Sede · Ibiúna',        keys: ['2 cia - sede', 'ibiun'] },
       { label: '1º Pel · Piedade',     keys: ['piedade'] },
-      { label: 'GP · Tapiraí',         keys: ['tapira'] },
+      { label: '1º GP · Tapiraí',      keys: ['tapira'] },
     ]
   },
   {
     label: '3ª CIA', sede: 'Salto de Pirapora', color: '#c84b4b',
     units: [
-      { label: 'Sede · Salto de Pirapora',    keys: ['salto de pirapora', 'salto pirapora', '3 cia', '3a cia'] },
+      { label: 'Sede · Salto de Pirapora',    keys: ['3 cia - sede', 'salto de pirapora', 'salto pirapora'] },
       { label: '1º Pel · Araçoiaba da Serra', keys: ['aracoiaba'] },
       { label: '2º Pel · Pilar do Sul',       keys: ['pilar do sul', 'pilar'] },
       { label: '3º Pel · Iperó',              keys: ['ipero'] },
@@ -2261,13 +2261,16 @@ const CIA_STRUCT = [
   {
     label: 'FT', sede: 'Votorantim', color: '#9b5de5',
     units: [
-      { label: 'Sede · Votorantim', keys: ['ft', 'forca tatica', 'forca tatica', 'f.t.', 'f t '] },
+      { label: 'Força Tática', keys: ['^ft$', 'forca tatica', 'f.t.'] },
     ]
   },
 ];
 
 const _normOpm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[ºª°]/g,'').trim();
-const _opmMatch = (opm, keys) => { const n = _normOpm(opm); return keys.some(k => n.includes(_normOpm(k))); };
+const _opmMatch = (opm, keys) => {
+  const n = _normOpm(opm);
+  return keys.some(k => k.startsWith('^') ? new RegExp(k).test(n) : n.includes(_normOpm(k)));
+};
 
 // Categoriza posto/graduação em 4 grupos
 function p1Cat(posto) {
@@ -2368,7 +2371,7 @@ function renderP1() {
   );
 
   const CATS = { cbsd: 'Cb / Sd', sgt: 'Sargentos', sub: 'Subtenentes', of: 'Oficiais' };
-  const CATS_COLOR = { cbsd: '#5a9de0', sgt: '#c8a84b', sub: '#4bc87a', of: '#c84b4b' };
+  const CATS_COLOR = { cbsd: '#4bc87a', sgt: '#c84b4b', sub: '#5a9de0', of: '#c8a84b' };
   const count = (arr, cat) => arr.filter(r => p1Cat(r.posto) === cat).length;
   const total = dataF.length;
 
@@ -2376,7 +2379,7 @@ function renderP1() {
   kpisEl.style.gridTemplateColumns = 'repeat(auto-fill,minmax(160px,1fr))';
   const kpiCard = (label, val, sub, color, key) =>
     `<div onclick="p1ShowKpiDetail('${key}')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px;cursor:pointer;transition:all .2s;min-height:110px;display:flex;flex-direction:column;justify-content:space-between" onmouseover="this.style.borderColor='${color}';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform=''">
-      <div style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase">${label}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--tx);text-transform:uppercase">${label}</div>
       <div style="font-size:34px;font-weight:800;color:${color};font-family:'Barlow Condensed',sans-serif;line-height:1;margin:6px 0 4px">${val}</div>
       <div>
         ${sub ? `<div style="font-size:10px;color:var(--tx3);margin-bottom:6px;line-height:1.4">${sub}</div>` : ''}
@@ -2390,7 +2393,7 @@ function renderP1() {
   const tiposSub = Object.entries(tiposCount).map(([t,n]) => `${n} ${t}`).join(' · ') || '';
 
   kpisEl.innerHTML =
-    kpiCard('Total Efetivo', total, `${count(dataF,'cbsd')} Cb/Sd · ${count(dataF,'sgt')} Sgt · ${count(dataF,'sub')} Sub · ${count(dataF,'of')} Of`, 'var(--tx)', 'total') +
+    kpiCard('Total Efetivo', total, Object.keys(CATS).filter(k=>count(dataF,k)>0).map(k=>`<span style="color:${CATS_COLOR[k]}">${count(dataF,k)} ${CATS[k]}</span>`).join('<span style="color:var(--bd2);margin:0 4px">·</span>'), 'var(--tx)', 'total') +
     kpiCard('Aptos', pmAptos.length, total > 0 ? `${Math.round(pmAptos.length/total*100)}% do efetivo` : '—', '#4bc87a', 'aptos') +
     kpiCard('Afastamentos', pmAfastados.length, tiposSub || '—', pmAfastados.length > 0 ? '#c84b4b' : 'var(--tx3)', 'afastados') +
     kpiCard('Em Restrição', pmComRestricao.length, vencendoRestricao.length > 0 ? `⚠ ${vencendoRestricao.length} vencem em 30 dias` : '—', pmComRestricao.length > 0 ? '#c8a84b' : 'var(--tx3)', 'restricao') +
@@ -2523,10 +2526,13 @@ function renderP1() {
       </button>`;
     }).join('');
 
-    return `<div class="p1-uc" data-ci="${ci}" style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:20px;transition:all .2s">
+    return `<div class="p1-uc" data-ci="${ci}"
+      style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:20px;transition:all .2s;cursor:default"
+      onmouseover="if(!this.classList.contains('sel')){this.style.borderColor='${cia.color}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 20px rgba(0,0,0,.3)'}"
+      onmouseout="if(!this.classList.contains('sel')){this.style.borderColor='var(--bd)';this.style.transform='';this.style.boxShadow=''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
         <div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:${cia.color};letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--tx);letter-spacing:.5px;line-height:1">${cia.label}</div>
           <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);margin-top:2px">Sede · ${cia.sede}</div>
         </div>
