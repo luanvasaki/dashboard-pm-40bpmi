@@ -2228,6 +2228,7 @@ let p1AfastHoje  = {};   // RE → afastamentos ativos hoje (populado em renderP
 let p1Vagas      = [];   // efetivo fixado por OPM
 let p1FiltroOpm  = '';   // filtro ativo por OPM
 let prontoCurrentRe = '';// RE do prontuário aberto
+let p1UnitClickOut = null; // handler de click fora do detalhe de unidade
 
 // Categoriza posto/graduação em 4 grupos
 function p1Cat(posto) {
@@ -2453,7 +2454,7 @@ function renderP1() {
       const n = count(d, k);
       return n ? `<span style="color:${CATS_COLOR[k]}">${n} ${CATS[k]}</span>` : '';
     }).filter(Boolean).join('<span style="color:var(--bd2);margin:0 4px">·</span>');
-    return `<div onclick="p1ShowUnit('${_esc}')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:18px 20px;cursor:pointer;transition:all .2s;min-width:0" onmouseover="this.style.borderColor='${pctColor}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform='';this.style.boxShadow=''">
+    return `<div class="p1-uc" data-unit="${unit.replace(/"/g,'&quot;')}" onclick="p1ShowUnit('${_esc}')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:18px 20px;cursor:pointer;transition:all .2s;min-width:0" onmouseover="if(!this.classList.contains('sel')){this.style.borderColor='${pctColor}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'}" onmouseout="if(!this.classList.contains('sel')){this.style.borderColor='var(--bd)';this.style.transform='';this.style.boxShadow=''}">
       <div style="font-size:14px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:14px">${unit}</div>
       <div style="background:rgba(255,255,255,.06);border-radius:4px;height:6px;overflow:hidden;margin-bottom:12px">
         <div style="height:100%;width:${pct}%;background:${pctColor};border-radius:4px;transition:width .5s ease"></div>
@@ -3477,42 +3478,74 @@ async function p1RemoveFoto() {
 }
 
 // Expande painel de efetivo por unidade com cards fotográficos
+function p1CloseUnit() {
+  const det = document.getElementById('p1-unit-detail');
+  if (det) det.innerHTML = '';
+  document.querySelectorAll('.p1-uc').forEach(el => {
+    el.classList.remove('sel');
+    el.style.borderColor = '';
+    el.style.transform = '';
+    el.style.boxShadow = '';
+  });
+  if (p1UnitClickOut) { document.removeEventListener('click', p1UnitClickOut); p1UnitClickOut = null; }
+}
+
 function p1ShowUnit(unit) {
   const det = document.getElementById('p1-unit-detail');
   if (!det) return;
-  const pms   = p1ByUnit[unit] || [];
-  const hoje  = new Date().toISOString().split('T')[0];
-  const fmtD  = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
+
+  // Se clicou na mesma unidade já aberta, fecha
+  const selCard = document.querySelector(`.p1-uc[data-unit="${unit.replace(/"/g,'\\"')}"]`);
+  if (selCard && selCard.classList.contains('sel')) { p1CloseUnit(); return; }
+
+  // Marca card como selecionado
+  document.querySelectorAll('.p1-uc').forEach(el => {
+    el.classList.remove('sel');
+    el.style.borderColor = ''; el.style.transform = ''; el.style.boxShadow = '';
+  });
+  if (selCard) { selCard.classList.add('sel'); }
+
+  const pms  = p1ByUnit[unit] || [];
+  const escA = s => (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 
   const cards = pms.map(r => {
-    const afst       = p1AfastHoje[r.re];
+    const afst        = p1AfastHoje[r.re];
     const statusColor = afst ? '#c84b4b' : '#4bc87a';
-    const statusTxt  = afst ? 'AFASTADO' : 'APTO';
-    const afstTipo   = afst ? afst[0]?.tipo_afastamento || '' : '';
-    const escA = s => s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const _re  = escA(r.re || '');
-    const _nm  = escA(r.nome_guerra || r.nome || '');
-    const _pt  = escA(r.posto || '');
-    const fotoCached = p1Fotos[r.re];
+    const statusTxt   = afst ? (afst[0]?.tipo_afastamento || 'AFASTADO') : 'APTO';
+    const _re         = escA(r.re || '');
+    const fotoCached  = p1Fotos[r.re];
     const avatarContent = fotoCached
       ? `<img src="${fotoCached}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.18)">`
       : p1AvatarSVG(r.nome_guerra || r.nome, r.posto).replace('width="32" height="32" viewBox="0 0 32 32"','width="56" height="56" viewBox="0 0 32 32"');
-    return `<div onclick="openProntuario('${_re}')" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)'">
+    return `<div onclick="openProntuario('${_re}')" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)'">
       <div data-foto-re="${r.re}" data-nome="${(r.nome_guerra||r.nome).replace(/"/g,'&quot;')}" data-posto="${(r.posto||'').replace(/"/g,'&quot;')}">${avatarContent}</div>
-      <div style="font-size:11px;font-weight:600;color:var(--tx);text-align:center;line-height:1.3">${r.nome_guerra || r.nome}</div>
-      <div style="font-size:10px;color:var(--tx3)">${r.posto || '—'}</div>
-      <div style="font-size:9px;padding:2px 7px;border-radius:10px;background:${statusColor}22;color:${statusColor};font-family:'DM Mono',monospace">${statusTxt}</div>
-      ${afstTipo ? `<div style="font-size:9px;color:var(--tx3);text-align:center">${afstTipo}</div>` : ''}
+      <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:2px">${r.posto || '—'}</div>
+      <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace">RE ${r.re}</div>
+      <div style="font-size:11px;font-weight:700;color:var(--tx);line-height:1.3;word-break:break-word">${r.nome_guerra || r.nome}</div>
+      <div style="font-size:9px;padding:2px 8px;border-radius:10px;background:${statusColor}22;color:${statusColor};font-family:'DM Mono',monospace;margin-top:2px">${statusTxt}</div>
     </div>`;
   }).join('');
 
-  det.innerHTML = `<div style="margin-top:14px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px">
+  det.innerHTML = `<div id="p1-unit-panel" style="margin-top:14px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase">Efetivo — ${unit} (${pms.length} PMs)</div>
-      <button onclick="document.getElementById('p1-unit-detail').innerHTML=''" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--tx3);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:11px">✕ Fechar</button>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase">${unit} — ${pms.length} militares</div>
+      <button onclick="p1CloseUnit()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--tx3);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:11px">✕ Fechar</button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px">${cards}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px">${cards}</div>
   </div>`;
+
+  det.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // Fecha ao clicar fora
+  if (p1UnitClickOut) document.removeEventListener('click', p1UnitClickOut);
+  setTimeout(() => {
+    p1UnitClickOut = e => {
+      if (!det.contains(e.target) && !e.target.closest('.p1-uc')) {
+        p1CloseUnit();
+      }
+    };
+    document.addEventListener('click', p1UnitClickOut);
+  }, 0);
 }
 
 function updateSidebarImports(section) {
