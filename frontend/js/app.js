@@ -2453,21 +2453,30 @@ function renderP1() {
       const n = count(d, k);
       return n ? `<span style="color:${CATS_COLOR[k]}">${n} ${CATS[k]}</span>` : '';
     }).filter(Boolean).join('<span style="color:var(--bd2);margin:0 4px">·</span>');
-    return `<div onclick="p1ShowUnit('${_esc}')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='${pctColor}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform='';this.style.boxShadow=''">
-      <div style="font-size:13px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:12px">${unit}</div>
-      <div style="background:rgba(255,255,255,.05);border-radius:3px;height:5px;overflow:hidden;margin-bottom:10px">
-        <div style="height:100%;width:${pct}%;background:${pctColor};border-radius:3px;transition:width .5s ease"></div>
+    return `<div onclick="p1ShowUnit('${_esc}')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:18px 20px;cursor:pointer;transition:all .2s;min-width:0" onmouseover="this.style.borderColor='${pctColor}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform='';this.style.boxShadow=''">
+      <div style="font-size:14px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:14px">${unit}</div>
+      <div style="background:rgba(255,255,255,.06);border-radius:4px;height:6px;overflow:hidden;margin-bottom:12px">
+        <div style="height:100%;width:${pct}%;background:${pctColor};border-radius:4px;transition:width .5s ease"></div>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${pctColor};line-height:1">${pct}%</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">${presentes} / ${d.length}</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${pctColor};line-height:1">${pct}%</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);text-align:right">efetivo<br><b style="font-size:13px;color:var(--tx)">${d.length}</b></div>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-        ${afst > 0 ? `<span style="font-family:'DM Mono',monospace;font-size:9px;padding:2px 8px;border-radius:4px;background:#c84b4b22;color:#c84b4b">${afst} afastado${afst>1?'s':''}</span>` : ''}
-        ${restr > 0 ? `<span style="font-family:'DM Mono',monospace;font-size:9px;padding:2px 8px;border-radius:4px;background:#c8a84b22;color:#c8a84b">${restr} restrição</span>` : ''}
-        ${afst === 0 && restr === 0 ? `<span style="font-family:'DM Mono',monospace;font-size:9px;color:#4bc87a">sem pendências</span>` : ''}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
+        <div style="background:rgba(75,200,122,.08);border:1px solid rgba(75,200,122,.18);border-radius:6px;padding:8px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4bc87a;line-height:1">${presentes}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:#4bc87a;opacity:.7;margin-top:2px;letter-spacing:.5px">APTOS</div>
+        </div>
+        <div style="background:rgba(200,75,75,.08);border:1px solid rgba(200,75,75,${afst>0?'.25':'.08'});border-radius:6px;padding:8px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${afst>0?'#c84b4b':'var(--tx3)'};line-height:1">${afst}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:${afst>0?'#c84b4b':'var(--tx3)'};opacity:.7;margin-top:2px;letter-spacing:.5px">AFST</div>
+        </div>
+        <div style="background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,${restr>0?'.25':'.08'});border-radius:6px;padding:8px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${restr}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:${restr>0?'#c8a84b':'var(--tx3)'};opacity:.7;margin-top:2px;letter-spacing:.5px">RESTR</div>
+        </div>
       </div>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);border-top:1px solid rgba(255,255,255,.05);padding-top:8px;line-height:1.6">${catLine || '—'}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);border-top:1px solid rgba(255,255,255,.05);padding-top:10px;line-height:1.8">${catLine || '—'}</div>
     </div>`;
   }).join('');
 
@@ -2536,7 +2545,7 @@ function renderP1() {
   bodyEl.innerHTML = claroSection + feriasSection + afastSection + alertSection + eapSection + `
     <div style="margin-bottom:6px">
       <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:12px">Efetivo por Unidade <span style="opacity:.4;font-weight:400">· clique para ver os PMs</span></div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
         ${unitCards}
       </div>
     </div>
