@@ -27,12 +27,16 @@
     </div>
   </div>
   <nav>
+    <button class="sec-btn on" id="sec-home" onclick="goSection('home',this)" style="margin-bottom:8px">
+      <i data-lucide="layout-dashboard" class="sec-ic"></i>
+      <div class="sec-info"><div class="sec-name">Início</div></div>
+    </button>
     <div class="nav-sec">Seções</div>
     <button class="sec-btn" id="sec-p1" onclick="goSection('p1',this)">
       <i data-lucide="users" class="sec-ic"></i>
       <div class="sec-info"><div class="sec-name">P1 · Seção de Pessoal</div></div>
     </button>
-    <button class="sec-btn on" id="sec-p3" onclick="goPage('visao',this)">
+    <button class="sec-btn" id="sec-p3" onclick="goPage('visao',this)">
       <i data-lucide="shield" class="sec-ic"></i>
       <div class="sec-info"><div class="sec-name">P3 · Divisão Operacional</div></div>
     </button>
@@ -219,6 +223,10 @@
 
 <main>
 <!-- P1 EFETIVO -->
+<div id="page-home" class="page on">
+  <div id="home-content" style="min-height:60vh"></div>
+</div>
+
 <div id="page-p1" class="page">
   <div class="ph">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
@@ -450,7 +458,7 @@
 </div>
 
 <!-- VISÃO GERAL -->
-<div id="page-visao" class="page on">
+<div id="page-visao" class="page">
   <div class="ph">
     <div><div class="ph-tag">VISÃO GERAL</div><div class="ph-title">PAINEL DE INTELIGÊNCIA <span>CRIMINAL</span></div></div>
     <div class="ph-meta">

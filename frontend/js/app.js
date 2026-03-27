@@ -659,6 +659,7 @@ async function init() {
     buildPageFilters();
     renderAll();
     updateSyncStatus();
+    renderHome();
     if (window.lucide) lucide.createIcons();
   } catch (err) {
     console.error('Erro ao renderizar dashboard:', err);
@@ -3563,6 +3564,80 @@ function p1ShowUnit(unit) {
   }, 0);
 }
 
+// ── Tela Inicial (Home) ───────────────────────────────────────────────────────
+function renderHome() {
+  const el = document.getElementById('home-content');
+  if (!el) return;
+  const u    = JSON.parse(localStorage.getItem('auth_user') || '{}');
+  const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const data = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+  const saudacao = (() => { const h = new Date().getHours(); return h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'; })();
+  const nome = (u.nome || '').split(' ')[0];
+
+  const sections = [
+    {
+      id: 'p1', icon: 'users', color: '#4bc87a', label: 'P1', title: 'Seção de Pessoal',
+      desc: 'Gestão de efetivo, afastamentos, férias, restrições médicas, EAP e prontuário individual.',
+      soon: false, action: `goSection('p1', document.getElementById('sec-p1'))`
+    },
+    {
+      id: 'p3', icon: 'shield', color: '#5a9de0', label: 'P3', title: 'Divisão Operacional',
+      desc: 'Inteligência criminal, análise de crimes, metas SSP, ocorrências InfoCrim e relatórios operacionais.',
+      soon: false, action: `goPage('visao', document.getElementById('sec-p3'))`
+    },
+    {
+      id: 'p4', icon: 'package', color: '#8090a8', label: 'P4', title: 'Seção de Materiais',
+      desc: 'Controle de armamento, equipamentos, viaturas e logística do batalhão.',
+      soon: true
+    },
+    {
+      id: 'p5', icon: 'megaphone', color: '#8090a8', label: 'P5', title: 'Comunicação Social',
+      desc: 'Comunicados internos, publicações, gestão da imagem institucional e eventos.',
+      soon: true
+    },
+    {
+      id: 'sjd', icon: 'scale', color: '#8090a8', label: 'SJD', title: 'Justiça e Disciplina',
+      desc: 'Processos administrativos, sindicâncias, punições e gestão disciplinar.',
+      soon: true
+    },
+  ];
+
+  const cards = sections.map(s => {
+    const opacity = s.soon ? '0.45' : '1';
+    const cursor  = s.soon ? 'default' : 'pointer';
+    const click   = s.soon ? '' : `onclick="${s.action};closeSidebarMobile()"`;
+    const hover   = s.soon ? '' : `onmouseover="this.style.borderColor='${s.color}';this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,.35)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform='';this.style.boxShadow=''"`;
+    return `<div ${click} ${hover} style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:24px;cursor:${cursor};transition:all .2s;opacity:${opacity};display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div style="width:42px;height:42px;border-radius:10px;background:${s.color}18;border:1px solid ${s.color}33;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i data-lucide="${s.icon}" style="width:20px;height:20px;stroke:${s.color};stroke-width:1.75"></i>
+        </div>
+        ${s.soon ? `<span style="font-family:'DM Mono',monospace;font-size:9px;padding:3px 9px;border-radius:10px;background:rgba(255,255,255,.05);color:var(--tx3);letter-spacing:1px">EM BREVE</span>` : `<span style="font-family:'DM Mono',monospace;font-size:9px;padding:3px 9px;border-radius:10px;background:${s.color}18;color:${s.color};letter-spacing:1px">ATIVO</span>`}
+      </div>
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">${s.label}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--tx);letter-spacing:.5px">${s.title}</div>
+      </div>
+      <div style="font-size:12px;color:var(--tx3);line-height:1.7;flex:1">${s.desc}</div>
+      ${!s.soon ? `<div style="margin-top:4px;font-family:'DM Mono',monospace;font-size:10px;color:${s.color};display:flex;align-items:center;gap:6px">Acessar <span style="font-size:14px">→</span></div>` : ''}
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="ph">
+      <div>
+        <div class="ph-tag">40º BPM/I — SISTEMA DE GESTÃO</div>
+        <div class="ph-title">${saudacao}, <span>${nome || 'Usuário'}</span></div>
+        <div style="font-size:12px;color:var(--tx3);margin-top:4px;text-transform:capitalize">${data} · ${hora}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">
+      ${cards}
+    </div>`;
+
+  if (window.lucide) lucide.createIcons();
+}
+
 function updateSidebarImports(section) {
   const el = document.getElementById('sidebar-imports');
   if (!el) return;
@@ -3583,11 +3658,21 @@ function goSection(id, btn) {
   closeSidebarMobile();
   document.querySelectorAll('.sec-btn').forEach(b => b.classList.remove('on'));
   if (btn) btn.classList.add('on');
+
+  if (id === 'home') {
+    const submenu = document.getElementById('p3-submenu');
+    if (submenu) submenu.style.display = 'none';
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+    document.getElementById('page-home').classList.add('on');
+    updateSidebarImports('home');
+    renderHome();
+    return;
+  }
+
   const isP3 = id === 'p3';
   const submenu = document.getElementById('p3-submenu');
   if (submenu) submenu.style.display = isP3 ? '' : 'none';
   if (isP3) {
-    // Sempre retorna para Visão Geral ao entrar no P3
     currentP3Page = 'visao';
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
     const visaoBtn = document.querySelector('.nav-btn[onclick*="visao"]');
