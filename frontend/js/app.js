@@ -2229,6 +2229,7 @@ let p1Vagas      = [];   // efetivo fixado por OPM
 let p1FiltroOpm  = '';   // filtro ativo por OPM
 let prontoCurrentRe = '';// RE do prontuário aberto
 let p1UnitClickOut = null; // handler de click fora do detalhe de unidade
+let p1KpiClickOut  = null; // handler de click fora do detalhe de KPI
 
 // Categoriza posto/graduação em 4 grupos
 function p1Cat(posto) {
@@ -2943,6 +2944,20 @@ function p1ShowKpiDetail(tipo) {
   }
 
   det.innerHTML = html;
+
+  // Fecha ao clicar fora dos KPI cards e do painel
+  if (p1KpiClickOut) document.removeEventListener('click', p1KpiClickOut);
+  setTimeout(() => {
+    p1KpiClickOut = e => {
+      const kpisEl = document.getElementById('p1-kpis');
+      if (!det.contains(e.target) && !(kpisEl && kpisEl.contains(e.target))) {
+        det.innerHTML = ''; det.dataset.active = '';
+        document.removeEventListener('click', p1KpiClickOut);
+        p1KpiClickOut = null;
+      }
+    };
+    document.addEventListener('click', p1KpiClickOut);
+  }, 0);
 }
 
 // ── Filtro OPM e Busca P1 ────────────────────────────────────────────────────
