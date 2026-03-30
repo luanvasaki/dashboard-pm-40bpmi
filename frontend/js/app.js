@@ -1144,10 +1144,18 @@ function renderInsights() {
   const crimeMaisCresceu = [...crimesVar].sort((a, b) => b.varP - a.varP)[0];
   const crimeMaisReduciu = [...crimesVar].sort((a, b) => a.varP - b.varP)[0];
 
-  // Crime mais crítico: maior desvio positivo acima da meta
+  // Crime mais crítico: maior desvio positivo acima da meta (por município — qualquer município acima da meta já conta)
   const crimesDesvio = CRIMES.map(c => {
-    const a = sf(qsc({ crime: c })), m = sf(qsc({ crime: c }), 'meta');
-    return { c, a, m, desvio: m > 0 ? ((a - m) / m * 100) : -Infinity };
+    let maxDesvio = -Infinity, maxA = 0, maxM = 0;
+    muns.forEach(mun => {
+      const a  = sf(q({ crime: c, mun, mes: selMeses, ...sc }));
+      const m  = sf(q({ crime: c, mun, mes: selMeses, ...sc }), 'meta');
+      if (m > 0) {
+        const d = (a - m) / m * 100;
+        if (d > maxDesvio) { maxDesvio = d; maxA = a; maxM = m; }
+      }
+    });
+    return { c, a: maxA, m: maxM, desvio: maxDesvio };
   });
   const crimeCritico = [...crimesDesvio].sort((a, b) => b.desvio - a.desvio)[0];
 
@@ -1160,8 +1168,9 @@ function renderInsights() {
   const acima   = crimesDesvio.filter(x => x.m > 0 && x.a > x.m).length;
   const ok      = crimesDesvio.filter(x => x.m > 0 && x.a <= x.m).length;
   const emEvol  = crimesDesvio.filter(x => {
+    if (x.m === 0 || x.desvio <= 0) return false;
     const ant = sf(qsc({ crime: x.c }), 'anterior');
-    return x.a > x.m && x.a < ant;
+    return x.a < ant;
   }).length;
 
   // Município com mais crimes acima da meta
