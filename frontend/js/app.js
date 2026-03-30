@@ -550,14 +550,11 @@ function buildPageFilters() {
 const q    = f => RAW.filter(r => (!selAno || r.ano === selAno) && Object.entries(f).every(([k,v]) => Array.isArray(v) ? v.includes(r[k]) : r[k] === v));
 const sf   = (arr, field = 'avaliado') => arr.reduce((s, r) => s + (r[field] || 0), 0);
 const pLbl = m => m.length === MESES.length ? 'Todos os meses' : m.join(' + ');
-const hcol = (v, max) => {
-  if (v === 0) return 'rgba(74,158,232,.12)';
-  const r = v / max;
-  if (r < 0.15) return 'rgba(200,168,75,.22)';
-  if (r < 0.35) return 'rgba(200,168,75,.5)';
-  if (r < 0.6)  return 'rgba(200,168,75,.75)';
-  if (r < 0.8)  return '#c8a84b';
-  return '#c84b4b';
+const hcol = (aval, meta, ant) => {
+  if (aval === 0 || meta === 0) return 'rgba(74,158,232,.10)';
+  if (aval <= meta) return 'rgba(61,191,122,.70)';   // verde: dentro da meta
+  if (aval <= ant)  return 'rgba(191,122,61,.85)';   // laranja: acima da meta, melhor que anterior
+  return 'rgba(200,75,75,.80)';                       // vermelho: acima da meta
 };
 const mk  = (id, cfg) => { if (charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), cfg); };
 const cl  = c => c.replace(' Vulnerável', ' Vuln.').replace(' Veículos', ' Veíc.');
@@ -1079,7 +1076,6 @@ function renderVisaoHeatmap() {
   const crimes = CRIMES;
   const muns = sc.cia ? MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === sc.cia)) :
                sc.mun ? [sc.mun] : MUNS;
-  const maxes = crimes.map(c => Math.max(...muns.map(m => sf(q({ crime: c, mun: m, mes: meses }))), 1));
   const hmCols = crimes.length + 2;
   let h = '<thead><tr><th>Município</th>' + crimes.map(c => `<th>${cl(c)}</th>`).join('') + '<th>Total</th></tr></thead><tbody>';
   let lastCia = null;
@@ -1090,8 +1086,11 @@ function renderVisaoHeatmap() {
     const total = vals.reduce((a, b) => a + b, 0);
     h += `<tr><td class="hm-city">${mun}</td>`;
     vals.forEach((v, i) => {
-      const bg = hcol(v, maxes[i]), tc = v / maxes[i] > 0.6 ? '#000' : 'var(--tx)';
-      h += `<td><div class="hm-cell" style="background:${bg};color:${tc}">${v}</div></td>`;
+      const c    = crimes[i];
+      const meta = sf(q({ crime: c, mun, mes: meses }), 'meta');
+      const ant  = sf(q({ crime: c, mun, mes: meses }), 'anterior');
+      const bg   = hcol(v, meta, ant);
+      h += `<td><div class="hm-cell" style="background:${bg};color:var(--tx)">${v}</div></td>`;
     });
     h += `<td><div class="hm-cell" style="background:rgba(255,255,255,.07);color:var(--tx);font-weight:700">${total}</div></td></tr>`;
   });
@@ -1102,7 +1101,6 @@ function renderHeatmap() {
   const p = pLbl(hmMeses);
   document.getElementById('lbl-p4').textContent  = p;
   document.getElementById('hm-badge').textContent = p;
-  const maxes = CRIMES.map(c => Math.max(...MUNS.map(m => sf(q({ crime: c, mun: m, mes: hmMeses }))), 1));
   const hmCols = CRIMES.length + 2;
   let h = '<thead><tr><th>Município</th>' + CRIMES.map(c => `<th>${cl(c)}</th>`).join('') + '<th>Total</th></tr></thead><tbody>';
   let lastHmCia = null;
@@ -1113,8 +1111,11 @@ function renderHeatmap() {
     const total = vals.reduce((a, b) => a + b, 0);
     h += `<tr><td class="hm-city">${mun}</td>`;
     vals.forEach((v, i) => {
-      const bg = hcol(v, maxes[i]), tc = v / maxes[i] > 0.6 ? '#000' : 'var(--tx)';
-      h += `<td><div class="hm-cell" style="background:${bg};color:${tc}">${v}</div></td>`;
+      const c    = CRIMES[i];
+      const meta = sf(q({ crime: c, mun, mes: hmMeses }), 'meta');
+      const ant  = sf(q({ crime: c, mun, mes: hmMeses }), 'anterior');
+      const bg   = hcol(v, meta, ant);
+      h += `<td><div class="hm-cell" style="background:${bg};color:var(--tx)">${v}</div></td>`;
     });
     h += `<td><div class="hm-cell" style="background:rgba(255,255,255,.07);color:var(--tx);font-weight:700">${total}</div></td></tr>`;
   });
