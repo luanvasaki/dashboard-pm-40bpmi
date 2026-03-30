@@ -3716,79 +3716,80 @@ function renderHome() {
   const saudacao = (() => { const h = new Date().getHours(); return h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'; })();
   const nome = (u.nome || '').split(' ')[0];
 
-  // ── Resumo P1 por CIA ──────────────────────────────────────────────────────
-  let ciaResumo = '';
+  // ── Resumo P1 ─────────────────────────────────────────────────────────────
+  let p1Preview = '';
   if (p1Data && p1Data.length > 0) {
     const today = new Date().toISOString().split('T')[0];
-    const afastHoje = {};
+    const afH = {};
     (p1Afasts || []).forEach(a => {
       if (a.inicio <= today && (!a.termino || a.termino >= today)) {
-        if (!afastHoje[a.re]) afastHoje[a.re] = [];
-        afastHoje[a.re].push(a);
+        if (!afH[a.re]) afH[a.re] = [];
+        afH[a.re].push(a);
       }
     });
     const getPms  = keys => p1Data.filter(r => _opmMatch(r.opm, keys));
-    const statsOf = pms => {
-      const total = pms.length;
-      const afst  = pms.filter(r => afastHoje[r.re]).length;
+    const stOf    = pms  => {
+      const total = pms.length, afst = pms.filter(r => afH[r.re]).length;
       const restr = pms.filter(r => (r.possui_restricao||'').toLowerCase().startsWith('s')).length;
-      const aptos = total - afst;
-      const pct   = total ? Math.round(aptos / total * 100) : 0;
+      const pct   = total ? Math.round((total - afst) / total * 100) : 0;
       const color = pct >= 80 ? '#4bc87a' : pct >= 60 ? '#c8a84b' : '#c84b4b';
-      return { total, afst, restr, aptos, pct, color };
+      return { total, afst, restr, aptos: total - afst, pct, color };
     };
+    const gs = stOf(p1Data);
 
-    const ciaCards = CIA_STRUCT.map(cia => {
+    const ciaRows = CIA_STRUCT.map(cia => {
       const pms = getPms(cia.units.flatMap(u => u.keys));
       if (!pms.length) return '';
-      const s = statsOf(pms);
-      const alertas = [];
-      if (s.afst > 0)  alertas.push(`<span style="color:#c84b4b">${s.afst} afst</span>`);
-      if (s.restr > 0) alertas.push(`<span style="color:#c8a84b">${s.restr} restr</span>`);
-
-      return `<div onclick="goSection('p1',document.getElementById('sec-p1'));closeSidebarMobile()"
-        style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${cia.color};border-radius:10px;padding:18px;cursor:pointer;transition:all .2s"
-        onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 20px rgba(0,0,0,.3)'"
-        onmouseout="this.style.transform='';this.style.boxShadow=''">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-          <div>
-            <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:2px">40º BPM/I</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${cia.color};line-height:1">${cia.label}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);margin-top:2px">${cia.sede}</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3)">efetivo</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--tx);line-height:1">${s.total}</div>
-          </div>
+      const s = stOf(pms);
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:${cia.color};width:36px;flex-shrink:0">${cia.label}</div>
+        <div style="flex:1;background:rgba(255,255,255,.06);border-radius:3px;height:5px;overflow:hidden">
+          <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:3px"></div>
         </div>
-        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px;overflow:hidden;margin-bottom:10px">
-          <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:3px;transition:width .5s ease"></div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
-          <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:6px 4px;text-align:center">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:7px;color:#4bc87a;margin-top:1px">APTOS</div>
-          </div>
-          <div style="background:rgba(200,75,75,.07);border-radius:5px;padding:6px 4px;text-align:center">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:${s.afst>0?'#c84b4b':'var(--tx3)'};line-height:1">${s.afst}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:7px;color:${s.afst>0?'#c84b4b':'var(--tx3)'};margin-top:1px">AFST</div>
-          </div>
-          <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:6px 4px;text-align:center">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:7px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
-          </div>
-        </div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:${s.color};display:flex;align-items:center;gap:4px">
-          <span style="font-size:13px;font-weight:700">${s.pct}%</span> aptos
-          ${alertas.length ? `<span style="color:var(--bd2);margin:0 3px">·</span>${alertas.join('<span style="color:var(--bd2);margin:0 3px">·</span>')}` : ''}
-        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:${s.color};width:32px;text-align:right">${s.pct}%</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);width:50px">${s.total} mil.</div>
+        ${s.afst  > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:#c84b4b">${s.afst} afst</div>` : ''}
+        ${s.restr > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:#c8a84b">${s.restr} restr</div>` : ''}
       </div>`;
     }).filter(Boolean).join('');
 
-    ciaResumo = `
-      <div style="margin-bottom:6px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase">Situação do Efetivo — Hoje</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:28px">
-        ${ciaCards}
+    p1Preview = `
+      <div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px">
+        <div style="display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap">
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--tx)">${gs.total}</span><span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);margin-left:4px">total</span></div>
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4bc87a">${gs.aptos}</span><span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);margin-left:4px">aptos</span></div>
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${gs.afst>0?'#c84b4b':'var(--tx3)'}">${gs.afst}</span><span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);margin-left:4px">afst</span></div>
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${gs.restr>0?'#c8a84b':'var(--tx3)'}">${gs.restr}</span><span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);margin-left:4px">restr</span></div>
+        </div>
+        ${ciaRows}
+      </div>`;
+  }
+
+  // ── Resumo P3 ─────────────────────────────────────────────────────────────
+  let p3Preview = '';
+  if (RAW && RAW.length > 0) {
+    const anos  = [...new Set(RAW.map(r => r.ano))].sort((a,b) => b - a);
+    const anoR  = anos[0];
+    const meses = getMesForAno(anoR);
+    const mesR  = meses[meses.length - 1];
+    const rawMes = RAW.filter(r => r.ano === anoR && r.mes === mesR);
+    const totalMes = rawMes.reduce((s, r) => s + (r.avaliado || 0), 0);
+    const totalMeta = rawMes.reduce((s, r) => s + (r.meta || 0), 0);
+    const pctMeta = totalMeta > 0 ? Math.round(totalMes / totalMeta * 100) : null;
+    const metaColor = pctMeta === null ? 'var(--tx3)' : pctMeta <= 100 ? '#4bc87a' : '#c84b4b';
+    // Crime mais registrado no mês
+    const porCrime = {};
+    rawMes.forEach(r => { porCrime[r.crime] = (porCrime[r.crime] || 0) + (r.avaliado || 0); });
+    const topCrime = Object.entries(porCrime).sort((a,b) => b[1] - a[1])[0];
+
+    p3Preview = `
+      <div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);letter-spacing:1px;margin-bottom:6px">${mesR} ${anoR}</div>
+        <div style="display:flex;gap:14px;margin-bottom:8px;flex-wrap:wrap">
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--tx)">${totalMes}</span><span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);margin-left:4px">ocorr.</span></div>
+          ${pctMeta !== null ? `<div><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${metaColor}">${pctMeta}%</span><span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);margin-left:4px">da meta</span></div>` : ''}
+        </div>
+        ${topCrime ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3)">Líder: <span style="color:var(--tx2)">${topCrime[0]}</span> <span style="color:#c84b4b">${topCrime[1]}</span></div>` : ''}
       </div>`;
   }
 
@@ -3796,27 +3797,29 @@ function renderHome() {
     {
       id: 'p1', icon: 'users', color: '#4bc87a', label: 'P1', title: 'Seção de Pessoal',
       desc: 'Gestão de efetivo, afastamentos, férias, restrições médicas, EAP e prontuário individual.',
-      soon: false, action: `goSection('p1', document.getElementById('sec-p1'))`
+      soon: false, action: `goSection('p1', document.getElementById('sec-p1'))`,
+      preview: p1Preview
     },
     {
       id: 'p3', icon: 'shield', color: '#5a9de0', label: 'P3', title: 'Divisão Operacional',
       desc: 'Inteligência criminal, análise de crimes, metas SSP, ocorrências InfoCrim e relatórios operacionais.',
-      soon: false, action: `goPage('visao', document.getElementById('sec-p3'))`
+      soon: false, action: `goPage('visao', document.getElementById('sec-p3'))`,
+      preview: p3Preview
     },
     {
       id: 'p4', icon: 'package', color: '#8090a8', label: 'P4', title: 'Seção de Materiais',
       desc: 'Controle de armamento, equipamentos, viaturas e logística do batalhão.',
-      soon: true
+      soon: true, preview: ''
     },
     {
       id: 'p5', icon: 'megaphone', color: '#8090a8', label: 'P5', title: 'Comunicação Social',
       desc: 'Comunicados internos, publicações, gestão da imagem institucional e eventos.',
-      soon: true
+      soon: true, preview: ''
     },
     {
       id: 'sjd', icon: 'scale', color: '#8090a8', label: 'SJD', title: 'Justiça e Disciplina',
       desc: 'Processos administrativos, sindicâncias, punições e gestão disciplinar.',
-      soon: true
+      soon: true, preview: ''
     },
   ];
 
@@ -3825,19 +3828,19 @@ function renderHome() {
     const cursor  = s.soon ? 'default' : 'pointer';
     const click   = s.soon ? '' : `onclick="${s.action};closeSidebarMobile()"`;
     const hover   = s.soon ? '' : `onmouseover="this.style.borderColor='${s.color}';this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,.35)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform='';this.style.boxShadow=''"`;
-    return `<div ${click} ${hover} style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:24px;cursor:${cursor};transition:all .2s;opacity:${opacity};display:flex;flex-direction:column;gap:14px">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
-        <div style="width:42px;height:42px;border-radius:10px;background:${s.color}18;border:1px solid ${s.color}33;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <i data-lucide="${s.icon}" style="width:20px;height:20px;stroke:${s.color};stroke-width:1.75"></i>
+    return `<div ${click} ${hover} style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${s.soon?'var(--bd)':s.color};border-radius:10px;padding:22px;cursor:${cursor};transition:all .2s;opacity:${opacity};display:flex;flex-direction:column">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px">
+        <div style="width:40px;height:40px;border-radius:10px;background:${s.color}18;border:1px solid ${s.color}33;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i data-lucide="${s.icon}" style="width:19px;height:19px;stroke:${s.color};stroke-width:1.75"></i>
         </div>
         ${s.soon ? `<span style="font-family:'DM Mono',monospace;font-size:9px;padding:3px 9px;border-radius:10px;background:rgba(255,255,255,.05);color:var(--tx3);letter-spacing:1px">EM BREVE</span>` : `<span style="font-family:'DM Mono',monospace;font-size:9px;padding:3px 9px;border-radius:10px;background:${s.color}18;color:${s.color};letter-spacing:1px">ATIVO</span>`}
       </div>
-      <div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">${s.label}</div>
+      <div style="margin-bottom:6px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">${s.label}</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--tx);letter-spacing:.5px">${s.title}</div>
       </div>
-      <div style="font-size:12px;color:var(--tx3);line-height:1.7;flex:1">${s.desc}</div>
-      ${!s.soon ? `<div style="margin-top:4px;font-family:'DM Mono',monospace;font-size:10px;color:${s.color};display:flex;align-items:center;gap:6px">Acessar <span style="font-size:14px">→</span></div>` : ''}
+      <div style="font-size:12px;color:var(--tx3);line-height:1.7">${s.desc}</div>
+      ${s.preview || (!s.soon ? `<div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px;font-family:'DM Mono',monospace;font-size:10px;color:${s.color};display:flex;align-items:center;gap:6px">Acessar <span style="font-size:14px">→</span></div>` : '')}
     </div>`;
   }).join('');
 
@@ -3849,9 +3852,7 @@ function renderHome() {
         <div style="font-size:12px;color:var(--tx3);margin-top:4px;text-transform:capitalize">${data} · ${hora}</div>
       </div>
     </div>
-    ${ciaResumo}
-    <div style="margin-bottom:6px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase">Seções</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
       ${cards}
     </div>`;
 
