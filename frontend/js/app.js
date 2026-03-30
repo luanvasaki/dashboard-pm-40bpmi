@@ -888,22 +888,12 @@ function renderVisao() {
       labels: vmEntries.map(e => e.label),
       datasets: [
         {
-          label: 'Meta',
-          data: vmDetails.map(d => d.meta),
-          backgroundColor: 'rgba(90,157,224,.35)',
-          borderColor: 'rgba(90,157,224,.65)',
-          borderWidth: 1,
-          borderRadius: 4,
-          order: 2
-        },
-        {
-          label: 'Avaliado',
-          data: vmDetails.map(d => d.aval),
+          label: 'Meta vs Avaliado',
+          data: vmDetails.map(d => d.dev),
           backgroundColor: vmDetails.map(d =>
             d.aval <= d.meta ? 'rgba(61,191,122,.80)' : 'rgba(200,75,75,.80)'
           ),
           borderRadius: 4,
-          order: 1
         }
       ]
     },
@@ -916,11 +906,11 @@ function renderVisao() {
             title: ctx => vmEntries[ctx[0].dataIndex]?.label,
             label: ctx => {
               const d = vmDetails[ctx.dataIndex];
-              if (ctx.datasetIndex === 0) return `Meta: ${d.meta || '—'}`;
               return [
-                `Avaliado: ${d.aval}`,
-                `Meta:     ${d.meta || '—'}`,
-                `Status:   ${d.tendS}`
+                `Resultado: ${d.dev > 0 ? '+' : ''}${d.dev}% vs meta`,
+                `Avaliado:  ${d.aval}`,
+                `Meta:      ${d.meta || '—'}`,
+                `Status:    ${d.tendS}`
               ];
             }
           }
@@ -928,7 +918,7 @@ function renderVisao() {
       },
       scales: {
         x: { grid: GR },
-        y: { grid: GR }
+        y: { grid: GR, ticks: { callback: v => v + '%' } }
       },
       onClick: (evt, elements) => {
         if (elements.length) moOpen(CRIMES[elements[0].index], PAL[elements[0].index]);
