@@ -888,51 +888,39 @@ function renderVisao() {
       labels: vmEntries.map(e => e.label),
       datasets: [
         {
-          label: 'Desvio vs Meta (%)',
-          data: vmDetails.map(d => d.dev),
-          backgroundColor: vmDetails.map(d =>
-            d.aval <= d.meta ? 'rgba(61,191,122,.80)' :
-            d.aval < d.ant   ? 'rgba(191,122,61,.85)' :
-                               'rgba(200,75,75,.80)'
-          ),
-          borderRadius: 4,
-          order: 1
-        },
-        {
-          label: 'Tendência (%)',
-          data: vmDetails.map(d => d.devT),
-          backgroundColor: 'rgba(180,200,220,.45)',
-          borderColor: 'rgba(180,200,220,.70)',
+          label: 'Meta',
+          data: vmDetails.map(d => d.meta),
+          backgroundColor: 'rgba(90,157,224,.35)',
+          borderColor: 'rgba(90,157,224,.65)',
           borderWidth: 1,
           borderRadius: 4,
           order: 2
+        },
+        {
+          label: 'Avaliado',
+          data: vmDetails.map(d => d.aval),
+          backgroundColor: vmDetails.map(d =>
+            d.aval <= d.meta ? 'rgba(61,191,122,.80)' : 'rgba(200,75,75,.80)'
+          ),
+          borderRadius: 4,
+          order: 1
         }
       ]
     },
     options: {
       responsive: true,
       plugins: {
-        legend: {
-          display: true,
-          labels: { boxWidth: 16, font: { size: 16 } }
-        },
+        legend: { display: false },
         tooltip: {
           callbacks: {
             title: ctx => vmEntries[ctx[0].dataIndex]?.label,
             label: ctx => {
               const d = vmDetails[ctx.dataIndex];
-              if (ctx.datasetIndex === 1) {
-                return [
-                  `Tendência (proj.): ${d.devT > 0 ? '+' : ''}${d.devT}% vs meta`,
-                  `Valor tendência:   ${d.tendV}`
-                ];
-              }
+              if (ctx.datasetIndex === 0) return `Meta: ${d.meta || '—'}`;
               return [
-                `Desvio vs Meta: ${d.dev > 0 ? '+' : ''}${d.dev}%`,
-                `Avaliado:       ${d.aval}`,
-                `Mês Anterior:   ${d.ant}`,
-                `Meta:           ${d.meta || '—'}`,
-                `Status:         ${d.tendS}`
+                `Avaliado: ${d.aval}`,
+                `Meta:     ${d.meta || '—'}`,
+                `Status:   ${d.tendS}`
               ];
             }
           }
@@ -940,7 +928,7 @@ function renderVisao() {
       },
       scales: {
         x: { grid: GR },
-        y: { grid: GR, ticks: { callback: v => v + '%' } }
+        y: { grid: GR }
       },
       onClick: (evt, elements) => {
         if (elements.length) moOpen(CRIMES[elements[0].index], PAL[elements[0].index]);
