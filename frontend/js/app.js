@@ -660,6 +660,7 @@ async function init() {
     renderAll();
     updateSyncStatus();
     renderHome();
+    loadP1(); // carrega dados P1 em background para exibir resumo na home
     if (window.lucide) lucide.createIcons();
   } catch (err) {
     console.error('Erro ao renderizar dashboard:', err);
@@ -2284,9 +2285,11 @@ function p1Cat(posto) {
 async function loadP1() {
   const kpis = document.getElementById('p1-kpis');
   const body = document.getElementById('p1-body');
-  if (!kpis || !body) return;
-  kpis.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:10px 0">Carregando...</div>';
-  body.innerHTML = '';
+  const renderingP1 = !!(kpis && body);
+  if (renderingP1) {
+    kpis.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:10px 0">Carregando...</div>';
+    body.innerHTML = '';
+  }
   try {
     const [r1, r2, r3] = await Promise.all([
       authFetch(`${API}/efetivo`),
@@ -2297,9 +2300,10 @@ async function loadP1() {
     p1Afasts = await r2.json();
     const vagasRaw = await r3.json();
     p1Vagas  = Array.isArray(vagasRaw) ? vagasRaw : [];
-    renderP1();
+    if (renderingP1) renderP1();
+    renderHome();
   } catch (err) {
-    kpis.innerHTML = `<div style="color:#e06060;font-size:12px">${err.message}</div>`;
+    if (kpis) kpis.innerHTML = `<div style="color:#e06060;font-size:12px">${err.message}</div>`;
   }
 }
 
