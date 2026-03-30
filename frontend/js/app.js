@@ -3878,7 +3878,7 @@ function renderHome() {
       soon: true, preview: ''
     },
     {
-      id: 'sjd', icon: 'scale', color: '#8090a8', label: 'SJD', title: 'Justiça e Disciplina',
+      id: 'sjd', icon: 'scale', color: '#8090a8', label: 'PJMD', title: 'Pol. Judiciária Militar e Disciplina',
       desc: 'Processos administrativos, sindicâncias, punições e gestão disciplinar.',
       soon: true, preview: ''
     },
