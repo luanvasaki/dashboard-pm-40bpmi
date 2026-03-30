@@ -1864,15 +1864,19 @@ function updateFemKpi() {
   const sec = document.getElementById('mo-fem-section');
   if (!sec) return;
 
+  console.log('[FEM] moFemData:', moFemData.length, 'moMeses:', moMeses, 'selAno:', selAno);
+
   // Filtra registros pelo período selecionado no modal (moMeses + selAno)
   const femFiltrado = moFemData.filter(r => {
     if (!r.data_ocorrencia) return false;
     const d = new Date(r.data_ocorrencia);
     const mesNome = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][d.getMonth()];
     const anoOk = !selAno || d.getFullYear() === selAno;
+    console.log('[FEM] registro:', r.data_ocorrencia, '→ mes:', mesNome, 'anoOk:', anoOk, 'mesOk:', moMeses.includes(mesNome));
     return anoOk && moMeses.includes(mesNome);
   });
 
+  console.log('[FEM] femFiltrado:', femFiltrado.length);
   if (!femFiltrado.length) { sec.style.display = 'none'; return; }
   sec.style.display = '';
 
