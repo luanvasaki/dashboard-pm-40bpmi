@@ -1402,7 +1402,7 @@ function buildMoFilter() {
   h += '<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" style="min-width:90px" onchange="moSetScope(\'cia\',this.value)"><option value="">—</option>';
   CIAS.forEach(c => h += `<option value="${c}" ${moScopeType==='cia'&&moScopeVal===c?'selected':''}>${c}</option>`);
   h += '</select></div>';
-  const munListMo = moScopeType === 'cia' ? MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === moScopeVal)) : MUNS;
+  const munListMo = moScopeType === 'cia' ? MUNS.filter(m => RAW.some(r => r.mun === m && normCiaKey(r.cia) === normCiaKey(moScopeVal))) : MUNS;
   h += '<div class="pf-field"><span class="pf-label">Município</span><select class="pf-select" style="min-width:130px" onchange="moSetScope(\'mun\',this.value)"><option value="">—</option>';
   munListMo.forEach(m => h += `<option value="${m}" ${moScopeType==='mun'&&moScopeVal===m?'selected':''}>${m}</option>`);
   h += '</select></div>';
