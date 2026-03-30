@@ -1861,7 +1861,9 @@ let moFemData = []; // registros de Feminicídio para tela de Homicídio
 let moFemCh   = null;
 
 function updateFemKpi() {
+  console.log('[FEM] chamou updateFemKpi, moFemData:', moFemData.length);
   const sec = document.getElementById('mo-fem-section');
+  console.log('[FEM] sec element:', sec);
   if (!sec) return;
 
   console.log('[FEM] moFemData:', moFemData.length, 'moMeses:', moMeses, 'selAno:', selAno);
