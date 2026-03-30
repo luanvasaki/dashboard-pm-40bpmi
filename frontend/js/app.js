@@ -3737,6 +3737,40 @@ function renderHome() {
     };
     const gs = stOf(p1Data);
 
+    // EAP pendente
+    const anoAtualH = new Date().getFullYear();
+    const eapPend = p1Data.filter(r => {
+      if (!r.data_eap) return true;
+      const d = new Date(r.data_eap);
+      return isNaN(d) || d.getFullYear() !== anoAtualH;
+    }).length;
+
+    // Férias
+    const isFer  = t => /f[eé]rias/i.test(t || '');
+    const em15s  = (() => { const d = new Date(); d.setDate(d.getDate() + 15); return d.toISOString().split('T')[0]; })();
+    const ferGozo = (p1Afasts||[]).filter(a => isFer(a.tipo_afastamento) && a.inicio <= today && (!a.termino || a.termino >= today)).length;
+    const fer15   = (p1Afasts||[]).filter(a => isFer(a.tipo_afastamento) && a.inicio > today && a.inicio <= em15s).length;
+
+    // Restrições vencendo em 30 dias
+    const em30s = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split('T')[0]; })();
+    const restrVenc = p1Data.filter(r =>
+      (r.possui_restricao||'').toLowerCase().startsWith('s') &&
+      r.restricao_termino && r.restricao_termino >= today && r.restricao_termino <= em30s
+    ).length;
+
+    // Tipo de afastamento mais frequente
+    const tipoCount = {};
+    Object.values(afH).flat().forEach(a => { tipoCount[a.tipo_afastamento] = (tipoCount[a.tipo_afastamento]||0) + 1; });
+    const topAfst = Object.entries(tipoCount).sort((a,b) => b[1]-a[1])[0];
+
+    // Alertas
+    const alertas = [];
+    if (eapPend > 0)   alertas.push(`<span style="color:#c8a84b">⚠ ${eapPend} EAP pend.</span>`);
+    if (restrVenc > 0) alertas.push(`<span style="color:#c8a84b">⚠ ${restrVenc} restr. vencem</span>`);
+    if (ferGozo > 0)   alertas.push(`<span style="color:#5a9de0">${ferGozo} em férias</span>`);
+    if (fer15 > 0)     alertas.push(`<span style="color:#5a9de0">${fer15} férias em 15d</span>`);
+    if (topAfst)       alertas.push(`<span style="color:var(--tx3)">Afst líder: <span style="color:var(--tx2)">${topAfst[0]} (${topAfst[1]})</span></span>`);
+
     const ciaRows = CIA_STRUCT.map(cia => {
       const pms = getPms(cia.units.flatMap(u => u.keys));
       if (!pms.length) return '';
@@ -3762,6 +3796,7 @@ function renderHome() {
           <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${gs.restr>0?'#c8a84b':'var(--tx3)'}">${gs.restr}</span><span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);margin-left:4px">restr</span></div>
         </div>
         ${ciaRows}
+        ${alertas.length ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);display:flex;flex-wrap:wrap;gap:8px;font-family:'DM Mono',monospace;font-size:9px">${alertas.join('<span style="color:var(--bd2)">·</span>')}</div>` : ''}
       </div>`;
   }
 
