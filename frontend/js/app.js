@@ -912,19 +912,7 @@ function renderVisao() {
     options: {
       responsive: true,
       plugins: {
-        legend: {
-          display: true,
-          labels: {
-            boxWidth: 14,
-            font: { size: 13 },
-            generateLabels: () => [
-              { text: 'Dentro da meta',                          fillStyle: 'rgba(61,191,122,.80)',  strokeStyle: 'transparent', lineWidth: 0, fontColor: '#e0ecf8', color: '#e0ecf8' },
-              { text: 'Acima da meta, melhor que mês anterior', fillStyle: 'rgba(191,122,61,.85)',  strokeStyle: 'transparent', lineWidth: 0, fontColor: '#e0ecf8', color: '#e0ecf8' },
-              { text: 'Acima da meta',                          fillStyle: 'rgba(200,75,75,.80)',   strokeStyle: 'transparent', lineWidth: 0, fontColor: '#e0ecf8', color: '#e0ecf8' },
-              { text: 'Tendência (projeção)',                   fillStyle: 'rgba(180,200,220,.50)', strokeStyle: 'transparent', lineWidth: 0, fontColor: '#e0ecf8', color: '#e0ecf8' },
-            ]
-          }
-        },
+        legend: { display: false },
         tooltip: {
           callbacks: {
             title: ctx => vmEntries[ctx[0].dataIndex]?.label,
