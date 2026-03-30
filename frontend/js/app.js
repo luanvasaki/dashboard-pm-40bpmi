@@ -2656,16 +2656,6 @@ function renderP1() {
   const feriasSection = '';
   const eapSection = '';
 
-  // ── Filtro bar por OPM
-  const opmsDisp = Object.keys(p1ByUnit).sort();
-  const filtroBar = document.getElementById('p1-filtro-bar');
-  if (filtroBar) {
-    const esc = s => s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    filtroBar.innerHTML = `<div class="pf" style="margin-bottom:0">
-      <button onclick="p1SetFiltroOpm('')" class="pf-btn${!p1FiltroOpm ? ' on' : ''}">Todos</button>
-      ${opmsDisp.map(o => `<button onclick="p1SetFiltroOpm('${esc(o)}')" class="pf-btn${p1FiltroOpm === o ? ' on' : ''}">${o}</button>`).join('')}
-    </div>`;
-  }
 
   bodyEl.innerHTML = claroSection + feriasSection + afastSection + alertSection + eapSection + `
     <div style="margin-bottom:6px">
