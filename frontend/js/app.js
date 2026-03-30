@@ -1570,30 +1570,52 @@ function moRender() {
         return vals.map((_,i) => Math.max(0, Math.round((intercept + slope*i)*10)/10));
       };
 
-      // ── Gráfico 1: Comparação Ano a Ano + Tendência ─────────────────────
+      // ── Gráfico 1: Comparação Ano a Ano + Projeção Sazonal ──────────────
       // null = mês não existe na base daquele ano (futuro/não importado)
-      // 0 = mês existe mas não houve crime naquele filtro (CIA sem ocorrência)
       const mesExiste = (ano, mes) => RAW.some(r => r.ano === ano && r.mes === mes);
+
+      const baseAno = ANOS[ANOS.length - 1]; // ano de referência (mais antigo)
+      const compAno = ANOS[0];               // ano atual (mais recente)
+
+      // Índice sazonal do ano de referência — base para calcular projeção
+      const baseAnoVals  = MES_ORD.map(m => mesExiste(baseAno, m) ? yrVal(baseAno, m) : null);
+      const baseAnoNum   = baseAnoVals.filter(v => v !== null);
+      const avgBaseAno   = baseAnoNum.length > 0 ? baseAnoNum.reduce((a,b) => a+b,0) / baseAnoNum.length : 1;
+      const sazonIdxBase = MES_ORD.map((_, i) => baseAnoVals[i] !== null ? baseAnoVals[i] / avgBaseAno : null);
+
       const yrDatasets = [];
       ANOS.forEach((ano, i) => {
         const vals = MES_ORD.map(m => mesExiste(ano, m) ? yrVal(ano, m) : null);
-        const valsNum = vals.filter(v => v !== null);
         const col  = YR_COLORS[i % YR_COLORS.length];
         yrDatasets.push({ label: String(ano), data: vals,
           borderColor: col, backgroundColor: 'transparent',
           tension: 0, pointRadius: 5, borderWidth: 2, pointBackgroundColor: col,
           spanGaps: false });
-        if (valsNum.length >= 2) {
-          const trend = lrTrend(valsNum);
-          const trendFull = vals.map((v, idx) => {
-            const numIdx = vals.slice(0, idx+1).filter(x => x !== null).length - 1;
-            return v !== null ? trend[numIdx] : null;
-          });
-          yrDatasets.push({ label: `Tendência ${ano}`, data: trendFull,
-            borderColor: col, backgroundColor: 'transparent',
-            borderDash: [6,4], pointRadius: 0, borderWidth: 1.5,
-            tension: 0.3, spanGaps: false });
+
+        // Projeção sazonal: apenas ano mais recente, apenas se ainda tem meses sem dados
+        if (ano === compAno) {
+          const mesesReais   = MES_ORD.filter(m => mesExiste(compAno, m));
+          const mesesFuturos = MES_ORD.filter(m => !mesExiste(compAno, m));
+          if (mesesReais.length > 0 && mesesFuturos.length > 0) {
+            const totalAtual  = mesesReais.reduce((s, m) => s + yrVal(compAno, m), 0);
+            const avgAtual    = totalAtual / mesesReais.length;
+            const lastRealIdx = MES_ORD.indexOf(mesesReais[mesesReais.length - 1]);
+            const projData = MES_ORD.map((m, idx) => {
+              if (idx < lastRealIdx) return null;
+              if (idx === lastRealIdx) return yrVal(compAno, m); // ponto de conexão com dado real
+              const sIdx = sazonIdxBase[idx];
+              return sIdx !== null ? Math.max(0, Math.round(avgAtual * sIdx)) : null;
+            });
+            yrDatasets.push({
+              label: `Projeção ${compAno}`,
+              data: projData,
+              borderColor: col, backgroundColor: 'transparent',
+              borderDash: [8, 4], pointRadius: 3, borderWidth: 1.5,
+              tension: 0.3, spanGaps: false
+            });
+          }
         }
+        // Anos anteriores: sem linha de tendência (dados já completos)
       });
       const ch1 = Chart.getChart(document.getElementById('mo-year-comp'));
       if (ch1) ch1.destroy();
@@ -1601,7 +1623,7 @@ function moRender() {
         type: 'line',
         data: { labels: MES_ORD, datasets: yrDatasets },
         options: { responsive: true,
-          plugins: { legend: { labels: { boxWidth: 15, padding: 8, font: { size: 13 }, filter: i => !i.text.startsWith('Tendência') || true } },
+          plugins: { legend: { labels: { boxWidth: 15, padding: 8, font: { size: 13 } } },
             tooltip: { callbacks: { title: items => MES_ORD[items[0].dataIndex] } } },
           scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } } }
       }));
@@ -1613,15 +1635,15 @@ function moRender() {
       const totBase1c  = mesesComuns.reduce((s,m) => s + yrVal(ANOS[ANOS.length-1], m), 0);
       const totComp1c  = mesesComuns.reduce((s,m) => s + yrVal(ANOS[0], m), 0);
       const diffPct1   = totBase1c > 0 ? ((totComp1c - totBase1c) / totBase1c * 100).toFixed(1) : null;
+      const hasProjFutura = MES_ORD.some(m => !mesExiste(compAno, m));
       const txt1 = mesesComuns.length > 0
-        ? `Comparando os ${mesesComuns.length} meses disponíveis em ambos os anos: <b>${ANOS[0]}</b> registrou <b>${totComp1c}</b> ocorrências contra <b>${totBase1c}</b> em <b>${ANOS[ANOS.length-1]}</b> — variação de <b style="color:${diffPct1 > 0 ? '#c84b4b' : '#4bc87a'}">${diffPct1 > 0 ? '+' : ''}${diffPct1}%</b>. As linhas tracejadas indicam a direção da tendência dentro de cada ano.`
+        ? `Comparando os ${mesesComuns.length} meses disponíveis em ambos os anos: <b>${compAno}</b> registrou <b>${totComp1c}</b> ocorrências contra <b>${totBase1c}</b> em <b>${baseAno}</b> — variação de <b style="color:${diffPct1 > 0 ? '#c84b4b' : '#4bc87a'}">${diffPct1 > 0 ? '+' : ''}${diffPct1}%</b>.${hasProjFutura ? ` A linha tracejada de <b>${compAno}</b> representa a <b>projeção dos meses seguintes</b>: média mensal atual de ${compAno} ajustada pelo padrão histórico de cada mês em ${baseAno} (sazonalidade). Não são dados reais.` : ''}`
         : 'Selecione um período com dados em ambos os anos para comparação.';
       const el1 = document.getElementById('mo-text-comp');
       if (el1) el1.innerHTML = txt1;
 
       // ── Cards: Sazonalidade e Projeção ───────────────────────────────────
-      const baseAno = ANOS[ANOS.length - 1]; // ano mais antigo como base
-      const compAno = ANOS[0];               // ano mais recente
+      // baseAno / compAno já definidos acima (seção Gráfico 1)
       // Só usa meses que tenham dados em pelo menos um ano (ignora futuros zerados)
       const allVals = MES_ORD.map(m => {
         const anosComDados = ANOS.filter(a => mesExiste(a, m));
