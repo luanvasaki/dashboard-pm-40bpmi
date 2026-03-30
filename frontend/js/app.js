@@ -2577,8 +2577,11 @@ function renderP1() {
       onmouseover="if(!this.classList.contains('sel')){this.style.borderColor='${s.color}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'}"
       onmouseout="if(!this.classList.contains('sel')){this.style.borderColor='var(--bd)';this.style.transform='';this.style.boxShadow=''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
-        <div style="font-size:15px;font-weight:800;color:var(--tx);font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px">${unit}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:16px;font-weight:700;color:var(--tx)">${d.length}</span></div>
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${s.color};letter-spacing:.5px;line-height:1">${unit}</div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:20px;font-weight:700;color:var(--tx)">${d.length}</span></div>
       </div>
       <div style="background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin-bottom:10px">
         <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:4px;transition:width .5s ease"></div>
