@@ -2522,7 +2522,7 @@ function renderP1() {
         onmouseover="if(!this.classList.contains('sel')){this.style.borderColor='${cia.color}';this.style.color='var(--tx)'}"
         onmouseout="if(!this.classList.contains('sel')){this.style.borderColor='rgba(255,255,255,.1)';this.style.color='var(--tx2)'}">
         <div style="font-size:11px;font-weight:600;color:inherit;white-space:nowrap">${u.label}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;margin-top:3px;display:flex;gap:8px">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;margin-top:3px;display:flex;gap:8px">
           <span style="color:#4bc87a">${us.aptos} aptos</span>
           ${us.afst > 0 ? `<span style="color:#c84b4b">${us.afst} afst</span>` : ''}
           ${us.restr > 0 ? `<span style="color:#c8a84b">${us.restr} restr</span>` : ''}
@@ -2563,7 +2563,7 @@ function renderP1() {
           <div style="font-family:'DM Mono',monospace;font-size:7px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
         </div>
       </div>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);margin-bottom:12px;line-height:1.8">${catLine}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);margin-bottom:12px;line-height:1.8">${catLine}</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">${unitBtns}</div>
     </div>`;
   }).join('');
