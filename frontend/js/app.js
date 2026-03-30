@@ -3796,15 +3796,15 @@ function renderHome() {
     const makeRow = (label, color, pms) => {
       if (!pms.length) return '';
       const s = stOf(pms);
-      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:${color};width:36px;flex-shrink:0">${label}</div>
-        <div style="flex:1;background:rgba(255,255,255,.06);border-radius:3px;height:5px;overflow:hidden">
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:${color};width:42px;flex-shrink:0">${label}</div>
+        <div style="flex:1;background:rgba(255,255,255,.06);border-radius:3px;height:6px;overflow:hidden">
           <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:3px"></div>
         </div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:${s.color};width:32px;text-align:right">${s.pct}%</div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);width:50px">${s.total} PMs</div>
-        ${s.afst  > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:#c84b4b">${s.afst} afst</div>` : ''}
-        ${s.restr > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:#c8a84b">${s.restr} restr</div>` : ''}
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:${s.color};width:34px;text-align:right">${s.pct}%</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);width:52px">${s.total} PMs</div>
+        ${s.afst  > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:11px;color:#c84b4b">${s.afst} afst</div>` : ''}
+        ${s.restr > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:11px;color:#c8a84b">${s.restr} restr</div>` : ''}
       </div>`;
     };
 
@@ -3816,10 +3816,10 @@ function renderHome() {
     p1Preview = `
       <div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px">
         <div style="display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap">
-          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--tx)">${gs.total}</span><span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);margin-left:4px">total</span></div>
-          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4bc87a">${gs.aptos}</span><span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);margin-left:4px">aptos</span></div>
-          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${gs.afst>0?'#c84b4b':'var(--tx3)'}">${gs.afst}</span><span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);margin-left:4px">afst</span></div>
-          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${gs.restr>0?'#c8a84b':'var(--tx3)'}">${gs.restr}</span><span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);margin-left:4px">restr</span></div>
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--tx)">${gs.total}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-left:4px">total</span></div>
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:#4bc87a">${gs.aptos}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-left:4px">aptos</span></div>
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${gs.afst>0?'#c84b4b':'var(--tx3)'}">${gs.afst}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-left:4px">afst</span></div>
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${gs.restr>0?'#c8a84b':'var(--tx3)'}">${gs.restr}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-left:4px">restr</span></div>
         </div>
         ${ciaRows}
         ${alertas.length ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);display:flex;flex-wrap:wrap;gap:8px;font-family:'DM Mono',monospace;font-size:9px">${alertas.join('<span style="color:var(--bd2)">·</span>')}</div>` : ''}
@@ -3838,19 +3838,29 @@ function renderHome() {
     const totalMeta = rawMes.reduce((s, r) => s + (r.meta || 0), 0);
     const pctMeta = totalMeta > 0 ? Math.round(totalMes / totalMeta * 100) : null;
     const metaColor = pctMeta === null ? 'var(--tx3)' : pctMeta <= 100 ? '#4bc87a' : '#c84b4b';
-    // Crime mais registrado no mês
-    const porCrime = {};
-    rawMes.forEach(r => { porCrime[r.crime] = (porCrime[r.crime] || 0) + (r.avaliado || 0); });
-    const topCrime = Object.entries(porCrime).sort((a,b) => b[1] - a[1])[0];
+    // Crime mais fora da meta no mês (maior desvio % acima)
+    const porCrimeMeta = {};
+    rawMes.forEach(r => {
+      if (!porCrimeMeta[r.crime]) porCrimeMeta[r.crime] = { a: 0, m: 0 };
+      porCrimeMeta[r.crime].a += (r.avaliado || 0);
+      porCrimeMeta[r.crime].m += (r.meta || 0);
+    });
+    const crimesAcima = Object.entries(porCrimeMeta)
+      .filter(([, v]) => v.m > 0 && v.a > v.m)
+      .sort(([, a], [, b]) => (b.a / b.m) - (a.a / a.m));
+    const topCritico = crimesAcima[0];
+    const criticoTxt = topCritico
+      ? `Crítico: <span style="color:#c84b4b">${topCritico[0]}</span> <span style="color:#c84b4b">+${Math.round((topCritico[1].a / topCritico[1].m - 1) * 100)}%</span>`
+      : `<span style="color:#4bc87a">✓ Todos dentro da meta</span>`;
 
     p3Preview = `
       <div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px">
-        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);letter-spacing:1px;margin-bottom:6px">${mesR} ${anoR}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:1px;margin-bottom:6px">${mesR} ${anoR}</div>
         <div style="display:flex;gap:14px;margin-bottom:8px;flex-wrap:wrap">
-          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--tx)">${totalMes}</span><span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);margin-left:4px">ocorr.</span></div>
-          ${pctMeta !== null ? `<div><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${metaColor}">${pctMeta}%</span><span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--tx3);margin-left:4px">da meta</span></div>` : ''}
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--tx)">${totalMes}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-left:4px">ocorr.</span></div>
+          ${pctMeta !== null ? `<div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${metaColor}">${pctMeta}%</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-left:4px">da meta</span></div>` : ''}
         </div>
-        ${topCrime ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3)">Líder: <span style="color:var(--tx2)">${topCrime[0]}</span> <span style="color:#c84b4b">${topCrime[1]}</span></div>` : ''}
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">${criticoTxt}</div>
       </div>`;
   }
 
@@ -3889,7 +3899,7 @@ function renderHome() {
     const cursor  = s.soon ? 'default' : 'pointer';
     const click   = s.soon ? '' : `onclick="${s.action};closeSidebarMobile()"`;
     const hover   = s.soon ? '' : `onmouseover="this.style.borderColor='${s.color}';this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,.35)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform='';this.style.boxShadow=''"`;
-    return `<div ${click} ${hover} style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${s.soon?'var(--bd)':s.color};border-radius:10px;padding:22px;cursor:${cursor};transition:all .2s;opacity:${opacity};display:flex;flex-direction:column">
+    return `<div ${click} ${hover} style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${s.soon?'var(--bd)':s.color};border-radius:10px;padding:26px 22px;cursor:${cursor};transition:all .2s;opacity:${opacity};display:flex;flex-direction:column">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px">
         <div style="width:40px;height:40px;border-radius:10px;background:${s.color}18;border:1px solid ${s.color}33;display:flex;align-items:center;justify-content:center;flex-shrink:0">
           <i data-lucide="${s.icon}" style="width:19px;height:19px;stroke:${s.color};stroke-width:1.75"></i>
