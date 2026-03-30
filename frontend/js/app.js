@@ -3774,7 +3774,7 @@ function renderHome() {
           <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:3px"></div>
         </div>
         <div style="font-family:'DM Mono',monospace;font-size:9px;color:${s.color};width:32px;text-align:right">${s.pct}%</div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);width:50px">${s.total} mil.</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);width:50px">${s.total} PMs</div>
         ${s.afst  > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:#c84b4b">${s.afst} afst</div>` : ''}
         ${s.restr > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:#c8a84b">${s.restr} restr</div>` : ''}
       </div>`;
