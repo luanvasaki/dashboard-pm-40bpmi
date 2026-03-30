@@ -3874,7 +3874,7 @@ function renderHome() {
     {
       id: 'p3', icon: 'shield', color: '#5a9de0', label: 'P3', title: 'Divisão Operacional',
       desc: 'Inteligência criminal, análise de crimes, metas SSP, ocorrências InfoCrim e relatórios operacionais.',
-      soon: false, action: `goSection('p3', document.getElementById('sec-p3'))`,
+      soon: false, action: `goPage('visao', document.getElementById('sec-p3'))`,
       preview: p3Preview
     },
     {
@@ -3978,12 +3978,13 @@ function goSection(id, btn) {
   const submenu = document.getElementById('p3-submenu');
   if (submenu) submenu.style.display = isP3 ? '' : 'none';
   if (isP3) {
+    currentP3Page = 'visao';
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
-    const prodBtn = document.querySelector('.nav-btn[onclick*="p3prod"]');
-    if (prodBtn) prodBtn.classList.add('on');
+    const visaoBtn = document.querySelector('.nav-btn[onclick*="visao"]');
+    if (visaoBtn) visaoBtn.classList.add('on');
   }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
-  document.getElementById(isP3 ? 'page-p3prod' : 'page-' + id).classList.add('on');
+  document.getElementById(isP3 ? 'page-visao' : 'page-' + id).classList.add('on');
   updateSidebarImports(id);
   if (id === 'p1') {
     p1FiltroOpm = '';
