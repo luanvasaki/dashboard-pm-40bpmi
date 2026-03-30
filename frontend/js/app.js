@@ -1861,20 +1861,15 @@ let moFemData = []; // registros de Feminicídio para tela de Homicídio
 let moFemCh   = null;
 
 function updateFemKpi() {
-  console.log('[FEM] chamou updateFemKpi, moFemData:', moFemData.length);
   const sec = document.getElementById('mo-fem-section');
-  console.log('[FEM] sec element:', sec);
   if (!sec) return;
-
-  console.log('[FEM] moFemData:', moFemData.length, 'moMeses:', moMeses, 'selAno:', selAno);
 
   // Filtra registros pelo período selecionado no modal (moMeses + selAno)
   const femFiltrado = moFemData.filter(r => {
     if (!r.data_ocorrencia) return false;
-    const d = new Date(r.data_ocorrencia);
-    const mesNome = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][d.getMonth()];
-    const anoOk = !selAno || d.getFullYear() === selAno;
-    console.log('[FEM] registro:', r.data_ocorrencia, '→ mes:', mesNome, 'anoOk:', anoOk, 'mesOk:', moMeses.includes(mesNome));
+    const [ano, mes] = r.data_ocorrencia.split('-').map(Number);
+    const mesNome = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][mes - 1];
+    const anoOk = !selAno || ano === selAno;
     return anoOk && moMeses.includes(mesNome);
   });
 
