@@ -3874,7 +3874,7 @@ function renderHome() {
     {
       id: 'p3', icon: 'shield', color: '#5a9de0', label: 'P3', title: 'Divisão Operacional',
       desc: 'Inteligência criminal, análise de crimes, metas SSP, ocorrências InfoCrim e relatórios operacionais.',
-      soon: false, action: `goPage('visao', document.getElementById('sec-p3'))`,
+      soon: false, action: `goSection('p3', document.getElementById('sec-p3'))`,
       preview: p3Preview
     },
     {
