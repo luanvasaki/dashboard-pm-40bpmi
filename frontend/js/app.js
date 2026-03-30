@@ -3768,12 +3768,14 @@ function renderHome() {
     if (fer15 > 0)     alertas.push(`<span style="color:#5a9de0">${fer15} férias em 15d</span>`);
     if (topAfst)       alertas.push(`<span style="color:var(--tx3)">Afst líder: <span style="color:var(--tx2)">${topAfst[0]} (${topAfst[1]})</span></span>`);
 
-    const ciaRows = CIA_STRUCT.map(cia => {
-      const pms = getPms(cia.units.flatMap(u => u.keys));
+    const allCiaKeys = CIA_STRUCT.flatMap(c => c.units.flatMap(u => u.keys));
+    const unmatchedOpms = [...new Set(p1Data.map(r => r.opm).filter(o => o && !_opmMatch(o, allCiaKeys)))];
+
+    const makeRow = (label, color, pms) => {
       if (!pms.length) return '';
       const s = stOf(pms);
       return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:${cia.color};width:36px;flex-shrink:0">${cia.label}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:${color};width:36px;flex-shrink:0">${label}</div>
         <div style="flex:1;background:rgba(255,255,255,.06);border-radius:3px;height:5px;overflow:hidden">
           <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:3px"></div>
         </div>
@@ -3782,7 +3784,12 @@ function renderHome() {
         ${s.afst  > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:#c84b4b">${s.afst} afst</div>` : ''}
         ${s.restr > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:#c8a84b">${s.restr} restr</div>` : ''}
       </div>`;
-    }).filter(Boolean).join('');
+    };
+
+    const ciaRows = [
+      ...CIA_STRUCT.map(cia => makeRow(cia.label, cia.color, getPms(cia.units.flatMap(u => u.keys)))),
+      ...unmatchedOpms.map(opm => makeRow(opm, 'var(--tx3)', p1Data.filter(r => r.opm === opm)))
+    ].filter(Boolean).join('');
 
     p1Preview = `
       <div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px">
