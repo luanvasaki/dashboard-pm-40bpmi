@@ -3836,8 +3836,8 @@ function renderHome() {
         ${s.soon ? `<span style="font-family:'DM Mono',monospace;font-size:9px;padding:3px 9px;border-radius:10px;background:rgba(255,255,255,.05);color:var(--tx3);letter-spacing:1px">EM BREVE</span>` : `<span style="font-family:'DM Mono',monospace;font-size:9px;padding:3px 9px;border-radius:10px;background:${s.color}18;color:${s.color};letter-spacing:1px">ATIVO</span>`}
       </div>
       <div style="margin-bottom:6px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">${s.label}</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--tx);letter-spacing:.5px">${s.title}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${s.soon?'var(--tx3)':s.color};letter-spacing:1px;line-height:1;margin-bottom:2px">${s.label}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:600;color:var(--tx);letter-spacing:.5px">${s.title}</div>
       </div>
       <div style="font-size:12px;color:var(--tx3);line-height:1.7">${s.desc}</div>
       ${s.preview || (!s.soon ? `<div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px;font-family:'DM Mono',monospace;font-size:10px;color:${s.color};display:flex;align-items:center;gap:6px">Acessar <span style="font-size:14px">→</span></div>` : '')}
