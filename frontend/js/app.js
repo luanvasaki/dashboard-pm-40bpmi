@@ -1973,6 +1973,15 @@ async function loadMoOcorr() {
       const params = new URLSearchParams({ rubrica: moCrime, limit: '2000' });
       const res = await authFetch(`${API}/ocorrencias?${params}`);
       data = await res.json();
+      // Homicídio inclui Feminicídio (mesma categoria criminal)
+      if (moCrime === 'Homicídio') {
+        try {
+          const paramsFem = new URLSearchParams({ rubrica: 'Feminicídio', limit: '2000' });
+          const resFem = await authFetch(`${API}/ocorrencias?${paramsFem}`);
+          const dataFem = await resFem.json();
+          if (Array.isArray(dataFem) && dataFem.length) data = [...data, ...dataFem];
+        } catch (_) {}
+      }
       // Exclui condutas de veículo — pertencem à tela Roubo/Furto Veículos
       if (['Roubo','Furto'].includes(moCrime)) {
         const isCondutaVeiculo = c => { const l = (c || '').toLowerCase(); return l.includes('veíc') && !l.includes('interior'); };
