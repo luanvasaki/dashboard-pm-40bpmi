@@ -1363,6 +1363,7 @@ let moIntelChs = [];
 function moDestroy() {
   moCh.forEach(c => c.destroy()); moCh = [];
   moIntelChs.forEach(c => c.destroy()); moIntelChs = [];
+  if (moFemCh) { moFemCh.destroy(); moFemCh = null; }
 }
 
 function moOpen(crime, color, displayLabel) {
@@ -1371,7 +1372,7 @@ function moOpen(crime, color, displayLabel) {
   moMeses = [...selMeses];
   moScopeType = 'btl'; moScopeVal = null;
   moOcorrAll = [];
-  moFemCount = null;
+  moFemData = [];
   const label = displayLabel || (Array.isArray(crime) ? crime.join(' + ') : crime);
   document.getElementById('mo-crime').textContent      = label.toUpperCase();
   document.getElementById('mo-accent').style.background = color;
@@ -1459,7 +1460,7 @@ function moRender() {
     <div class="mk"><div class="mk-lbl">Var vs Anterior</div><div class="mk-val" style="color:${vc}">${parseFloat(vp) <= 0 ? '▼' : '▲'}${Math.abs(vp)}%</div><div class="mk-sub">Ant: ${ant}</div></div>
     <div class="mk" style="grid-column:span 1"><div class="mk-lbl">Municípios Fora da Meta (${acimaDoMeta.length})</div>${munCriticoHtml}</div>
     <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:16px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub">Meta:${meta} | Real:${aval}</div></div>
-    ${crime === 'Homicídio' ? `<div class="mk" id="mo-fem-kpi"><div class="mk-lbl">Feminicídio</div><div class="mk-val" style="color:var(--tx3);font-size:18px">…</div><div class="mk-sub">registros InfoCrim</div></div>` : ''}`;
+    `;
   if (crime === 'Homicídio') updateFemKpi();
 
   // Meta vs Avaliado
@@ -1856,12 +1857,53 @@ async function confirmUpload() {
 
 let ocorrData  = null;
 let moOcorrAll = [];
-let moFemCount = null; // contagem de Feminicídio para tela de Homicídio
+let moFemData = []; // registros de Feminicídio para tela de Homicídio
+let moFemCh   = null;
 
 function updateFemKpi() {
-  const el = document.getElementById('mo-fem-kpi');
-  if (!el || moFemCount === null) return;
-  el.innerHTML = `<div class="mk-lbl">Feminicídio</div><div class="mk-val" style="color:#c84b4b;font-size:22px">${moFemCount}</div><div class="mk-sub">registros InfoCrim</div>`;
+  const sec = document.getElementById('mo-fem-section');
+  if (!sec) return;
+
+  // Filtra registros pelo período selecionado no modal (moMeses + selAno)
+  const femFiltrado = moFemData.filter(r => {
+    if (!r.data_ocorrencia) return false;
+    const d = new Date(r.data_ocorrencia);
+    const mesNome = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][d.getMonth()];
+    const anoOk = !selAno || d.getFullYear() === selAno;
+    return anoOk && moMeses.includes(mesNome);
+  });
+
+  if (!femFiltrado.length) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+
+  const femCount  = femFiltrado.length;
+  const totalAval = sf(q({ crime: moCrime, mes: moMeses, ...moQScope() }));
+  const demais    = Math.max(0, totalAval - femCount);
+
+  // Destrói gráfico anterior se existir
+  if (moFemCh) { moFemCh.destroy(); moFemCh = null; }
+  const ctx = document.getElementById('mo-fem-chart')?.getContext('2d');
+  if (!ctx) return;
+
+  moFemCh = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Homicídio', 'Feminicídio'],
+      datasets: [{ data: [demais, femCount], backgroundColor: ['rgba(200,75,75,.75)', 'rgba(200,75,155,.85)'], borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, cutout: '65%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} (${totalAval > 0 ? Math.round(i.raw/totalAval*100) : 0}%)` } }
+      }
+    }
+  });
+
+  document.getElementById('mo-fem-legend').innerHTML =
+    `<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:rgba(200,75,75,.75);margin-right:6px"></span>Homicídio — <b>${demais}</b></div>` +
+    `<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:rgba(200,75,155,.85);margin-right:6px"></span>Feminicídio — <b>${femCount}</b></div>` +
+    `<div style="margin-top:4px;font-size:11px;color:var(--tx3)">Total: ${totalAval} • ${Math.round(femCount/totalAval*100)}% feminicídio</div>`;
 }
 
 function openOcorrModal() {
@@ -1990,10 +2032,10 @@ async function loadMoOcorr() {
           const paramsFem = new URLSearchParams({ rubrica: 'Feminic', limit: '2000' });
           const resFem = await authFetch(`${API}/ocorrencias?${paramsFem}`);
           const dataFem = await resFem.json();
-          moFemCount = Array.isArray(dataFem) ? dataFem.length : 0;
+          moFemData = Array.isArray(dataFem) ? dataFem : [];
         } catch (e) {
           console.error('Erro ao buscar Feminicídio:', e);
-          moFemCount = 0;
+          moFemData = [];
         }
         updateFemKpi();
       }
