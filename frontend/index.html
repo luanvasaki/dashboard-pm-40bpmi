@@ -36,10 +36,21 @@
       <i data-lucide="users" class="sec-ic"></i>
       <div class="sec-info"><div class="sec-name">P1 · Seção de Pessoal</div></div>
     </button>
-    <button class="sec-btn" id="sec-p3" onclick="goPage('visao',this)">
+    <button class="sec-btn" id="sec-p3" onclick="goSection('p3',this)">
       <i data-lucide="shield" class="sec-ic"></i>
       <div class="sec-info"><div class="sec-name">P3 · Divisão Operacional</div></div>
     </button>
+    <div id="p3-submenu" style="display:none">
+      <button class="nav-btn" onclick="goPage('visao',this)">
+        <i data-lucide="bar-chart-2" style="width:14px;height:14px;flex-shrink:0"></i> Estatística
+      </button>
+      <button class="nav-btn" onclick="goSection('p3prod',this)" style="justify-content:space-between">
+        <span style="display:flex;align-items:center;gap:9px">
+          <i data-lucide="trending-up" style="width:14px;height:14px;flex-shrink:0"></i> Produtividade
+        </span>
+        <span class="sec-badge-soon">Em breve</span>
+      </button>
+    </div>
     <button class="sec-btn" id="sec-p4" onclick="goSection('p4',this)">
       <i data-lucide="package" class="sec-ic"></i>
       <div class="sec-info"><div class="sec-name">P4 · Seção de Materiais</div></div>
@@ -418,6 +429,22 @@
     </div>
     <input type="hidden" id="foto-mo-re-data">
     <div id="foto-mo-msg" style="margin-top:10px;font-size:12px;text-align:center;min-height:16px"></div>
+  </div>
+</div>
+
+<!-- P3 PRODUTIVIDADE EM BREVE -->
+<div id="page-p3prod" class="page">
+  <div class="ph">
+    <div>
+      <div style="font-size:11px;color:var(--tx3);letter-spacing:2px;font-weight:600;margin-bottom:2px">P3 · DIVISÃO OPERACIONAL</div>
+      <div class="ph-tag">PRODUTIVIDADE</div>
+      <div class="ph-title">INDICADORES DE <span>PRODUTIVIDADE</span></div>
+    </div>
+  </div>
+  <div class="soon-wrap">
+    <div class="soon-icon-wrap"><i data-lucide="trending-up" style="width:36px;height:36px;color:var(--gold)"></i></div>
+    <div class="soon-title">Produtividade Operacional · Em Desenvolvimento</div>
+    <div class="soon-desc">Módulo em desenvolvimento. Em breve: indicadores de produtividade por CIA, registros de abordagens, apreensões, prisões em flagrante, autuações e desempenho por período — para apoiar a gestão operacional do batalhão.</div>
   </div>
 </div>
 

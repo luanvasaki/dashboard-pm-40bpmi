@@ -3938,6 +3938,19 @@ function updateSidebarImports(section) {
 
 function goSection(id, btn) {
   closeSidebarMobile();
+
+  if (id === 'p3prod') {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
+    if (btn) btn.classList.add('on');
+    const submenu = document.getElementById('p3-submenu');
+    if (submenu) submenu.style.display = '';
+    document.getElementById('sec-p3').classList.add('on');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+    document.getElementById('page-p3prod').classList.add('on');
+    updateSidebarImports('p3');
+    return;
+  }
+
   document.querySelectorAll('.sec-btn').forEach(b => b.classList.remove('on'));
   if (btn) btn.classList.add('on');
 
