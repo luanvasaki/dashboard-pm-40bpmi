@@ -1987,7 +1987,7 @@ async function loadMoOcorr() {
       // Usa 'eminicid' para evitar problema de acento/encoding no ilike
       if (moCrime === 'Homicídio') {
         try {
-          const paramsFem = new URLSearchParams({ rubrica: 'eminicid', limit: '2000' });
+          const paramsFem = new URLSearchParams({ rubrica: 'Feminic', limit: '2000' });
           const resFem = await authFetch(`${API}/ocorrencias?${paramsFem}`);
           const dataFem = await resFem.json();
           moFemCount = Array.isArray(dataFem) ? dataFem.length : 0;
