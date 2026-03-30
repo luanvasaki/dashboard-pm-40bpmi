@@ -891,7 +891,9 @@ function renderVisao() {
           label: 'Meta vs Avaliado',
           data: vmDetails.map(d => d.dev),
           backgroundColor: vmDetails.map(d =>
-            d.aval <= d.meta ? 'rgba(61,191,122,.80)' : 'rgba(200,75,75,.80)'
+            d.aval <= d.meta  ? 'rgba(61,191,122,.80)' :
+            d.aval <= d.ant   ? 'rgba(191,122,61,.85)' :
+                                'rgba(200,75,75,.80)'
           ),
           borderRadius: 4,
           order: 1
@@ -910,7 +912,19 @@ function renderVisao() {
     options: {
       responsive: true,
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: true,
+          labels: {
+            boxWidth: 14,
+            font: { size: 13 },
+            generateLabels: () => [
+              { text: 'Dentro da meta',              fillStyle: 'rgba(61,191,122,.80)',  strokeStyle: 'transparent', lineWidth: 0 },
+              { text: 'Acima da meta, melhorando',   fillStyle: 'rgba(191,122,61,.85)',  strokeStyle: 'transparent', lineWidth: 0 },
+              { text: 'Acima da meta, piorando',     fillStyle: 'rgba(200,75,75,.80)',   strokeStyle: 'transparent', lineWidth: 0 },
+              { text: 'Tendência (projeção)',         fillStyle: 'rgba(180,200,220,.50)', strokeStyle: 'transparent', lineWidth: 0 },
+            ]
+          }
+        },
         tooltip: {
           callbacks: {
             title: ctx => vmEntries[ctx[0].dataIndex]?.label,
