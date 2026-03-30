@@ -3850,8 +3850,8 @@ function renderHome() {
       .sort(([, a], [, b]) => (b.a / b.m) - (a.a / a.m));
     const topCritico = crimesAcima[0];
     const criticoTxt = topCritico
-      ? `Crítico: <span style="color:#c84b4b">${topCritico[0]}</span> <span style="color:#c84b4b">+${Math.round((topCritico[1].a / topCritico[1].m - 1) * 100)}%</span>`
-      : `<span style="color:#4bc87a">✓ Todos dentro da meta</span>`;
+      ? `Crítico em ${mesR}: <span style="color:#c84b4b">${topCritico[0]}</span> <span style="color:#c84b4b">+${Math.round((topCritico[1].a / topCritico[1].m - 1) * 100)}%</span>`
+      : `<span style="color:#4bc87a">✓ Em ${mesR}, todos os crimes dentro da meta</span>`;
 
     p3Preview = `
       <div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px">
