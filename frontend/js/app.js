@@ -894,6 +894,16 @@ function renderVisao() {
             d.aval <= d.meta ? 'rgba(61,191,122,.80)' : 'rgba(200,75,75,.80)'
           ),
           borderRadius: 4,
+          order: 1
+        },
+        {
+          label: 'Tendência (%)',
+          data: vmDetails.map(d => d.devT),
+          backgroundColor: 'rgba(180,200,220,.45)',
+          borderColor: 'rgba(180,200,220,.70)',
+          borderWidth: 1,
+          borderRadius: 4,
+          order: 2
         }
       ]
     },
