@@ -1873,12 +1873,10 @@ function updateFemKpi() {
     return anoOk && moMeses.includes(mesNome);
   });
 
-  console.log('[FEM] femFiltrado:', femFiltrado.length);
-  if (!femFiltrado.length) { sec.style.display = 'none'; return; }
-  sec.style.display = '';
-
   const femCount  = femFiltrado.length;
   const totalAval = sf(q({ crime: moCrime, mes: moMeses, ...moQScope() }));
+  if (!totalAval) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
   const demais    = Math.max(0, totalAval - femCount);
 
   // Destrói gráfico anterior se existir
