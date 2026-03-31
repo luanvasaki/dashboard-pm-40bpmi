@@ -869,6 +869,90 @@ app.post('/api/p1/vagas', requireAuth, requireRole('admin', 'p1'), async (req, r
   }
 });
 
+// ---------------------------------------------------------------------------
+// PRODUTIVIDADE P3
+// ---------------------------------------------------------------------------
+const PROD_TABS = {
+  ocorrencias:   'prod_ocorrencias',
+  presos:        'prod_pessoas_presas',
+  armas:         'prod_armas',
+  veiculos:      'prod_veiculos',
+  entorpecentes: 'prod_entorpecentes'
+};
+
+function mapProdRow(tipo, r) {
+  const cia = normCia(r['CIA'] || r['Cia'] || '');
+  const ano = parseInt(r['Ano de Data']) || 0;
+  const mes = (r['Mês de Data'] || r['Mes de Data'] || '').trim();
+  if (tipo === 'ocorrencias') return {
+    grupo_natureza:    (r['Grupo de Natureza'] || '').trim(),
+    natureza:          (r['Natureza da Ocorrência'] || r['Natureza da Ocorrencia'] || '').trim(),
+    numero_ocorrencia: (r['Número da Ocorrência'] || r['Numero da Ocorrencia'] || '').trim(),
+    us: (r['US'] || '').trim(), cia, ano, mes,
+    contagem: parseInt(r['Contagem de Ocorrências'] || r['Contagem de Ocorrencias']) || 0
+  };
+  if (tipo === 'presos') return {
+    situacao:  (r['Situação da Pessoa'] || r['Situacao da Pessoa'] || '').trim(),
+    ano, mes, cia, quantidade: parseInt(r['Quantidade de Pessoas']) || 0
+  };
+  if (tipo === 'armas') return {
+    tipo_arma: (r['Tipo da Arma'] || '').trim(),
+    calibre:   (r['Calibre'] || '').trim(),
+    ano, mes, cia, quantidade: parseInt(r['Quantidade de Armas']) || 0
+  };
+  if (tipo === 'veiculos') return {
+    situacao:  (r['Situacao do Veículo'] || r['Situação do Veículo'] || r['Situacao do Veiculo'] || '').trim(),
+    ano, mes, cia,
+    quantidade: parseInt(r['Contagem Quantidade de Veículos'] || r['Contagem Quantidade de Veiculos'] || r['Contagem de Veículos']) || 0
+  };
+  if (tipo === 'entorpecentes') return {
+    unidade_medida: (r['Unidade de Medida (Consulta do SQL personalizado)'] || r['Unidade de Medida'] || '').trim(),
+    entorpecente:   (r['Entorpecente'] || '').trim(),
+    ano, mes, cia, quantidade: parseFloat(r['Quantidade de Entorpecentes']) || 0
+  };
+  return null;
+}
+
+app.get('/api/prod/:tipo', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  const tab = PROD_TABS[req.params.tipo];
+  if (!tab) return res.status(400).json({ error: 'Tipo inválido' });
+  try {
+    const { data, error } = await supabase.from(tab).select('*').limit(50000);
+    if (error) throw new Error(error.message);
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/upload/prod/:tipo', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  const tab = PROD_TABS[req.params.tipo];
+  if (!tab) return res.status(400).json({ error: 'Tipo inválido' });
+  const { records } = req.body;
+  if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
+  try {
+    const rows = records.map(r => mapProdRow(req.params.tipo, r)).filter(r => r && r.ano > 0 && r.mes);
+    if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
+    const anos = [...new Set(rows.map(r => r.ano))];
+    for (const ano of anos) {
+      const { error: delErr } = await supabase.from(tab).delete().eq('ano', ano);
+      if (delErr) throw new Error(delErr.message);
+    }
+    const BATCH = 500;
+    let total = 0;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const { error: insErr } = await supabase.from(tab).insert(rows.slice(i, i + BATCH));
+      if (insErr) throw new Error(insErr.message);
+      total += Math.min(BATCH, rows.length - i);
+    }
+    res.json({ ok: true, total });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });

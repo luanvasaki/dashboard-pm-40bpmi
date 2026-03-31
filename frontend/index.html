@@ -438,7 +438,7 @@
   </div>
 </div>
 
-<!-- P3 PRODUTIVIDADE EM BREVE -->
+<!-- P3 PRODUTIVIDADE -->
 <div id="page-p3prod" class="page">
   <div class="ph">
     <div>
@@ -447,10 +447,22 @@
       <div class="ph-title">INDICADORES DE <span>PRODUTIVIDADE</span></div>
     </div>
   </div>
-  <div class="soon-wrap">
-    <div class="soon-icon-wrap"><i data-lucide="trending-up" style="width:36px;height:36px;color:var(--gold)"></i></div>
-    <div class="soon-title">Produtividade Operacional · Em Desenvolvimento</div>
-    <div class="soon-desc">Módulo em desenvolvimento. Em breve: indicadores de produtividade por CIA, registros de abordagens, apreensões, prisões em flagrante, autuações e desempenho por período — para apoiar a gestão operacional do batalhão.</div>
+  <div id="prod-filter" class="pf" style="margin-bottom:16px"></div>
+  <div id="prod-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-bottom:20px"></div>
+  <div id="prod-charts" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px"></div>
+</div>
+
+<!-- Modal upload Produtividade (genérico) -->
+<div id="prod-upl-mo" onclick="prodUplClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:24px;width:min(420px,92vw);max-height:90vh;overflow-y:auto">
+    <div id="prod-upl-title" style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:16px">Importar</div>
+    <input type="file" accept=".csv" id="prod-upl-file" onchange="prodUplFileChange()" style="width:100%;margin-bottom:10px;color:var(--tx);font-size:12px">
+    <div id="prod-upl-preview" style="font-size:12px;margin-bottom:10px;min-height:20px"></div>
+    <div id="prod-upl-msg" style="font-size:12px;margin-bottom:10px;min-height:16px"></div>
+    <div style="display:flex;gap:8px">
+      <button id="prod-upl-btn" onclick="prodUplConfirm()" disabled style="flex:1;padding:8px;background:var(--gold);color:#111;border:none;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;opacity:.5">Importar</button>
+      <button onclick="closeProdUpl()" style="padding:8px 16px;background:var(--bg3);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-size:13px;cursor:pointer">Cancelar</button>
+    </div>
   </div>
 </div>
 

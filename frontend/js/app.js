@@ -4007,6 +4007,17 @@ function updateSidebarImports(section) {
     el.innerHTML = `
       <button onclick="openUploadModal()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Banco de Dados RAC</button>
       <button onclick="openOcorrModal()" style="margin-top:4px;width:100%;padding:6px;background:rgba(61,122,191,.12);border:1px solid rgba(61,122,191,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Ocorrências (InfoCrim)</button>`;
+  } else if (section === 'p3prod') {
+    const itens = [
+      ['ocorrencias',   'Ocorrências Gerais',     '#5a9de0'],
+      ['presos',        'Pessoas Presas',          '#e0965a'],
+      ['armas',         'Armas Apreendidas',       '#c84b4b'],
+      ['veiculos',      'Veículos Recuperados',    '#4bc8a0'],
+      ['entorpecentes', 'Entorpecentes',           '#9b6de0'],
+    ];
+    el.innerHTML = itens.map(([t, l, c]) =>
+      `<button onclick="openProdUpl('${t}')" style="width:100%;padding:6px;margin-top:4px;background:rgba(0,0,0,.15);border:1px solid ${c}55;color:${c};border-radius:4px;cursor:pointer;font-size:10px;font-weight:600">↑ ${l}</button>`
+    ).join('');
   } else {
     el.innerHTML = '';
   }
@@ -4023,7 +4034,8 @@ function goSection(id, btn) {
     document.getElementById('sec-p3').classList.add('on');
     document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
     document.getElementById('page-p3prod').classList.add('on');
-    updateSidebarImports('p3');
+    updateSidebarImports('p3prod');
+    loadProdData();
     return;
   }
 
@@ -4074,6 +4086,310 @@ function goPage(id, btn) {
   btn.classList.add('on');
   updateSidebarImports('p3');
   setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+}
+
+// ---------------------------------------------------------------------------
+// PRODUTIVIDADE P3
+// ---------------------------------------------------------------------------
+let prodRaw = { ocorrencias: [], presos: [], armas: [], veiculos: [], entorpecentes: [], loaded: false };
+let prodSelAno    = null;
+let prodSelMeses  = [];
+let prodSelCia    = null;
+let prodChs       = [];
+let prodUplTipo   = null;
+let prodUplParsed = [];
+
+const PROD_CORES = {
+  ocorrencias:   '#5a9de0',
+  presos:        '#e0965a',
+  armas:         '#c84b4b',
+  veiculos:      '#4bc8a0',
+  entorpecentes: '#9b6de0'
+};
+const PROD_LABELS = {
+  ocorrencias:   'Ocorrências Atendidas',
+  presos:        'Pessoas Presas',
+  armas:         'Armas Apreendidas',
+  veiculos:      'Veículos Recuperados',
+  entorpecentes: 'Entorpecentes Apreendidos'
+};
+const PROD_CAMPO = {
+  ocorrencias:   'contagem',
+  presos:        'quantidade',
+  armas:         'quantidade',
+  veiculos:      'quantidade',
+  entorpecentes: 'quantidade'
+};
+const PROD_BREAK = {
+  ocorrencias:   'grupo_natureza',
+  presos:        'situacao',
+  armas:         'tipo_arma',
+  veiculos:      'situacao',
+  entorpecentes: 'entorpecente'
+};
+
+function prodFilter(arr) {
+  return arr.filter(r => {
+    if (prodSelAno && r.ano !== prodSelAno) return false;
+    if (prodSelMeses.length && !prodSelMeses.includes(r.mes)) return false;
+    if (prodSelCia && r.cia !== prodSelCia) return false;
+    return true;
+  });
+}
+
+function prodSum(arr, field) {
+  return arr.reduce((s, r) => s + (Number(r[field]) || 0), 0);
+}
+
+function prodGetAnosDisp() {
+  const all = new Set();
+  ['ocorrencias','presos','armas','veiculos','entorpecentes'].forEach(k => {
+    if (Array.isArray(prodRaw[k])) prodRaw[k].forEach(r => r.ano && all.add(r.ano));
+  });
+  return [...all].sort((a, b) => b - a);
+}
+
+function prodGetMesesDisp(ano) {
+  const all = new Set();
+  ['ocorrencias','presos','armas','veiculos','entorpecentes'].forEach(k => {
+    if (Array.isArray(prodRaw[k]))
+      prodRaw[k].filter(r => !ano || r.ano === ano).forEach(r => r.mes && all.add(r.mes));
+  });
+  return MES_ORD.filter(m => all.has(m));
+}
+
+function prodGetCiasDisp() {
+  const all = new Set();
+  ['ocorrencias','presos','armas','veiculos','entorpecentes'].forEach(k => {
+    if (Array.isArray(prodRaw[k])) prodRaw[k].forEach(r => r.cia && all.add(r.cia));
+  });
+  return [...all].sort();
+}
+
+function prodBuildFilter() {
+  const el = document.getElementById('prod-filter');
+  if (!el) return;
+  const anos = prodGetAnosDisp();
+  const mesesDisp = prodGetMesesDisp(prodSelAno);
+  const cias = prodGetCiasDisp();
+  const allSel = prodSelMeses.length === mesesDisp.length;
+  let h = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">`;
+  // Ano
+  h += `<select onchange="prodSetAno(+this.value)" style="background:var(--bg2);border:1px solid var(--bd);color:var(--tx);padding:5px 10px;border-radius:6px;font-size:13px;cursor:pointer">`;
+  if (!anos.length) h += `<option>Sem dados</option>`;
+  anos.forEach(a => h += `<option value="${a}"${a===prodSelAno?' selected':''}>${a}</option>`);
+  h += `</select>`;
+  // Meses
+  h += `<div style="display:flex;gap:4px;flex-wrap:wrap">`;
+  h += `<button onclick="prodSetAllMeses()" class="pf-btn${allSel?' on':''}" style="font-size:11px;padding:4px 8px">Todos</button>`;
+  mesesDisp.forEach(m => h += `<button onclick="prodTogMes('${m}')" class="pf-btn${prodSelMeses.includes(m)?' on':''}" style="font-size:11px;padding:4px 8px">${m.slice(0,3)}</button>`);
+  h += `</div>`;
+  // CIA
+  h += `<select onchange="prodSetCia(this.value)" style="background:var(--bg2);border:1px solid var(--bd);color:var(--tx);padding:5px 10px;border-radius:6px;font-size:13px;cursor:pointer">`;
+  h += `<option value="">Todas as CIAs</option>`;
+  cias.forEach(c => h += `<option value="${c}"${c===prodSelCia?' selected':''}>${c}</option>`);
+  h += `</select>`;
+  h += `</div>`;
+  el.innerHTML = h;
+}
+
+function prodDestroyCharts() {
+  prodChs.forEach(c => { try { c.destroy(); } catch(e){} });
+  prodChs = [];
+}
+
+function prodRender() {
+  prodBuildFilter();
+  prodDestroyCharts();
+  const tipos = ['ocorrencias','presos','armas','veiculos','entorpecentes'];
+  const kpisEl = document.getElementById('prod-kpis');
+  const chartsEl = document.getElementById('prod-charts');
+  if (!kpisEl || !chartsEl) return;
+
+  const mesesDisp = prodGetMesesDisp(prodSelAno);
+  const periodoLbl = prodSelMeses.length === mesesDisp.length
+    ? 'Acumulado ' + prodSelAno
+    : prodSelMeses.join(', ');
+
+  // KPIs
+  kpisEl.innerHTML = tipos.map(t => {
+    const total = prodSum(prodFilter(prodRaw[t]), PROD_CAMPO[t]);
+    const cor = PROD_CORES[t];
+    const unid = t === 'entorpecentes' ? ' <span style="font-size:10px;color:var(--tx3)">unid/kg</span>' : '';
+    return `<div class="kpi">
+      <div class="kpi-top" style="background:${cor}"></div>
+      <div class="kpi-lbl">${PROD_LABELS[t]}</div>
+      <div class="kpi-val" style="color:${cor}">${total.toLocaleString('pt-BR')}${unid}</div>
+      <div class="kpi-sub">${periodoLbl}</div>
+    </div>`;
+  }).join('');
+
+  // Seções de gráfico
+  chartsEl.innerHTML = tipos.map(t =>
+    `<div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${PROD_CORES[t]};margin-bottom:12px">${PROD_LABELS[t]}</div>
+      <canvas id="prod-ch-${t}"></canvas>
+      <div id="prod-empty-${t}" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:16px 0">Nenhum dado — importe o CSV para este indicador</div>
+    </div>`
+  ).join('');
+
+  tipos.forEach(t => {
+    const filtered = prodFilter(prodRaw[t]);
+    const campo = PROD_CAMPO[t];
+    const cor = PROD_CORES[t];
+    const agg = {};
+    filtered.forEach(r => {
+      const key = r[PROD_BREAK[t]] || 'Não informado';
+      agg[key] = (agg[key] || 0) + (Number(r[campo]) || 0);
+    });
+    const entries = Object.entries(agg).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const emptyEl = document.getElementById(`prod-empty-${t}`);
+    const ctx = document.getElementById(`prod-ch-${t}`)?.getContext('2d');
+    if (!entries.length) {
+      if (emptyEl) emptyEl.style.display = '';
+      if (ctx) ctx.canvas.style.display = 'none';
+      return;
+    }
+    const ch = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: entries.map(([k]) => k),
+        datasets: [{ data: entries.map(([,v]) => v), backgroundColor: cor + '99', borderColor: cor, borderWidth: 1, borderRadius: 3 }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
+        scales: {
+          x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 11 } } },
+          y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 11 } } }
+        }
+      }
+    });
+    prodChs.push(ch);
+  });
+}
+
+function prodSetAno(ano) {
+  prodSelAno = ano;
+  prodSelMeses = [...prodGetMesesDisp(ano)];
+  prodRender();
+}
+function prodSetAllMeses() {
+  prodSelMeses = [...prodGetMesesDisp(prodSelAno)];
+  prodRender();
+}
+function prodTogMes(mes) {
+  const mesesDisp = prodGetMesesDisp(prodSelAno);
+  if (prodSelMeses.length === mesesDisp.length) { prodSelMeses = [mes]; }
+  else {
+    const idx = prodSelMeses.indexOf(mes);
+    if (idx >= 0) { prodSelMeses.splice(idx, 1); if (!prodSelMeses.length) prodSelMeses = [...mesesDisp]; }
+    else { prodSelMeses.push(mes); prodSelMeses.sort((a, b) => MES_ORD.indexOf(a) - MES_ORD.indexOf(b)); }
+  }
+  prodRender();
+}
+function prodSetCia(cia) { prodSelCia = cia || null; prodRender(); }
+
+async function loadProdData(force) {
+  if (prodRaw.loaded && !force) { prodRender(); return; }
+  const kpisEl = document.getElementById('prod-kpis');
+  const chartsEl = document.getElementById('prod-charts');
+  const filterEl = document.getElementById('prod-filter');
+  if (filterEl) filterEl.innerHTML = '';
+  if (kpisEl) kpisEl.innerHTML = '<div style="grid-column:1/-1;color:var(--tx3);font-size:13px;padding:20px 0">Carregando dados de produtividade...</div>';
+  if (chartsEl) chartsEl.innerHTML = '';
+  try {
+    const [ocorr, presos, armas, veiculos, entorp] = await Promise.all([
+      authFetch(`${API}/prod/ocorrencias`).then(r => r.json()),
+      authFetch(`${API}/prod/presos`).then(r => r.json()),
+      authFetch(`${API}/prod/armas`).then(r => r.json()),
+      authFetch(`${API}/prod/veiculos`).then(r => r.json()),
+      authFetch(`${API}/prod/entorpecentes`).then(r => r.json()),
+    ]);
+    prodRaw = {
+      ocorrencias:   Array.isArray(ocorr)   ? ocorr   : [],
+      presos:        Array.isArray(presos)   ? presos   : [],
+      armas:         Array.isArray(armas)    ? armas    : [],
+      veiculos:      Array.isArray(veiculos) ? veiculos : [],
+      entorpecentes: Array.isArray(entorp)   ? entorp   : [],
+      loaded: true
+    };
+    const anosDisp = prodGetAnosDisp();
+    prodSelAno   = anosDisp[0] || new Date().getFullYear();
+    prodSelMeses = [...prodGetMesesDisp(prodSelAno)];
+    prodSelCia   = null;
+    prodRender();
+  } catch (err) {
+    if (kpisEl) kpisEl.innerHTML = `<div style="grid-column:1/-1;color:#e06060;font-size:13px;padding:20px 0">Erro ao carregar dados: ${err.message}</div>`;
+  }
+}
+
+// Upload genérico produtividade
+function openProdUpl(tipo) {
+  prodUplTipo = tipo;
+  prodUplParsed = [];
+  document.getElementById('prod-upl-file').value = '';
+  document.getElementById('prod-upl-preview').innerHTML = '';
+  document.getElementById('prod-upl-msg').innerHTML = '';
+  const btn = document.getElementById('prod-upl-btn');
+  btn.disabled = true; btn.style.opacity = '.5';
+  document.getElementById('prod-upl-title').textContent = 'Importar ' + (PROD_LABELS[tipo] || tipo);
+  document.getElementById('prod-upl-mo').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeProdUpl() {
+  document.getElementById('prod-upl-mo').style.display = 'none';
+  document.body.style.overflow = '';
+}
+function prodUplClickOut(e) { if (e.target === document.getElementById('prod-upl-mo')) closeProdUpl(); }
+
+function prodUplFileChange() {
+  const file = document.getElementById('prod-upl-file').files[0];
+  const prev = document.getElementById('prod-upl-preview');
+  const btn  = document.getElementById('prod-upl-btn');
+  prodUplParsed = [];
+  btn.disabled = true; btn.style.opacity = '.5';
+  prev.innerHTML = '';
+  if (!file) return;
+  Papa.parse(file, {
+    header: true, skipEmptyLines: true,
+    complete: r => {
+      if (!r.data.length) { prev.innerHTML = '<span style="color:#e06060">Arquivo vazio.</span>'; return; }
+      const keys = Object.keys(r.data[0]).map(k => k.toLowerCase());
+      const hasAno = keys.some(k => k.includes('ano'));
+      const hasMes = keys.some(k => k.includes('mês') || k.includes('mes'));
+      if (!hasAno || !hasMes) {
+        prev.innerHTML = `<span style="color:#e06060">Colunas "Ano de Data" e "Mês de Data" não encontradas no CSV.</span>`;
+        return;
+      }
+      prodUplParsed = r.data;
+      prev.innerHTML = `<span style="color:#4bc87a">✓ <b>${r.data.length}</b> registros lidos.</span>`;
+      btn.disabled = false; btn.style.opacity = '1';
+    },
+    error: err => { prev.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`; }
+  });
+}
+
+async function prodUplConfirm() {
+  const btn = document.getElementById('prod-upl-btn');
+  const msg = document.getElementById('prod-upl-msg');
+  if (!prodUplParsed.length || !prodUplTipo) return;
+  btn.disabled = true; btn.style.opacity = '.5';
+  msg.innerHTML = '<span style="color:var(--tx3)">Enviando...</span>';
+  try {
+    const res = await authFetch(`${API}/upload/prod/${prodUplTipo}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ records: prodUplParsed })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
+    msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.total} registros importados.</span>`;
+    await loadProdData(true);
+    setTimeout(closeProdUpl, 1800);
+  } catch (err) {
+    msg.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`;
+    btn.disabled = false; btn.style.opacity = '1';
+  }
 }
 
 // ---------------------------------------------------------------------------
