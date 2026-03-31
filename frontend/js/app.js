@@ -4225,21 +4225,43 @@ function prodRender() {
     ? (totais.presos / totais.ocorrencias * 100).toFixed(1)
     : '—';
 
-  // KPIs (5 indicadores + taxa efetividade)
-  const unid = t => t === 'entorpecentes' ? ' <span style="font-size:10px;color:var(--tx3)">unid/kg</span>' : '';
-  kpisEl.innerHTML = tipos.map(t =>
+  // Unidades de entorpecentes separadas (kg, Un, etc.)
+  const unidadesEntorp = [...new Set(filt.entorpecentes.map(r => (r.unidade_medida||'Sem unidade').trim()))].filter(Boolean).sort();
+  const normId = s => s.replace(/[^a-z0-9]/gi,'_').toLowerCase();
+
+  // KPIs: 4 indicadores principais + 1 KPI por unidade de entorpecente + taxa efetividade
+  kpisEl.innerHTML =
+    ['ocorrencias','presos','armas','veiculos'].map(t =>
+      `<div class="kpi">
+        <div class="kpi-top" style="background:${PROD_CORES[t]}"></div>
+        <div class="kpi-lbl">${PROD_LABELS[t]}</div>
+        <div class="kpi-val" style="color:${PROD_CORES[t]}">${totais[t].toLocaleString('pt-BR')}</div>
+        <div class="kpi-sub">${periodoLbl}</div>
+      </div>`
+    ).join('') +
+    (unidadesEntorp.length
+      ? unidadesEntorp.map(u => {
+          const tot = prodSum(filt.entorpecentes.filter(r => (r.unidade_medida||'Sem unidade').trim() === u), 'quantidade');
+          return `<div class="kpi">
+            <div class="kpi-top" style="background:${PROD_CORES.entorpecentes}"></div>
+            <div class="kpi-lbl">Entorpecentes <span style="font-size:10px;opacity:.7">(${u})</span></div>
+            <div class="kpi-val" style="color:${PROD_CORES.entorpecentes}">${tot.toLocaleString('pt-BR')}</div>
+            <div class="kpi-sub">${periodoLbl}</div>
+          </div>`;
+        }).join('')
+      : `<div class="kpi">
+          <div class="kpi-top" style="background:${PROD_CORES.entorpecentes}"></div>
+          <div class="kpi-lbl">${PROD_LABELS.entorpecentes}</div>
+          <div class="kpi-val" style="color:${PROD_CORES.entorpecentes}">—</div>
+          <div class="kpi-sub">${periodoLbl}</div>
+        </div>`
+    ) +
     `<div class="kpi">
-      <div class="kpi-top" style="background:${PROD_CORES[t]}"></div>
-      <div class="kpi-lbl">${PROD_LABELS[t]}</div>
-      <div class="kpi-val" style="color:${PROD_CORES[t]}">${totais[t].toLocaleString('pt-BR')}${unid(t)}</div>
-      <div class="kpi-sub">${periodoLbl}</div>
-    </div>`
-  ).join('') + `<div class="kpi">
-    <div class="kpi-top" style="background:#f0c040"></div>
-    <div class="kpi-lbl">Taxa de Efetividade</div>
-    <div class="kpi-val" style="color:#f0c040">${taxaTotal}${taxaTotal !== '—' ? '%' : ''}</div>
-    <div class="kpi-sub">Prisões / Ocorrências × 100</div>
-  </div>`;
+      <div class="kpi-top" style="background:#f0c040"></div>
+      <div class="kpi-lbl">Taxa de Efetividade</div>
+      <div class="kpi-val" style="color:#f0c040">${taxaTotal}${taxaTotal !== '—' ? '%' : ''}</div>
+      <div class="kpi-sub">Prisões / Ocorrências × 100</div>
+    </div>`;
 
   // Cabeçalho de seção
   const sec = label => `<div style="grid-column:1/-1;display:flex;align-items:center;gap:12px;margin-top:10px;padding-bottom:8px;border-bottom:1px solid var(--bd2)">
@@ -4254,13 +4276,20 @@ function prodRender() {
       <div id="${id}-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>`;
 
+  // Cards de entorpecentes separados por unidade
+  const entorpCards = prefix => (unidadesEntorp.length
+    ? unidadesEntorp.map(u => card(`${prefix}-entorp-${normId(u)}`, PROD_CORES.entorpecentes, `Entorpecentes — ${u}`)).join('')
+    : card(`${prefix}-entorpecentes`, PROD_CORES.entorpecentes, PROD_LABELS.entorpecentes));
+
   // Monta HTML de todas as seções
   chartsEl.innerHTML =
     sec('1 · Comparativo por CIA') +
-    tipos.map(t => card(`cia-${t}`, PROD_CORES[t], PROD_LABELS[t])).join('') +
+    ['ocorrencias','presos','armas','veiculos'].map(t => card(`cia-${t}`, PROD_CORES[t], PROD_LABELS[t])).join('') +
+    entorpCards('cia') +
 
     sec('2 · Evolução Mensal') +
-    tipos.map(t => card(`evo-${t}`, PROD_CORES[t], PROD_LABELS[t])).join('') +
+    ['ocorrencias','presos','armas','veiculos'].map(t => card(`evo-${t}`, PROD_CORES[t], PROD_LABELS[t])).join('') +
+    entorpCards('evo') +
 
     sec('3 · Taxa de Efetividade por CIA') +
     `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
@@ -4276,7 +4305,8 @@ function prodRender() {
       <div id="cat-ocorrencias-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
       <div id="ocorr-matriz" style="margin-top:16px"></div>
     </div>` +
-    ['presos','armas','veiculos','entorpecentes'].map(t => card(`cat-${t}`, PROD_CORES[t], PROD_LABELS[t])).join('');
+    ['presos','armas','veiculos'].map(t => card(`cat-${t}`, PROD_CORES[t], PROD_LABELS[t])).join('') +
+    entorpCards('cat');
 
   // Opções comuns de gráficos de barra horizontal
   const barOpts = cor => ({
@@ -4302,13 +4332,22 @@ function prodRender() {
   };
 
   // --- 1. Comparativo por CIA ---
-  tipos.forEach(t => {
-    const campo = PROD_CAMPO[t];
+  ['ocorrencias','presos','armas','veiculos'].forEach(t => {
     const aggCia = {};
     cias.forEach(c => aggCia[c] = 0);
-    filt[t].forEach(r => { const c = (r.cia||'').trim(); if (c) aggCia[c] = (aggCia[c]||0) + (Number(r[campo])||0); });
+    filt[t].forEach(r => { const c = (r.cia||'').trim(); if (c) aggCia[c] = (aggCia[c]||0) + (Number(r[PROD_CAMPO[t]])||0); });
     const entries = Object.entries(aggCia).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
     renderBar(`cia-${t}`, entries.map(([k])=>k), entries.map(([,v])=>v), PROD_CORES[t]);
+  });
+  // Entorpecentes por CIA — separado por unidade
+  (unidadesEntorp.length ? unidadesEntorp : [null]).forEach(u => {
+    const id = u ? `cia-entorp-${normId(u)}` : 'cia-entorpecentes';
+    const rows = u ? filt.entorpecentes.filter(r => (r.unidade_medida||'Sem unidade').trim() === u) : filt.entorpecentes;
+    const aggCia = {};
+    cias.forEach(c => aggCia[c] = 0);
+    rows.forEach(r => { const c = (r.cia||'').trim(); if (c) aggCia[c] = (aggCia[c]||0) + (Number(r.quantidade)||0); });
+    const entries = Object.entries(aggCia).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+    renderBar(id, entries.map(([k])=>k), entries.map(([,v])=>v), PROD_CORES.entorpecentes);
   });
 
   // --- 2. Evolução Mensal (todos os meses do ano, respeitando CIA) ---
@@ -4319,32 +4358,32 @@ function prodRender() {
     return true;
   }));
 
-  tipos.forEach(t => {
-    const campo = PROD_CAMPO[t];
-    const aggMes = {};
-    mesesDisp.forEach(m => aggMes[m] = 0);
-    filtAno[t].forEach(r => { if (r.mes && mesesDisp.includes(r.mes)) aggMes[r.mes] = (aggMes[r.mes]||0) + (Number(r[campo])||0); });
-    const values = mesesDisp.map(m => aggMes[m]||0);
-    const ctx = document.getElementById(`evo-${t}`)?.getContext('2d');
+  const renderLine = (canvasId, values, cor) => {
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
     if (!ctx) return;
-    if (!values.some(v => v > 0)) { document.getElementById(`evo-${t}-empty`).style.display = ''; ctx.canvas.style.display = 'none'; return; }
-    const cor = PROD_CORES[t];
+    if (!values.some(v => v > 0)) { const e = document.getElementById(canvasId+'-empty'); if(e) e.style.display=''; ctx.canvas.style.display='none'; return; }
     const ch = new Chart(ctx, {
       type: 'line',
-      data: {
-        labels: mesesDisp.map(m => m.slice(0,3)),
-        datasets: [{ data: values, borderColor: cor, backgroundColor: cor+'22', borderWidth: 2, fill: true, tension: 0.4, pointBackgroundColor: cor, pointRadius: 4 }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
-        scales: {
-          x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 11 } } },
-          y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 11 } } }
-        }
-      }
+      data: { labels: mesesDisp.map(m => m.slice(0,3)), datasets: [{ data: values, borderColor: cor, backgroundColor: cor+'22', borderWidth: 2, fill: true, tension: 0.4, pointBackgroundColor: cor, pointRadius: 4 }] },
+      options: { responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
+        scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 11 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 11 } } } } }
     });
     prodChs.push(ch);
+  };
+  ['ocorrencias','presos','armas','veiculos'].forEach(t => {
+    const aggMes = {};
+    mesesDisp.forEach(m => aggMes[m] = 0);
+    filtAno[t].forEach(r => { const mk = MES_ORD.find(x=>x.toLowerCase()===(r.mes||'').toLowerCase())||r.mes||''; if(mesesDisp.includes(mk)) aggMes[mk]=(aggMes[mk]||0)+(Number(r[PROD_CAMPO[t]])||0); });
+    renderLine(`evo-${t}`, mesesDisp.map(m=>aggMes[m]||0), PROD_CORES[t]);
+  });
+  // Entorpecentes evolução — separado por unidade
+  (unidadesEntorp.length ? unidadesEntorp : [null]).forEach(u => {
+    const id = u ? `evo-entorp-${normId(u)}` : 'evo-entorpecentes';
+    const rows = u ? filtAno.entorpecentes.filter(r => (r.unidade_medida||'Sem unidade').trim() === u) : filtAno.entorpecentes;
+    const aggMes = {};
+    mesesDisp.forEach(m => aggMes[m] = 0);
+    rows.forEach(r => { const mk = MES_ORD.find(x=>x.toLowerCase()===(r.mes||'').toLowerCase())||r.mes||''; if(mesesDisp.includes(mk)) aggMes[mk]=(aggMes[mk]||0)+(Number(r.quantidade)||0); });
+    renderLine(id, mesesDisp.map(m=>aggMes[m]||0), PROD_CORES.entorpecentes);
   });
 
   // --- 3. Taxa de Efetividade por CIA ---
@@ -4386,12 +4425,20 @@ function prodRender() {
   }
 
   // --- 4. Detalhamento por Categoria ---
-  tipos.forEach(t => {
-    const campo = PROD_CAMPO[t];
+  ['ocorrencias','presos','armas','veiculos'].forEach(t => {
     const agg = {};
-    filt[t].forEach(r => { const key = r[PROD_BREAK[t]] || 'Não informado'; agg[key] = (agg[key]||0) + (Number(r[campo])||0); });
+    filt[t].forEach(r => { const key = r[PROD_BREAK[t]] || 'Não informado'; agg[key] = (agg[key]||0) + (Number(r[PROD_CAMPO[t]])||0); });
     const entries = Object.entries(agg).sort((a,b) => b[1]-a[1]).slice(0,10);
     renderBar(`cat-${t}`, entries.map(([k])=>k), entries.map(([,v])=>v), PROD_CORES[t]);
+  });
+  // Entorpecentes por categoria — separado por unidade
+  (unidadesEntorp.length ? unidadesEntorp : [null]).forEach(u => {
+    const id = u ? `cat-entorp-${normId(u)}` : 'cat-entorpecentes';
+    const rows = u ? filt.entorpecentes.filter(r => (r.unidade_medida||'Sem unidade').trim() === u) : filt.entorpecentes;
+    const agg = {};
+    rows.forEach(r => { const key = r.entorpecente || 'Não informado'; agg[key] = (agg[key]||0) + (Number(r.quantidade)||0); });
+    const entries = Object.entries(agg).sort((a,b) => b[1]-a[1]).slice(0,10);
+    renderBar(id, entries.map(([k])=>k), entries.map(([,v])=>v), PROD_CORES.entorpecentes);
   });
 
   // Tabela Natureza × Mês para ocorrências
