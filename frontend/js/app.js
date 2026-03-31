@@ -4220,11 +4220,6 @@ function prodRender() {
   tipos.forEach(t => filt[t].forEach(r => r.cia && ciasSet.add(r.cia.trim())));
   const cias = [...ciasSet].sort();
 
-  // Taxa de efetividade global
-  const taxaTotal = totais.ocorrencias > 0
-    ? (totais.presos / totais.ocorrencias * 100).toFixed(1)
-    : '—';
-
   // Unidades de entorpecentes separadas (kg, Un, etc.)
   const unidadesEntorp = [...new Set(filt.entorpecentes.map(r => (r.unidade_medida||'Sem unidade').trim()))].filter(Boolean).sort();
   const normId = s => s.replace(/[^a-z0-9]/gi,'_').toLowerCase();
@@ -4255,13 +4250,7 @@ function prodRender() {
           <div class="kpi-val" style="color:${PROD_CORES.entorpecentes}">—</div>
           <div class="kpi-sub">${periodoLbl}</div>
         </div>`
-    ) +
-    `<div class="kpi">
-      <div class="kpi-top" style="background:#f0c040"></div>
-      <div class="kpi-lbl">Taxa de Efetividade</div>
-      <div class="kpi-val" style="color:#f0c040">${taxaTotal}${taxaTotal !== '—' ? '%' : ''}</div>
-      <div class="kpi-sub">Prisões / Ocorrências × 100</div>
-    </div>`;
+    );
 
   // Cabeçalho de seção
   const sec = label => `<div style="grid-column:1/-1;display:flex;align-items:center;gap:12px;margin-top:10px;padding-bottom:8px;border-bottom:1px solid var(--bd2)">
@@ -4291,14 +4280,7 @@ function prodRender() {
     ['ocorrencias','presos','armas','veiculos'].map(t => card(`evo-${t}`, PROD_CORES[t], PROD_LABELS[t])).join('') +
     entorpCards('evo') +
 
-    sec('3 · Taxa de Efetividade por CIA') +
-    `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:10px">Prisões por 100 Ocorrências — por CIA</div>
-      <canvas id="taxa-cia" style="max-height:180px"></canvas>
-      <div id="taxa-cia-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Dados insuficientes (requer ocorrências + prisões)</div>
-    </div>` +
-
-    sec('4 · Detalhamento por Categoria') +
+    sec('3 · Detalhamento por Categoria') +
     `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${PROD_CORES.ocorrencias};margin-bottom:10px">Ocorrências Atendidas — Natureza × Mês</div>
       <canvas id="cat-ocorrencias"></canvas>
@@ -4386,45 +4368,7 @@ function prodRender() {
     renderLine(id, mesesDisp.map(m=>aggMes[m]||0), PROD_CORES.entorpecentes);
   });
 
-  // --- 3. Taxa de Efetividade por CIA ---
-  const taxasCia = cias.map(c => {
-    const ocorr  = prodSum(filt.ocorrencias.filter(r => (r.cia||'').trim().toLowerCase() === c.toLowerCase()), 'contagem');
-    const presos = prodSum(filt.presos.filter(r => (r.cia||'').trim().toLowerCase() === c.toLowerCase()), 'quantidade');
-    return { c, taxa: ocorr > 0 ? +(presos / ocorr * 100).toFixed(1) : 0 };
-  }).filter(x => x.taxa > 0).sort((a,b) => b.taxa - a.taxa);
-
-  const taxaCtx = document.getElementById('taxa-cia')?.getContext('2d');
-  if (!taxaCtx) {}
-  else if (!taxasCia.length) { document.getElementById('taxa-cia-empty').style.display = ''; taxaCtx.canvas.style.display = 'none'; }
-  else {
-    const mediaGlobal = taxaTotal !== '—' ? parseFloat(taxaTotal) : 0;
-    const ch = new Chart(taxaCtx, {
-      type: 'bar',
-      data: {
-        labels: taxasCia.map(x => x.c),
-        datasets: [{
-          data: taxasCia.map(x => x.taxa),
-          backgroundColor: taxasCia.map(x => x.taxa >= mediaGlobal ? '#f0c04099' : '#f0c04044'),
-          borderColor: '#f0c040', borderWidth: 1, borderRadius: 4
-        }]
-      },
-      options: {
-        indexAxis: 'y', responsive: true,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: i => ` ${i.raw}% — ${i.raw} prisões a cada 100 ocorrências` } },
-          annotation: {}
-        },
-        scales: {
-          x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 11 }, callback: v => v + '%' } },
-          y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 11 } } }
-        }
-      }
-    });
-    prodChs.push(ch);
-  }
-
-  // --- 4. Detalhamento por Categoria ---
+  // --- 3. Detalhamento por Categoria ---
   ['ocorrencias','presos','armas','veiculos'].forEach(t => {
     const agg = {};
     filt[t].forEach(r => { const key = r[PROD_BREAK[t]] || 'Não informado'; agg[key] = (agg[key]||0) + (Number(r[PROD_CAMPO[t]])||0); });
