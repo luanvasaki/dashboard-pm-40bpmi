@@ -4175,20 +4175,20 @@ function prodBuildFilter() {
   const allSel = prodSelMeses.length === mesesDisp.length;
   let h = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">`;
   // Ano
-  h += `<select onchange="prodSetAno(+this.value)" style="background:var(--bg2);border:1px solid var(--bd);color:var(--tx);padding:5px 10px;border-radius:6px;font-size:13px;cursor:pointer">`;
+  h += `<div class="pf-field"><span class="pf-label">ANO</span><select class="pf-select" onchange="prodSetAno(+this.value)">`;
   if (!anos.length) h += `<option>Sem dados</option>`;
   anos.forEach(a => h += `<option value="${a}"${a===prodSelAno?' selected':''}>${a}</option>`);
-  h += `</select>`;
+  h += `</select></div>`;
   // Meses
-  h += `<div style="display:flex;gap:4px;flex-wrap:wrap">`;
+  h += `<div class="pf-field"><span class="pf-label">MÊS</span><div style="display:flex;gap:4px;flex-wrap:wrap">`;
   h += `<button onclick="prodSetAllMeses()" class="pf-btn${allSel?' on':''}" style="font-size:11px;padding:4px 8px">Todos</button>`;
   mesesDisp.forEach(m => h += `<button onclick="prodTogMes('${m}')" class="pf-btn${prodSelMeses.includes(m)?' on':''}" style="font-size:11px;padding:4px 8px">${m.slice(0,3)}</button>`);
-  h += `</div>`;
+  h += `</div></div>`;
   // CIA
-  h += `<select onchange="prodSetCia(this.value)" style="background:var(--bg2);border:1px solid var(--bd);color:var(--tx);padding:5px 10px;border-radius:6px;font-size:13px;cursor:pointer">`;
-  h += `<option value="">Todas as CIAs</option>`;
-  cias.forEach(c => h += `<option value="${c}"${c===prodSelCia?' selected':''}>${c}</option>`);
-  h += `</select>`;
+  h += `<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" onchange="prodSetCia(this.value)">`;
+  h += `<option value="">Todas</option>`;
+  cias.forEach(c => h += `<option value="${c}"${c.toLowerCase()===( prodSelCia||'').toLowerCase()?' selected':''}>${c}</option>`);
+  h += `</select></div>`;
   h += `</div>`;
   el.innerHTML = h;
 }
