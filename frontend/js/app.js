@@ -4121,7 +4121,7 @@ const PROD_CAMPO = {
   entorpecentes: 'quantidade'
 };
 const PROD_BREAK = {
-  ocorrencias:   'grupo_natureza',
+  ocorrencias:   'natureza',
   presos:        'situacao',
   armas:         'tipo_arma',
   veiculos:      'situacao',
@@ -4131,7 +4131,7 @@ const PROD_BREAK = {
 function prodFilter(arr) {
   return arr.filter(r => {
     if (prodSelAno && r.ano !== prodSelAno) return false;
-    if (prodSelMeses.length && !prodSelMeses.includes(r.mes)) return false;
+    if (prodSelMeses.length && !prodSelMeses.some(m => m.toLowerCase() === (r.mes||'').toLowerCase())) return false;
     if (prodSelCia && (r.cia || '').trim().toLowerCase() !== prodSelCia.trim().toLowerCase()) return false;
     return true;
   });
@@ -4153,9 +4153,9 @@ function prodGetMesesDisp(ano) {
   const all = new Set();
   ['ocorrencias','presos','armas','veiculos','entorpecentes'].forEach(k => {
     if (Array.isArray(prodRaw[k]))
-      prodRaw[k].filter(r => !ano || r.ano === ano).forEach(r => r.mes && all.add(r.mes));
+      prodRaw[k].filter(r => !ano || r.ano === ano).forEach(r => r.mes && all.add((r.mes||'').toLowerCase()));
   });
-  return MES_ORD.filter(m => all.has(m));
+  return MES_ORD.filter(m => all.has(m.toLowerCase()));
 }
 
 function prodGetCiasDisp() {
@@ -4270,7 +4270,13 @@ function prodRender() {
     </div>` +
 
     sec('4 · Detalhamento por Categoria') +
-    tipos.map(t => card(`cat-${t}`, PROD_CORES[t], PROD_LABELS[t])).join('');
+    `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${PROD_CORES.ocorrencias};margin-bottom:10px">Ocorrências Atendidas — Natureza × Mês</div>
+      <canvas id="cat-ocorrencias"></canvas>
+      <div id="cat-ocorrencias-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
+      <div id="ocorr-matriz" style="margin-top:16px"></div>
+    </div>` +
+    ['presos','armas','veiculos','entorpecentes'].map(t => card(`cat-${t}`, PROD_CORES[t], PROD_LABELS[t])).join('');
 
   // Opções comuns de gráficos de barra horizontal
   const barOpts = cor => ({
@@ -4387,6 +4393,46 @@ function prodRender() {
     const entries = Object.entries(agg).sort((a,b) => b[1]-a[1]).slice(0,10);
     renderBar(`cat-${t}`, entries.map(([k])=>k), entries.map(([,v])=>v), PROD_CORES[t]);
   });
+
+  // Tabela Natureza × Mês para ocorrências
+  const matrizEl = document.getElementById('ocorr-matriz');
+  if (matrizEl && filt.ocorrencias.length) {
+    const mesesTabela = prodSelMeses.length ? prodSelMeses : mesesDisp;
+    // Pré-agrega: { natureza: { mes: contagem } }
+    const natMes = {};
+    filt.ocorrencias.forEach(r => {
+      const nat = r.natureza || 'Não informado';
+      const m   = MES_ORD.find(x => x.toLowerCase() === (r.mes||'').toLowerCase()) || r.mes || '';
+      if (!natMes[nat]) natMes[nat] = {};
+      natMes[nat][m] = (natMes[nat][m] || 0) + (Number(r.contagem) || 0);
+    });
+    const natTotais = Object.entries(natMes).map(([nat, mObj]) => [nat, Object.values(mObj).reduce((s,v)=>s+v,0)]);
+    const topNat = natTotais.sort((a,b)=>b[1]-a[1]).slice(0,15);
+
+    const thStyle = 'padding:6px 8px;border-bottom:1px solid var(--bd2);color:var(--tx3);font-size:11px;font-weight:600;white-space:nowrap';
+    const tdBase  = 'padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px';
+    let tbl = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th style="${thStyle};text-align:left">Natureza da Ocorrência</th>
+        ${mesesTabela.map(m=>`<th style="${thStyle};text-align:right">${m.slice(0,3)}</th>`).join('')}
+        <th style="${thStyle};text-align:right">Total</th>
+      </tr></thead>
+      <tbody>
+        ${topNat.map(([nat, total], i) => {
+          const cells = mesesTabela.map(m => {
+            const v = (natMes[nat]||{})[m] || 0;
+            return `<td style="${tdBase};text-align:right;color:${v>0?'var(--tx)':'var(--tx3)'}">${v>0?v.toLocaleString('pt-BR'):'—'}</td>`;
+          }).join('');
+          return `<tr style="background:${i%2===0?'rgba(255,255,255,.02)':'transparent'}">
+            <td style="${tdBase};color:var(--tx2)">${nat}</td>
+            ${cells}
+            <td style="${tdBase};text-align:right;color:${PROD_CORES.ocorrencias};font-weight:600">${total.toLocaleString('pt-BR')}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table></div>`;
+    matrizEl.innerHTML = tbl;
+  }
 }
 
 function prodSetAno(ano) {

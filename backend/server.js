@@ -39,6 +39,12 @@ const OCORRENCIAS_TABLE  = 'ocorrencias';
 
 // Helpers de normalização para dados InfoCrim
 function normCia(s) { return (s||'').replace(/^(\d+ª)CIA$/,'$1 CIA').trim(); }
+const _MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+function normMes(s) {
+  const v = (s||'').trim();
+  const found = _MESES_PT.find(m => m.toLowerCase().startsWith(v.slice(0,3).toLowerCase()));
+  return found || (v.charAt(0).toUpperCase() + v.slice(1).toLowerCase());
+}
 function titleCase(s){ return (s||'').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()); }
 function parseDateBR(s){ if(!s)return null; const[d,m,y]=(s||'').split('/'); if(!d||!m||!y)return null; return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; }
 function parseHora(s){ if(!s||!s.trim())return null; const p=s.trim().split(':'); return p.length<2?null:`${p[0].padStart(2,'0')}:${p[1].padStart(2,'0')}`; }
@@ -883,7 +889,7 @@ const PROD_TABS = {
 function mapProdRow(tipo, r) {
   const cia = normCia(r['CIA'] || r['Cia'] || '');
   const ano = parseInt(r['Ano de Data']) || 0;
-  const mes = (r['Mês de Data'] || r['Mes de Data'] || '').trim();
+  const mes = normMes(r['Mês de Data'] || r['Mes de Data'] || '');
   if (tipo === 'ocorrencias') return {
     grupo_natureza:    (r['Grupo de Natureza'] || '').trim(),
     natureza:          (r['Natureza da Ocorrência'] || r['Natureza da Ocorrencia'] || '').trim(),
