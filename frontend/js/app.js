@@ -4132,7 +4132,7 @@ function prodFilter(arr) {
   return arr.filter(r => {
     if (prodSelAno && r.ano !== prodSelAno) return false;
     if (prodSelMeses.length && !prodSelMeses.includes(r.mes)) return false;
-    if (prodSelCia && r.cia !== prodSelCia) return false;
+    if (prodSelCia && (r.cia || '').trim().toLowerCase() !== prodSelCia.trim().toLowerCase()) return false;
     return true;
   });
 }
@@ -4161,7 +4161,7 @@ function prodGetMesesDisp(ano) {
 function prodGetCiasDisp() {
   const all = new Set();
   ['ocorrencias','presos','armas','veiculos','entorpecentes'].forEach(k => {
-    if (Array.isArray(prodRaw[k])) prodRaw[k].forEach(r => r.cia && all.add(r.cia));
+    if (Array.isArray(prodRaw[k])) prodRaw[k].forEach(r => r.cia && all.add(r.cia.trim()));
   });
   return [...all].sort();
 }
@@ -4288,7 +4288,7 @@ function prodTogMes(mes) {
   }
   prodRender();
 }
-function prodSetCia(cia) { prodSelCia = cia || null; prodRender(); }
+function prodSetCia(cia) { prodSelCia = (cia || '').trim() || null; prodRender(); }
 
 async function loadProdData(force) {
   if (prodRaw.loaded && !force) { prodRender(); return; }
