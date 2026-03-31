@@ -4207,65 +4207,185 @@ function prodRender() {
   if (!kpisEl || !chartsEl) return;
 
   const mesesDisp = prodGetMesesDisp(prodSelAno);
-  const periodoLbl = prodSelMeses.length === mesesDisp.length
-    ? 'Acumulado ' + prodSelAno
-    : prodSelMeses.join(', ');
+  const periodoLbl = prodSelMeses.length === mesesDisp.length ? 'Acumulado ' + prodSelAno : prodSelMeses.join(', ');
 
-  // KPIs
-  kpisEl.innerHTML = tipos.map(t => {
-    const total = prodSum(prodFilter(prodRaw[t]), PROD_CAMPO[t]);
-    const cor = PROD_CORES[t];
-    const unid = t === 'entorpecentes' ? ' <span style="font-size:10px;color:var(--tx3)">unid/kg</span>' : '';
-    return `<div class="kpi">
-      <div class="kpi-top" style="background:${cor}"></div>
+  // Dados filtrados (respeita ano + meses + CIA)
+  const filt = {};
+  tipos.forEach(t => filt[t] = prodFilter(prodRaw[t]));
+  const totais = {};
+  tipos.forEach(t => totais[t] = prodSum(filt[t], PROD_CAMPO[t]));
+
+  // CIAs presentes nos dados filtrados
+  const ciasSet = new Set();
+  tipos.forEach(t => filt[t].forEach(r => r.cia && ciasSet.add(r.cia.trim())));
+  const cias = [...ciasSet].sort();
+
+  // Taxa de efetividade global
+  const taxaTotal = totais.ocorrencias > 0
+    ? (totais.presos / totais.ocorrencias * 100).toFixed(1)
+    : '—';
+
+  // KPIs (5 indicadores + taxa efetividade)
+  const unid = t => t === 'entorpecentes' ? ' <span style="font-size:10px;color:var(--tx3)">unid/kg</span>' : '';
+  kpisEl.innerHTML = tipos.map(t =>
+    `<div class="kpi">
+      <div class="kpi-top" style="background:${PROD_CORES[t]}"></div>
       <div class="kpi-lbl">${PROD_LABELS[t]}</div>
-      <div class="kpi-val" style="color:${cor}">${total.toLocaleString('pt-BR')}${unid}</div>
+      <div class="kpi-val" style="color:${PROD_CORES[t]}">${totais[t].toLocaleString('pt-BR')}${unid(t)}</div>
       <div class="kpi-sub">${periodoLbl}</div>
-    </div>`;
-  }).join('');
-
-  // Seções de gráfico
-  chartsEl.innerHTML = tipos.map(t =>
-    `<div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${PROD_CORES[t]};margin-bottom:12px">${PROD_LABELS[t]}</div>
-      <canvas id="prod-ch-${t}"></canvas>
-      <div id="prod-empty-${t}" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:16px 0">Nenhum dado — importe o CSV para este indicador</div>
     </div>`
-  ).join('');
+  ).join('') + `<div class="kpi">
+    <div class="kpi-top" style="background:#f0c040"></div>
+    <div class="kpi-lbl">Taxa de Efetividade</div>
+    <div class="kpi-val" style="color:#f0c040">${taxaTotal}${taxaTotal !== '—' ? '%' : ''}</div>
+    <div class="kpi-sub">Prisões / Ocorrências × 100</div>
+  </div>`;
 
-  tipos.forEach(t => {
-    const filtered = prodFilter(prodRaw[t]);
-    const campo = PROD_CAMPO[t];
-    const cor = PROD_CORES[t];
-    const agg = {};
-    filtered.forEach(r => {
-      const key = r[PROD_BREAK[t]] || 'Não informado';
-      agg[key] = (agg[key] || 0) + (Number(r[campo]) || 0);
-    });
-    const entries = Object.entries(agg).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    const emptyEl = document.getElementById(`prod-empty-${t}`);
-    const ctx = document.getElementById(`prod-ch-${t}`)?.getContext('2d');
-    if (!entries.length) {
-      if (emptyEl) emptyEl.style.display = '';
-      if (ctx) ctx.canvas.style.display = 'none';
-      return;
+  // Cabeçalho de seção
+  const sec = label => `<div style="grid-column:1/-1;display:flex;align-items:center;gap:12px;margin-top:10px;padding-bottom:8px;border-bottom:1px solid var(--bd2)">
+    <span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--tx2)">${label}</span>
+  </div>`;
+
+  // Helper: card de gráfico
+  const card = (id, cor, label) =>
+    `<div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:10px">${label}</div>
+      <canvas id="${id}"></canvas>
+      <div id="${id}-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
+    </div>`;
+
+  // Monta HTML de todas as seções
+  chartsEl.innerHTML =
+    sec('1 · Comparativo por CIA') +
+    tipos.map(t => card(`cia-${t}`, PROD_CORES[t], PROD_LABELS[t])).join('') +
+
+    sec('2 · Evolução Mensal') +
+    tipos.map(t => card(`evo-${t}`, PROD_CORES[t], PROD_LABELS[t])).join('') +
+
+    sec('3 · Taxa de Efetividade por CIA') +
+    `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:10px">Prisões por 100 Ocorrências — por CIA</div>
+      <canvas id="taxa-cia" style="max-height:180px"></canvas>
+      <div id="taxa-cia-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Dados insuficientes (requer ocorrências + prisões)</div>
+    </div>` +
+
+    sec('4 · Detalhamento por Categoria') +
+    tipos.map(t => card(`cat-${t}`, PROD_CORES[t], PROD_LABELS[t])).join('');
+
+  // Opções comuns de gráficos de barra horizontal
+  const barOpts = cor => ({
+    indexAxis: 'y', responsive: true,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
+    scales: {
+      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 11 } } },
+      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 11 } } }
     }
+  });
+
+  // Helper: renderiza gráfico de barras
+  const renderBar = (canvasId, labels, values, cor) => {
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx) return;
+    if (!labels.length) { document.getElementById(canvasId + '-empty').style.display = ''; ctx.canvas.style.display = 'none'; return; }
     const ch = new Chart(ctx, {
       type: 'bar',
+      data: { labels, datasets: [{ data: values, backgroundColor: cor+'99', borderColor: cor, borderWidth: 1, borderRadius: 3 }] },
+      options: barOpts(cor)
+    });
+    prodChs.push(ch);
+  };
+
+  // --- 1. Comparativo por CIA ---
+  tipos.forEach(t => {
+    const campo = PROD_CAMPO[t];
+    const aggCia = {};
+    cias.forEach(c => aggCia[c] = 0);
+    filt[t].forEach(r => { const c = (r.cia||'').trim(); if (c) aggCia[c] = (aggCia[c]||0) + (Number(r[campo])||0); });
+    const entries = Object.entries(aggCia).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+    renderBar(`cia-${t}`, entries.map(([k])=>k), entries.map(([,v])=>v), PROD_CORES[t]);
+  });
+
+  // --- 2. Evolução Mensal (todos os meses do ano, respeitando CIA) ---
+  const filtAno = {};
+  tipos.forEach(t => filtAno[t] = prodRaw[t].filter(r => {
+    if (prodSelAno && r.ano !== prodSelAno) return false;
+    if (prodSelCia && (r.cia||'').trim().toLowerCase() !== prodSelCia.toLowerCase()) return false;
+    return true;
+  }));
+
+  tipos.forEach(t => {
+    const campo = PROD_CAMPO[t];
+    const aggMes = {};
+    mesesDisp.forEach(m => aggMes[m] = 0);
+    filtAno[t].forEach(r => { if (r.mes && mesesDisp.includes(r.mes)) aggMes[r.mes] = (aggMes[r.mes]||0) + (Number(r[campo])||0); });
+    const values = mesesDisp.map(m => aggMes[m]||0);
+    const ctx = document.getElementById(`evo-${t}`)?.getContext('2d');
+    if (!ctx) return;
+    if (!values.some(v => v > 0)) { document.getElementById(`evo-${t}-empty`).style.display = ''; ctx.canvas.style.display = 'none'; return; }
+    const cor = PROD_CORES[t];
+    const ch = new Chart(ctx, {
+      type: 'line',
       data: {
-        labels: entries.map(([k]) => k),
-        datasets: [{ data: entries.map(([,v]) => v), backgroundColor: cor + '99', borderColor: cor, borderWidth: 1, borderRadius: 3 }]
+        labels: mesesDisp.map(m => m.slice(0,3)),
+        datasets: [{ data: values, borderColor: cor, backgroundColor: cor+'22', borderWidth: 2, fill: true, tension: 0.4, pointBackgroundColor: cor, pointRadius: 4 }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
+        scales: {
+          x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 11 } } },
+          y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 11 } } }
+        }
+      }
+    });
+    prodChs.push(ch);
+  });
+
+  // --- 3. Taxa de Efetividade por CIA ---
+  const taxasCia = cias.map(c => {
+    const ocorr  = prodSum(filt.ocorrencias.filter(r => (r.cia||'').trim().toLowerCase() === c.toLowerCase()), 'contagem');
+    const presos = prodSum(filt.presos.filter(r => (r.cia||'').trim().toLowerCase() === c.toLowerCase()), 'quantidade');
+    return { c, taxa: ocorr > 0 ? +(presos / ocorr * 100).toFixed(1) : 0 };
+  }).filter(x => x.taxa > 0).sort((a,b) => b.taxa - a.taxa);
+
+  const taxaCtx = document.getElementById('taxa-cia')?.getContext('2d');
+  if (!taxaCtx) {}
+  else if (!taxasCia.length) { document.getElementById('taxa-cia-empty').style.display = ''; taxaCtx.canvas.style.display = 'none'; }
+  else {
+    const mediaGlobal = taxaTotal !== '—' ? parseFloat(taxaTotal) : 0;
+    const ch = new Chart(taxaCtx, {
+      type: 'bar',
+      data: {
+        labels: taxasCia.map(x => x.c),
+        datasets: [{
+          data: taxasCia.map(x => x.taxa),
+          backgroundColor: taxasCia.map(x => x.taxa >= mediaGlobal ? '#f0c04099' : '#f0c04044'),
+          borderColor: '#f0c040', borderWidth: 1, borderRadius: 4
+        }]
       },
       options: {
         indexAxis: 'y', responsive: true,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: i => ` ${i.raw}% — ${i.raw} prisões a cada 100 ocorrências` } },
+          annotation: {}
+        },
         scales: {
-          x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 11 } } },
+          x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 11 }, callback: v => v + '%' } },
           y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 11 } } }
         }
       }
     });
     prodChs.push(ch);
+  }
+
+  // --- 4. Detalhamento por Categoria ---
+  tipos.forEach(t => {
+    const campo = PROD_CAMPO[t];
+    const agg = {};
+    filt[t].forEach(r => { const key = r[PROD_BREAK[t]] || 'Não informado'; agg[key] = (agg[key]||0) + (Number(r[campo])||0); });
+    const entries = Object.entries(agg).sort((a,b) => b[1]-a[1]).slice(0,10);
+    renderBar(`cat-${t}`, entries.map(([k])=>k), entries.map(([,v])=>v), PROD_CORES[t]);
   });
 }
 
