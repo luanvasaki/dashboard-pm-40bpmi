@@ -4098,6 +4098,7 @@ let prodSelCia    = null;
 let prodChs       = [];
 let prodUplTipo   = null;
 let prodUplParsed = [];
+let pdTipo = null, pdUnidade = null, pdChs = [], pdSelCia = '', pdMeses = [];
 
 const PROD_CORES = {
   ocorrencias:   '#5a9de0',
@@ -4227,28 +4228,31 @@ function prodRender() {
   // KPIs: 4 indicadores principais + 1 KPI por unidade de entorpecente + taxa efetividade
   kpisEl.innerHTML =
     ['ocorrencias','presos','armas','veiculos'].map(t =>
-      `<div class="kpi">
+      `<div class="kpi" onclick="openProdDetail('${t}')" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top" style="background:${PROD_CORES[t]}"></div>
         <div class="kpi-lbl">${PROD_LABELS[t]}</div>
         <div class="kpi-val" style="color:${PROD_CORES[t]}">${totais[t].toLocaleString('pt-BR')}</div>
         <div class="kpi-sub">${periodoLbl}</div>
+        <div class="kpi-hint">▸ clique p/ detalhes</div>
       </div>`
     ).join('') +
     (unidadesEntorp.length
       ? unidadesEntorp.map(u => {
           const tot = prodSum(filt.entorpecentes.filter(r => (r.unidade_medida||'Sem unidade').trim() === u), 'quantidade');
-          return `<div class="kpi">
+          return `<div class="kpi" onclick="openProdDetail('entorpecentes','${u.replace(/'/g,"\\'")}')" title="Clique para detalhes" style="cursor:pointer">
             <div class="kpi-top" style="background:${PROD_CORES.entorpecentes}"></div>
             <div class="kpi-lbl">Entorpecentes <span style="font-size:10px;opacity:.7">(${u})</span></div>
             <div class="kpi-val" style="color:${PROD_CORES.entorpecentes}">${tot.toLocaleString('pt-BR')}</div>
             <div class="kpi-sub">${periodoLbl}</div>
+            <div class="kpi-hint">▸ clique p/ detalhes</div>
           </div>`;
         }).join('')
-      : `<div class="kpi">
+      : `<div class="kpi" onclick="openProdDetail('entorpecentes')" title="Clique para detalhes" style="cursor:pointer">
           <div class="kpi-top" style="background:${PROD_CORES.entorpecentes}"></div>
           <div class="kpi-lbl">${PROD_LABELS.entorpecentes}</div>
           <div class="kpi-val" style="color:${PROD_CORES.entorpecentes}">—</div>
           <div class="kpi-sub">${periodoLbl}</div>
+          <div class="kpi-hint">▸ clique p/ detalhes</div>
         </div>`
     );
 
@@ -4546,6 +4550,221 @@ async function prodUplConfirm() {
   } catch (err) {
     msg.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`;
     btn.disabled = false; btn.style.opacity = '1';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Produtividade — Detalhe (modal drill-down por card)
+// ---------------------------------------------------------------------------
+
+function pdDestroy() {
+  pdChs.forEach(c => { try { c.destroy(); } catch(e){} });
+  pdChs = [];
+}
+
+function openProdDetail(tipo, unidade) {
+  pdDestroy();
+  pdTipo = tipo;
+  pdUnidade = unidade || null;
+  pdSelCia = prodSelCia || '';
+  const mesesDisp = prodGetMesesDisp(prodSelAno);
+  pdMeses = prodSelMeses.length ? [...prodSelMeses] : [...mesesDisp];
+  const cor = PROD_CORES[tipo];
+  const label = unidade ? `${PROD_LABELS[tipo]} — ${unidade}` : PROD_LABELS[tipo];
+  document.getElementById('pd-accent').style.background = cor;
+  document.getElementById('pd-title').textContent = label.toUpperCase();
+  buildPdFilter();
+  renderProdDetail();
+  document.getElementById('prod-detail-mo').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeProdDetail() {
+  pdDestroy();
+  document.getElementById('prod-detail-mo').classList.remove('on');
+  document.body.style.overflow = '';
+}
+
+function prodDetailClickOut(e) {
+  if (e.target === document.getElementById('prod-detail-mo')) closeProdDetail();
+}
+
+function buildPdFilter() {
+  const mesesDisp = prodGetMesesDisp(prodSelAno);
+  let baseRows = prodRaw[pdTipo] || [];
+  if (prodSelAno) baseRows = baseRows.filter(r => r.ano === prodSelAno);
+  if (pdUnidade) baseRows = baseRows.filter(r => (r.unidade_medida||'Sem unidade').trim() === pdUnidade);
+  const cias = [...new Set(baseRows.map(r => (r.cia||'').trim()).filter(Boolean))].sort();
+  let h = '<span class="pf-label">Meses</span>';
+  h += `<button class="pf-btn ${pdMeses.length === mesesDisp.length ? 'on' : ''}" onclick="pdSetAllMes()">Todos</button>`;
+  mesesDisp.forEach(m => h += `<button class="pf-btn ${pdMeses.includes(m) ? 'on' : ''}" onclick="pdTogMes('${m}')">${m.slice(0,3)}</button>`);
+  if (cias.length) {
+    h += '<span class="pf-sep"></span>';
+    h += '<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" onchange="pdSetCia(this.value)"><option value="">Todas</option>';
+    cias.forEach(c => h += `<option value="${c}"${c === pdSelCia ? ' selected' : ''}>${c}</option>`);
+    h += '</select></div>';
+  }
+  document.getElementById('pd-filter-bar').innerHTML = h;
+}
+
+function pdSetAllMes() {
+  pdMeses = [...prodGetMesesDisp(prodSelAno)];
+  buildPdFilter(); renderProdDetail();
+}
+
+function pdTogMes(m) {
+  const all = prodGetMesesDisp(prodSelAno);
+  if (pdMeses.length === all.length) { pdMeses = [m]; }
+  else {
+    const idx = pdMeses.indexOf(m);
+    if (idx >= 0) { pdMeses.splice(idx, 1); if (!pdMeses.length) pdMeses = [...all]; }
+    else { pdMeses.push(m); pdMeses.sort((a,b) => all.indexOf(a) - all.indexOf(b)); }
+  }
+  buildPdFilter(); renderProdDetail();
+}
+
+function pdSetCia(val) { pdSelCia = val; buildPdFilter(); renderProdDetail(); }
+
+function renderProdDetail() {
+  pdDestroy();
+  const tipo = pdTipo;
+  const cor = PROD_CORES[tipo];
+  const campo = tipo === 'entorpecentes' ? 'quantidade' : PROD_CAMPO[tipo];
+  const mesesDisp = prodGetMesesDisp(prodSelAno);
+
+  // Base: ano + unidade (sem filtro de CIA/mês ainda, para evolução correta)
+  let baseRows = prodRaw[tipo] || [];
+  if (prodSelAno) baseRows = baseRows.filter(r => r.ano === prodSelAno);
+  if (pdUnidade) baseRows = baseRows.filter(r => (r.unidade_medida||'Sem unidade').trim() === pdUnidade);
+
+  // Filtrado: aplica CIA + meses
+  const rows = baseRows.filter(r => {
+    if (pdMeses.length && !pdMeses.some(m => m.toLowerCase() === (r.mes||'').toLowerCase())) return false;
+    if (pdSelCia && (r.cia||'').trim().toLowerCase() !== pdSelCia.toLowerCase()) return false;
+    return true;
+  });
+
+  const total = prodSum(rows, campo);
+  const periodoLbl = pdMeses.length === mesesDisp.length ? 'Acumulado ' + (prodSelAno || '') : pdMeses.join(', ');
+
+  // Ranking CIA
+  const aggCia = {};
+  rows.forEach(r => { const c = (r.cia||'').trim(); if (c) aggCia[c] = (aggCia[c]||0) + (Number(r[campo])||0); });
+  const topCias = Object.entries(aggCia).sort((a,b) => b[1]-a[1]);
+
+  // Mês de pico
+  const aggMesPico = {};
+  rows.forEach(r => { const mk = MES_ORD.find(x => x.toLowerCase() === (r.mes||'').toLowerCase()) || r.mes || ''; if (mk) aggMesPico[mk] = (aggMesPico[mk]||0) + (Number(r[campo])||0); });
+  const topMes = Object.entries(aggMesPico).sort((a,b) => b[1]-a[1])[0];
+
+  // KPIs do modal
+  document.getElementById('pd-kpis').innerHTML =
+    `<div class="mk"><div class="mk-lbl">Total</div><div class="mk-val" style="color:${cor}">${total.toLocaleString('pt-BR')}</div><div class="mk-sub">${periodoLbl}</div></div>` +
+    (topCias[0] ? `<div class="mk"><div class="mk-lbl">Maior CIA</div><div class="mk-val" style="color:${cor};font-size:16px">${topCias[0][0]}</div><div class="mk-sub">${topCias[0][1].toLocaleString('pt-BR')} registros</div></div>` : '<div class="mk"><div class="mk-lbl">Maior CIA</div><div class="mk-val" style="color:var(--tx3)">—</div></div>') +
+    (topMes ? `<div class="mk"><div class="mk-lbl">Mês de Pico</div><div class="mk-val" style="color:${cor};font-size:16px">${topMes[0].slice(0,3)}</div><div class="mk-sub">${topMes[1].toLocaleString('pt-BR')} registros</div></div>` : '<div class="mk"><div class="mk-lbl">Mês de Pico</div><div class="mk-val" style="color:var(--tx3)">—</div></div>') +
+    `<div class="mk"><div class="mk-lbl">CIAs com dados</div><div class="mk-val" style="color:${cor}">${topCias.length}</div><div class="mk-sub">no período</div></div>`;
+
+  document.getElementById('pd-sub').textContent = (pdSelCia ? pdSelCia + ' — ' : '') + periodoLbl.toUpperCase();
+
+  // Charts HTML
+  const chartsEl = document.getElementById('pd-charts');
+  const cardHtml = (id, label, full) =>
+    `<div style="${full ? 'grid-column:1/-1;' : ''}background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:10px">${label}</div>
+      <canvas id="${id}"></canvas>
+      <div id="${id}-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
+    </div>`;
+
+  let html = cardHtml('pd-cia', 'Ranking por CIA') + cardHtml('pd-evo', 'Evolução Mensal');
+  html += cardHtml('pd-cat', 'Detalhamento por Categoria', true);
+  if (tipo === 'ocorrencias') {
+    html += `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:10px">Natureza × Mês</div>
+      <div id="pd-matriz" style="overflow-x:auto;font-size:12px"></div>
+    </div>`;
+  }
+  chartsEl.innerHTML = html;
+
+  // Opções barra horizontal
+  const barOpts = {
+    indexAxis: 'y', responsive: true,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
+    scales: {
+      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 11 } } },
+      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 11 } } }
+    }
+  };
+
+  // Helper renderBar local
+  const rdBar = (id, labels, values) => {
+    const ctx = document.getElementById(id)?.getContext('2d');
+    if (!ctx) return;
+    if (!labels.length) { const e = document.getElementById(id+'-empty'); if(e) e.style.display=''; ctx.canvas.style.display='none'; return; }
+    pdChs.push(new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ data:values, backgroundColor:cor+'99', borderColor:cor, borderWidth:1, borderRadius:3 }] }, options:barOpts }));
+  };
+
+  // --- Ranking CIA ---
+  rdBar('pd-cia', topCias.map(([k])=>k), topCias.map(([,v])=>v));
+
+  // --- Evolução Mensal (ignora filtro de meses, mostra todos do ano com CIA aplicada) ---
+  const rowsParaEvo = baseRows.filter(r => !pdSelCia || (r.cia||'').trim().toLowerCase() === pdSelCia.toLowerCase());
+  const aggEvo = {};
+  mesesDisp.forEach(m => aggEvo[m] = 0);
+  rowsParaEvo.forEach(r => { const mk = MES_ORD.find(x => x.toLowerCase() === (r.mes||'').toLowerCase()) || r.mes || ''; if (mesesDisp.includes(mk)) aggEvo[mk] = (aggEvo[mk]||0) + (Number(r[campo])||0); });
+  const evoVals = mesesDisp.map(m => aggEvo[m]||0);
+  const evoCtx = document.getElementById('pd-evo')?.getContext('2d');
+  if (evoCtx) {
+    if (!evoVals.some(v => v > 0)) { const e = document.getElementById('pd-evo-empty'); if(e) e.style.display=''; evoCtx.canvas.style.display='none'; }
+    else {
+      pdChs.push(new Chart(evoCtx, {
+        type: 'line',
+        data: { labels: mesesDisp.map(m => m.slice(0,3)), datasets: [{ data: evoVals, borderColor: cor, backgroundColor: cor+'22', borderWidth: 2, fill: true, tension: 0.4, pointBackgroundColor: cor, pointRadius: 4 }] },
+        options: { responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 11 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 11 } } } } }
+      }));
+    }
+  }
+
+  // --- Detalhamento por Categoria ---
+  const breakField = PROD_BREAK[tipo] || 'entorpecente';
+  const catAgg = {};
+  rows.forEach(r => { const key = r[breakField] || 'Não informado'; catAgg[key] = (catAgg[key]||0) + (Number(r[campo])||0); });
+  const catEntries = Object.entries(catAgg).sort((a,b) => b[1]-a[1]).slice(0,15);
+  rdBar('pd-cat', catEntries.map(([k])=>k), catEntries.map(([,v])=>v));
+
+  // --- Natureza × Mês (só ocorrências) ---
+  if (tipo === 'ocorrencias') {
+    const natMes = {};
+    rows.forEach(r => {
+      const nat = r.natureza || 'Não informado';
+      const mk = MES_ORD.find(x => x.toLowerCase() === (r.mes||'').toLowerCase()) || r.mes || '';
+      if (!natMes[nat]) natMes[nat] = {};
+      natMes[nat][mk] = (natMes[nat][mk]||0) + (Number(r.contagem)||0);
+    });
+    const natList = Object.keys(natMes).sort((a,b) => {
+      const ta = pdMeses.reduce((s,m) => s+(natMes[a][m]||0), 0);
+      const tb = pdMeses.reduce((s,m) => s+(natMes[b][m]||0), 0);
+      return tb - ta;
+    }).slice(0,20);
+    const mesesUsados = pdMeses.filter(m => natList.some(n => (natMes[n][m]||0) > 0));
+    const matEl = document.getElementById('pd-matriz');
+    if (matEl) {
+      if (!natList.length || !mesesUsados.length) { matEl.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:8px 0">Sem dados</div>'; }
+      else {
+        let tbl = `<table style="border-collapse:collapse;width:100%;min-width:400px"><thead><tr>
+          <th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--bd2);font-size:11px;color:var(--tx3)">Natureza</th>`;
+        mesesUsados.forEach(m => tbl += `<th style="padding:5px 8px;border-bottom:1px solid var(--bd2);font-size:11px;color:var(--tx3);text-align:right">${m.slice(0,3)}</th>`);
+        tbl += `<th style="padding:5px 8px;border-bottom:1px solid var(--bd2);font-size:11px;color:var(--tx3);text-align:right">Total</th></tr></thead><tbody>`;
+        natList.forEach((nat, i) => {
+          const rowTot = mesesUsados.reduce((s,m) => s+(natMes[nat][m]||0), 0);
+          tbl += `<tr style="background:${i%2?'':'rgba(255,255,255,.02)'}">
+            <td style="padding:5px 8px;font-size:12px;color:var(--tx)">${nat}</td>`;
+          mesesUsados.forEach(m => { const v = natMes[nat][m]||0; tbl += `<td style="padding:5px 8px;text-align:right;font-size:12px;color:${v>0?'var(--tx)':'var(--tx3)'}">${v>0?v:'—'}</td>`; });
+          tbl += `<td style="padding:5px 8px;text-align:right;font-size:12px;font-weight:700;color:${cor}">${rowTot}</td></tr>`;
+        });
+        tbl += '</tbody></table>';
+        matEl.innerHTML = tbl;
+      }
+    }
   }
 }
 

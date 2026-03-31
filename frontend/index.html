@@ -463,6 +463,27 @@
   </div>
 </div>
 
+<!-- MODAL DETALHE PRODUTIVIDADE -->
+<div class="mo" id="prod-detail-mo" onclick="prodDetailClickOut(event)">
+  <div class="mo-box">
+    <div class="mo-head">
+      <div class="mo-tw">
+        <div class="mo-accent" id="pd-accent"></div>
+        <div>
+          <div class="mo-crime" id="pd-title"></div>
+          <div class="mo-sub" id="pd-sub">ANÁLISE DETALHADA</div>
+        </div>
+      </div>
+      <button class="mo-close" onclick="closeProdDetail()">✕</button>
+    </div>
+    <div class="mo-body">
+      <div id="pd-filter-bar" class="pf" style="margin-bottom:14px"></div>
+      <div class="mo-kpis" id="pd-kpis"></div>
+      <div id="pd-charts" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-top:4px"></div>
+    </div>
+  </div>
+</div>
+
 <!-- P5 EM BREVE -->
 <div id="page-p2" class="page">
   <div class="ph">
