@@ -4756,8 +4756,8 @@ function renderProdDetail() {
   // KPIs do modal
   document.getElementById('pd-kpis').innerHTML =
     `<div class="mk"><div class="mk-lbl">Total</div><div class="mk-val" style="color:${cor}">${total.toLocaleString('pt-BR')}</div><div class="mk-sub">${periodoLbl}</div></div>` +
-    (topCias[0] ? `<div class="mk"><div class="mk-lbl">Maior CIA</div><div class="mk-val" style="color:${cor};font-size:16px">${topCias[0][0]}</div><div class="mk-sub">${topCias[0][1].toLocaleString('pt-BR')} registros</div></div>` : '<div class="mk"><div class="mk-lbl">Maior CIA</div><div class="mk-val" style="color:var(--tx3)">—</div></div>') +
-    (topMes ? `<div class="mk"><div class="mk-lbl">Mês de Pico</div><div class="mk-val" style="color:${cor};font-size:16px">${topMes[0].slice(0,3)}</div><div class="mk-sub">${topMes[1].toLocaleString('pt-BR')} registros</div></div>` : '<div class="mk"><div class="mk-lbl">Mês de Pico</div><div class="mk-val" style="color:var(--tx3)">—</div></div>') +
+    (tipo !== 'entorpecentes' ? (topCias[0] ? `<div class="mk"><div class="mk-lbl">Maior CIA</div><div class="mk-val" style="color:${cor};font-size:16px">${topCias[0][0]}</div><div class="mk-sub">${topCias[0][1].toLocaleString('pt-BR')} registros</div></div>` : '<div class="mk"><div class="mk-lbl">Maior CIA</div><div class="mk-val" style="color:var(--tx3)">—</div></div>') : '') +
+    (tipo !== 'entorpecentes' ? (topMes ? `<div class="mk"><div class="mk-lbl">Mês de Pico</div><div class="mk-val" style="color:${cor};font-size:16px">${topMes[0].slice(0,3)}</div><div class="mk-sub">${topMes[1].toLocaleString('pt-BR')} registros</div></div>` : '<div class="mk"><div class="mk-lbl">Mês de Pico</div><div class="mk-val" style="color:var(--tx3)">—</div></div>') : '') +
     `<div class="mk"><div class="mk-lbl">CIAs com dados</div><div class="mk-val" style="color:${cor}">${topCias.length}</div><div class="mk-sub">no período</div></div>`;
 
   document.getElementById('pd-sub').textContent = (pdSelCia ? pdSelCia + ' — ' : '') + periodoLbl.toUpperCase();
