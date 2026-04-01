@@ -1524,6 +1524,7 @@ function moRender() {
       plugins: {
         legend: { labels: { boxWidth: 15, padding: 10, font: { size: 16 }, usePointStyle: true } },
         tooltip: {
+          usePointStyle: true,
           callbacks: {
             afterLabel: ctx => {
               const m = withOcc[ctx.datasetIndex]?.m;
