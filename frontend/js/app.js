@@ -44,11 +44,18 @@ function initUserBlock() {
     if (['admin', 'p3'].includes(u.role)) {
       document.getElementById('btn-admin').style.display = 'block';
       checkPendingUsers();
-      // Mostra botões de editar período e fonte apenas para P3/admin
+      // Botões de edição do cabeçalho P3 — visíveis só para admin/p3
       const btnEdit = document.getElementById('btn-edit-periodo');
       if (btnEdit) btnEdit.style.display = 'inline-block';
       const btnFonte = document.getElementById('btn-edit-fonte');
       if (btnFonte) btnFonte.style.display = 'inline-block';
+    }
+    if (['admin', 'p1'].includes(u.role)) {
+      // Botões de edição do cabeçalho P1 — visíveis só para admin/p1
+      const btnP1Per = document.getElementById('btn-p1-edit-periodo');
+      if (btnP1Per) btnP1Per.style.display = 'inline-block';
+      const btnP1Fon = document.getElementById('btn-p1-edit-fonte');
+      if (btnP1Fon) btnP1Fon.style.display = 'inline-block';
     }
     loadDashboardConfig();
   } catch (_) {}
@@ -59,9 +66,10 @@ async function loadDashboardConfig() {
     const res = await authFetch(`${API}/config`);
     if (!res.ok) return;
     const cfg = await res.json();
+    // P3
     if (cfg.periodo_texto) {
-      const lbl = document.getElementById('lbl-p1');
-      const inp = document.getElementById('inp-periodo');
+      const lbl = document.getElementById('lbl-p3-periodo');
+      const inp = document.getElementById('inp-p3-periodo');
       if (lbl) lbl.textContent = cfg.periodo_texto;
       if (inp) inp.value = cfg.periodo_texto;
     }
@@ -70,6 +78,19 @@ async function loadDashboardConfig() {
       const inp = document.getElementById('inp-fonte');
       if (lbl) lbl.textContent = cfg.fonte_texto;
       if (inp) inp.value = cfg.fonte_texto;
+    }
+    // P1
+    if (cfg.p1_periodo) {
+      const lbl = document.getElementById('lbl-p1-periodo');
+      const inp = document.getElementById('inp-p1-periodo');
+      if (lbl) lbl.textContent = cfg.p1_periodo;
+      if (inp) inp.value = cfg.p1_periodo;
+    }
+    if (cfg.p1_fonte) {
+      const lbl = document.getElementById('lbl-p1-fonte');
+      const inp = document.getElementById('inp-p1-fonte');
+      if (lbl) lbl.textContent = cfg.p1_fonte;
+      if (inp) inp.value = cfg.p1_fonte;
     }
   } catch (_) {}
 }
@@ -85,8 +106,8 @@ async function saveConfig(chave, valor) {
 }
 
 function toggleEditPeriodo() {
-  const inp  = document.getElementById('inp-periodo');
-  const lbl  = document.getElementById('lbl-p1');
+  const inp  = document.getElementById('inp-p3-periodo');
+  const lbl  = document.getElementById('lbl-p3-periodo');
   const btn  = document.getElementById('btn-edit-periodo');
   const open = inp.style.display === 'none' || inp.style.display === '';
   inp.style.display = open ? 'inline-block' : 'none';
@@ -100,7 +121,7 @@ function toggleEditPeriodo() {
 }
 
 function savePeriodo(val) {
-  const lbl = document.getElementById('lbl-p1');
+  const lbl = document.getElementById('lbl-p3-periodo');
   if (lbl) lbl.textContent = val || pLbl(selMeses);
 }
 
@@ -122,6 +143,36 @@ function toggleEditFonte() {
 function saveFonte(val) {
   const lbl = document.getElementById('lbl-fonte');
   if (lbl) lbl.textContent = val || 'Banco de Dados RAC';
+}
+
+function toggleEditP1Periodo() {
+  const inp = document.getElementById('inp-p1-periodo');
+  const lbl = document.getElementById('lbl-p1-periodo');
+  const btn = document.getElementById('btn-p1-edit-periodo');
+  const open = inp.style.display === 'none' || inp.style.display === '';
+  inp.style.display = open ? 'inline-block' : 'none';
+  lbl.style.display = open ? 'none' : 'inline-block';
+  btn.textContent   = open ? '✔ Salvar' : '✎ Editar';
+  if (!open) {
+    const val = inp.value.trim();
+    lbl.textContent = val || '—';
+    saveConfig('p1_periodo', val);
+  }
+}
+
+function toggleEditP1Fonte() {
+  const inp = document.getElementById('inp-p1-fonte');
+  const lbl = document.getElementById('lbl-p1-fonte');
+  const btn = document.getElementById('btn-p1-edit-fonte');
+  const open = inp.style.display === 'none' || inp.style.display === '';
+  inp.style.display = open ? 'inline-block' : 'none';
+  lbl.style.display = open ? 'none' : 'inline-block';
+  btn.textContent   = open ? '✔ Salvar' : '✎ Editar';
+  if (!open) {
+    const val = inp.value.trim();
+    lbl.textContent = val || '—';
+    saveConfig('p1_fonte', val);
+  }
 }
 
 async function checkPendingUsers() {
@@ -796,10 +847,9 @@ function renderAll() {
     const el = document.getElementById(id);
     if (el) el.textContent = p;
   });
-  // Período da Visão Geral: usa texto manual se salvo, senão usa seleção de meses
-  const periodoSalvo = localStorage.getItem('periodo_texto');
-  const lblP1 = document.getElementById('lbl-p1');
-  if (lblP1) lblP1.textContent = periodoSalvo || p;
+  // Período da Visão Geral: atualiza label do cabeçalho se não houver texto salvo no banco
+  const lblP3Per = document.getElementById('lbl-p3-periodo');
+  if (lblP3Per && lblP3Per.textContent === '—') lblP3Per.textContent = p;
   document.getElementById('metas-badge').textContent = p;
   renderKPIs();
   renderVisaoAndInsights();
@@ -1863,23 +1913,6 @@ async function confirmUpload() {
     buildPageFilters();
     renderAll();
     await updateSyncStatus();
-
-    // Auto-atualiza período com base nos dados importados
-    const anosUp = [...new Set(uploadData.map(r => parseInt(r.ano || r.Ano || 0)))].filter(Boolean).sort((a,b) => a-b);
-    const mesesUp = [...new Set(uploadData.map(r => (r.mes || r.Mes || '').trim()))].filter(Boolean);
-    const _MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-    const mesesOrd = mesesUp.sort((a,b) => _MESES_FULL.indexOf(a) - _MESES_FULL.indexOf(b));
-    if (mesesOrd.length && anosUp.length) {
-      const pri = mesesOrd[0].slice(0,3);
-      const ult = mesesOrd[mesesOrd.length-1].slice(0,3);
-      const ano = anosUp[anosUp.length-1];
-      const periodoAuto = mesesOrd.length === 1 ? `${pri} ${ano}` : `${pri} \u2013 ${ult} ${ano}`;
-      await saveConfig('periodo_texto', periodoAuto);
-      const lblP = document.getElementById('lbl-p1');
-      const inpP = document.getElementById('inp-periodo');
-      if (lblP) lblP.textContent = periodoAuto;
-      if (inpP) inpP.value = periodoAuto;
-    }
 
   } catch (err) {
     showUplMsg('✗ ' + err.message, 'err');
