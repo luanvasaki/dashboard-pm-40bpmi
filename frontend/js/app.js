@@ -4677,7 +4677,7 @@ function buildPdFilter() {
     });
     if (todasUn.length > 1) {
       h += '<span class="pf-label">Unidade</span>';
-      todasUn.forEach(u => h += `<button class="pf-btn${u===pdUnidade?' on':''}" onclick="pdSwitchUnit('${u.replace(/'/g,"\\'")}'">${u}</button>`);
+      todasUn.forEach(u => h += `<button class="pf-btn${u===pdUnidade?' on':''}" onclick="pdSwitchUnit('${u.replace(/'/g,"\\'")}')"> ${u}</button>`);
       h += '<span class="pf-sep"></span>';
     }
   }
