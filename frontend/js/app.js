@@ -4662,7 +4662,27 @@ function buildPdFilter() {
   if (prodSelAno) baseRows = baseRows.filter(r => r.ano === prodSelAno);
   if (pdUnidade) baseRows = baseRows.filter(r => (r.unidade_medida||'Sem unidade').trim() === pdUnidade);
   const cias = [...new Set(baseRows.map(r => (r.cia||'').trim()).filter(Boolean))].sort();
-  let h = '<span class="pf-label">Meses</span>';
+
+  let h = '';
+
+  // Pills de unidade — só para entorpecentes
+  if (pdTipo === 'entorpecentes') {
+    const todasUn = [...new Set((prodRaw.entorpecentes||[])
+      .filter(r => !prodSelAno || r.ano === prodSelAno)
+      .map(r => (r.unidade_medida||'Sem unidade').trim())
+    )].filter(Boolean).sort((a,b) => {
+      const aG = /^(g|kg|grama)/i.test(a), bG = /^(g|kg|grama)/i.test(b);
+      if (aG === bG) return a.localeCompare(b);
+      return aG ? -1 : 1;
+    });
+    if (todasUn.length > 1) {
+      h += '<span class="pf-label">Unidade</span>';
+      todasUn.forEach(u => h += `<button class="pf-btn${u===pdUnidade?' on':''}" onclick="pdSwitchUnit('${u.replace(/'/g,"\\'")}'">${u}</button>`);
+      h += '<span class="pf-sep"></span>';
+    }
+  }
+
+  h += '<span class="pf-label">Meses</span>';
   h += `<button class="pf-btn ${pdMeses.length === mesesDisp.length ? 'on' : ''}" onclick="pdSetAllMes()">Todos</button>`;
   mesesDisp.forEach(m => h += `<button class="pf-btn ${pdMeses.includes(m) ? 'on' : ''}" onclick="pdTogMes('${m}')">${m.slice(0,3)}</button>`);
   if (cias.length) {
@@ -4672,6 +4692,15 @@ function buildPdFilter() {
     h += '</select></div>';
   }
   document.getElementById('pd-filter-bar').innerHTML = h;
+}
+
+function pdSwitchUnit(u) {
+  pdUnidade = u;
+  const label = `${PROD_LABELS.entorpecentes} — ${u}`;
+  const titleEl = document.getElementById('pd-title');
+  if (titleEl) titleEl.textContent = label.toUpperCase();
+  buildPdFilter();
+  renderProdDetail();
 }
 
 function pdSetAllMes() {
