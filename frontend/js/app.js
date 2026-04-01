@@ -4069,15 +4069,21 @@ function renderHome() {
 function updateSidebarImports(section) {
   const el = document.getElementById('sidebar-imports');
   if (!el) return;
+  const role = (() => { try { return JSON.parse(localStorage.getItem('auth_user') || '{}').role || ''; } catch { return ''; } })();
+  const isP3 = ['admin', 'p3'].includes(role);
+  const isP1 = ['admin', 'p1'].includes(role);
   if (section === 'p1') {
+    if (!isP1) { el.innerHTML = ''; return; }
     el.innerHTML = `
       <button onclick="openP1Upload()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Efetivo</button>
       <button onclick="openAfUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Afastamentos</button>`;
   } else if (section === 'p3') {
+    if (!isP3) { el.innerHTML = ''; return; }
     el.innerHTML = `
       <button onclick="openUploadModal()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Banco de Dados RAC</button>
       <button onclick="openOcorrModal()" style="margin-top:4px;width:100%;padding:6px;background:rgba(61,122,191,.12);border:1px solid rgba(61,122,191,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Ocorrências (InfoCrim)</button>`;
   } else if (section === 'p3prod') {
+    if (!isP3) { el.innerHTML = ''; return; }
     const itens = [
       ['ocorrencias',   'Ocorrências Gerais',     '#5a9de0'],
       ['presos',        'Pessoas Presas',          '#e0965a'],
