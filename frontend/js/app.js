@@ -50,18 +50,37 @@ function initUserBlock() {
       const btnFonte = document.getElementById('btn-edit-fonte');
       if (btnFonte) btnFonte.style.display = 'inline-block';
     }
-    // Restaura período salvo no label
-    const periodoSalvo = localStorage.getItem('periodo_texto');
-    const inp = document.getElementById('inp-periodo');
-    if (periodoSalvo && inp) inp.value = periodoSalvo;
-    // Restaura fonte salva
-    const fonteSalva = localStorage.getItem('fonte_texto');
-    const inpF = document.getElementById('inp-fonte');
-    if (inpF) {
-      inpF.value = fonteSalva || 'Banco de Dados RAC';
-      const lblF = document.getElementById('lbl-fonte');
-      if (lblF && fonteSalva) lblF.textContent = fonteSalva;
+    loadDashboardConfig();
+  } catch (_) {}
+}
+
+async function loadDashboardConfig() {
+  try {
+    const res = await authFetch(`${API}/config`);
+    if (!res.ok) return;
+    const cfg = await res.json();
+    if (cfg.periodo_texto) {
+      const lbl = document.getElementById('lbl-p1');
+      const inp = document.getElementById('inp-periodo');
+      if (lbl) lbl.textContent = cfg.periodo_texto;
+      if (inp) inp.value = cfg.periodo_texto;
     }
+    if (cfg.fonte_texto) {
+      const lbl = document.getElementById('lbl-fonte');
+      const inp = document.getElementById('inp-fonte');
+      if (lbl) lbl.textContent = cfg.fonte_texto;
+      if (inp) inp.value = cfg.fonte_texto;
+    }
+  } catch (_) {}
+}
+
+async function saveConfig(chave, valor) {
+  try {
+    await authFetch(`${API}/config`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chave, valor })
+    });
   } catch (_) {}
 }
 
@@ -75,8 +94,8 @@ function toggleEditPeriodo() {
   btn.textContent   = open ? '✔ Salvar' : '✎ Editar';
   if (!open) {
     const val = inp.value.trim();
-    localStorage.setItem('periodo_texto', val);
     lbl.textContent = val || pLbl(selMeses);
+    saveConfig('periodo_texto', val);
   }
 }
 
@@ -95,8 +114,8 @@ function toggleEditFonte() {
   btn.textContent   = open ? '✔ Salvar' : '✎ Editar';
   if (!open) {
     const val = inp.value.trim();
-    localStorage.setItem('fonte_texto', val);
     lbl.textContent = val || 'Banco de Dados RAC';
+    saveConfig('fonte_texto', val);
   }
 }
 
@@ -1844,6 +1863,23 @@ async function confirmUpload() {
     buildPageFilters();
     renderAll();
     await updateSyncStatus();
+
+    // Auto-atualiza período com base nos dados importados
+    const anosUp = [...new Set(uploadData.map(r => parseInt(r.ano || r.Ano || 0)))].filter(Boolean).sort((a,b) => a-b);
+    const mesesUp = [...new Set(uploadData.map(r => (r.mes || r.Mes || '').trim()))].filter(Boolean);
+    const _MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const mesesOrd = mesesUp.sort((a,b) => _MESES_FULL.indexOf(a) - _MESES_FULL.indexOf(b));
+    if (mesesOrd.length && anosUp.length) {
+      const pri = mesesOrd[0].slice(0,3);
+      const ult = mesesOrd[mesesOrd.length-1].slice(0,3);
+      const ano = anosUp[anosUp.length-1];
+      const periodoAuto = mesesOrd.length === 1 ? `${pri} ${ano}` : `${pri} \u2013 ${ult} ${ano}`;
+      await saveConfig('periodo_texto', periodoAuto);
+      const lblP = document.getElementById('lbl-p1');
+      const inpP = document.getElementById('inp-periodo');
+      if (lblP) lblP.textContent = periodoAuto;
+      if (inpP) inpP.value = periodoAuto;
+    }
 
   } catch (err) {
     showUplMsg('✗ ' + err.message, 'err');

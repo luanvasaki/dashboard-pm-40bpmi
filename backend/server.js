@@ -959,6 +959,32 @@ app.post('/api/upload/prod/:tipo', requireAuth, requireRole('admin', 'p3'), asyn
   }
 });
 
+// GET /api/config — configurações globais do dashboard (período, fonte, etc.)
+app.get('/api/config', requireAuth, async (req, res) => {
+  if (!supabase) return res.json({});
+  try {
+    const { data, error } = await supabase.from('config_dashboard').select('chave, valor');
+    if (error) return res.json({});
+    const cfg = {};
+    (data || []).forEach(r => { cfg[r.chave] = r.valor; });
+    res.json(cfg);
+  } catch { res.json({}); }
+});
+
+// PUT /api/config — salva configuração (somente admin/p3)
+app.put('/api/config', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  const { chave, valor } = req.body;
+  if (!chave) return res.status(400).json({ error: 'chave obrigatória' });
+  try {
+    const { error } = await supabase.from('config_dashboard').upsert({ chave, valor }, { onConflict: 'chave' });
+    if (error) throw new Error(error.message);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });
