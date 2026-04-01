@@ -62,8 +62,8 @@ function requireAuth(req, res, next) {
 
 function requireRole(...roles) {
   return (req, res, next) => {
-    if (!roles.includes(req.user?.role)) return res.status(403).json({ error: 'Acesso negado' });
-    next();
+    if (req.user?.role === 'ti' || roles.includes(req.user?.role)) return next();
+    return res.status(403).json({ error: 'Acesso negado' });
   };
 }
 
@@ -355,8 +355,8 @@ app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'p3'), async
   const { status, role, secao } = req.body;
   const updates = {};
   if (status) updates.status = status;
-  if (role   && ['admin', 'p3'].includes(req.user.role)) updates.role  = role;
-  if (secao  && ['admin', 'p3'].includes(req.user.role)) updates.secao = secao;
+  if (role   && ['admin', 'p3', 'ti'].includes(req.user.role)) updates.role  = role;
+  if (secao  && ['admin', 'p3', 'ti'].includes(req.user.role)) updates.secao = secao;
 
   if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nenhuma alteração informada' });
 

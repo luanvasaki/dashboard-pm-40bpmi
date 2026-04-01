@@ -38,10 +38,10 @@ function toggleSidebar() {
 function initUserBlock() {
   try {
     const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
-    const ROLE_LABEL = { comandante: 'Cmt Batalhão', comandante_cia: 'Cmt de Cia', p1: 'Seção P1', p3: 'Seção P3', viewer: 'Visualizador' };
+    const ROLE_LABEL = { ti: 'T.I. / Programador', comandante: 'Cmt Batalhão', comandante_cia: 'Cmt de Cia', p1: 'Seção P1', p3: 'Seção P3', viewer: 'Visualizador' };
     document.getElementById('user-nome').textContent = u.nome || '—';
     document.getElementById('user-info').textContent = `${u.secao || '—'} · ${ROLE_LABEL[u.role] || u.role || '—'}`;
-    if (['admin', 'p3'].includes(u.role)) {
+    if (['admin', 'p3', 'ti'].includes(u.role)) {
       document.getElementById('btn-admin').style.display = 'block';
       checkPendingUsers();
       // Botões de edição do cabeçalho P3 — visíveis só para admin/p3
@@ -50,8 +50,8 @@ function initUserBlock() {
       const btnFonte = document.getElementById('btn-edit-fonte');
       if (btnFonte) btnFonte.style.display = 'inline-block';
     }
-    if (['admin', 'p1'].includes(u.role)) {
-      // Botões de edição do cabeçalho P1 — visíveis só para admin/p1
+    if (['admin', 'p1', 'ti'].includes(u.role)) {
+      // Botões de edição do cabeçalho P1 — visíveis só para admin/p1/ti
       const btnP1Per = document.getElementById('btn-p1-edit-periodo');
       if (btnP1Per) btnP1Per.style.display = 'inline-block';
       const btnP1Fon = document.getElementById('btn-p1-edit-fonte');
@@ -229,7 +229,7 @@ function buildUserTable(users, me) {
   // Oculta usuários com role 'admin' — protegidos contra alteração
   users = users.filter(u => u.role !== 'admin');
   if (!users.length) return '<div style="color:var(--tx3);font-size:12px;padding:6px 0">Nenhum registro.</div>';
-  const ROLE_LABEL = { comandante: 'Cmt Batalhão', comandante_cia: 'Cmt de Cia', p1: 'P1', p3: 'P3', viewer: 'Visualizador' };
+  const ROLE_LABEL = { ti: 'T.I.', comandante: 'Cmt Batalhão', comandante_cia: 'Cmt de Cia', p1: 'P1', p3: 'P3', viewer: 'Visualizador' };
   const STATUS_STYLE = {
     pending:  'background:rgba(200,168,75,.15);color:#e8c96a',
     approved: 'background:rgba(61,191,122,.1);color:#5ae09a',
@@ -252,9 +252,10 @@ function buildUserTable(users, me) {
 
   users.forEach(u => {
     const sStyle = STATUS_STYLE[u.status] || '';
-    const canEditRole = ['admin', 'p3'].includes(me.role);
+    const canEditRole = ['admin', 'p3', 'ti'].includes(me.role);
+    const editableRoles = ['admin','ti'].includes(me.role) ? ['viewer','p1','p3','ti'] : ['viewer','p1','p3'];
     const roleOpts = canEditRole
-      ? ['viewer','p1','p3'].map(r =>
+      ? editableRoles.map(r =>
           `<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABEL[r]||r}</option>`).join('')
       : `<option>${ROLE_LABEL[u.role]||u.role}</option>`;
     const secaoOpts = canEditRole
@@ -2807,7 +2808,7 @@ function renderP1() {
     }
   } else {
     const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
-    if (['admin','p1'].includes(u.role)) {
+    if (['admin','p1','ti'].includes(u.role)) {
       claroSection = `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
         <div>
           <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;margin-bottom:4px">Claro Operacional</div>
@@ -3398,7 +3399,7 @@ async function openProntuario(re) {
   imgEl.style.display = 'none'; phEl.style.display = 'flex';
   // Controles de upload (somente p1/admin)
   const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
-  const canEdit = ['admin','p1'].includes(u.role);
+  const canEdit = ['admin','p1','ti'].includes(u.role);
   const editArea = document.getElementById('pronto-foto-edit-area');
   if (editArea) {
     editArea.style.display = canEdit ? 'block' : 'none';
@@ -3652,7 +3653,7 @@ async function openFotoModal(re, nome, posto) {
   document.getElementById('foto-placeholder').style.display = 'flex';
 
   const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
-  const canEdit = ['admin', 'p1'].includes(u.role);
+  const canEdit = ['admin', 'p1', 'ti'].includes(u.role);
   document.getElementById('foto-edit-area').style.display = canEdit ? 'block' : 'none';
   document.getElementById('foto-readonly-note').style.display = canEdit ? 'none' : 'block';
   document.getElementById('foto-file-input').value = '';
@@ -4070,8 +4071,8 @@ function updateSidebarImports(section) {
   const el = document.getElementById('sidebar-imports');
   if (!el) return;
   const role = (() => { try { return JSON.parse(localStorage.getItem('auth_user') || '{}').role || ''; } catch { return ''; } })();
-  const isP3 = ['admin', 'p3'].includes(role);
-  const isP1 = ['admin', 'p1'].includes(role);
+  const isP3 = ['admin', 'p3', 'ti'].includes(role);
+  const isP1 = ['admin', 'p1', 'ti'].includes(role);
   if (section === 'p1') {
     if (!isP1) { el.innerHTML = ''; return; }
     el.innerHTML = `
@@ -4144,7 +4145,7 @@ function goSection(id, btn) {
     p1FiltroOpm = '';
     const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
     const btnV = document.getElementById('btn-vagas');
-    if (btnV) btnV.style.display = ['admin','p1'].includes(u.role) ? 'inline-block' : 'none';
+    if (btnV) btnV.style.display = ['admin','p1','ti'].includes(u.role) ? 'inline-block' : 'none';
     loadP1();
   }
   setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
