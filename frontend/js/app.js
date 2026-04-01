@@ -253,7 +253,7 @@ function buildUserTable(users, me) {
   users.forEach(u => {
     const sStyle = STATUS_STYLE[u.status] || '';
     const canEditRole = ['admin', 'p3', 'ti'].includes(me.role);
-    const editableRoles = ['admin','ti'].includes(me.role) ? ['viewer','p1','p3','ti'] : ['viewer','p1','p3'];
+    const editableRoles = ['viewer','p1','p3','ti'];
     const roleOpts = canEditRole
       ? editableRoles.map(r =>
           `<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABEL[r]||r}</option>`).join('')
