@@ -4168,6 +4168,8 @@ let prodSelCia    = null;
 let prodChs       = [];
 let prodUplTipo   = null;
 let prodUplParsed = [];
+let prodEntorpUnit = null;
+let prodEntorpCatCh = null;
 let pdTipo = null, pdUnidade = null, pdChs = [], pdSelCia = '', pdMeses = [];
 
 const PROD_CORES = {
@@ -4267,6 +4269,7 @@ function prodBuildFilter() {
 function prodDestroyCharts() {
   prodChs.forEach(c => { try { c.destroy(); } catch(e){} });
   prodChs = [];
+  if (prodEntorpCatCh) { try { prodEntorpCatCh.destroy(); } catch(e){} prodEntorpCatCh = null; }
 }
 
 function prodRender() {
@@ -4286,9 +4289,15 @@ function prodRender() {
   const totais = {};
   tipos.forEach(t => totais[t] = prodSum(filt[t], PROD_CAMPO[t]));
 
-  // Unidades de entorpecentes separadas (kg, Un, etc.)
-  const unidadesEntorp = [...new Set(filt.entorpecentes.map(r => (r.unidade_medida||'Sem unidade').trim()))].filter(Boolean).sort();
+  // Unidades de entorpecentes — grama sempre primeiro
+  const unidadesEntorp = [...new Set(filt.entorpecentes.map(r => (r.unidade_medida||'Sem unidade').trim()))].filter(Boolean).sort((a, b) => {
+    const aG = /^(g|kg|grama)/i.test(a), bG = /^(g|kg|grama)/i.test(b);
+    if (aG === bG) return a.localeCompare(b);
+    return aG ? -1 : 1;
+  });
   const normId = s => s.replace(/[^a-z0-9]/gi,'_').toLowerCase();
+  // Garante que a unidade ativa é válida (reseta para grama se necessário)
+  if (!prodEntorpUnit || !unidadesEntorp.includes(prodEntorpUnit)) prodEntorpUnit = unidadesEntorp[0] || null;
 
   // KPIs: 4 indicadores principais + 1 KPI por unidade de entorpecente + taxa efetividade
   kpisEl.innerHTML =
@@ -4301,25 +4310,27 @@ function prodRender() {
         <div class="kpi-hint">▸ clique p/ detalhes</div>
       </div>`
     ).join('') +
-    (unidadesEntorp.length
-      ? unidadesEntorp.map(u => {
-          const tot = prodSum(filt.entorpecentes.filter(r => (r.unidade_medida||'Sem unidade').trim() === u), 'quantidade');
-          return `<div class="kpi" onclick="openProdDetail('entorpecentes','${u.replace(/'/g,"\\'")}')" title="Clique para detalhes" style="cursor:pointer">
-            <div class="kpi-top" style="background:${PROD_CORES.entorpecentes}"></div>
-            <div class="kpi-lbl">Entorpecentes <span style="font-size:10px;opacity:.7">(${u})</span></div>
-            <div class="kpi-val" style="color:${PROD_CORES.entorpecentes}">${tot.toLocaleString('pt-BR')}</div>
-            <div class="kpi-sub">${periodoLbl}</div>
-            <div class="kpi-hint">▸ clique p/ detalhes</div>
-          </div>`;
-        }).join('')
-      : `<div class="kpi" onclick="openProdDetail('entorpecentes')" title="Clique para detalhes" style="cursor:pointer">
-          <div class="kpi-top" style="background:${PROD_CORES.entorpecentes}"></div>
-          <div class="kpi-lbl">${PROD_LABELS.entorpecentes}</div>
-          <div class="kpi-val" style="color:${PROD_CORES.entorpecentes}">—</div>
-          <div class="kpi-sub">${periodoLbl}</div>
-          <div class="kpi-hint">▸ clique p/ detalhes</div>
-        </div>`
-    );
+    (() => {
+      if (!unidadesEntorp.length) return `<div class="kpi" onclick="openProdDetail('entorpecentes')" title="Clique para detalhes" style="cursor:pointer">
+        <div class="kpi-top" style="background:${PROD_CORES.entorpecentes}"></div>
+        <div class="kpi-lbl">${PROD_LABELS.entorpecentes}</div>
+        <div class="kpi-val" style="color:${PROD_CORES.entorpecentes}">—</div>
+        <div class="kpi-sub">${periodoLbl}</div>
+        <div class="kpi-hint">▸ clique p/ detalhes</div>
+      </div>`;
+      const totAtivo = prodSum(filt.entorpecentes.filter(r => (r.unidade_medida||'Sem unidade').trim() === prodEntorpUnit), 'quantidade');
+      const pills = unidadesEntorp.map(u =>
+        `<button class="pf-btn${u===prodEntorpUnit?' on':''}" data-eunit="${u.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();switchEntorpUnit('${u.replace(/'/g,"\\'")}','kpi')" style="font-size:10px;padding:2px 7px;line-height:1.4">${u}</button>`
+      ).join('');
+      return `<div class="kpi" onclick="openProdDetail('entorpecentes',prodEntorpUnit)" title="Clique para detalhes" style="cursor:pointer">
+        <div class="kpi-top" style="background:${PROD_CORES.entorpecentes}"></div>
+        <div class="kpi-lbl">${PROD_LABELS.entorpecentes}</div>
+        <div style="display:flex;gap:3px;flex-wrap:wrap;margin:5px 0">${pills}</div>
+        <div class="kpi-val" id="entorp-kpi-val" style="color:${PROD_CORES.entorpecentes}">${totAtivo.toLocaleString('pt-BR')}</div>
+        <div class="kpi-sub">${periodoLbl}</div>
+        <div class="kpi-hint">▸ clique p/ detalhes</div>
+      </div>`;
+    })();
 
   // Cabeçalho de seção
   const sec = label => `<div style="grid-column:1/-1;display:flex;align-items:center;gap:12px;margin-top:10px;padding-bottom:8px;border-bottom:1px solid var(--bd2)">
@@ -4334,10 +4345,20 @@ function prodRender() {
       <div id="${id}-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>`;
 
-  // Cards de entorpecentes separados por unidade
-  const entorpCards = prefix => (unidadesEntorp.length
-    ? unidadesEntorp.map(u => card(`${prefix}-entorp-${normId(u)}`, PROD_CORES.entorpecentes, `Entorpecentes — ${u}`)).join('')
-    : card(`${prefix}-entorpecentes`, PROD_CORES.entorpecentes, PROD_LABELS.entorpecentes));
+  // Card único de entorpecentes com tabs de unidade
+  const tabsEntorp = unidadesEntorp.map(u =>
+    `<button class="pf-btn${u===prodEntorpUnit?' on':''}" data-eunit-cat="${u.replace(/"/g,'&quot;')}" onclick="switchEntorpUnit('${u.replace(/'/g,"\\'")}','cat')" style="font-size:10px;padding:2px 8px">${u}</button>`
+  ).join('');
+  const entorpCatCard = unidadesEntorp.length
+    ? `<div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${PROD_CORES.entorpecentes}">${PROD_LABELS.entorpecentes} — Categorias</div>
+          <div style="display:flex;gap:4px">${tabsEntorp}</div>
+        </div>
+        <canvas id="cat-entorp"></canvas>
+        <div id="cat-entorp-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
+      </div>`
+    : card('cat-entorpecentes', PROD_CORES.entorpecentes, PROD_LABELS.entorpecentes);
 
   // Monta HTML de todas as seções
   chartsEl.innerHTML =
@@ -4349,7 +4370,7 @@ function prodRender() {
       <div id="ocorr-matriz" style="margin-top:16px"></div>
     </div>` +
     ['presos','armas','veiculos'].map(t => card(`cat-${t}`, PROD_CORES[t], PROD_LABELS[t])).join('') +
-    entorpCards('cat');
+    entorpCatCard;
 
   // Opções comuns de gráficos de barra horizontal
   const barOpts = cor => ({
@@ -4381,15 +4402,8 @@ function prodRender() {
     const entries = Object.entries(agg).sort((a,b) => b[1]-a[1]).slice(0,10);
     renderBar(`cat-${t}`, entries.map(([k])=>k), entries.map(([,v])=>v), PROD_CORES[t]);
   });
-  // Entorpecentes por categoria — separado por unidade
-  (unidadesEntorp.length ? unidadesEntorp : [null]).forEach(u => {
-    const id = u ? `cat-entorp-${normId(u)}` : 'cat-entorpecentes';
-    const rows = u ? filt.entorpecentes.filter(r => (r.unidade_medida||'Sem unidade').trim() === u) : filt.entorpecentes;
-    const agg = {};
-    rows.forEach(r => { const key = r.entorpecente || 'Não informado'; agg[key] = (agg[key]||0) + (Number(r.quantidade)||0); });
-    const entries = Object.entries(agg).sort((a,b) => b[1]-a[1]).slice(0,10);
-    renderBar(id, entries.map(([k])=>k), entries.map(([,v])=>v), PROD_CORES.entorpecentes);
-  });
+  // Entorpecentes por categoria — card único, renderiza unidade ativa
+  renderEntorpCatChart(prodEntorpUnit, filt.entorpecentes, PROD_CORES.entorpecentes, barOpts);
 
   // Tabela Natureza × Mês para ocorrências
   const matrizEl = document.getElementById('ocorr-matriz');
@@ -4553,6 +4567,57 @@ async function prodUplConfirm() {
     msg.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`;
     btn.disabled = false; btn.style.opacity = '1';
   }
+}
+
+// ---------------------------------------------------------------------------
+// Produtividade — Entorpecentes: card único com troca de unidade
+// ---------------------------------------------------------------------------
+
+function renderEntorpCatChart(u, rows, cor, barOpts) {
+  if (prodEntorpCatCh) { try { prodEntorpCatCh.destroy(); } catch(e){} prodEntorpCatCh = null; }
+  const canvasId = 'cat-entorp';
+  const ctx = document.getElementById(canvasId)?.getContext('2d');
+  if (!ctx) return;
+  const filtRows = u ? rows.filter(r => (r.unidade_medida||'Sem unidade').trim() === u) : rows;
+  const agg = {};
+  filtRows.forEach(r => { const key = r.entorpecente || 'Não informado'; agg[key] = (agg[key]||0) + (Number(r.quantidade)||0); });
+  const entries = Object.entries(agg).sort((a,b) => b[1]-a[1]).slice(0,10);
+  const emptyEl = document.getElementById(canvasId + '-empty');
+  if (!entries.length) {
+    if (emptyEl) emptyEl.style.display = '';
+    ctx.canvas.style.display = 'none';
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+  ctx.canvas.style.display = '';
+  prodEntorpCatCh = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: entries.map(([k])=>k), datasets: [{ data: entries.map(([,v])=>v), backgroundColor: cor+'99', borderColor: cor, borderWidth: 1, borderRadius: 3 }] },
+    options: barOpts(cor)
+  });
+}
+
+function switchEntorpUnit(u, origem) {
+  prodEntorpUnit = u;
+  // Atualiza pills do KPI
+  document.querySelectorAll('[data-eunit]').forEach(b => b.classList.toggle('on', b.dataset.eunit === u));
+  // Atualiza tabs do gráfico
+  document.querySelectorAll('[data-eunit-cat]').forEach(b => b.classList.toggle('on', b.dataset.eunitCat === u));
+  // Atualiza valor do KPI
+  const filt = prodFilter(prodRaw.entorpecentes);
+  const tot = prodSum(filt.filter(r => (r.unidade_medida||'Sem unidade').trim() === u), 'quantidade');
+  const valEl = document.getElementById('entorp-kpi-val');
+  if (valEl) valEl.textContent = tot.toLocaleString('pt-BR');
+  // Atualiza gráfico de categorias
+  const barOpts = cor => ({
+    indexAxis: 'y', responsive: true,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
+    scales: {
+      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 11 } } },
+      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 11 } } }
+    }
+  });
+  renderEntorpCatChart(u, filt, PROD_CORES.entorpecentes, barOpts);
 }
 
 // ---------------------------------------------------------------------------
