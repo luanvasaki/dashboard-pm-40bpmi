@@ -4001,6 +4001,137 @@ function renderHome() {
       </div>`;
   }
 
+  // ── Insights / Rankings ───────────────────────────────────────────────────
+  let insightsHtml = '';
+  const hasP1ins = p1Data && p1Data.length > 0;
+  const hasP3ins = RAW && RAW.length > 0;
+  if (hasP1ins || hasP3ins) {
+    const insCols = [];
+
+    if (hasP3ins) {
+      const anos3  = [...new Set(RAW.map(r => r.ano))].sort((a,b) => b-a);
+      const ano3   = anos3[0];
+      const meses3 = getMesForAno(ano3);
+      const mes3   = meses3[meses3.length - 1];
+      const rawM   = RAW.filter(r => r.ano === ano3 && r.mes === mes3);
+
+      // Crimes × meta
+      const porCrime3 = {};
+      rawM.forEach(r => {
+        if (!porCrime3[r.crime]) porCrime3[r.crime] = { a: 0, m: 0 };
+        porCrime3[r.crime].a += (r.avaliado || 0);
+        porCrime3[r.crime].m += (r.meta || 0);
+      });
+      const crimeRank = Object.entries(porCrime3)
+        .filter(([, v]) => v.m > 0)
+        .map(([crime, v]) => ({ crime, a: v.a, m: v.m, pct: Math.round(v.a / v.m * 100) }))
+        .sort((a, b) => b.pct - a.pct).slice(0, 6);
+      const crimeRows3 = crimeRank.map((c, i) => {
+        const col = c.pct > 100 ? '#c84b4b' : c.pct > 80 ? '#c8a84b' : '#4bc87a';
+        const badge = c.pct > 100 ? `+${c.pct - 100}% ↑` : `${c.pct}%`;
+        return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0${i<crimeRank.length-1?';border-bottom:1px solid var(--bd)':''}">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);width:14px;flex-shrink:0">${i+1}</div>
+          <div style="flex:1;font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.crime}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:${col};font-weight:700;white-space:nowrap">${badge}</div>
+        </div>`;
+      }).join('');
+      insCols.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · CRIMES × META — ${mes3} ${ano3}</div>
+        ${crimeRows3 || '<div style="font-size:11px;color:var(--tx3)">Sem dados</div>'}
+      </div>`);
+
+      // Municípios por volume
+      const porMun3 = {};
+      rawM.forEach(r => { if (r.mun) porMun3[r.mun] = (porMun3[r.mun] || 0) + (r.avaliado || 0); });
+      const munRank = Object.entries(porMun3).map(([m, v]) => ({ m, v })).sort((a, b) => b.v - a.v).slice(0, 6);
+      if (munRank.length > 0) {
+        const maxMun = munRank[0].v;
+        const munRows3 = munRank.map((item, i) => {
+          const pct = maxMun > 0 ? Math.round(item.v / maxMun * 100) : 0;
+          return `<div style="margin-bottom:${i<munRank.length-1?'9':'0'}px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+              <div style="font-size:12px;color:var(--tx)">${i+1}. ${item.m}</div>
+              <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx2)">${item.v}</div>
+            </div>
+            <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px"><div style="height:100%;width:${pct}%;background:#5a9de0;border-radius:3px"></div></div>
+          </div>`;
+        }).join('');
+        insCols.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · RANKING MUNICÍPIOS — ${mes3} ${ano3}</div>
+          ${munRows3}
+        </div>`);
+      }
+    }
+
+    if (hasP1ins) {
+      const today3 = new Date().toISOString().split('T')[0];
+      const afH3 = {};
+      (p1Afasts || []).forEach(a => {
+        if (a.inicio <= today3 && (!a.termino || a.termino >= today3)) {
+          if (!afH3[a.re]) afH3[a.re] = [];
+          afH3[a.re].push(a);
+        }
+      });
+      const stOf3 = pms => {
+        const total = pms.length, afst = pms.filter(r => afH3[r.re]).length;
+        const restr = pms.filter(r => (r.possui_restricao||'').toLowerCase().startsWith('s')).length;
+        const pct = total ? Math.round((total - afst) / total * 100) : 0;
+        const color = pct >= 80 ? '#4bc87a' : pct >= 60 ? '#c8a84b' : '#c84b4b';
+        return { total, afst, restr, aptos: total - afst, pct, color };
+      };
+
+      // CIA ranking por disponibilidade
+      const ciaRank = CIA_STRUCT.map(cia => {
+        const pms = p1Data.filter(r => _opmMatch(r.opm, cia.units.flatMap(u => u.keys)));
+        if (!pms.length) return null;
+        const s = stOf3(pms);
+        return { label: cia.label, color: cia.color, ...s };
+      }).filter(Boolean).sort((a, b) => b.pct - a.pct);
+      if (ciaRank.length > 0) {
+        const ciaRows3 = ciaRank.map((c, i) => `<div style="display:flex;align-items:center;gap:8px;padding:5px 0${i<ciaRank.length-1?';border-bottom:1px solid var(--bd)':''}">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);width:14px;flex-shrink:0">${i+1}</div>
+          <div style="width:9px;height:9px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
+          <div style="flex:1;font-size:12px;color:var(--tx)">${c.label}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:${c.color};font-weight:700;width:36px;text-align:right">${c.pct}%</div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);width:54px;text-align:right">${c.total} PMs</div>
+        </div>`).join('');
+        insCols.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #4bc87a;border-radius:10px;padding:20px">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:#4bc87a;letter-spacing:1.5px;margin-bottom:12px">P1 · DISPONIBILIDADE POR CIA</div>
+          ${ciaRows3}
+        </div>`);
+      }
+
+      // Afastamentos por tipo
+      const tipoCnt = {};
+      Object.values(afH3).flat().forEach(a => { tipoCnt[a.tipo_afastamento] = (tipoCnt[a.tipo_afastamento] || 0) + 1; });
+      const tipoRank = Object.entries(tipoCnt).sort((a, b) => b[1] - a[1]).slice(0, 6);
+      if (tipoRank.length > 0) {
+        const maxTipo = tipoRank[0][1];
+        const tipoRows3 = tipoRank.map(([tipo, cnt], i) => {
+          const pct = maxTipo > 0 ? Math.round(cnt / maxTipo * 100) : 0;
+          return `<div style="margin-bottom:${i<tipoRank.length-1?'9':'0'}px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+              <div style="font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:76%">${tipo}</div>
+              <div style="font-family:'DM Mono',monospace;font-size:11px;color:#c84b4b;font-weight:700">${cnt}</div>
+            </div>
+            <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px"><div style="height:100%;width:${pct}%;background:#c84b4b;border-radius:3px"></div></div>
+          </div>`;
+        }).join('');
+        insCols.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #c84b4b;border-radius:10px;padding:20px">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:#c84b4b;letter-spacing:1.5px;margin-bottom:12px">P1 · RANKING AFASTAMENTOS POR TIPO</div>
+          ${tipoRows3}
+        </div>`);
+      }
+    }
+
+    if (insCols.length > 0) {
+      insightsHtml = `<div style="margin-top:28px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:2px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bd)">INSIGHTS &amp; RANKINGS</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">${insCols.join('')}</div>
+      </div>`;
+    }
+  }
+
   const sections = [
     {
       id: 'p1', icon: 'users', color: '#4bc87a', label: 'P1', title: 'Seção de Pessoal',
@@ -4062,7 +4193,8 @@ function renderHome() {
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
       ${cards}
-    </div>`;
+    </div>
+    ${insightsHtml}`;
 
   if (window.lucide) lucide.createIcons();
 }
@@ -4367,6 +4499,121 @@ function prodRender() {
       </div>`
     : card('cat-entorpecentes', PROD_CORES.entorpecentes, PROD_LABELS.entorpecentes);
 
+  // ─── Rankings por CIA ──────────────────────────────────────────────────
+  const mkRankCard = (cor, label, rows) => {
+    if (!rows.length) return '';
+    const maxV = rows[0][1];
+    const items = rows.map(([cia, v], i) => {
+      const pct = maxV > 0 ? Math.round(v / maxV * 100) : 0;
+      return `<div style="margin-bottom:${i < rows.length - 1 ? '9' : '0'}px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+          <div style="font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:68%">${i + 1}. ${cia}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:${cor};font-weight:700">${v.toLocaleString('pt-BR')}</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px"><div style="height:100%;width:${pct}%;background:${cor};border-radius:3px"></div></div>
+      </div>`;
+    }).join('');
+    return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:12px">${label}</div>
+      ${items}
+    </div>`;
+  };
+  const aggByCia = (tipo, campo, extraFilt) => {
+    const agg = {};
+    (extraFilt ? filt[tipo].filter(extraFilt) : filt[tipo]).forEach(r => {
+      const cia = (r.cia || 'Não informado').trim();
+      agg[cia] = (agg[cia] || 0) + (Number(r[campo]) || 0);
+    });
+    return Object.entries(agg).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  };
+  const ciaRankCards =
+    mkRankCard(PROD_CORES.presos,   'Pessoas Presas por CIA',         aggByCia('presos',   PROD_CAMPO.presos))  +
+    mkRankCard(PROD_CORES.armas,    'Armas Apreendidas por CIA',      aggByCia('armas',    PROD_CAMPO.armas))   +
+    mkRankCard(PROD_CORES.veiculos, 'Veículos Recuperados por CIA',   aggByCia('veiculos', PROD_CAMPO.veiculos)) +
+    (prodEntorpUnit
+      ? mkRankCard(PROD_CORES.entorpecentes, `Entorpecentes (${prodEntorpUnit}) por CIA`,
+          aggByCia('entorpecentes', 'quantidade', r => (r.unidade_medida||'').trim() === prodEntorpUnit))
+      : '');
+
+  // ─── Insights do Período ────────────────────────────────────────────────
+  const insCards = [];
+
+  // CIA em Destaque (composto)
+  const ciaComp = {};
+  ['presos','armas','veiculos'].forEach(t => {
+    filt[t].forEach(r => {
+      const cia = (r.cia || 'Não informado').trim();
+      ciaComp[cia] = (ciaComp[cia] || 0) + (Number(r[PROD_CAMPO[t]]) || 0);
+    });
+  });
+  const ciaCompRank = Object.entries(ciaComp).sort((a, b) => b[1] - a[1]);
+  if (ciaCompRank.length > 0) {
+    const [ciaTopo, valTopo] = ciaCompRank[0];
+    const runners = ciaCompRank.slice(1, 4).map(([c, v]) =>
+      `<div style="display:flex;justify-content:space-between;margin-top:6px">
+        <span style="font-size:11px;color:var(--tx3)">${c}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx2)">${v.toLocaleString('pt-BR')}</span>
+      </div>`).join('');
+    insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:8px">CIA em Destaque</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--tx);line-height:1.1;margin-bottom:2px">${ciaTopo}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:#f0c040;margin-bottom:10px">${valTopo.toLocaleString('pt-BR')} ações (presos + armas + veíc.)</div>
+      ${runners}
+    </div>`);
+  }
+
+  // Meses mais produtivos
+  const mesProd = {};
+  ['presos','armas','veiculos'].forEach(t => {
+    filt[t].forEach(r => {
+      const m = MES_ORD.find(x => x.toLowerCase() === (r.mes||'').toLowerCase()) || r.mes || '';
+      if (m) mesProd[m] = (mesProd[m] || 0) + (Number(r[PROD_CAMPO[t]]) || 0);
+    });
+  });
+  const mesRank = Object.entries(mesProd).sort((a, b) => b[1] - a[1]);
+  if (mesRank.length > 0) {
+    const maxMes = mesRank[0][1];
+    const mesRows = mesRank.slice(0, 5).map(([m, v], i) => {
+      const pct = maxMes > 0 ? Math.round(v / maxMes * 100) : 0;
+      return `<div style="margin-bottom:${i < 4 ? '9' : '0'}px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+          <div style="font-size:12px;color:${i === 0 ? 'var(--tx)' : 'var(--tx3)'}">${i + 1}. ${m}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx2)">${v.toLocaleString('pt-BR')}</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px"><div style="height:100%;width:${pct}%;background:#f0c040;border-radius:3px"></div></div>
+      </div>`;
+    }).join('');
+    insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:12px">Meses Mais Produtivos</div>
+      ${mesRows}
+    </div>`);
+  }
+
+  // Distribuição percentual entre tipos
+  const totGeral = totais.presos + totais.armas + totais.veiculos;
+  if (totGeral > 0) {
+    const distTipos = [
+      { label: 'Pessoas Presas',      v: totais.presos,   cor: PROD_CORES.presos   },
+      { label: 'Armas Apreendidas',   v: totais.armas,    cor: PROD_CORES.armas    },
+      { label: 'Veículos Recuperados',v: totais.veiculos, cor: PROD_CORES.veiculos  },
+    ];
+    const distRows = distTipos.map(t => {
+      const pct = Math.round(t.v / totGeral * 100);
+      return `<div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+          <div style="font-size:12px;color:var(--tx)">${t.label}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:${t.cor};font-weight:700">${pct}%</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px"><div style="height:100%;width:${pct}%;background:${t.cor};border-radius:3px"></div></div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-top:3px">${t.v.toLocaleString('pt-BR')} no período</div>
+      </div>`;
+    }).join('');
+    insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx2);margin-bottom:12px">Distribuição por Tipo</div>
+      ${distRows}
+    </div>`);
+  }
+
   // Monta HTML de todas as seções
   chartsEl.innerHTML =
     sec('1 · Detalhamento por Categoria') +
@@ -4377,7 +4624,15 @@ function prodRender() {
       <div id="ocorr-matriz" style="margin-top:16px"></div>
     </div>` +
     ['presos','armas','veiculos'].map(t => card(`cat-${t}`, PROD_CORES[t], PROD_LABELS[t])).join('') +
-    entorpCatCard;
+    entorpCatCard +
+    (ciaRankCards
+      ? sec('2 · Ranking por CIA') +
+        `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">${ciaRankCards}</div>`
+      : '') +
+    (insCards.length
+      ? sec('3 · Insights do Período') +
+        `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">${insCards.join('')}</div>`
+      : '');
 
   // Opções comuns de gráficos de barra horizontal
   const barOpts = cor => ({
@@ -4761,11 +5016,7 @@ function renderProdDetail() {
   const topMes = Object.entries(aggMesPico).sort((a,b) => b[1]-a[1])[0];
 
   // KPIs do modal
-  document.getElementById('pd-kpis').innerHTML =
-    `<div class="mk"><div class="mk-lbl">Total</div><div class="mk-val" style="color:${cor}">${total.toLocaleString('pt-BR')}</div><div class="mk-sub">${periodoLbl}</div></div>` +
-    (tipo !== 'entorpecentes' ? (topCias[0] ? `<div class="mk"><div class="mk-lbl">Maior CIA</div><div class="mk-val" style="color:${cor};font-size:16px">${topCias[0][0]}</div><div class="mk-sub">${topCias[0][1].toLocaleString('pt-BR')} registros</div></div>` : '<div class="mk"><div class="mk-lbl">Maior CIA</div><div class="mk-val" style="color:var(--tx3)">—</div></div>') : '') +
-    (tipo !== 'entorpecentes' ? (topMes ? `<div class="mk"><div class="mk-lbl">Mês de Pico</div><div class="mk-val" style="color:${cor};font-size:16px">${topMes[0].slice(0,3)}</div><div class="mk-sub">${topMes[1].toLocaleString('pt-BR')} registros</div></div>` : '<div class="mk"><div class="mk-lbl">Mês de Pico</div><div class="mk-val" style="color:var(--tx3)">—</div></div>') : '') +
-    `<div class="mk"><div class="mk-lbl">CIAs com dados</div><div class="mk-val" style="color:${cor}">${topCias.length}</div><div class="mk-sub">no período</div></div>`;
+  document.getElementById('pd-kpis').innerHTML = '';
 
   document.getElementById('pd-sub').textContent = (pdSelCia ? pdSelCia + ' — ' : '') + periodoLbl.toUpperCase();
 
