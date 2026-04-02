@@ -1916,13 +1916,20 @@ function updateFemKpi() {
   if (!sec) return;
   if (moCrime !== 'Homicídio') { sec.style.display = 'none'; return; }
 
-  // Filtra registros pelo período selecionado no modal (moMeses + selAno)
+  // Filtra registros pelo período + escopo selecionado (CIA ou município)
   const femFiltrado = moFemData.filter(r => {
     if (!r.data_ocorrencia) return false;
     const [ano, mes] = r.data_ocorrencia.split('-').map(Number);
     const mesNome = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][mes - 1];
     const anoOk = !selAno || ano === selAno;
-    return anoOk && moMeses.includes(mesNome);
+    if (!anoOk || !moMeses.includes(mesNome)) return false;
+    if (moScopeType === 'cia' && moScopeVal) {
+      if ((r.cia || '').trim().toLowerCase() !== moScopeVal.trim().toLowerCase()) return false;
+    }
+    if (moScopeType === 'mun' && moScopeVal) {
+      if ((r.municipio || '').trim().toLowerCase() !== moScopeVal.trim().toLowerCase()) return false;
+    }
+    return true;
   });
 
   const femCount  = femFiltrado.length;
