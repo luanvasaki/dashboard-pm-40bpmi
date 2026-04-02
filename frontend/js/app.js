@@ -1245,24 +1245,24 @@ function renderInsights() {
   const ins = [
     // 1. Crime com maior crescimento vs anterior
     crimeMaisCresceu && crimeMaisCresceu.varP > 0
-      ? { t: 'red',   v: `▲${crimeMaisCresceu.varP}%`, title: `Maior crescimento — ${crimeMaisCresceu.c}`, body: `Passou de ${crimeMaisCresceu.ant} para ${crimeMaisCresceu.a} ocorrências vs período anterior. Crime com maior alta percentual no escopo selecionado.` }
+      ? { t: 'red',   v: `▲${crimeMaisCresceu.varP}%`, title: `Maior crescimento — ${crimeMaisCresceu.c}`, body: `Passou de ${crimeMaisCresceu.ant} para ${crimeMaisCresceu.a} ocorrências vs período anterior. Escopo: ${lbl}.` }
       : crimeMaisReduciu
-        ? { t: 'green', v: `▼${Math.abs(crimeMaisReduciu.varP)}%`, title: `Maior redução — ${crimeMaisReduciu.c}`, body: `Passou de ${crimeMaisReduciu.ant} para ${crimeMaisReduciu.a} ocorrências. Nenhum crime em alta no período — destaque para a maior queda.` }
+        ? { t: 'green', v: `▼${Math.abs(crimeMaisReduciu.varP)}%`, title: `Maior redução — ${crimeMaisReduciu.c}`, body: `Passou de ${crimeMaisReduciu.ant} para ${crimeMaisReduciu.a} ocorrências. Nenhum crime em alta no período — destaque para a maior queda. Escopo: ${lbl}.` }
         : { t: '', v: '—', title: 'Sem variação', body: 'Não há dados suficientes para calcular variação entre períodos.' },
     // 2. Crime mais crítico
     crimeCritico.desvio > 0
-      ? { t: 'red', v: `+${crimeCritico.desvio.toFixed(0)}%`, title: `Crítico — ${crimeCritico.c}`, body: `${crimeCritico.a} ocorrências contra meta de ${crimeCritico.m}. Desvio de ${crimeCritico.desvio.toFixed(0)}% acima do permitido.` }
-      : { t: 'green', v: '✓', title: 'Todos dentro da meta', body: `Nenhum crime está acima da meta no período selecionado. Excelente desempenho.` },
+      ? { t: 'red', v: `+${crimeCritico.desvio.toFixed(0)}%`, title: `Crítico — ${crimeCritico.c}`, body: `${crimeCritico.a} ocorrências contra meta de ${crimeCritico.m}. Desvio de ${crimeCritico.desvio.toFixed(0)}% acima do permitido. Escopo: ${lbl}.` }
+      : { t: 'green', v: '✓', title: 'Todos dentro da meta', body: `Nenhum crime acima da meta no período. Escopo: ${lbl}.` },
     // 3. Melhor desempenho
     crimeMelhor
-      ? { t: 'green', v: `${Math.abs(crimeMelhor.desvio).toFixed(0)}%`, title: `Destaque — ${crimeMelhor.c}`, body: `${crimeMelhor.a} ocorrências contra meta de ${crimeMelhor.m}. ${Math.abs(crimeMelhor.desvio).toFixed(0)}% abaixo da meta.` }
-      : { t: '', v: '—', title: 'Nenhum crime abaixo da meta', body: 'Todos os crimes com meta definida estão no limite ou acima.' },
+      ? { t: 'green', v: `${Math.abs(crimeMelhor.desvio).toFixed(0)}%`, title: `Destaque — ${crimeMelhor.c}`, body: `${crimeMelhor.a} ocorrências contra meta de ${crimeMelhor.m}. ${Math.abs(crimeMelhor.desvio).toFixed(0)}% abaixo da meta. Escopo: ${lbl}.` }
+      : { t: '', v: '—', title: 'Nenhum crime abaixo da meta', body: `Todos os crimes com meta definida estão no limite ou acima. Escopo: ${lbl}.` },
     // 4. Resumo de metas
     {
       t: acima > 0 ? 'red' : 'green',
       v: `${ok}/${CRIMES.length}`,
       title: 'Crimes dentro da meta',
-      body: `${ok} crimes dentro da meta, ${acima} acima${emEvol > 0 ? ` e ${emEvol} acima mas em evolução (melhorando vs anterior)` : ''}.`
+      body: `${ok} crimes dentro da meta, ${acima} acima${emEvol > 0 ? ` e ${emEvol} acima mas em evolução (melhorando vs anterior)` : ''}. Escopo: ${lbl}.`
     },
     // 5. Município em alerta
     {
@@ -1270,15 +1270,15 @@ function renderInsights() {
       v: munAlerta.m,
       title: 'Município em alerta',
       body: munAlerta.acima > 0
-        ? `${munAlerta.m} possui ${munAlerta.acima} crime(s) acima da meta. Requer atenção prioritária.`
-        : `Nenhum município com crimes acima da meta. Bom desempenho geral.`
+        ? `${munAlerta.m} possui ${munAlerta.acima} crime(s) acima da meta. Requer atenção prioritária. Escopo: ${lbl}.`
+        : `Nenhum município com crimes acima da meta. Escopo: ${lbl}.`
     },
     // 6. Município destaque
     {
       t: 'green',
       v: munDestaque.m,
       title: 'Município destaque',
-      body: `${munDestaque.m} tem ${munDestaque.ok} crime(s) dentro ou abaixo da meta no período. Melhor desempenho do escopo.`
+      body: `${munDestaque.m} tem ${munDestaque.ok} crime(s) dentro ou abaixo da meta no período. Melhor desempenho — Escopo: ${lbl}.`
     },
   ];
 
