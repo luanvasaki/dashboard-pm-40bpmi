@@ -4309,7 +4309,7 @@ let prodUplTipo   = null;
 let prodUplParsed = [];
 let prodEntorpUnit = null;
 let prodEntorpCatCh = null;
-let pdTipo = null, pdUnidade = null, pdChs = [], pdSelCia = '', pdMeses = [];
+let pdTipo = null, pdUnidade = null, pdChs = [], pdSelCia = '', pdMeses = [], pdNatFilter = null;
 
 const PROD_CORES = {
   ocorrencias:   '#5a9de0',
@@ -4438,6 +4438,11 @@ function prodRender() {
   // Garante que a unidade ativa é válida (reseta para grama se necessário)
   if (!prodEntorpUnit || !unidadesEntorp.includes(prodEntorpUnit)) prodEntorpUnit = unidadesEntorp[0] || null;
 
+  // KPI Violência Doméstica
+  const VD_NAT = 'violência doméstica';
+  const VD_COR = '#e05a8a';
+  const totVD = prodSum(filt.ocorrencias.filter(r => (r.natureza||'').toLowerCase().includes(VD_NAT)), 'contagem');
+
   // KPIs: 4 indicadores principais + 1 KPI por unidade de entorpecente + taxa efetividade
   kpisEl.innerHTML =
     ['ocorrencias','presos','armas','veiculos'].map(t =>
@@ -4469,7 +4474,14 @@ function prodRender() {
         <div class="kpi-sub">${periodoLbl}</div>
         <div class="kpi-hint">▸ clique p/ detalhes</div>
       </div>`;
-    })();
+    })() +
+    `<div class="kpi" onclick="openProdDetail('ocorrencias',null,'${VD_NAT}')" title="Clique para detalhes" style="cursor:pointer">
+      <div class="kpi-top" style="background:${VD_COR}"></div>
+      <div class="kpi-lbl">Violência Doméstica</div>
+      <div class="kpi-val" style="color:${VD_COR}">${totVD.toLocaleString('pt-BR')}</div>
+      <div class="kpi-sub">${periodoLbl}</div>
+      <div class="kpi-hint">▸ clique p/ detalhes</div>
+    </div>`;
 
   // Cabeçalho de seção
   const sec = label => `<div style="grid-column:1/-1;display:flex;align-items:center;gap:12px;margin-top:10px;padding-bottom:8px;border-bottom:1px solid var(--bd2)">
@@ -4787,15 +4799,16 @@ function pdDestroy() {
   pdChs = [];
 }
 
-function openProdDetail(tipo, unidade) {
+function openProdDetail(tipo, unidade, natFilter) {
   pdDestroy();
   pdTipo = tipo;
   pdUnidade = unidade || null;
+  pdNatFilter = natFilter || null;
   pdSelCia = prodSelCia || '';
   const mesesDisp = prodGetMesesDisp(prodSelAno);
   pdMeses = prodSelMeses.length ? [...prodSelMeses] : [...mesesDisp];
-  const cor = PROD_CORES[tipo];
-  const label = unidade ? `${PROD_LABELS[tipo]} — ${unidade}` : PROD_LABELS[tipo];
+  const cor = pdNatFilter ? '#e05a8a' : PROD_CORES[tipo];
+  const label = pdNatFilter ? pdNatFilter : (unidade ? `${PROD_LABELS[tipo]} — ${unidade}` : PROD_LABELS[tipo]);
   document.getElementById('pd-accent').style.background = cor;
   document.getElementById('pd-title').textContent = label.toUpperCase();
   buildPdFilter();
@@ -4882,14 +4895,15 @@ function pdSetCia(val) { pdSelCia = val; buildPdFilter(); renderProdDetail(); }
 function renderProdDetail() {
   pdDestroy();
   const tipo = pdTipo;
-  const cor = PROD_CORES[tipo];
+  const cor = pdNatFilter ? '#e05a8a' : PROD_CORES[tipo];
   const campo = tipo === 'entorpecentes' ? 'quantidade' : PROD_CAMPO[tipo];
   const mesesDisp = prodGetMesesDisp(prodSelAno);
 
-  // Base: ano + unidade (sem filtro de CIA/mês ainda, para evolução correta)
+  // Base: ano + unidade + natureza (sem filtro de CIA/mês ainda, para evolução correta)
   let baseRows = prodRaw[tipo] || [];
   if (prodSelAno) baseRows = baseRows.filter(r => r.ano === prodSelAno);
   if (pdUnidade) baseRows = baseRows.filter(r => (r.unidade_medida||'Sem unidade').trim() === pdUnidade);
+  if (pdNatFilter) baseRows = baseRows.filter(r => (r.natureza||'').toLowerCase().includes(pdNatFilter.toLowerCase()));
 
   // Filtrado: aplica CIA + meses
   const rows = baseRows.filter(r => {
