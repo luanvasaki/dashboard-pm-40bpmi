@@ -259,17 +259,14 @@
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--tx);letter-spacing:3px;text-transform:uppercase;line-height:1;margin-bottom:2px">40º BPM/I</div>
       <div class="ph-title">SEÇÃO DE <span>PESSOAL</span></div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <div style="position:relative">
-        <input id="p1-search" type="text" placeholder="Buscar RE ou Nome..." autocomplete="off"
-          oninput="p1SearchInput(this.value)"
-          onkeydown="p1SearchKey(event)"
-          onfocus="p1SearchInput(this.value)"
-          onblur="setTimeout(()=>p1SearchHide(),180)"
-          style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:6px;padding:6px 12px;font-size:12px;width:200px;outline:none">
-        <div id="p1-search-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;width:320px;background:#0d1018;border:1px solid #1c2235;border-radius:7px;z-index:3000;max-height:260px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.6)"></div>
-      </div>
-      <button id="btn-vagas" onclick="openVagasModal()" style="display:none;padding:6px 14px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:12px">⚙ Vagas</button>
+    <div style="position:relative">
+      <input id="p1-search" type="text" placeholder="Buscar RE ou Nome..." autocomplete="off"
+        oninput="p1SearchInput(this.value)"
+        onkeydown="p1SearchKey(event)"
+        onfocus="p1SearchInput(this.value)"
+        onblur="setTimeout(()=>p1SearchHide(),180)"
+        style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:6px;padding:6px 12px;font-size:12px;width:220px;outline:none">
+      <div id="p1-search-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;width:320px;background:#0d1018;border:1px solid #1c2235;border-radius:7px;z-index:3000;max-height:260px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.6)"></div>
     </div>
   </div>
   <div id="p1-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px"></div>

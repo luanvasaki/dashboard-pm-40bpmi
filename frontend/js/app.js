@@ -4254,9 +4254,7 @@ function goSection(id, btn) {
   if (id === 'p1') {
     p1FiltroOpm = '';
     const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
-    const btnV = document.getElementById('btn-vagas');
-    if (btnV) btnV.style.display = ['admin','p1','ti'].includes(u.role) ? 'inline-block' : 'none';
-    loadP1();
+loadP1();
   }
   setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
 }
