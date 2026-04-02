@@ -4942,7 +4942,7 @@ function renderProdDetail() {
     </div>`;
 
   let html = cardHtml('pd-cia', 'Ranking por CIA') + cardHtml('pd-evo', 'Evolução Mensal');
-  html += cardHtml('pd-cat', 'Detalhamento por Categoria', true);
+  if (!pdNatFilter) html += cardHtml('pd-cat', 'Detalhamento por Categoria', true);
   if (tipo === 'ocorrencias') {
     html += `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:10px">Natureza × Mês</div>
@@ -4991,11 +4991,13 @@ function renderProdDetail() {
   }
 
   // --- Detalhamento por Categoria ---
-  const breakField = PROD_BREAK[tipo] || 'entorpecente';
-  const catAgg = {};
-  rows.forEach(r => { const key = r[breakField] || 'Não informado'; catAgg[key] = (catAgg[key]||0) + (Number(r[campo])||0); });
-  const catEntries = Object.entries(catAgg).sort((a,b) => b[1]-a[1]).slice(0,15);
-  rdBar('pd-cat', catEntries.map(([k])=>k), catEntries.map(([,v])=>v));
+  if (!pdNatFilter) {
+    const breakField = PROD_BREAK[tipo] || 'entorpecente';
+    const catAgg = {};
+    rows.forEach(r => { const key = r[breakField] || 'Não informado'; catAgg[key] = (catAgg[key]||0) + (Number(r[campo])||0); });
+    const catEntries = Object.entries(catAgg).sort((a,b) => b[1]-a[1]).slice(0,15);
+    rdBar('pd-cat', catEntries.map(([k])=>k), catEntries.map(([,v])=>v));
+  }
 
   // --- Natureza × Mês (só ocorrências) ---
   if (tipo === 'ocorrencias') {
