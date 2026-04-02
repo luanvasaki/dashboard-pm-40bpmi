@@ -50,12 +50,10 @@ function initUserBlock() {
       const btnFonte = document.getElementById('btn-edit-fonte');
       if (btnFonte) btnFonte.style.display = 'inline-block';
     }
-    if (['admin', 'p1', 'ti'].includes(u.role)) {
-      // Botões de edição do cabeçalho P1 — visíveis só para admin/p1/ti
+    if (['p1', 'ti'].includes(u.role)) {
+      // Botão de edição de 'Última Atualização' do P1 — visível só para p1/ti
       const btnP1Per = document.getElementById('btn-p1-edit-periodo');
       if (btnP1Per) btnP1Per.style.display = 'inline-block';
-      const btnP1Fon = document.getElementById('btn-p1-edit-fonte');
-      if (btnP1Fon) btnP1Fon.style.display = 'inline-block';
     }
     loadDashboardConfig();
   } catch (_) {}
@@ -85,12 +83,6 @@ async function loadDashboardConfig() {
       const inp = document.getElementById('inp-p1-periodo');
       if (lbl) lbl.textContent = cfg.p1_periodo;
       if (inp) inp.value = cfg.p1_periodo;
-    }
-    if (cfg.p1_fonte) {
-      const lbl = document.getElementById('lbl-p1-fonte');
-      const inp = document.getElementById('inp-p1-fonte');
-      if (lbl) lbl.textContent = cfg.p1_fonte;
-      if (inp) inp.value = cfg.p1_fonte;
     }
   } catch (_) {}
 }
@@ -160,20 +152,6 @@ function toggleEditP1Periodo() {
   }
 }
 
-function toggleEditP1Fonte() {
-  const inp = document.getElementById('inp-p1-fonte');
-  const lbl = document.getElementById('lbl-p1-fonte');
-  const btn = document.getElementById('btn-p1-edit-fonte');
-  const open = inp.style.display === 'none' || inp.style.display === '';
-  inp.style.display = open ? 'inline-block' : 'none';
-  lbl.style.display = open ? 'none' : 'inline-block';
-  btn.textContent   = open ? '✔ Salvar' : '✎ Editar';
-  if (!open) {
-    const val = inp.value.trim();
-    lbl.textContent = val || '—';
-    saveConfig('p1_fonte', val);
-  }
-}
 
 async function checkPendingUsers() {
   try {
