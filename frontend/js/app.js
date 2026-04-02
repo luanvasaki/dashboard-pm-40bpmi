@@ -4441,7 +4441,9 @@ function prodRender() {
   // KPI Violência Doméstica
   const VD_NAT = 'violência doméstica';
   const VD_COR = '#e05a8a';
-  const totVD = prodSum(filt.ocorrencias.filter(r => (r.natureza||'').toLowerCase().includes(VD_NAT)), 'contagem');
+  const normStr = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const VD_NORM = normStr(VD_NAT);
+  const totVD = prodSum(filt.ocorrencias.filter(r => normStr(r.natureza).includes(VD_NORM)), 'contagem');
 
   // KPIs: 4 indicadores principais + 1 KPI por unidade de entorpecente + taxa efetividade
   kpisEl.innerHTML =
@@ -4903,7 +4905,7 @@ function renderProdDetail() {
   let baseRows = prodRaw[tipo] || [];
   if (prodSelAno) baseRows = baseRows.filter(r => r.ano === prodSelAno);
   if (pdUnidade) baseRows = baseRows.filter(r => (r.unidade_medida||'Sem unidade').trim() === pdUnidade);
-  if (pdNatFilter) baseRows = baseRows.filter(r => (r.natureza||'').toLowerCase().includes(pdNatFilter.toLowerCase()));
+  if (pdNatFilter) { const nf = pdNatFilter.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); baseRows = baseRows.filter(r => (r.natureza||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(nf)); }
 
   // Filtrado: aplica CIA + meses
   const rows = baseRows.filter(r => {
