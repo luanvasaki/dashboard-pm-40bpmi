@@ -499,6 +499,9 @@ app.post('/api/upload/ocorrencias', requireAuth, async (req, res) => {
       tipo_local:      (r.TipoLocal || '').trim(),
     })).filter(r => r.data_ocorrencia && r.rubrica);
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
+    // Apaga todos os registros anteriores para evitar duplicação
+    const { error: delError } = await supabase.from(OCORRENCIAS_TABLE).delete().not('rubrica', 'is', null);
+    if (delError) throw new Error('Erro ao limpar ocorrências: ' + delError.message);
     const BATCH = 500;
     let total = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
