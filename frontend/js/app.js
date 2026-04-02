@@ -2084,6 +2084,10 @@ async function loadMoOcorr() {
           const resFem = await authFetch(`${API}/ocorrencias?${paramsFem}`);
           const dataFem = await resFem.json();
           moFemData = Array.isArray(dataFem) ? dataFem : [];
+          // Mescla feminicídios na lista principal de ocorrências
+          const merged = [...data, ...moFemData];
+          const seen = new Set();
+          data = merged.filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; });
         } catch (e) {
           console.error('Erro ao buscar Feminicídio:', e);
           moFemData = [];
