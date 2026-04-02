@@ -2749,9 +2749,10 @@ function renderP1() {
     </div>`;
   }).join('');
 
-  // ── Claro Operacional
+  // ── Claro Operacional (visível e editável apenas por p1/ti)
   let claroSection = '';
-  if (p1Vagas.length) {
+  const _claroRole = JSON.parse(localStorage.getItem('auth_user') || '{}').role || '';
+  if (['p1','ti'].includes(_claroRole) && p1Vagas.length) {
     const vagasMap = {};
     p1Vagas.forEach(v => { vagasMap[v.opm] = Number(v.vagas); });
     const claroData = unitsSorted.map(([unit, d]) => {
@@ -2784,9 +2785,8 @@ function renderP1() {
         ${rows}
       </div>`;
     }
-  } else {
-    const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
-    if (['admin','p1','ti'].includes(u.role)) {
+  } else if (['p1','ti'].includes(_claroRole)) {
+    if (true) {
       claroSection = `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
         <div>
           <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;margin-bottom:4px">Claro Operacional</div>
