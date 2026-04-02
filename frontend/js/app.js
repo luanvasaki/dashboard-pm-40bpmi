@@ -1495,7 +1495,7 @@ function moRender() {
   const munDesvio   = muns.map(m => {
     const v  = sf(q({ crime, mun: m, mes: moMeses }));
     const mt = sf(q({ crime, mun: m, mes: moMeses }), 'meta');
-    return { m, v, mt, desvio: mt > 0 ? (v - mt) / mt * 100 : -Infinity };
+    return { m: m || 'Btl/CIA', v, mt, desvio: mt > 0 ? (v - mt) / mt * 100 : -Infinity };
   });
   const acimaDoMeta = munDesvio.filter(x => x.mt > 0 && x.v > x.mt).sort((a,b) => b.desvio - a.desvio);
   const vc  = parseFloat(vp) <= 0 ? 'var(--green2)' : 'var(--red2)';
@@ -1514,14 +1514,27 @@ function moRender() {
   if (crime === 'Homicídio') updateFemKpi();
 
   // Meta vs Avaliado
-  const mm   = muns.map(m => sf(q({ crime, mun: m, mes: moMeses }), 'meta'));
-  const ma   = muns.map(m => sf(q({ crime, mun: m, mes: moMeses })));
-  const mant = muns.map(m => sf(q({ crime, mun: m, mes: moMeses }), 'anterior'));
-  const mtnd = muns.map(m => sf(q({ crime, mun: m, mes: moMeses }), 'tend'));
+  // Separa municípios válidos de registros sem município (nível CIA/Batalhão)
+  const namedMuns  = muns.filter(m => m !== '');
+  const emptyAval  = sf(q({ crime, mun: '', mes: moMeses }));
+  const emptyMeta  = sf(q({ crime, mun: '', mes: moMeses }), 'meta');
+  const emptyMant  = sf(q({ crime, mun: '', mes: moMeses }), 'anterior');
+  const emptyMtnd  = sf(q({ crime, mun: '', mes: moMeses }), 'tend');
+  // Detecta gap: registros cujo mun não está em MUNS (não deve ocorrer, mas cobre edge cases)
+  const namedTotal = sf(q({ crime, mes: moMeses, ...sc }).filter(r => r.mun !== ''));
+  const gapAval    = Math.max(0, aval - emptyAval - namedTotal);
+  const chartMuns  = gapAval > 0
+    ? [...namedMuns, '', '(Sem mun.)']
+    : [...namedMuns, ...(emptyAval > 0 || emptyMeta > 0 ? [''] : [])];
+  const munLabel   = m => m === '' ? '(Btl/CIA)' : m ? m.split(' ')[0] : '(Sem mun.)';
+  const mm   = chartMuns.map(m => m === '' ? emptyMeta  : m === '(Sem mun.)' ? 0      : sf(q({ crime, mun: m, mes: moMeses }), 'meta'));
+  const ma   = chartMuns.map(m => m === '' ? emptyAval  : m === '(Sem mun.)' ? gapAval : sf(q({ crime, mun: m, mes: moMeses })));
+  const mant = chartMuns.map(m => m === '' ? emptyMant  : m === '(Sem mun.)' ? 0      : sf(q({ crime, mun: m, mes: moMeses }), 'anterior'));
+  const mtnd = chartMuns.map(m => m === '' ? emptyMtnd  : m === '(Sem mun.)' ? 0      : sf(q({ crime, mun: m, mes: moMeses }), 'tend'));
   moCh.push(new Chart(document.getElementById('mo-meta').getContext('2d'), {
     type: 'bar',
-    plugins: [ciaSepPlugin(muns)],
-    data: { labels: muns.map(m => m.split(' ')[0]), datasets: [
+    plugins: [ciaSepPlugin(chartMuns)],
+    data: { labels: chartMuns.map(munLabel), datasets: [
       { label: 'Meta',     data: mm, backgroundColor: 'rgba(255,255,255,.09)', borderRadius: 3 },
       { label: 'Avaliado', data: ma, backgroundColor: ma.map((v,i) => mm[i]>0&&v<=mm[i]?'rgba(61,191,122,.75)':'rgba(200,75,75,.75)'), borderRadius: 3 }
     ]},
@@ -1531,7 +1544,7 @@ function moRender() {
         legend: { labels: { boxWidth: 15, font: { size: 16 } } },
         tooltip: {
           callbacks: {
-            title: items => muns[items[0].dataIndex],
+            title: items => { const m = chartMuns[items[0].dataIndex]; return m === '' ? 'Btl/CIA (sem município)' : m; },
             label: () => '',
             afterBody: items => {
               const i = items[0].dataIndex;
