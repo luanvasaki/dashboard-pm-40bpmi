@@ -1421,6 +1421,8 @@ function moOpen(crime, color, displayLabel) {
   moScopeType = 'btl'; moScopeVal = null;
   moOcorrAll = [];
   moFemData = [];
+  const femSec = document.getElementById('mo-fem-section');
+  if (femSec) femSec.style.display = 'none';
   const label = displayLabel || (Array.isArray(crime) ? crime.join(' + ') : crime);
   document.getElementById('mo-crime').textContent      = label.toUpperCase();
   document.getElementById('mo-accent').style.background = color;
@@ -1912,6 +1914,7 @@ let moFemCh   = null;
 function updateFemKpi() {
   const sec = document.getElementById('mo-fem-section');
   if (!sec) return;
+  if (moCrime !== 'Homicídio') { sec.style.display = 'none'; return; }
 
   // Filtra registros pelo período selecionado no modal (moMeses + selAno)
   const femFiltrado = moFemData.filter(r => {
