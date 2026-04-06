@@ -1221,8 +1221,11 @@ function renderInsights() {
     return x.a < ant;
   }).length;
 
+  // Só considera municípios com pelo menos 1 ocorrência real no período
+  const munsAtivos = muns.filter(m => CRIMES.some(c => sf(q({ crime: c, mun: m, mes: selMeses, ...sc })) > 0));
+
   // Município com mais crimes acima da meta
-  const munAlerta = muns.map(m => ({
+  const munAlerta = munsAtivos.map(m => ({
     m,
     acima: CRIMES.filter(c => {
       const a = sf(q({ crime: c, mun: m, mes: selMeses, ...sc }));
@@ -1231,8 +1234,8 @@ function renderInsights() {
     }).length
   })).sort((a, b) => b.acima - a.acima)[0] || { m: '—', acima: 0 };
 
-  // Município destaque: mais crimes dentro da meta
-  const munDestaque = muns.map(m => ({
+  // Município destaque: mais crimes dentro da meta (só entre municípios com atividade real)
+  const munDestaque = munsAtivos.map(m => ({
     m,
     ok: CRIMES.filter(c => {
       const a = sf(q({ crime: c, mun: m, mes: selMeses, ...sc }));
