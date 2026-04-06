@@ -2107,7 +2107,12 @@ async function loadMoOcorr() {
       const seen = new Set();
       data = merged.filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; });
     } else {
-      const params = new URLSearchParams({ rubrica: moCrime, limit: '2000' });
+      // Mapa de crimes cujo nome no RAC difere do formato da rubrica no InfoCrim
+      const RUBRICA_BUSCA = {
+        'Estupro Vulnerável': 'vulneravel',
+      };
+      const termoBusca = RUBRICA_BUSCA[moCrime] || moCrime;
+      const params = new URLSearchParams({ rubrica: termoBusca, limit: '2000' });
       const res = await authFetch(`${API}/ocorrencias?${params}`);
       data = await res.json();
       // Homicídio: busca contagem de Feminicídio separadamente para exibir como detalhe
