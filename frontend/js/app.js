@@ -621,7 +621,13 @@ async function loadData() {
   MUNS   = meta.muns;
   CIAS   = meta.cias;
   ANOS   = (meta.anos || []).sort((a, b) => b - a);
-  RAW    = registros;
+  // Normaliza nomes de crime para forma canônica (resolve inconsistências de acento no upload)
+  const _nCrime = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  const CRIMES_CANONICAL = ['Homicídio','Estupro','Estupro de Vulnerável','Roubo','Furto','Roubo de Veículos','Furto de Veículos'];
+  RAW = registros.map(r => ({
+    ...r,
+    crime: CRIMES_CANONICAL.find(c => _nCrime(c) === _nCrime(r.crime)) || r.crime
+  }));
 }
 
 function getMesForAno(ano) {
