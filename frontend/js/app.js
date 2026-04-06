@@ -922,6 +922,15 @@ function renderVisao() {
     ...CRIMES.filter(c => !groupedCrimes.includes(c)).map(c => ({ label: cl(c), crimes: [c] })),
     ...CRIME_GROUPS.map(g => ({ label: g.label, crimes: g.crimes }))
   ];
+  // DEBUG diagnóstico
+  const dbgEl = document.getElementById('dbg-hom');
+  if (dbgEl) {
+    const homRaw = RAW.filter(r => (r.crime||'').toLowerCase().includes('homic'));
+    const linhas = homRaw.map(r => `crime="${r.crime}" | ano=${r.ano} | mes=${r.mes} | aval=${r.avaliado}`).join('\n');
+    const qResult = q({ crime: 'Homicídio', mes: selMeses });
+    dbgEl.style.display = 'block';
+    dbgEl.textContent = `selAno=${selAno} | selMeses=${JSON.stringify(selMeses)}\nq(Homicídio) count=${qResult.length} | aval=${qResult.reduce((s,r)=>s+r.avaliado,0)}\n\nRAW homic records:\n${linhas||'(nenhum)'}`;
+  }
   const vmDetails = vmEntries.map(({ crimes: cs }) => {
     const aval  = cs.reduce((s,c) => s + sf(q({ crime: c, mes: selMeses, ...sc })), 0);
     const meta  = cs.reduce((s,c) => s + sf(q({ crime: c, mes: selMeses, ...sc }), 'meta'), 0);
