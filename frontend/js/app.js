@@ -2321,11 +2321,10 @@ function renderBairros(data) {
   });
   const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0,10);
   if (!sorted.length) return;
-  const canvas = document.getElementById('mo-bairros');
-  if (!canvas) return;
-  const rowH = 36;
-  canvas.style.height = (sorted.length * rowH + 40) + 'px';
-  canvas.height = sorted.length * rowH + 40;
+  const wrapper = document.getElementById('mo-bairros')?.parentElement;
+  if (!wrapper) return;
+  const rowH = 48;
+  wrapper.style.height = (sorted.length * rowH + 48) + 'px';
   safeChart('mo-bairros', {
     type: 'bar',
     data: {
@@ -2334,12 +2333,12 @@ function renderBairros(data) {
     },
     options: {
       indexAxis: 'y',
-      responsive: false,
+      responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
         x: { grid: GR, ticks: { stepSize: 1, color: '#b0b8c8' } },
-        y: { grid: GR, ticks: { color: '#d0d8e8', font: { size: 12 }, autoSkip: false } }
+        y: { grid: GR, ticks: { color: '#d0d8e8', font: { size: 13 }, autoSkip: false } }
       }
     }
   });
