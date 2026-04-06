@@ -1485,7 +1485,8 @@ function moRender() {
   const sc  = moQScope();
   const muns = moScopeMuns();
 
-  document.getElementById('mo-sub').textContent = 'ANÁLISE DETALHADA — ' + pLbl(moMeses).toUpperCase();
+  const dbgTotal = q({ crime, mes: moMeses }).length;
+  document.getElementById('mo-sub').textContent = 'ANÁLISE DETALHADA — ' + pLbl(moMeses).toUpperCase() + ` (${dbgTotal} reg. RAC)`;
 
   const aval = sf(q({ crime, mes: moMeses, ...sc }));
   const meta = sf(q({ crime, mes: moMeses, ...sc }), 'meta');
@@ -1536,7 +1537,7 @@ function moRender() {
     plugins: [ciaSepPlugin(chartMuns)],
     data: { labels: chartMuns.map(munLabel), datasets: [
       { label: 'Meta',     data: mm, backgroundColor: 'rgba(255,255,255,.09)', borderRadius: 3 },
-      { label: 'Avaliado', data: ma, backgroundColor: ma.map((v,i) => mm[i]>0&&v<=mm[i]?'rgba(61,191,122,.75)':'rgba(200,75,75,.75)'), borderRadius: 3 }
+      { label: 'Avaliado', data: ma, backgroundColor: ma.map((v,i) => hcol(v, mm[i], mant[i])), borderRadius: 3 }
     ]},
     options: {
       responsive: true,
