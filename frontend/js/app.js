@@ -922,6 +922,15 @@ function renderVisao() {
     ...CRIMES.filter(c => !groupedCrimes.includes(c)).map(c => ({ label: cl(c), crimes: [c] })),
     ...CRIME_GROUPS.map(g => ({ label: g.label, crimes: g.crimes }))
   ];
+  // DEBUG tend
+  const _dbgEl = document.getElementById('dbg-hom');
+  if (_dbgEl) {
+    const homFev = q({ crime: 'Homicídio', mes: selMeses });
+    const linhas = homFev.map(r => `mes=${r.mes} | aval=${r.avaliado} | tend=${r.tend} | keys=${Object.keys(r).join(',')}`).join('\n');
+    _dbgEl.style.display = 'block';
+    _dbgEl.style.whiteSpace = 'pre-wrap';
+    _dbgEl.textContent = `[DEBUG tend] selMeses=${JSON.stringify(selMeses)}\n${linhas||'(nenhum)'}`;
+  }
   const vmDetails = vmEntries.map(({ crimes: cs }) => {
     const aval  = cs.reduce((s,c) => s + sf(q({ crime: c, mes: selMeses, ...sc })), 0);
     const meta  = cs.reduce((s,c) => s + sf(q({ crime: c, mes: selMeses, ...sc }), 'meta'), 0);
