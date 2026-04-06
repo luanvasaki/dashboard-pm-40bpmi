@@ -2360,7 +2360,7 @@ function renderBairros(data) {
     type: 'bar',
     data: {
       labels: sorted.map(([k]) => muns[k] ? `${muns[k]} · ${k}` : k),
-      datasets: [{ label:'Ocorrências', data: sorted.map(([,v])=>v), backgroundColor:'rgba(200,75,75,.7)', borderRadius:4 }]
+      datasets: [{ label:'Ocorrências', data: sorted.map(([,v])=>v), backgroundColor:'rgba(74,158,232,.7)', borderRadius:4 }]
     },
     options: {
       indexAxis: 'y',
