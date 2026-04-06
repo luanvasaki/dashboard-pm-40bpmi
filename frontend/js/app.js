@@ -4031,7 +4031,6 @@ function renderHome() {
 
   // ── Insights / Rankings ───────────────────────────────────────────────────
   let insightsHtml = '';
-  let crimesChart3 = null;
   const hasP1ins = p1Data && p1Data.length > 0;
   const hasP3ins = RAW && RAW.length > 0;
   if (hasP1ins || hasP3ins) {
@@ -4044,18 +4043,30 @@ function renderHome() {
       const mes3   = meses3[meses3.length - 1];
       const rawM   = RAW.filter(r => r.ano === ano3 && r.mes === mes3);
 
-      // Crimes fora da meta — gráfico do batalhão
-      crimesChart3 = CRIMES.map(c => {
+      // Crimes × meta — totais do batalhão
+      const crimesSoma = CRIMES.map(c => {
         const recs = rawM.filter(r => r.crime === c);
         const aval = recs.reduce((s,r) => s + (r.avaliado||0), 0);
         const meta = recs.reduce((s,r) => s + (r.meta||0), 0);
-        const ant  = recs.reduce((s,r) => s + (r.anterior||0), 0);
-        return { c: c.replace(' Vulnerável',' Vuln.').replace(' Veículos',' Veíc.'), aval, meta, ant };
+        return { c, aval, meta };
       }).filter(x => x.aval > 0 || x.meta > 0);
-      insCols.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px;grid-column:span 2">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · CRIMES FORA DA META — ${mes3} ${ano3} — BATALHÃO</div>
-        <canvas id="cmd-p3-crimes-chart" style="height:220px;max-height:220px"></canvas>
-      </div>`);
+      if (crimesSoma.length > 0) {
+        const crimesSomaRows = crimesSoma.map((d, i) => {
+          const ok = d.aval <= d.meta;
+          const col = ok ? '#4bc87a' : '#c84b4b';
+          const status = ok ? '✓ Na meta' : '✗ Acima';
+          return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0${i<crimesSoma.length-1?';border-bottom:1px solid var(--bd)':''}">
+            <div style="flex:1;font-size:12px;color:var(--tx)">${d.c}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">Meta <b style="color:var(--tx2)">${d.meta}</b></div>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">Aval <b style="color:${col}">${d.aval}</b></div>
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:${col};width:60px;text-align:right">${status}</div>
+          </div>`;
+        }).join('');
+        insCols.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · CRIMES × META — ${mes3} ${ano3} — BATALHÃO</div>
+          ${crimesSomaRows}
+        </div>`);
+      }
 
       // Municípios por nº de crimes fora da meta
       const munCrimesFora = {};
@@ -4220,33 +4231,6 @@ function renderHome() {
     ${insightsHtml}`;
 
   if (window.lucide) lucide.createIcons();
-
-  // Gráfico de crimes fora da meta na home
-  const cmdCtx = document.getElementById('cmd-p3-crimes-chart');
-  if (cmdCtx && typeof crimesChart3 !== 'undefined') {
-    if (charts['cmd-p3-crimes-chart']) charts['cmd-p3-crimes-chart'].destroy();
-    charts['cmd-p3-crimes-chart'] = new Chart(cmdCtx, {
-      type: 'bar',
-      data: {
-        labels: crimesChart3.map(d => d.c),
-        datasets: [
-          { label: 'Meta', data: crimesChart3.map(d => d.meta), backgroundColor: 'rgba(255,255,255,.09)', borderRadius: 3 },
-          { label: 'Avaliado', data: crimesChart3.map(d => d.aval), backgroundColor: crimesChart3.map(d => hcol(d.aval, d.meta, d.ant)), borderRadius: 3 }
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#b0b8c8', font: { size: 11 } } }, tooltip: { callbacks: {
-          afterBody: items => {
-            const d = crimesChart3[items[0].dataIndex];
-            const dev = d.meta > 0 ? ((d.aval - d.meta) / d.meta * 100).toFixed(1) : '—';
-            return [`Avaliado: ${d.aval}`, `Meta: ${d.meta || '—'}`, `Desvio: ${d.meta > 0 ? (dev > 0 ? '+' : '') + dev + '%' : '—'}`];
-          }
-        }}},
-        scales: { x: { grid: GR, ticks: { color: '#b0b8c8', font: { size: 11 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: '#b0b8c8', stepSize: 1 } } }
-      }
-    });
-  }
 }
 
 function updateSidebarImports(section) {
