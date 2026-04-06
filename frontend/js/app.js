@@ -2109,7 +2109,7 @@ async function loadMoOcorr() {
     } else {
       // Se crime contiver 'vulnerav' (normalizado), busca por 'estupro' para evitar
       // problema de acento no ilike do Postgres e filtra no frontend depois
-      const _normCrime = (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const _normCrime = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       const isEstVul = _normCrime(moCrime).includes('vulnerav');
       const termoBusca = isEstVul ? 'estupro' : moCrime;
       const params = new URLSearchParams({ rubrica: termoBusca, limit: '2000' });
