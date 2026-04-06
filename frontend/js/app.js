@@ -2221,6 +2221,7 @@ function renderMoIntel(data) {
   sec.style.display = 'block';
   renderOcorrHeatmap(data);
   renderTipoLocal(data);
+  renderBairros(data);
 }
 
 function renderOcorrHeatmap(data) {
@@ -2309,6 +2310,40 @@ function renderTipoLocal(data) {
   });
 }
 
+
+function renderBairros(data) {
+  const counts = {};
+  const muns   = {};
+  data.forEach(r => {
+    if (!r.bairro) return;
+    counts[r.bairro] = (counts[r.bairro] || 0) + 1;
+    if (!muns[r.bairro] && r.municipio) muns[r.bairro] = r.municipio;
+  });
+  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0,10);
+  if (!sorted.length) return;
+  const canvas = document.getElementById('mo-bairros');
+  if (!canvas) return;
+  const rowH = 36;
+  canvas.style.height = (sorted.length * rowH + 40) + 'px';
+  canvas.height = sorted.length * rowH + 40;
+  safeChart('mo-bairros', {
+    type: 'bar',
+    data: {
+      labels: sorted.map(([k]) => muns[k] ? `${muns[k]} · ${k}` : k),
+      datasets: [{ label:'Ocorrências', data: sorted.map(([,v])=>v), backgroundColor:'rgba(200,75,75,.7)', borderRadius:4 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: false,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: GR, ticks: { stepSize: 1, color: '#b0b8c8' } },
+        y: { grid: GR, ticks: { color: '#d0d8e8', font: { size: 12 }, autoSkip: false } }
+      }
+    }
+  });
+}
 
 function renderRubrica(data) {
   const counts = {};
