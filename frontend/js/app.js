@@ -925,11 +925,14 @@ function renderVisao() {
   // DEBUG diagnóstico
   const dbgEl = document.getElementById('dbg-hom');
   if (dbgEl) {
-    const homRaw = RAW.filter(r => (r.crime||'').toLowerCase().includes('homic'));
-    const linhas = homRaw.map(r => `crime="${r.crime}" | ano=${r.ano} | mes=${r.mes} | aval=${r.avaliado}`).join('\n');
-    const qResult = q({ crime: 'Homicídio', mes: selMeses });
+    const sc2 = scope('visao');
+    const qResult = q({ crime: 'Homicídio', mes: selMeses, ...sc2 });
+    const aval2 = qResult.reduce((s,r)=>s+(r.avaliado||0),0);
+    const meta2 = qResult.reduce((s,r)=>s+(r.meta||0),0);
+    const ant2  = qResult.reduce((s,r)=>s+(r.anterior||0),0);
+    const dev2  = meta2 === 0 ? (aval2 === 0 ? 0 : 100) : parseFloat(((aval2-meta2)/meta2*100).toFixed(1));
     dbgEl.style.display = 'block';
-    dbgEl.textContent = `selAno=${selAno} | selMeses=${JSON.stringify(selMeses)}\nq(Homicídio) count=${qResult.length} | aval=${qResult.reduce((s,r)=>s+r.avaliado,0)}\n\nRAW homic records:\n${linhas||'(nenhum)'}`;
+    dbgEl.textContent = `selAno=${selAno} | selMeses=${JSON.stringify(selMeses)} | sc=${JSON.stringify(sc2)}\nq(Homicídio) count=${qResult.length} | aval=${aval2} | meta=${meta2} | ant=${ant2} | dev=${dev2}%`;
   }
   const vmDetails = vmEntries.map(({ crimes: cs }) => {
     const aval  = cs.reduce((s,c) => s + sf(q({ crime: c, mes: selMeses, ...sc })), 0);
