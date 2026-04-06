@@ -601,7 +601,7 @@ const sf   = (arr, field = 'avaliado') => arr.reduce((s, r) => s + (r[field] || 
 const pLbl = m => m.length === MESES.length ? 'Todos os meses' : m.join(' + ');
 const hcol = (aval, meta, ant) => {
   if (aval === 0) return 'rgba(74,158,232,.10)';
-  if (meta === 0) return 'rgba(61,191,122,.70)';
+  if (meta === 0) return aval <= ant ? 'rgba(191,122,61,.85)' : 'rgba(200,75,75,.80)';
   if (aval <= meta) return 'rgba(61,191,122,.70)';   // verde: dentro da meta
   if (aval <= ant)  return 'rgba(191,122,61,.85)';   // laranja: acima da meta, melhor que anterior
   return 'rgba(200,75,75,.80)';                       // vermelho: acima da meta
