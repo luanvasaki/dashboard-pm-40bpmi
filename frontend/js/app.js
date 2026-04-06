@@ -1525,17 +1525,11 @@ function moRender() {
 
   // Meta vs Avaliado
   // Separa municípios válidos de registros sem município (nível CIA/Batalhão)
-  const allNamedMuns = muns.filter(m => m !== '');
+  const namedMuns  = muns.filter(m => m !== '');
   const emptyAval  = sf(q({ crime, mun: '', mes: moMeses }));
   const emptyMeta  = sf(q({ crime, mun: '', mes: moMeses }), 'meta');
   const emptyMant  = sf(q({ crime, mun: '', mes: moMeses }), 'anterior');
   const emptyMtnd  = sf(q({ crime, mun: '', mes: moMeses }), 'tend');
-  // Filtra apenas municípios com meta ou avaliado > 0 no período selecionado
-  const namedMuns  = allNamedMuns.filter(m => {
-    const a = sf(q({ crime, mun: m, mes: moMeses }));
-    const mt = sf(q({ crime, mun: m, mes: moMeses }), 'meta');
-    return a > 0 || mt > 0;
-  });
   // Detecta gap: registros cujo mun não está em MUNS (não deve ocorrer, mas cobre edge cases)
   const namedTotal = sf(q({ crime, mes: moMeses, ...sc }).filter(r => r.mun !== ''));
   const gapAval    = Math.max(0, aval - emptyAval - namedTotal);
