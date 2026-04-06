@@ -4068,24 +4068,30 @@ function renderHome() {
         ${crimeRows3 || '<div style="font-size:11px;color:var(--tx3)">Sem dados</div>'}
       </div>`);
 
-      // Municípios por volume
-      const porMun3 = {};
-      rawM.forEach(r => { if (r.mun) porMun3[r.mun] = (porMun3[r.mun] || 0) + (r.avaliado || 0); });
-      const munRank = Object.entries(porMun3).map(([m, v]) => ({ m, v })).sort((a, b) => b.v - a.v).slice(0, 6);
+      // Municípios por nº de crimes fora da meta
+      const munCrimesFora = {};
+      rawM.forEach(r => {
+        if (!r.mun || !r.meta) return;
+        if (!munCrimesFora[r.mun]) munCrimesFora[r.mun] = { fora: 0, total: 0 };
+        munCrimesFora[r.mun].total++;
+        if (r.avaliado > r.meta) munCrimesFora[r.mun].fora++;
+      });
+      const munRank = Object.entries(munCrimesFora)
+        .filter(([, v]) => v.fora > 0)
+        .map(([m, v]) => ({ m, fora: v.fora, total: v.total }))
+        .sort((a, b) => b.fora - a.fora || b.total - a.total)
+        .slice(0, 6);
       if (munRank.length > 0) {
-        const maxMun = munRank[0].v;
         const munRows3 = munRank.map((item, i) => {
-          const pct = maxMun > 0 ? Math.round(item.v / maxMun * 100) : 0;
-          return `<div style="margin-bottom:${i<munRank.length-1?'9':'0'}px">
-            <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-              <div style="font-size:12px;color:var(--tx)">${i+1}. ${item.m}</div>
-              <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx2)">${item.v}</div>
-            </div>
-            <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px"><div style="height:100%;width:${pct}%;background:#5a9de0;border-radius:3px"></div></div>
+          const col = item.fora >= 4 ? '#c84b4b' : item.fora >= 2 ? '#c8a84b' : '#e0d0a0';
+          return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0${i<munRank.length-1?';border-bottom:1px solid var(--bd)':''}">
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);width:14px;flex-shrink:0">${i+1}</div>
+            <div style="flex:1;font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.m}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:${col};font-weight:700;white-space:nowrap">${item.fora}/7 ▲</div>
           </div>`;
         }).join('');
         insCols.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px">
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · RANKING MUNICÍPIOS — ${mes3} ${ano3}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · CRIMES FORA DA META — ${mes3} ${ano3}</div>
           ${munRows3}
         </div>`);
       }
