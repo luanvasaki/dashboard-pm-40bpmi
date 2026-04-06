@@ -938,8 +938,8 @@ function renderVisao() {
       labels: vmEntries.map(e => e.label),
       datasets: [
         {
-          label: 'Avaliado',
-          data: vmDetails.map(d => d.aval),
+          label: 'Meta vs Avaliado',
+          data: vmDetails.map(d => (d.aval > 0 && d.dev === 0) ? 1 : d.dev),
           backgroundColor: vmDetails.map(d =>
             d.aval <= d.meta  ? 'rgba(61,191,122,.80)' :
             d.aval <= d.ant   ? 'rgba(191,122,61,.85)' :
@@ -949,8 +949,8 @@ function renderVisao() {
           order: 1
         },
         {
-          label: 'Meta',
-          data: vmDetails.map(d => d.meta || null),
+          label: 'Tendência (%)',
+          data: vmDetails.map(d => d.devT),
           backgroundColor: 'rgba(180,200,220,.45)',
           borderColor: 'rgba(180,200,220,.70)',
           borderWidth: 1,
@@ -968,9 +968,9 @@ function renderVisao() {
             title: ctx => vmEntries[ctx[0].dataIndex]?.label,
             label: ctx => {
               const d = vmDetails[ctx.dataIndex];
-              const devStr = d.meta > 0 ? ` (${d.dev > 0 ? '+' : ''}${d.dev}% vs meta)` : '';
               return [
-                `Avaliado:  ${d.aval}${devStr}`,
+                `Resultado: ${d.dev > 0 ? '+' : ''}${d.dev}% vs meta`,
+                `Avaliado:  ${d.aval}`,
                 `Meta:      ${d.meta || '—'}`,
                 `Status:    ${d.tendS}`
               ];
@@ -980,7 +980,7 @@ function renderVisao() {
       },
       scales: {
         x: { grid: GR },
-        y: { grid: GR, ticks: { stepSize: 1 } }
+        y: { grid: GR, ticks: { callback: v => v + '%' } }
       },
       onClick: (evt, elements) => {
         if (elements.length) moOpen(CRIMES[elements[0].index], PAL[elements[0].index]);
