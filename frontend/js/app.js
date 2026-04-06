@@ -922,18 +922,6 @@ function renderVisao() {
     ...CRIMES.filter(c => !groupedCrimes.includes(c)).map(c => ({ label: cl(c), crimes: [c] })),
     ...CRIME_GROUPS.map(g => ({ label: g.label, crimes: g.crimes }))
   ];
-  // DEBUG diagnóstico
-  const dbgEl = document.getElementById('dbg-hom');
-  if (dbgEl) {
-    const sc2 = scope('visao');
-    const qResult = q({ crime: 'Homicídio', mes: selMeses, ...sc2 });
-    const aval2 = qResult.reduce((s,r)=>s+(r.avaliado||0),0);
-    const meta2 = qResult.reduce((s,r)=>s+(r.meta||0),0);
-    const ant2  = qResult.reduce((s,r)=>s+(r.anterior||0),0);
-    const dev2  = meta2 === 0 ? (aval2 === 0 ? 0 : 100) : parseFloat(((aval2-meta2)/meta2*100).toFixed(1));
-    dbgEl.style.display = 'block';
-    dbgEl.textContent = `selAno=${selAno} | selMeses=${JSON.stringify(selMeses)} | sc=${JSON.stringify(sc2)}\nq(Homicídio) count=${qResult.length} | aval=${aval2} | meta=${meta2} | ant=${ant2} | dev=${dev2}%`;
-  }
   const vmDetails = vmEntries.map(({ crimes: cs }) => {
     const aval  = cs.reduce((s,c) => s + sf(q({ crime: c, mes: selMeses, ...sc })), 0);
     const meta  = cs.reduce((s,c) => s + sf(q({ crime: c, mes: selMeses, ...sc }), 'meta'), 0);
@@ -950,8 +938,8 @@ function renderVisao() {
       labels: vmEntries.map(e => e.label),
       datasets: [
         {
-          label: 'Meta vs Avaliado',
-          data: vmDetails.map(d => d.dev),
+          label: 'Avaliado',
+          data: vmDetails.map(d => d.aval),
           backgroundColor: vmDetails.map(d =>
             d.aval <= d.meta  ? 'rgba(61,191,122,.80)' :
             d.aval <= d.ant   ? 'rgba(191,122,61,.85)' :
@@ -961,8 +949,8 @@ function renderVisao() {
           order: 1
         },
         {
-          label: 'Tendência (%)',
-          data: vmDetails.map(d => d.devT),
+          label: 'Meta',
+          data: vmDetails.map(d => d.meta || null),
           backgroundColor: 'rgba(180,200,220,.45)',
           borderColor: 'rgba(180,200,220,.70)',
           borderWidth: 1,
@@ -980,9 +968,9 @@ function renderVisao() {
             title: ctx => vmEntries[ctx[0].dataIndex]?.label,
             label: ctx => {
               const d = vmDetails[ctx.dataIndex];
+              const devStr = d.meta > 0 ? ` (${d.dev > 0 ? '+' : ''}${d.dev}% vs meta)` : '';
               return [
-                `Resultado: ${d.dev > 0 ? '+' : ''}${d.dev}% vs meta`,
-                `Avaliado:  ${d.aval}`,
+                `Avaliado:  ${d.aval}${devStr}`,
                 `Meta:      ${d.meta || '—'}`,
                 `Status:    ${d.tendS}`
               ];
@@ -992,7 +980,7 @@ function renderVisao() {
       },
       scales: {
         x: { grid: GR },
-        y: { grid: GR, ticks: { callback: v => v + '%' } }
+        y: { grid: GR, ticks: { stepSize: 1 } }
       },
       onClick: (evt, elements) => {
         if (elements.length) moOpen(CRIMES[elements[0].index], PAL[elements[0].index]);
