@@ -839,7 +839,6 @@ function renderAll() {
 
 function renderVisaoAndInsights() {
   renderVisao();
-  renderInsights();
 }
 
 // ---------------------------------------------------------------------------
