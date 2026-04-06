@@ -2107,11 +2107,11 @@ async function loadMoOcorr() {
       const seen = new Set();
       data = merged.filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; });
     } else {
-      // Crimes cujo ilike precisa de termo diferente do nome no RAC
-      const RUBRICA_BUSCA = {
-        'Estupro Vulnerável': 'estupro',
-      };
-      const termoBusca = RUBRICA_BUSCA[moCrime] || moCrime;
+      // Se crime contiver 'vulnerav' (normalizado), busca por 'estupro' para evitar
+      // problema de acento no ilike do Postgres e filtra no frontend depois
+      const _normCrime = (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const isEstVul = _normCrime(moCrime).includes('vulnerav');
+      const termoBusca = isEstVul ? 'estupro' : moCrime;
       const params = new URLSearchParams({ rubrica: termoBusca, limit: '2000' });
       const res = await authFetch(`${API}/ocorrencias?${params}`);
       data = await res.json();
@@ -2134,7 +2134,7 @@ async function loadMoOcorr() {
         updateFemKpi();
       }
       // Estupro Vulnerável: mantém apenas registros com 'vulnerav' ou '217' na rubrica
-      if (moCrime === 'Estupro Vulnerável') {
+      if (isEstVul) {
         data = data.filter(r => {
           const rub = (r.rubrica || '').toLowerCase();
           return rub.includes('vulnerav') || rub.includes('217');
