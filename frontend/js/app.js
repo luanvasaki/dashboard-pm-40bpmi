@@ -950,7 +950,7 @@ function renderVisao() {
         },
         {
           label: 'Tendência (%)',
-          data: vmDetails.map(d => d.devT),
+          data: vmDetails.map(d => d.devT ?? 0),
           backgroundColor: 'rgba(180,200,220,.45)',
           borderColor: 'rgba(180,200,220,.70)',
           borderWidth: 1,
