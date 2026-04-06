@@ -926,16 +926,6 @@ function renderVisao() {
     const tendS = aval <= meta ? '✓ Dentro da meta' : aval < ant ? '↗ Acima da meta, melhorando' : '↘ Acima da meta, piorando';
     return { aval, meta, ant, tendV, dev, devT, tendS };
   });
-  // DEBUG temporário — mostra registros RAW de Homicídio por mês
-  const dbgEl = document.getElementById('dbg-hom');
-  if (dbgEl) {
-    const homRaw = RAW.filter(r => (r.crime||'').toLowerCase().includes('homic'));
-    const porMes = {};
-    homRaw.forEach(r => { porMes[r.mes] = (porMes[r.mes] || 0) + (r.avaliado || 0); });
-    const linhas = Object.entries(porMes).map(([m,v]) => `${m}: aval=${v}`).join(' | ');
-    dbgEl.style.display = 'block';
-    dbgEl.textContent = `[DEBUG Homicídio] selMeses=${JSON.stringify(selMeses)} | RAW por mês: ${linhas || '(nenhum)'}`;
-  }
   mk('c-var', {
     type: 'bar',
     data: {

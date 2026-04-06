@@ -155,12 +155,14 @@ function fromSupabase(r) {
     return null;
   };
   const num = (...names) => { const v = parseFloat(get(...names)); return isNaN(v) ? 0 : v; };
+  const _norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  const _canonicalize = raw => CRIMES_ORD.find(c => _norm(c) === _norm(raw)) || raw;
   return {
     ano:      parseInt(get('Ano'))                         || 0,
     mes:      get('Mes')                                   || '',
     cia:      get('Cia')                                   || '',
     mun:      get('Municipio')                             || '',
-    crime:    get('Crime')                                 || '',
+    crime:    _canonicalize(get('Crime') || ''),
     anterior: num('Anterior'),
     meta:     num('Meta'),
     avaliado: num('Avaliado'),
@@ -445,7 +447,7 @@ app.post('/api/upload', requireAuth, async (req, res) => {
       'Mes':       (gf(r,'mes')        || '').trim(),
       'Cia':       (gf(r,'cia')        || '').trim(),
       'Municipio': (gf(r,'municipio')  || '').trim(),
-      'Crime':     (gf(r,'crime')      || '').trim(),
+      'Crime':     (() => { const _n = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); const raw = (gf(r,'crime')||'').trim(); return CRIMES_ORD.find(c => _n(c) === _n(raw)) || raw; })(),
       'Anterior':  parseFloat(gf(r,'anterior'))                              || 0,
       'Meta':      parseFloat(gf(r,'meta'))                                  || 0,
       'Avaliado':  parseFloat(gf(r,'avaliado'))                              || 0,
