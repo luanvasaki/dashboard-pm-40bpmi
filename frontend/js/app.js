@@ -949,13 +949,15 @@ function renderVisao() {
           order: 1
         },
         {
-          label: 'Tendência (%)',
-          data: vmDetails.map(d => d.devT),
-          backgroundColor: 'rgba(180,200,220,.45)',
+          type: 'line',
+          label: 'Meta (0%)',
+          data: vmEntries.map(() => 0),
           borderColor: 'rgba(180,200,220,.70)',
-          borderWidth: 1,
-          borderRadius: 4,
-          order: 2
+          borderWidth: 2,
+          borderDash: [6, 3],
+          pointRadius: 0,
+          fill: false,
+          order: 0
         }
       ]
     },
