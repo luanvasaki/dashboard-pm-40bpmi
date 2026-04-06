@@ -939,7 +939,7 @@ function renderVisao() {
       datasets: [
         {
           label: 'Meta vs Avaliado',
-          data: vmDetails.map(d => (d.aval > 0 && d.dev === 0) ? 1 : d.dev),
+          data: vmDetails.map(d => (d.aval > 0 && d.dev === 0) ? 5 : d.dev),
           backgroundColor: vmDetails.map(d =>
             d.aval <= d.meta  ? 'rgba(61,191,122,.80)' :
             d.aval <= d.ant   ? 'rgba(191,122,61,.85)' :
@@ -980,7 +980,7 @@ function renderVisao() {
       },
       scales: {
         x: { grid: GR },
-        y: { grid: GR, ticks: { callback: v => v + '%' } }
+        y: { grid: GR, ticks: { callback: v => v + '%' }, suggestedMin: -30, suggestedMax: 30 }
       },
       onClick: (evt, elements) => {
         if (elements.length) moOpen(CRIMES[elements[0].index], PAL[elements[0].index]);
