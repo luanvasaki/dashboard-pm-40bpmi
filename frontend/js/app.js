@@ -2133,6 +2133,16 @@ async function loadMoOcorr() {
         const isCondutaVeiculo = c => { const l = (c || '').toLowerCase(); return l.includes('veíc') && !l.includes('interior'); };
         data = data.filter(r => !isCondutaVeiculo(r.conduta));
       }
+      // Se existir um crime mais específico (ex: "Estupro Vulnerável" para "Estupro"),
+      // exclui os registros que pertencem ao mais específico — ilike traz os dois
+      const normMC = normStr(moCrime);
+      const maisEspecificos = CRIMES.filter(c => c !== moCrime && normStr(c).startsWith(normMC + ' '));
+      if (maisEspecificos.length > 0) {
+        data = data.filter(r => {
+          const normR = normStr(r.rubrica || '');
+          return !maisEspecificos.some(c => normR.includes(normStr(c)));
+        });
+      }
     }
     moOcorrAll = Array.isArray(data) ? data : [];
     applyOcorrFilters();
