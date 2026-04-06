@@ -2221,9 +2221,6 @@ function renderMoIntel(data) {
   sec.style.display = 'block';
   renderOcorrHeatmap(data);
   renderTipoLocal(data);
-  renderBairros(data);
-
-  renderReincidencia(data);
 }
 
 function renderOcorrHeatmap(data) {
@@ -2312,24 +2309,6 @@ function renderTipoLocal(data) {
   });
 }
 
-function renderBairros(data) {
-  const counts = {};
-  const muns   = {};
-  data.forEach(r => {
-    if (!r.bairro) return;
-    const key = r.bairro;
-    counts[key] = (counts[key] || 0) + 1;
-    if (!muns[key] && r.municipio) muns[key] = r.municipio;
-  });
-  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0,10);
-  if (!sorted.length) return;
-  const labels = sorted.map(([k]) => muns[k] ? [muns[k], k] : k);
-  safeChart('mo-bairros', {
-    type: 'bar',
-    data: { labels, datasets: [{ label:'Ocorrências', data: sorted.map(([,v])=>v), backgroundColor:'rgba(200,75,75,.7)', borderRadius:4 }] },
-    options: { indexAxis:'y', responsive:true, plugins:{ legend:{display:false} }, scales:{ x:{ grid:GR, ticks:{stepSize:1} }, y:{ grid:GR } } }
-  });
-}
 
 function renderRubrica(data) {
   const counts = {};
@@ -2346,39 +2325,6 @@ function renderRubrica(data) {
   }));
 }
 
-function renderReincidencia(data) {
-  const el = document.getElementById('mo-reincidencia');
-  if (!el) return;
-  const bd = {};
-  data.forEach(r => {
-    if (!r.bairro) return;
-    const key = `${r.bairro}||${r.municipio || ''}`;
-    if (!bd[key]) bd[key] = { bairro: r.bairro, municipio: r.municipio || '', meses: new Set(), total: 0 };
-    bd[key].total++;
-    if (r.data_ocorrencia) bd[key].meses.add(r.data_ocorrencia.substring(0,7));
-  });
-  const lista = Object.values(bd)
-    .filter(d => d.meses.size >= 2)
-    .sort((a,b) => b.meses.size - a.meses.size || b.total - a.total)
-    .slice(0,10);
-  if (!lista.length) { el.innerHTML = '<div style="color:var(--tx3);font-size:12px">Nenhum bairro com ocorrências em múltiplos meses.</div>'; return; }
-  const maxM = lista[0].meses.size;
-  el.innerHTML = lista.map(d => {
-    const pct = (d.meses.size / maxM * 100).toFixed(0);
-    return `<div style="margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <div>
-          <span style="font-size:12px;font-weight:600;color:var(--tx)">${d.bairro}</span>
-          ${d.municipio ? `<span style="font-size:13px;color:var(--tx3);margin-left:6px">${d.municipio}</span>` : ''}
-        </div>
-        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${d.meses.size} mês(es) · ${d.total} ocorr.</span>
-      </div>
-      <div style="height:5px;background:var(--s3);border-radius:3px">
-        <div style="height:5px;width:${pct}%;background:#c84b4b;border-radius:3px"></div>
-      </div>
-    </div>`;
-  }).join('');
-}
 
 // ---------------------------------------------------------------------------
 // Navegação entre páginas
