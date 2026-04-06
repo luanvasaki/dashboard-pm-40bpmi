@@ -1542,7 +1542,17 @@ function moRender() {
     options: {
       responsive: true,
       plugins: {
-        legend: { labels: { boxWidth: 15, font: { size: 16 } } },
+        legend: {
+          labels: {
+            boxWidth: 14, font: { size: 12 },
+            generateLabels: () => [
+              { text: 'Meta',                                   fillStyle: 'rgba(255,255,255,.09)', strokeStyle: 'rgba(255,255,255,.3)', lineWidth: 1, hidden: false },
+              { text: 'Dentro da meta',                         fillStyle: 'rgba(61,191,122,.75)',  strokeStyle: 'rgba(61,191,122,.75)',  lineWidth: 0, hidden: false },
+              { text: 'Acima da meta, melhor que mês anterior', fillStyle: 'rgba(191,122,61,.85)', strokeStyle: 'rgba(191,122,61,.85)', lineWidth: 0, hidden: false },
+              { text: 'Acima da meta',                          fillStyle: 'rgba(200,75,75,.80)',  strokeStyle: 'rgba(200,75,75,.80)',  lineWidth: 0, hidden: false }
+            ]
+          }
+        },
         tooltip: {
           callbacks: {
             title: items => { const m = chartMuns[items[0].dataIndex]; return m === '' ? 'Btl/CIA (sem município)' : m; },
