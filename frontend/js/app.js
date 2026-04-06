@@ -4034,7 +4034,7 @@ function renderHome() {
   const hasP1ins = p1Data && p1Data.length > 0;
   const hasP3ins = RAW && RAW.length > 0;
   if (hasP1ins || hasP3ins) {
-    const insCols = [];
+    const insColsP1 = [], insColsP3Meta = [], insColsP3Fora = [];
 
     if (hasP3ins) {
       const anos3  = [...new Set(RAW.map(r => r.ano))].sort((a,b) => b-a);
@@ -4062,7 +4062,7 @@ function renderHome() {
             <div style="font-family:'DM Mono',monospace;font-size:10px;color:${col};width:60px;text-align:right">${status}</div>
           </div>`;
         }).join('');
-        insCols.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px">
+        insColsP3Meta.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px">
           <div style="font-family:'DM Mono',monospace;font-size:9px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · CRIMES × META — ${mes3} ${ano3} — BATALHÃO</div>
           ${crimesSomaRows}
         </div>`);
@@ -4090,7 +4090,7 @@ function renderHome() {
             <div style="font-family:'DM Mono',monospace;font-size:11px;color:${col};font-weight:700;white-space:nowrap">${item.fora}/7 ▲</div>
           </div>`;
         }).join('');
-        insCols.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px">
+        insColsP3Fora.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px">
           <div style="font-family:'DM Mono',monospace;font-size:9px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · CRIMES FORA DA META — ${mes3} ${ano3}</div>
           ${munRows3}
         </div>`);
@@ -4129,7 +4129,7 @@ function renderHome() {
           <div style="font-family:'DM Mono',monospace;font-size:11px;color:${c.color};font-weight:700;width:36px;text-align:right">${c.pct}%</div>
           <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);width:54px;text-align:right">${c.total} PMs</div>
         </div>`).join('');
-        insCols.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #4bc87a;border-radius:10px;padding:20px">
+        insColsP1.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #4bc87a;border-radius:10px;padding:20px">
           <div style="font-family:'DM Mono',monospace;font-size:9px;color:#4bc87a;letter-spacing:1.5px;margin-bottom:12px">P1 · DISPONIBILIDADE POR CIA</div>
           ${ciaRows3}
         </div>`);
@@ -4151,13 +4151,14 @@ function renderHome() {
             <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px"><div style="height:100%;width:${pct}%;background:#c84b4b;border-radius:3px"></div></div>
           </div>`;
         }).join('');
-        insCols.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #c84b4b;border-radius:10px;padding:20px">
+        insColsP1.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #c84b4b;border-radius:10px;padding:20px">
           <div style="font-family:'DM Mono',monospace;font-size:9px;color:#c84b4b;letter-spacing:1.5px;margin-bottom:12px">P1 · RANKING AFASTAMENTOS POR TIPO</div>
           ${tipoRows3}
         </div>`);
       }
     }
 
+    const insCols = [...insColsP1, ...insColsP3Meta, ...insColsP3Fora];
     if (insCols.length > 0) {
       insightsHtml = `<div style="margin-top:28px">
         <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:2px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bd)">INSIGHTS &amp; RANKINGS</div>
