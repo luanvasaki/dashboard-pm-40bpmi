@@ -2107,9 +2107,9 @@ async function loadMoOcorr() {
       const seen = new Set();
       data = merged.filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; });
     } else {
-      // Mapa de crimes cujo nome no RAC difere do formato da rubrica no InfoCrim
+      // Crimes cujo ilike precisa de termo diferente do nome no RAC
       const RUBRICA_BUSCA = {
-        'Estupro Vulnerável': 'vulneravel',
+        'Estupro Vulnerável': 'estupro',
       };
       const termoBusca = RUBRICA_BUSCA[moCrime] || moCrime;
       const params = new URLSearchParams({ rubrica: termoBusca, limit: '2000' });
@@ -2132,6 +2132,13 @@ async function loadMoOcorr() {
           moFemData = [];
         }
         updateFemKpi();
+      }
+      // Estupro Vulnerável: mantém apenas registros com 'vulnerav' ou '217' na rubrica
+      if (moCrime === 'Estupro Vulnerável') {
+        data = data.filter(r => {
+          const rub = (r.rubrica || '').toLowerCase();
+          return rub.includes('vulnerav') || rub.includes('217');
+        });
       }
       // Exclui condutas de veículo — pertencem à tela Roubo/Furto Veículos
       if (['Roubo','Furto'].includes(moCrime)) {
