@@ -2135,12 +2135,13 @@ async function loadMoOcorr() {
       }
       // Se existir um crime mais específico (ex: "Estupro Vulnerável" para "Estupro"),
       // exclui os registros que pertencem ao mais específico — ilike traz os dois
-      const normMC = normStr(moCrime);
-      const maisEspecificos = CRIMES.filter(c => c !== moCrime && normStr(c).startsWith(normMC + ' '));
+      const _norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const normMC = _norm(moCrime);
+      const maisEspecificos = CRIMES.filter(c => c !== moCrime && _norm(c).startsWith(normMC + ' '));
       if (maisEspecificos.length > 0) {
         data = data.filter(r => {
-          const normR = normStr(r.rubrica || '');
-          return !maisEspecificos.some(c => normR.includes(normStr(c)));
+          const normR = _norm(r.rubrica || '');
+          return !maisEspecificos.some(c => normR.includes(_norm(c)));
         });
       }
     }
