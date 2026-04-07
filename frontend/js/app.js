@@ -1527,69 +1527,85 @@ function moRender() {
     `;
   if (crime === 'Homicídio') updateFemKpi();
 
-  // Meta vs Avaliado
-  // Separa municípios válidos de registros sem município (nível CIA/Batalhão)
-  const namedMuns  = muns.filter(m => m !== '');
-  const emptyAval  = sf(q({ crime, mun: '', mes: moMeses }));
-  const emptyMeta  = sf(q({ crime, mun: '', mes: moMeses }), 'meta');
-  const emptyMant  = sf(q({ crime, mun: '', mes: moMeses }), 'anterior');
-  const emptyMtnd  = sf(q({ crime, mun: '', mes: moMeses }), 'tend');
-  // Detecta gap: registros cujo mun não está em MUNS (não deve ocorrer, mas cobre edge cases)
-  const namedTotal = sf(q({ crime, mes: moMeses, ...sc }).filter(r => r.mun !== ''));
-  const gapAval    = Math.max(0, aval - emptyAval - namedTotal);
-  const chartMuns  = gapAval > 0
-    ? [...namedMuns, '', '(Sem mun.)']
-    : [...namedMuns, ...(emptyAval > 0 || emptyMeta > 0 ? [''] : [])];
-  const munLabel   = m => m === '' ? '(Btl/CIA)' : m ? m.split(' ')[0] : '(Sem mun.)';
-  const mm   = chartMuns.map(m => m === '' ? emptyMeta  : m === '(Sem mun.)' ? 0      : sf(q({ crime, mun: m, mes: moMeses }), 'meta'));
-  const ma   = chartMuns.map(m => m === '' ? emptyAval  : m === '(Sem mun.)' ? gapAval : sf(q({ crime, mun: m, mes: moMeses })));
-  const mant = chartMuns.map(m => m === '' ? emptyMant  : m === '(Sem mun.)' ? 0      : sf(q({ crime, mun: m, mes: moMeses }), 'anterior'));
-  const mtnd = chartMuns.map(m => m === '' ? emptyMtnd  : m === '(Sem mun.)' ? 0      : sf(q({ crime, mun: m, mes: moMeses }), 'tend'));
-  moCh.push(new Chart(document.getElementById('mo-meta').getContext('2d'), {
-    type: 'bar',
-    plugins: [ciaSepPlugin(chartMuns)],
-    data: { labels: chartMuns.map(munLabel), datasets: [
-      { label: 'Meta',     data: mm, backgroundColor: 'rgba(255,255,255,.09)', borderRadius: 3 },
-      { label: 'Avaliado', data: ma, backgroundColor: ma.map((v,i) => hcol(v, mm[i], mant[i])), borderRadius: 3 }
-    ]},
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          labels: {
-            boxWidth: 14, font: { size: 12 },
-            color: '#e0e0e0',
-            generateLabels: () => [
-              { text: 'Meta',                                   fillStyle: 'rgba(255,255,255,.09)', strokeStyle: 'rgba(255,255,255,.3)', lineWidth: 1, hidden: false, fontColor: '#e0e0e0' },
-              { text: 'Dentro da meta',                         fillStyle: 'rgba(61,191,122,.75)',  strokeStyle: 'rgba(61,191,122,.75)',  lineWidth: 0, hidden: false, fontColor: '#e0e0e0' },
-              { text: 'Acima da meta, melhor que mês anterior', fillStyle: 'rgba(191,122,61,.85)', strokeStyle: 'rgba(191,122,61,.85)', lineWidth: 0, hidden: false, fontColor: '#e0e0e0' },
-              { text: 'Acima da meta',                          fillStyle: 'rgba(200,75,75,.80)',  strokeStyle: 'rgba(200,75,75,.80)',  lineWidth: 0, hidden: false, fontColor: '#e0e0e0' }
-            ]
-          }
-        },
-        tooltip: {
-          callbacks: {
-            title: items => { const m = chartMuns[items[0].dataIndex]; return m === '' ? 'Btl/CIA (sem município)' : m; },
-            label: () => '',
-            afterBody: items => {
-              const i = items[0].dataIndex;
-              const dev = mm[i] > 0 ? ((ma[i] - mm[i]) / mm[i] * 100).toFixed(1) : '—';
-              const status = ma[i] <= mm[i] ? '✓ Dentro da meta' : ma[i] < mant[i] ? '↗ Acima, melhorando' : '↘ Acima, piorando';
-              return [
-                `Avaliado:   ${ma[i]}`,
-                `Meta:       ${mm[i] || '—'}`,
-                `Anterior:   ${mant[i]}`,
-                `Tendência:  ${mtnd[i] || '—'}`,
-                `Desvio:     ${mm[i] > 0 ? (dev > 0 ? '+' : '') + dev + '%' : '—'}`,
-                `Status:     ${status}`
-              ];
+  // Meta vs Avaliado — helper que renderiza um gráfico para um crime (ou array) num canvas já existente
+  const renderMetaChart = (canvasId, crimeKey) => {
+    const namedMuns  = muns.filter(m => m !== '');
+    const emptyAval  = sf(q({ crime: crimeKey, mun: '', mes: moMeses }));
+    const emptyMeta  = sf(q({ crime: crimeKey, mun: '', mes: moMeses }), 'meta');
+    const emptyMant  = sf(q({ crime: crimeKey, mun: '', mes: moMeses }), 'anterior');
+    const emptyMtnd  = sf(q({ crime: crimeKey, mun: '', mes: moMeses }), 'tend');
+    const totalAval  = sf(q({ crime: crimeKey, mes: moMeses, ...sc }));
+    const namedTotal = sf(q({ crime: crimeKey, mes: moMeses, ...sc }).filter(r => r.mun !== ''));
+    const gapAval    = Math.max(0, totalAval - emptyAval - namedTotal);
+    const chartMuns  = gapAval > 0
+      ? [...namedMuns, '', '(Sem mun.)']
+      : [...namedMuns, ...(emptyAval > 0 || emptyMeta > 0 ? [''] : [])];
+    const munLabel   = m => m === '' ? '(Btl/CIA)' : m ? m.split(' ')[0] : '(Sem mun.)';
+    const mm   = chartMuns.map(m => m === '' ? emptyMeta  : m === '(Sem mun.)' ? 0       : sf(q({ crime: crimeKey, mun: m, mes: moMeses }), 'meta'));
+    const ma   = chartMuns.map(m => m === '' ? emptyAval  : m === '(Sem mun.)' ? gapAval : sf(q({ crime: crimeKey, mun: m, mes: moMeses })));
+    const mant = chartMuns.map(m => m === '' ? emptyMant  : m === '(Sem mun.)' ? 0       : sf(q({ crime: crimeKey, mun: m, mes: moMeses }), 'anterior'));
+    const mtnd = chartMuns.map(m => m === '' ? emptyMtnd  : m === '(Sem mun.)' ? 0       : sf(q({ crime: crimeKey, mun: m, mes: moMeses }), 'tend'));
+    moCh.push(new Chart(document.getElementById(canvasId).getContext('2d'), {
+      type: 'bar',
+      plugins: [ciaSepPlugin(chartMuns)],
+      data: { labels: chartMuns.map(munLabel), datasets: [
+        { label: 'Meta',     data: mm, backgroundColor: 'rgba(255,255,255,.09)', borderRadius: 3 },
+        { label: 'Avaliado', data: ma, backgroundColor: ma.map((v,i) => hcol(v, mm[i], mant[i])), borderRadius: 3 }
+      ]},
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            labels: {
+              boxWidth: 14, font: { size: 12 }, color: '#e0e0e0',
+              generateLabels: () => [
+                { text: 'Meta',                                   fillStyle: 'rgba(255,255,255,.09)', strokeStyle: 'rgba(255,255,255,.3)', lineWidth: 1, hidden: false, fontColor: '#e0e0e0' },
+                { text: 'Dentro da meta',                         fillStyle: 'rgba(61,191,122,.75)',  strokeStyle: 'rgba(61,191,122,.75)',  lineWidth: 0, hidden: false, fontColor: '#e0e0e0' },
+                { text: 'Acima da meta, melhor que mês anterior', fillStyle: 'rgba(191,122,61,.85)', strokeStyle: 'rgba(191,122,61,.85)', lineWidth: 0, hidden: false, fontColor: '#e0e0e0' },
+                { text: 'Acima da meta',                          fillStyle: 'rgba(200,75,75,.80)',  strokeStyle: 'rgba(200,75,75,.80)',  lineWidth: 0, hidden: false, fontColor: '#e0e0e0' }
+              ]
+            }
+          },
+          tooltip: {
+            callbacks: {
+              title: items => { const m = chartMuns[items[0].dataIndex]; return m === '' ? 'Btl/CIA (sem município)' : m; },
+              label: () => '',
+              afterBody: items => {
+                const i = items[0].dataIndex;
+                const dev = mm[i] > 0 ? ((ma[i] - mm[i]) / mm[i] * 100).toFixed(1) : '—';
+                const status = ma[i] <= mm[i] ? '✓ Dentro da meta' : ma[i] < mant[i] ? '↗ Acima, melhorando' : '↘ Acima, piorando';
+                return [
+                  `Avaliado:   ${ma[i]}`,
+                  `Meta:       ${mm[i] || '—'}`,
+                  `Anterior:   ${mant[i]}`,
+                  `Tendência:  ${mtnd[i] || '—'}`,
+                  `Desvio:     ${mm[i] > 0 ? (dev > 0 ? '+' : '') + dev + '%' : '—'}`,
+                  `Status:     ${status}`
+                ];
+              }
             }
           }
-        }
-      },
-      scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } }
-    }
-  }));
+        },
+        scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } }
+      }
+    }));
+  };
+
+  // Monta HTML do wrapper e renderiza gráfico(s)
+  const metaWrap = document.getElementById('mo-meta-wrap');
+  const isVeicGroup = Array.isArray(crime) && crime.includes('Roubo de Veículos') && crime.includes('Furto de Veículos');
+  if (isVeicGroup) {
+    metaWrap.innerHTML =
+      `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">` +
+        `<div class="mo-card"><div class="mo-ct">Meta vs Avaliado — Roubo de Veículos</div><canvas id="mo-meta-rv"></canvas></div>` +
+        `<div class="mo-card"><div class="mo-ct">Meta vs Avaliado — Furto de Veículos</div><canvas id="mo-meta-fv"></canvas></div>` +
+      `</div>`;
+    renderMetaChart('mo-meta-rv', 'Roubo de Veículos');
+    renderMetaChart('mo-meta-fv', 'Furto de Veículos');
+  } else {
+    metaWrap.innerHTML = `<div class="mo-card"><div class="mo-ct">Meta vs Avaliado</div><canvas id="mo-meta"></canvas></div>`;
+    renderMetaChart('mo-meta', crime);
+  }
 
   // Evolução por Município (sempre todos os MESES no eixo X)
   const withOcc = muns.map(m => ({ m, v: sf(q({ crime, mun: m, mes: moMeses })) })).filter(x => x.v > 0).sort((a,b) => munCia(a.m).localeCompare(munCia(b.m)) || b.v - a.v);
