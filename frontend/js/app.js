@@ -993,6 +993,7 @@ function renderVisao() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { top: 48 } },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -1021,7 +1022,8 @@ function renderVisao() {
         evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
       }
     },
-    plugins: [{
+    plugins: [
+    {
       id: 'zeroLine',
       afterDraw(chart) {
         const yScale = chart.scales.y;
@@ -1035,6 +1037,28 @@ function renderVisao() {
         ctx.strokeStyle = 'rgba(255,255,255,.85)';
         ctx.lineWidth = 2;
         ctx.stroke();
+        ctx.restore();
+      }
+    },
+    {
+      id: 'barTopLabels',
+      afterDraw(chart) {
+        const ctx = chart.ctx;
+        const meta = chart.getDatasetMeta(0);
+        const top = chart.chartArea.top;
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle = 'rgba(255,255,255,.90)';
+        ctx.font = "bold 11px 'DM Sans', sans-serif";
+        meta.data.forEach((bar, i) => {
+          const raw = vmEntries[i]?.label || '';
+          const lines = Array.isArray(raw) ? raw : [raw];
+          const lineH = 13;
+          lines.forEach((line, li) => {
+            ctx.fillText(line, bar.x, top - 4 - (lines.length - 1 - li) * lineH);
+          });
+        });
         ctx.restore();
       }
     }]
