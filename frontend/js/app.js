@@ -1641,9 +1641,9 @@ function moRender() {
             labels: {
               boxWidth: 14, font: { size: 12 }, color: '#ffffff',
               generateLabels: () => [
-                { text: 'Dentro da meta',                         fillStyle: 'rgba(61,191,122,.75)',  strokeStyle: 'rgba(61,191,122,.75)',  lineWidth: 0, hidden: false },
-                { text: 'Acima da meta, melhor que mês anterior', fillStyle: 'rgba(191,122,61,.85)', strokeStyle: 'rgba(191,122,61,.85)', lineWidth: 0, hidden: false },
-                { text: 'Acima da meta',                          fillStyle: 'rgba(200,75,75,.80)',  strokeStyle: 'rgba(200,75,75,.80)',  lineWidth: 0, hidden: false }
+                { text: 'Dentro da meta',                         fillStyle: 'rgba(61,191,122,.75)',  strokeStyle: 'rgba(61,191,122,.75)',  lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff' },
+                { text: 'Acima da meta, melhor que mês anterior', fillStyle: 'rgba(191,122,61,.85)', strokeStyle: 'rgba(191,122,61,.85)', lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff' },
+                { text: 'Acima da meta',                          fillStyle: 'rgba(200,75,75,.80)',  strokeStyle: 'rgba(200,75,75,.80)',  lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff' }
               ]
             }
           },
