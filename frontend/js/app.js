@@ -982,7 +982,7 @@ function renderVisao() {
       },
       scales: {
         x: { grid: GR },
-        x: { grid: GR, ticks: { maxRotation: 0, minRotation: 0, font: { size: 12 } } },
+        x: { grid: GR, ticks: { maxRotation: 0, minRotation: 0, autoSkip: false, font: { size: 11 } } },
         y: { grid: GR, ticks: { callback: v => v + '%' }, suggestedMin: -30, suggestedMax: 30 }
       },
       onClick: (evt, elements) => {
