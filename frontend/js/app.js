@@ -993,7 +993,7 @@ function renderVisao() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { top: 48 } },
+      layout: { padding: { top: 55 } },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -1045,18 +1045,20 @@ function renderVisao() {
       afterDraw(chart) {
         const ctx = chart.ctx;
         const meta = chart.getDatasetMeta(0);
-        const top = chart.chartArea.top;
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
-        ctx.fillStyle = 'rgba(255,255,255,.90)';
+        ctx.fillStyle = 'rgba(255,255,255,.95)';
         ctx.font = "bold 11px 'DM Sans', sans-serif";
+        const lineH = 13;
         meta.data.forEach((bar, i) => {
           const raw = vmEntries[i]?.label || '';
           const lines = Array.isArray(raw) ? raw : [raw];
-          const lineH = 13;
+          // topo da barra: mínimo entre bar.y e bar.base (canvas Y cresce para baixo)
+          const barTop = Math.min(bar.y, bar.base);
+          const startY = barTop - 4;
           lines.forEach((line, li) => {
-            ctx.fillText(line, bar.x, top - 4 - (lines.length - 1 - li) * lineH);
+            ctx.fillText(line, bar.x, startY - (lines.length - 1 - li) * lineH);
           });
         });
         ctx.restore();
