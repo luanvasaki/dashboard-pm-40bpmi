@@ -1582,7 +1582,7 @@ function moRender() {
     `;
   if (crime === 'Homicídio') updateFemKpi();
 
-  // Meta vs Avaliado — helper que renderiza um gráfico para um crime (ou array) num canvas já existente
+  // Meta vs Avaliado — helper que renderiza um gráfico % desvio por município
   const renderMetaChart = (canvasId, crimeKey) => {
     const namedMuns  = muns.filter(m => m !== '');
     const emptyAval  = sf(q({ crime: crimeKey, mun: '', mes: moMeses }));
@@ -1595,29 +1595,55 @@ function moRender() {
     const chartMuns  = gapAval > 0
       ? [...namedMuns, '', '(Sem mun.)']
       : [...namedMuns, ...(emptyAval > 0 || emptyMeta > 0 ? [''] : [])];
-    const munLabel   = m => m === '' ? '(Btl/CIA)' : m ? m.split(' ')[0] : '(Sem mun.)';
+    const munLabel = m => m === '' ? '(Btl/CIA)' : m ? m.split(' ')[0] : '(Sem mun.)';
     const mm   = chartMuns.map(m => m === '' ? emptyMeta  : m === '(Sem mun.)' ? 0       : sf(q({ crime: crimeKey, mun: m, mes: moMeses }), 'meta'));
     const ma   = chartMuns.map(m => m === '' ? emptyAval  : m === '(Sem mun.)' ? gapAval : sf(q({ crime: crimeKey, mun: m, mes: moMeses })));
     const mant = chartMuns.map(m => m === '' ? emptyMant  : m === '(Sem mun.)' ? 0       : sf(q({ crime: crimeKey, mun: m, mes: moMeses }), 'anterior'));
     const mtnd = chartMuns.map(m => m === '' ? emptyMtnd  : m === '(Sem mun.)' ? 0       : sf(q({ crime: crimeKey, mun: m, mes: moMeses }), 'tend'));
+
+    // Calcula % desvio para cada município (igual tela principal)
+    const devs = chartMuns.map((_, i) => {
+      if (ma[i] === 0) return 0;
+      if (mm[i] === 0) return ma[i] <= mant[i] ? -5 : 100;
+      const d = parseFloat(((ma[i] - mm[i]) / mm[i] * 100).toFixed(1));
+      return (ma[i] > 0 && d === 0) ? -5 : d;
+    });
+    const barColors = devs.map((d, i) => hcol(ma[i], mm[i], mant[i]));
+
+    const zeroLinePlugin = {
+      id: 'moZeroLine',
+      afterDraw(chart) {
+        const yScale = chart.scales.y;
+        if (yScale.min > 0 || yScale.max < 0) return;
+        const y = yScale.getPixelForValue(0);
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(chart.chartArea.left, y);
+        ctx.lineTo(chart.chartArea.right, y);
+        ctx.strokeStyle = 'rgba(255,255,255,.85)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
+    };
+
     moCh.push(new Chart(document.getElementById(canvasId).getContext('2d'), {
       type: 'bar',
-      plugins: [ciaSepPlugin(chartMuns)],
+      plugins: [ciaSepPlugin(chartMuns), zeroLinePlugin],
       data: { labels: chartMuns.map(munLabel), datasets: [
-        { label: 'Meta',     data: mm, backgroundColor: 'rgba(255,255,255,.09)', borderRadius: 3 },
-        { label: 'Avaliado', data: ma, backgroundColor: ma.map((v,i) => hcol(v, mm[i], mant[i])), borderRadius: 3 }
+        { label: 'Desvio vs Meta', data: devs, backgroundColor: barColors, borderRadius: 3 }
       ]},
       options: {
         responsive: true,
         plugins: {
           legend: {
             labels: {
-              boxWidth: 14, font: { size: 12 }, color: '#e0e0e0',
+              boxWidth: 14, font: { size: 12 }, color: '#ffffff',
               generateLabels: () => [
-                { text: 'Meta',                                   fillStyle: 'rgba(255,255,255,.09)', strokeStyle: 'rgba(255,255,255,.3)', lineWidth: 1, hidden: false, fontColor: '#e0e0e0' },
-                { text: 'Dentro da meta',                         fillStyle: 'rgba(61,191,122,.75)',  strokeStyle: 'rgba(61,191,122,.75)',  lineWidth: 0, hidden: false, fontColor: '#e0e0e0' },
-                { text: 'Acima da meta, melhor que mês anterior', fillStyle: 'rgba(191,122,61,.85)', strokeStyle: 'rgba(191,122,61,.85)', lineWidth: 0, hidden: false, fontColor: '#e0e0e0' },
-                { text: 'Acima da meta',                          fillStyle: 'rgba(200,75,75,.80)',  strokeStyle: 'rgba(200,75,75,.80)',  lineWidth: 0, hidden: false, fontColor: '#e0e0e0' }
+                { text: 'Dentro da meta',                         fillStyle: 'rgba(61,191,122,.75)',  strokeStyle: 'rgba(61,191,122,.75)',  lineWidth: 0, hidden: false },
+                { text: 'Acima da meta, melhor que mês anterior', fillStyle: 'rgba(191,122,61,.85)', strokeStyle: 'rgba(191,122,61,.85)', lineWidth: 0, hidden: false },
+                { text: 'Acima da meta',                          fillStyle: 'rgba(200,75,75,.80)',  strokeStyle: 'rgba(200,75,75,.80)',  lineWidth: 0, hidden: false }
               ]
             }
           },
@@ -1641,7 +1667,10 @@ function moRender() {
             }
           }
         },
-        scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } }
+        scales: {
+          x: { grid: GR, ticks: { color: '#ffffff', font: { size: 12 } } },
+          y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff' }, suggestedMin: -30, suggestedMax: 30 }
+        }
       }
     }));
   };
