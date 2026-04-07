@@ -764,6 +764,7 @@ function sbSetScope(type, val) {
     pageFilters.visao = { type, value: val };
   }
   buildSbMes();
+  renderKPIs();
   renderVisaoAndInsights();
 }
 
@@ -853,14 +854,15 @@ function renderVisaoAndInsights() {
 // ---------------------------------------------------------------------------
 
 function renderKPIs() {
+  const sc = scope('visao');
   const groupedCrimes = CRIME_GROUPS.flatMap(g => g.crimes);
   let html = '';
 
   // Cards individuais (pula os que fazem parte de um grupo)
   CRIMES.forEach((c, i) => {
     if (groupedCrimes.includes(c)) return;
-    const aval = sf(q({ crime: c, mes: selMeses }));
-    const ant  = sf(q({ crime: c, mes: selMeses }), 'anterior');
+    const aval = sf(q({ crime: c, mes: selMeses, ...sc }));
+    const ant  = sf(q({ crime: c, mes: selMeses, ...sc }), 'anterior');
     const vp   = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : 0;
     const up   = parseFloat(vp) > 0;
     html += `<div class="kpi" onclick="moOpen('${c}','${PAL[i]}')" title="Clique para detalhes">
@@ -877,8 +879,8 @@ function renderKPIs() {
 
   // Cards agrupados
   CRIME_GROUPS.forEach(g => {
-    const aval = sf(q({ crime: g.crimes, mes: selMeses }));
-    const ant  = sf(q({ crime: g.crimes, mes: selMeses }), 'anterior');
+    const aval = sf(q({ crime: g.crimes, mes: selMeses, ...sc }));
+    const ant  = sf(q({ crime: g.crimes, mes: selMeses, ...sc }), 'anterior');
     const vp   = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : 0;
     const up   = parseFloat(vp) > 0;
     html += `<div class="kpi" onclick="moOpenGroup('${g.label}')" title="Clique para detalhes">
