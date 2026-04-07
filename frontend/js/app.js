@@ -411,7 +411,7 @@ function ciaSepPlugin(muns) {
           ctx.stroke();
           ctx.setLineDash([]);
         }
-        ctx.fillStyle = 'rgba(180,200,255,0.75)';
+        ctx.fillStyle = '#ffffff';
         ctx.font = '700 13px "DM Mono", monospace';
         ctx.textAlign = 'left';
         ctx.fillText(name.toUpperCase(), x + 4, chartArea.top + 16);
@@ -2395,9 +2395,9 @@ function renderOcorrHeatmap(data) {
     <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px">
       <span style="font-size:22px;line-height:1">${icon}</span>
       <div>
-        <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">${label}</div>
-        <div style="font-size:14px;font-weight:700;color:var(--tx)">${value}</div>
-        ${sub ? `<div style="font-size:11px;color:var(--tx3);margin-top:2px">${sub}</div>` : ''}
+        <div style="font-size:13px;color:#ffffff;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600">${label}</div>
+        <div style="font-size:17px;font-weight:700;color:#ffffff">${value}</div>
+        ${sub ? `<div style="font-size:13px;color:#ffffff;margin-top:3px">${sub}</div>` : ''}
       </div>
     </div>`;
 
@@ -2436,7 +2436,7 @@ function renderTipoLocal(data) {
   safeChart('mo-tipolocal', {
     type: 'doughnut',
     data: { labels: top.map(([k])=>k), datasets: [{ data: top.map(([,v])=>v), backgroundColor: colors.slice(0,top.length), borderWidth:0 }] },
-    options: { responsive:true, cutout:'60%', plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:12}, padding:8, color:'#ffffff' } } } }
+    options: { responsive:true, cutout:'60%', plugins:{ legend:{ position:'bottom', labels:{ boxWidth:14, font:{size:14}, padding:12, color:'#ffffff' } } } }
   });
 }
 
@@ -2459,7 +2459,7 @@ function renderBairros(data) {
     type: 'bar',
     data: {
       labels: sorted.map(([k]) => muns[k] ? `${muns[k]} · ${k}` : k),
-      datasets: [{ label:'Ocorrências', data: sorted.map(([,v])=>v), backgroundColor:'rgba(74,158,232,.7)', borderRadius:4, barPercentage: 0.5, categoryPercentage: 0.8 }]
+      datasets: [{ label:'Ocorrências', data: sorted.map(([,v])=>v), backgroundColor:'rgba(74,158,232,.7)', borderRadius:4, barPercentage: 0.45, categoryPercentage: 0.8 }]
     },
     options: {
       indexAxis: 'y',
@@ -2468,7 +2468,7 @@ function renderBairros(data) {
       plugins: { legend: { display: false } },
       scales: {
         x: { grid: GR, ticks: { stepSize: 1, color: '#ffffff', font: { size: 14 } } },
-        y: { grid: GR, ticks: { color: '#ffffff', font: { size: 17 }, autoSkip: false } }
+        y: { grid: GR, ticks: { color: '#ffffff', font: { size: 18 }, autoSkip: false } }
       }
     }
   });
