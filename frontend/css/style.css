@@ -68,7 +68,7 @@ main{flex:1;overflow-y:auto;padding:26px 26px 60px;min-width:0}
 .pf-sep{width:1px;height:22px;background:var(--bd2);margin:0 2px;flex-shrink:0}
 .card{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:18px}
 .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.card-title{font-family:'DM Mono',monospace;font-size:14px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase}
+.card-title{font-family:'DM Mono',monospace;font-size:14px;letter-spacing:2px;color:#ffffff;text-transform:uppercase}
 .card-badge{font-family:'DM Mono',monospace;font-size:9px;padding:3px 9px;border-radius:20px;background:var(--s3);color:var(--tx2)}
 canvas{max-height:240px}
 .tbl{width:100%;border-collapse:collapse}
@@ -91,12 +91,12 @@ canvas{max-height:240px}
 .ri-fill span{font-family:'DM Mono',monospace;font-size:10px;color:#000;font-weight:700}
 .hm-wrap{overflow-x:auto}
 .hm-tbl{border-collapse:collapse;width:100%}
-.hm-tbl th{font-family:'DM Mono',monospace;font-size:13px;letter-spacing:1px;color:var(--tx3);text-transform:uppercase;padding:7px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}
+.hm-tbl th{font-family:'DM Mono',monospace;font-size:14px;letter-spacing:1px;color:#ffffff;text-transform:uppercase;padding:7px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}
 .hm-tbl td{padding:5px 3px;border-bottom:1px solid rgba(255,255,255,.02)}
-.hm-city{font-size:14px;font-weight:500;white-space:nowrap;padding:5px 10px 5px 4px!important}
+.hm-city{font-size:14px;font-weight:500;white-space:nowrap;padding:5px 10px 5px 4px!important;color:#ffffff}
 .hm-cell{display:flex;align-items:center;justify-content:center;width:56px;height:28px;border-radius:4px;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;margin:0 auto}
 .hm-legend{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
-.hm-legend span{font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:1px}
+.hm-legend span{font-family:'DM Mono',monospace;font-size:14px;color:#ffffff;letter-spacing:1px}
 .sw{width:16px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle}
 .hm-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .hm-filter span{font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase}

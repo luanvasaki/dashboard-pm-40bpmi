@@ -1175,9 +1175,9 @@ function renderVisaoHeatmap() {
       const meta = sf(q({ crime: c, mun, mes: meses }), 'meta');
       const ant  = sf(q({ crime: c, mun, mes: meses }), 'anterior');
       const bg   = hcol(v, meta, ant);
-      h += `<td><div class="hm-cell" style="background:${bg};color:var(--tx)">${v}</div></td>`;
+      h += `<td><div class="hm-cell" style="background:${bg};color:#ffffff">${v}</div></td>`;
     });
-    h += `<td><div class="hm-cell" style="background:rgba(255,255,255,.07);color:var(--tx);font-weight:700">${total}</div></td></tr>`;
+    h += `<td><div class="hm-cell" style="background:rgba(255,255,255,.07);color:#ffffff;font-weight:700">${total}</div></td></tr>`;
   });
   tbl.innerHTML = h + '</tbody>';
 }
@@ -1200,9 +1200,9 @@ function renderHeatmap() {
       const meta = sf(q({ crime: c, mun, mes: hmMeses }), 'meta');
       const ant  = sf(q({ crime: c, mun, mes: hmMeses }), 'anterior');
       const bg   = hcol(v, meta, ant);
-      h += `<td><div class="hm-cell" style="background:${bg};color:var(--tx)">${v}</div></td>`;
+      h += `<td><div class="hm-cell" style="background:${bg};color:#ffffff">${v}</div></td>`;
     });
-    h += `<td><div class="hm-cell" style="background:rgba(255,255,255,.07);color:var(--tx);font-weight:700">${total}</div></td></tr>`;
+    h += `<td><div class="hm-cell" style="background:rgba(255,255,255,.07);color:#ffffff;font-weight:700">${total}</div></td></tr>`;
   });
   document.getElementById('hm-tbl').innerHTML = h + '</tbody>';
 }
