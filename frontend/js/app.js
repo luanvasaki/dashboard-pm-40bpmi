@@ -607,7 +607,7 @@ const hcol = (aval, meta, ant) => {
   return 'rgba(200,75,75,.80)';                       // vermelho: acima da meta
 };
 const mk  = (id, cfg) => { if (charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), cfg); };
-const cl  = c => c.replace(' Vulnerável', ' Vuln.').replace(' Veículos', ' Veíc.');
+const cl  = c => c === 'Homicídio' ? 'Vítimas de Letalidade Violenta' : c.replace(' Vulnerável', ' Vuln.').replace(' Veículos', ' Veíc.');
 
 // ---------------------------------------------------------------------------
 // Inicialização — busca dados da API
