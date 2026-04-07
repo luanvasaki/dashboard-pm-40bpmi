@@ -2396,8 +2396,8 @@ function renderBairros(data) {
   if (!sorted.length) return;
   const wrapper = document.getElementById('mo-bairros')?.parentElement;
   if (!wrapper) return;
-  const rowH = 62;
-  wrapper.style.height = (sorted.length * rowH + 60) + 'px';
+  const rowH = 85;
+  wrapper.style.height = (sorted.length * rowH + 70) + 'px';
   safeChart('mo-bairros', {
     type: 'bar',
     data: {
@@ -2410,8 +2410,8 @@ function renderBairros(data) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: GR, ticks: { stepSize: 1, color: '#ffffff', font: { size: 13 } } },
-        y: { grid: GR, ticks: { color: '#ffffff', font: { size: 15 }, autoSkip: false } }
+        x: { grid: GR, ticks: { stepSize: 1, color: '#ffffff', font: { size: 14 } } },
+        y: { grid: GR, ticks: { color: '#ffffff', font: { size: 17 }, autoSkip: false } }
       }
     }
   });
