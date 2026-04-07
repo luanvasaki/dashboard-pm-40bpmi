@@ -1030,6 +1030,7 @@ function renderEvolMuns() {
     .sort((a, b) => munCia(a.m).localeCompare(munCia(b.m)) || b.total - a.total);
 
   const ciaStyleIdx2 = {};
+  const dashes2 = [[],[],[]];
   mk('c-evol-muns', {
     type: 'line',
     data: {
@@ -1039,14 +1040,13 @@ function renderEvolMuns() {
         const cia = munCia(m);
         ciaStyleIdx2[cia] = (ciaStyleIdx2[cia] ?? -1) + 1;
         const idx = ciaStyleIdx2[cia];
-        const dashes = [[],[5,3],[2,3]];
         const styles = ['circle','triangle','rect'];
         return {
           label: m,
           data: MESES.map(mes => sf(q({ crime, mun: m, mes }))),
           borderColor: col, backgroundColor: 'transparent',
           tension: 0.3, pointRadius: 5, borderWidth: 2,
-          borderDash: dashes[idx % 3], pointStyle: styles[idx % 3],
+          borderDash: [], pointStyle: styles[idx % 3],
           pointBackgroundColor: col
         };
       })
@@ -1337,19 +1337,19 @@ function renderEvolucao() {
           label: 'Meta',
           data: MESES.map(m => sf(q({ crime, mes: m, ...sc }), 'meta')),
           borderColor: 'rgba(61,191,122,.6)', backgroundColor: 'transparent',
-          tension: .4, borderDash: [6, 3], pointRadius: 3, borderWidth: 1.5
+          tension: .4, borderDash: [], pointRadius: 3, borderWidth: 1.5
         },
         {
           label: 'Anterior',
           data: MESES.map(m => sf(q({ crime, mes: m, ...sc }), 'anterior')),
           borderColor: 'rgba(255,255,255,.18)', backgroundColor: 'transparent',
-          tension: .4, borderDash: [3, 4], pointRadius: 2, borderWidth: 1
+          tension: .4, borderDash: [], pointRadius: 2, borderWidth: 1
         },
         {
           label: 'Tendência',
           data: MESES.map(m => sf(q({ crime, mes: m, ...sc }), 'tend')),
           borderColor: '#3d7abf', backgroundColor: 'transparent',
-          tension: .4, borderDash: [8, 4], pointRadius: 3, borderWidth: 1.5
+          tension: .4, borderDash: [], pointRadius: 3, borderWidth: 1.5
         }
       ]
     },
@@ -1592,15 +1592,13 @@ function moRender() {
   // Evolução por Município (sempre todos os MESES no eixo X)
   const withOcc = muns.map(m => ({ m, v: sf(q({ crime, mun: m, mes: moMeses })) })).filter(x => x.v > 0).sort((a,b) => munCia(a.m).localeCompare(munCia(b.m)) || b.v - a.v);
   const MUN_PALETTE = ['#4a9ee8','#e84a6f','#4bc97d','#e8a84a','#a84ae8','#4ae8d8','#e84a4a','#a8e84a','#4a6fe8','#e8d84a','#e86c4a','#c84bc8'];
-  const dashes = [[],[5,3],[2,3]];
-  const styles = ['circle','triangle','rect'];
   moCh.push(new Chart(document.getElementById('mo-line').getContext('2d'), {
     type: 'line',
     data: { labels: MESES, datasets: withOcc.map(({m}, i) => {
       const col = MUN_PALETTE[i % MUN_PALETTE.length];
       return { label: m, data: MESES.map(mes => sf(q({ crime, mun: m, mes }))),
         borderColor: col, backgroundColor: 'transparent', tension: 0, pointRadius: 5, borderWidth: 2,
-        borderDash: dashes[i % 3], pointStyle: styles[i % 3], pointBackgroundColor: col };
+        borderDash: [], pointBackgroundColor: col };
     })},
     options: {
       responsive: true,
