@@ -8,7 +8,11 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-size:16px;display:flex;min-height:100vh;overflow-x:hidden}
-aside{width:240px;min-width:240px;background:var(--s1);border-right:1px solid var(--bd);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+aside{width:240px;min-width:240px;background:var(--s1);border-right:1px solid var(--bd);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;transition:width .25s ease,min-width .25s ease}
+body.sidebar-collapsed aside{width:0;min-width:0;border:none;overflow:hidden}
+.sb-toggle{position:fixed;top:50%;left:240px;transform:translateY(-50%);z-index:600;background:var(--s1);border:1px solid var(--bd);border-left:none;border-radius:0 6px 6px 0;width:18px;height:48px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx3);transition:left .25s ease,color .15s;padding:0}
+.sb-toggle:hover{color:var(--tx)}
+body.sidebar-collapsed .sb-toggle{left:0;border-left:1px solid var(--bd);border-radius:6px}
 .logo{padding:18px 14px;border-bottom:1px solid var(--bd)}
 .logo-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
 .logo-row img{width:78px;height:78px;object-fit:contain;border-radius:50%;border:2px solid var(--gold);box-shadow:0 0 0 3px rgba(200,168,75,.15),0 0 12px rgba(200,168,75,.12);background:#fff;padding:3px}

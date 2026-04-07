@@ -35,6 +35,21 @@ function toggleSidebar() {
   overlay.style.display = open ? 'block' : 'none';
 }
 
+function toggleSidebarCollapse() {
+  const collapsed = document.body.classList.toggle('sidebar-collapsed');
+  localStorage.setItem('sidebar_collapsed', collapsed ? '1' : '0');
+  const icon = document.getElementById('sb-toggle-icon');
+  if (icon) icon.setAttribute('points', collapsed ? '9 18 15 12 9 6' : '15 18 9 12 15 6');
+}
+
+(function initSidebarCollapse() {
+  if (localStorage.getItem('sidebar_collapsed') === '1') {
+    document.body.classList.add('sidebar-collapsed');
+    const icon = document.getElementById('sb-toggle-icon');
+    if (icon) icon.setAttribute('points', '9 18 15 12 9 6');
+  }
+})();
+
 function initUserBlock() {
   try {
     const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
