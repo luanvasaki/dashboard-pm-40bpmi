@@ -4987,11 +4987,11 @@ function renderProdDetail() {
 
   // Opções barra horizontal
   const barOpts = {
-    indexAxis: 'y', responsive: true,
+    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
     plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
     scales: {
-      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 11 } } },
-      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 11 } } }
+      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 13 } } },
+      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.80)', font: { size: 13 } } }
     }
   };
 
@@ -5000,7 +5000,10 @@ function renderProdDetail() {
     const ctx = document.getElementById(id)?.getContext('2d');
     if (!ctx) return;
     if (!labels.length) { const e = document.getElementById(id+'-empty'); if(e) e.style.display=''; ctx.canvas.style.display='none'; return; }
-    pdChs.push(new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ data:values, backgroundColor:cor+'99', borderColor:cor, borderWidth:1, borderRadius:3 }] }, options:barOpts }));
+    const barH = 38;
+    ctx.canvas.style.height = (labels.length * barH + 40) + 'px';
+    ctx.canvas.style.maxHeight = 'none';
+    pdChs.push(new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ data:values, backgroundColor:cor+'99', borderColor:cor, borderWidth:1, borderRadius:3, barThickness: 22 }] }, options:barOpts }));
   };
 
   // --- Ranking CIA ---
