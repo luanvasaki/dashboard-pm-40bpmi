@@ -2124,7 +2124,7 @@ async function loadMoOcorr() {
       const results = await Promise.all(rubricas.map(r =>
         authFetch(`${API}/ocorrencias?${new URLSearchParams({ rubrica: r, limit: '2000' })}`).then(res => res.json())
       ));
-      const isCondutaVeiculo = c => { const l = (c || '').toLowerCase(); return l.includes('veíc') && !l.includes('interior'); };
+      const isCondutaVeiculo = c => { const l = (c || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); return l.includes('veic') && !l.includes('interior'); };
       const merged = results.flat().filter(r => isCondutaVeiculo(r.conduta));
       // Remove duplicatas por id
       const seen = new Set();
@@ -2165,7 +2165,7 @@ async function loadMoOcorr() {
       }
       // Exclui condutas de veículo — pertencem à tela Roubo/Furto Veículos
       if (['Roubo','Furto'].includes(moCrime)) {
-        const isCondutaVeiculo = c => { const l = (c || '').toLowerCase(); return l.includes('veíc') && !l.includes('interior'); };
+        const isCondutaVeiculo = c => { const l = (c || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); return l.includes('veic') && !l.includes('interior'); };
         data = data.filter(r => !isCondutaVeiculo(r.conduta));
       }
       // Se existir um crime mais específico (ex: "Estupro Vulnerável" para "Estupro"),
