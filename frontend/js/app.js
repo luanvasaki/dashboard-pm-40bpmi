@@ -1778,10 +1778,10 @@ function moRender() {
       const projTotal = mesesComDados > 0 && mesesComDados < 12
         ? Math.round((compTotal / mesesComDados) * 12) : null;
 
-      const card = (title, body, color='var(--tx2)') =>
+      const card = (title, body, color='#ffffff') =>
         `<div style="background:var(--s2);border:1px solid var(--bd2);border-radius:8px;padding:12px 14px">
-          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);margin-bottom:6px">${title}</div>
-          <div style="font-size:13px;color:${color};line-height:1.6">${body}</div>
+          <div style="font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:#ffffff;margin-bottom:6px;font-weight:700">${title}</div>
+          <div style="font-size:15px;color:#ffffff;line-height:1.7">${body}</div>
         </div>`;
 
       const peakIdxs = peakMes.map(m => sazonIdx[MES_ORD.indexOf(m)]);
@@ -2225,9 +2225,9 @@ function renderOcorrTable(data) {
     el.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:8px 0">Nenhuma ocorrência encontrada para os filtros selecionados.</div>';
     return;
   }
-  const th = s => `<th style="padding:6px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-align:left;white-space:nowrap">${s}</th>`;
-  const td = (s, mono) => `<td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--tx2);white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis${mono?';font-family:\'DM Mono\',monospace;font-size:11px':''}" title="${(s||'').replace(/"/g,'&quot;')}">${s||'—'}</td>`;
-  let h = `<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>
+  const th = s => `<th style="padding:7px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:11px;color:#ffffff;letter-spacing:1px;text-align:left;white-space:nowrap">${s}</th>`;
+  const td = (s, mono) => `<td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.05);color:#ffffff;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis${mono?';font-family:\'DM Mono\',monospace;font-size:13px':';font-size:13px'}" title="${(s||'').replace(/"/g,'&quot;')}">${s||'—'}</td>`;
+  let h = `<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr>
     ${th('DATA')}${th('HORA')}${th('PERÍODO')}${th('DIA')}${th('FLAGRANTE')}${th('CONDUTA')}${th('BAIRRO')}${th('TIPO LOCAL')}${th('MUNICÍPIO')}${th('CIA')}
   </tr></thead><tbody>`;
   data.forEach(r => {
