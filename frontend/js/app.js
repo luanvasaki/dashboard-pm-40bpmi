@@ -940,7 +940,7 @@ function renderVisao() {
       datasets: [
         {
           label: 'Meta vs Avaliado',
-          data: vmDetails.map(d => (d.aval > 0 && d.dev === 0) ? 5 : d.dev),
+          data: vmDetails.map(d => (d.aval > 0 && d.dev === 0) ? -5 : d.dev),
           backgroundColor: vmDetails.map(d =>
             d.aval <= d.meta  ? 'rgba(61,191,122,.80)' :
             d.aval <= d.ant   ? 'rgba(191,122,61,.85)' :
@@ -951,7 +951,7 @@ function renderVisao() {
         },
         {
           label: 'Tendência (%)',
-          data: vmDetails.map(d => (d.tendV > 0 && (d.devT ?? 0) === 0) ? 5 : (d.devT ?? 0)),
+          data: vmDetails.map(d => (d.tendV > 0 && (d.devT ?? 0) === 0) ? -5 : (d.devT ?? 0)),
           backgroundColor: 'rgba(180,200,220,.45)',
           borderColor: 'rgba(180,200,220,.70)',
           borderWidth: 1,
