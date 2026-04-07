@@ -1056,11 +1056,11 @@ function renderEvolMuns() {
     options: {
       responsive: true,
       plugins: {
-        legend: { position: 'bottom', labels: { boxWidth: 15, padding: 12, font: { size: 16 }, usePointStyle: true } }
+        legend: { position: 'bottom', labels: { boxWidth: 15, padding: 12, font: { size: 16 }, usePointStyle: true, color: '#ffffff' } }
       },
       scales: {
-        x: { grid: GR },
-        y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1 } }
+        x: { grid: GR, ticks: { color: '#ffffff' } },
+        y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1, color: '#ffffff' } }
       }
     }
   });
@@ -1357,8 +1357,8 @@ function renderEvolucao() {
     },
     options: {
       responsive: true,
-      plugins: { legend: { labels: { boxWidth: 15, font: { size: 16 } } } },
-      scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } }
+      plugins: { legend: { labels: { boxWidth: 15, font: { size: 16 }, color: '#ffffff' } } },
+      scales: { x: { grid: GR, ticks: { color: '#ffffff' } }, y: { grid: GR, beginAtZero: true, ticks: { color: '#ffffff' } } }
     }
   });
 
@@ -1622,7 +1622,7 @@ function moRender() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { boxWidth: 15, padding: 10, font: { size: 16 }, usePointStyle: true } },
+        legend: { labels: { boxWidth: 15, padding: 10, font: { size: 16 }, usePointStyle: true, color: '#ffffff' } },
         tooltip: {
           usePointStyle: true,
           callbacks: {
@@ -1644,7 +1644,7 @@ function moRender() {
           }
         }
       },
-      scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1 } } }
+      scales: { x: { grid: GR, ticks: { color: '#ffffff' } }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1, color: '#ffffff' } } }
     }
   }));
 
@@ -1729,9 +1729,9 @@ function moRender() {
         type: 'line',
         data: { labels: MES_ORD, datasets: yrDatasets },
         options: { responsive: true,
-          plugins: { legend: { labels: { boxWidth: 15, padding: 8, font: { size: 13 } } },
+          plugins: { legend: { labels: { boxWidth: 15, padding: 8, font: { size: 13 }, color: '#ffffff' } },
             tooltip: { callbacks: { title: items => MES_ORD[items[0].dataIndex] } } },
-          scales: { x: { grid: GR }, y: { grid: GR, beginAtZero: true } } }
+          scales: { x: { grid: GR, ticks: { color: '#ffffff' } }, y: { grid: GR, beginAtZero: true, ticks: { color: '#ffffff' } } } }
       }));
 
       // Texto explicativo — Gráfico 1
@@ -2352,7 +2352,7 @@ function renderTipoLocal(data) {
   safeChart('mo-tipolocal', {
     type: 'doughnut',
     data: { labels: top.map(([k])=>k), datasets: [{ data: top.map(([,v])=>v), backgroundColor: colors.slice(0,top.length), borderWidth:0 }] },
-    options: { responsive:true, cutout:'60%', plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11}, padding:8 } } } }
+    options: { responsive:true, cutout:'60%', plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:12}, padding:8, color:'#ffffff' } } } }
   });
 }
 
@@ -2383,8 +2383,8 @@ function renderBairros(data) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: GR, ticks: { stepSize: 1, color: '#b0b8c8', font: { size: 13 } } },
-        y: { grid: GR, ticks: { color: '#d0d8e8', font: { size: 15 }, autoSkip: false } }
+        x: { grid: GR, ticks: { stepSize: 1, color: '#ffffff', font: { size: 13 } } },
+        y: { grid: GR, ticks: { color: '#ffffff', font: { size: 15 }, autoSkip: false } }
       }
     }
   });
