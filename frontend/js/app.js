@@ -963,10 +963,12 @@ function renderVisao() {
     return lines.length === 1 ? lines[0] : lines;
   };
 
+  const vmWrappedLabels = vmEntries.map(e => wrapLabel(e.label));
+
   mk('c-var', {
     type: 'bar',
     data: {
-      labels: vmEntries.map(e => wrapLabel(e.label)),
+      labels: vmWrappedLabels,
       datasets: [
         {
           label: 'Meta vs Avaliado',
@@ -1052,7 +1054,7 @@ function renderVisao() {
         ctx.font = "bold 11px 'DM Sans', sans-serif";
         const lineH = 13;
         meta.data.forEach((bar, i) => {
-          const raw = vmEntries[i]?.label || '';
+          const raw = vmWrappedLabels[i] ?? vmEntries[i]?.label ?? '';
           const lines = Array.isArray(raw) ? raw : [raw];
           // topo da barra: mínimo entre bar.y e bar.base (canvas Y cresce para baixo)
           const barTop = Math.min(bar.y, bar.base);
