@@ -950,10 +950,23 @@ function renderVisao() {
     const tendS = aval <= meta ? '✓ Dentro da meta' : aval < ant ? '↗ Acima da meta, melhorando' : '↘ Acima da meta, piorando';
     return { aval, meta, ant, tendV, dev, devT, tendS };
   });
+  const wrapLabel = (s, maxLen = 14) => {
+    const words = s.split(' ');
+    const lines = [];
+    let cur = '';
+    words.forEach(w => {
+      if (!cur) { cur = w; }
+      else if ((cur + ' ' + w).length <= maxLen) { cur += ' ' + w; }
+      else { lines.push(cur); cur = w; }
+    });
+    if (cur) lines.push(cur);
+    return lines.length === 1 ? lines[0] : lines;
+  };
+
   mk('c-var', {
     type: 'bar',
     data: {
-      labels: vmEntries.map(e => e.label),
+      labels: vmEntries.map(e => wrapLabel(e.label)),
       datasets: [
         {
           label: 'Meta vs Avaliado',
@@ -998,9 +1011,8 @@ function renderVisao() {
         }
       },
       scales: {
-        x: { grid: GR },
-        x: { grid: GR, ticks: { maxRotation: 0, minRotation: 0, autoSkip: false, font: { size: 11 } } },
-        y: { grid: GR, ticks: { callback: v => v + '%' }, suggestedMin: -30, suggestedMax: 30 }
+        x: { grid: GR, ticks: { maxRotation: 0, minRotation: 0, autoSkip: false, font: { size: 13 }, color: '#ffffff' } },
+        y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff' }, suggestedMin: -30, suggestedMax: 30 }
       },
       onClick: (evt, elements) => {
         if (elements.length) moOpen(CRIMES[elements[0].index], PAL[elements[0].index]);
