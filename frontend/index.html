@@ -579,6 +579,22 @@
       <span class="sw" style="background:rgba(200,75,75,.80)"></span><span>Acima da meta</span>
     </div>
   </div>
+
+  <!-- Indicadores de Qualidade P3 -->
+  <div id="iq-section" style="margin-top:24px"></div>
+
+  <!-- Modal Indicadores de Qualidade -->
+  <div id="iq-mo" onclick="iqMoClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;align-items:center;justify-content:center">
+    <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:24px;width:min(540px,95vw);max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
+      <div id="iq-mo-title" style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:18px">Preencher Indicadores</div>
+      <div id="iq-mo-body"></div>
+      <div id="iq-mo-msg" style="margin-top:10px;font-size:13px;min-height:18px"></div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button onclick="iqSave()" style="flex:1;padding:9px;background:var(--gold);color:#111;border:none;border-radius:6px;font-weight:700;font-size:14px;cursor:pointer">Salvar</button>
+        <button onclick="closeIqMo()" style="padding:9px 18px;background:transparent;border:1px solid var(--bd2);color:var(--tx3);border-radius:6px;cursor:pointer;font-size:13px">Cancelar</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- METAS -->

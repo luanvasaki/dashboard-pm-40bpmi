@@ -1007,6 +1007,47 @@ app.put('/api/config', requireAuth, requireRole('admin', 'p3'), async (req, res)
   }
 });
 
+// GET /api/indicadores-p3 — qualquer usuário autenticado
+app.get('/api/indicadores-p3', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  try {
+    const { data, error } = await supabase
+      .from('indicadores_p3')
+      .select('*')
+      .order('ano', { ascending: true })
+      .order('mes', { ascending: true });
+    if (error) throw new Error(error.message);
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/indicadores-p3 — upsert (somente admin/p3/ti)
+app.post('/api/indicadores-p3', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  const { mes, ano, disque_denuncia, tempo_resposta, cursos_pm, alunos_proerd, atendimento_vitima, conseg_ativo, bairros_pvs } = req.body;
+  if (!mes || !ano) return res.status(400).json({ error: 'Mês e ano são obrigatórios' });
+  try {
+    const { error } = await supabase.from('indicadores_p3').upsert({
+      mes, ano,
+      disque_denuncia:    disque_denuncia    != null ? Number(disque_denuncia)    : null,
+      tempo_resposta:     tempo_resposta     != null ? Number(tempo_resposta)     : null,
+      cursos_pm:          cursos_pm          != null ? Number(cursos_pm)          : null,
+      alunos_proerd:      alunos_proerd      != null ? Number(alunos_proerd)      : null,
+      atendimento_vitima: atendimento_vitima != null ? Number(atendimento_vitima) : null,
+      conseg_ativo:       conseg_ativo       != null ? Number(conseg_ativo)       : null,
+      bairros_pvs:        bairros_pvs        != null ? Number(bairros_pvs)        : null,
+      preenchido_em:      new Date().toISOString(),
+      preenchido_por:     req.user.nome || req.user.matricula
+    }, { onConflict: 'mes,ano' });
+    if (error) throw new Error(error.message);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });

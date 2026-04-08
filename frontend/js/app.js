@@ -461,6 +461,20 @@ let selMeses = [];
 let selAno   = null;
 let hmMeses  = [];
 let charts   = {};
+
+// Indicadores de Qualidade P3
+let iqData = [];
+let iqCharts = [];
+const IQ_PRAZO_DIA = 10;
+const IQ_CAMPOS = [
+  { key: 'disque_denuncia',    label: 'Disque-Denúncia',              unit: '',    cor: '#5a9de0' },
+  { key: 'tempo_resposta',     label: 'Tempo Resposta Urgente',       unit: 'min', cor: '#e08a5a' },
+  { key: 'cursos_pm',          label: 'PMs em Cursos Institucionais', unit: '',    cor: '#9de05a' },
+  { key: 'alunos_proerd',      label: 'Alunos PROERD',                unit: '',    cor: '#c84b9e' },
+  { key: 'atendimento_vitima', label: 'Atend. Vítimas de Roubo',      unit: '',    cor: '#c84b4b' },
+  { key: 'conseg_ativo',       label: 'CONSEGs Ativos',               unit: '',    cor: '#e0c05a' },
+  { key: 'bairros_pvs',        label: 'Bairros PVS',                  unit: '',    cor: '#5ae09a' },
+];
 let moCh     = [];
 let moCrime  = '';
 let moColor  = '';
@@ -753,6 +767,7 @@ async function init() {
     updateSyncStatus();
     renderHome();
     loadP1(); // carrega dados P1 em background para exibir resumo na home
+    loadIndicadoresP3(); // carrega indicadores de qualidade P3
     if (window.lucide) lucide.createIcons();
   } catch (err) {
     console.error('Erro ao renderizar dashboard:', err);
@@ -4455,6 +4470,7 @@ function goPage(id, btn) {
   document.getElementById('page-' + id).classList.add('on');
   btn.classList.add('on');
   updateSidebarImports('p3');
+  if (id === 'visao') renderIndicadoresP3();
   setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
 }
 
@@ -5197,6 +5213,280 @@ function renderProdDetail() {
         matEl.innerHTML = tbl;
       }
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Indicadores de Qualidade P3
+// ---------------------------------------------------------------------------
+
+async function loadIndicadoresP3() {
+  try {
+    const res = await authFetch(`${API}/indicadores-p3`);
+    if (!res.ok) return;
+    iqData = await res.json();
+    renderIndicadoresP3();
+  } catch(e) { /* silencia — tabela pode não existir ainda */ }
+}
+
+function iqDestroyCharts() {
+  iqCharts.forEach(c => { try { c.destroy(); } catch(e){} });
+  iqCharts = [];
+}
+
+function renderIndicadoresP3() {
+  const el = document.getElementById('iq-section');
+  if (!el) return;
+
+  const user    = JSON.parse(localStorage.getItem('auth_user') || '{}');
+  const canEdit = ['admin','p3','ti'].includes(user.role);
+  const hoje    = new Date();
+  const anoAtual  = hoje.getFullYear();
+  const mesAtual  = MESES[hoje.getMonth()]; // usa o array MESES já existente no app
+  const diaAtual  = hoje.getDate();
+
+  const dadosAno         = iqData.filter(r => r.ano === anoAtual);
+  const mesesPreenchidos = new Set(dadosAno.map(r => r.mes));
+  const regMesAtual      = dadosAno.find(r => r.mes === mesAtual);
+
+  // ── Banner de cobrança ─────────────────────────────────────────────────
+  let bannerHtml = '';
+  if (!regMesAtual) {
+    const atrasado = diaAtual > IQ_PRAZO_DIA;
+    const cor = atrasado ? '#c84b4b' : '#e0c05a';
+    const bg  = atrasado ? 'rgba(200,75,75,.10)' : 'rgba(224,192,90,.10)';
+    const bd  = atrasado ? 'rgba(200,75,75,.30)' : 'rgba(224,192,90,.30)';
+    const icn = atrasado ? '🔴' : '⚠️';
+    const txt = atrasado
+      ? `Prazo encerrado — indicadores de <strong>${mesAtual} ${anoAtual}</strong> ainda não foram preenchidos. Cobrar a seção P3.`
+      : `Indicadores de <strong>${mesAtual} ${anoAtual}</strong> ainda não foram preenchidos. Prazo: dia ${IQ_PRAZO_DIA}.`;
+    bannerHtml = `<div style="padding:12px 16px;border-radius:8px;border:1px solid ${bd};background:${bg};color:${cor};font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:18px">${icn}</span>
+      <span style="flex:1">${txt}</span>
+      ${canEdit ? `<button onclick="openIqMo('${mesAtual}',${anoAtual})" style="padding:5px 14px;background:${cor};color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap">Preencher agora</button>` : ''}
+    </div>`;
+  } else {
+    const dt   = regMesAtual.preenchido_em ? new Date(regMesAtual.preenchido_em) : null;
+    const dtStr = dt ? `${dt.getDate().toString().padStart(2,'0')}/${(dt.getMonth()+1).toString().padStart(2,'0')} às ${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}` : '';
+    const quem = regMesAtual.preenchido_por || '';
+    bannerHtml = `<div style="padding:12px 16px;border-radius:8px;border:1px solid rgba(61,191,122,.30);background:rgba(61,191,122,.08);color:#5ae09a;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:18px">✅</span>
+      <span style="flex:1">Indicadores de <strong>${mesAtual} ${anoAtual}</strong> preenchidos${dtStr ? ` em ${dtStr}` : ''}${quem ? ` por <strong>${quem}</strong>` : ''}.</span>
+      ${canEdit ? `<button onclick="openIqMo('${mesAtual}',${anoAtual})" style="padding:5px 14px;background:rgba(61,191,122,.2);color:#5ae09a;border:1px solid rgba(61,191,122,.3);border-radius:5px;cursor:pointer;font-size:12px">Editar</button>` : ''}
+    </div>`;
+  }
+
+  // ── Meses sem dados ────────────────────────────────────────────────────
+  const mesIdx       = MESES.indexOf(mesAtual);
+  const mesesPassados = MESES.slice(0, mesIdx).filter(m => !mesesPreenchidos.has(m));
+  const alertFalta   = mesesPassados.length
+    ? `<div style="padding:10px 16px;border-radius:8px;border:1px solid rgba(200,75,75,.2);background:rgba(200,75,75,.06);color:#e06060;font-size:13px;margin-bottom:14px">
+        <strong>Meses sem dados em ${anoAtual}:</strong> ${mesesPassados.join(', ')}
+      </div>`
+    : '';
+
+  // ── KPI cards do mês atual ─────────────────────────────────────────────
+  const mesAnteriorIdx = mesIdx - 1;
+  const regAnterior    = mesAnteriorIdx >= 0 ? dadosAno.find(r => r.mes === MESES[mesAnteriorIdx]) : null;
+  const kpiCards = IQ_CAMPOS.map(c => {
+    const val    = regMesAtual ? regMesAtual[c.key] : null;
+    const valAnt = regAnterior ? regAnterior[c.key] : null;
+    let tendHtml = '';
+    if (val != null && valAnt != null && val !== valAnt) {
+      const up   = val > valAnt;
+      const diff = Math.abs(val - valAnt).toLocaleString('pt-BR');
+      tendHtml   = `<span style="font-size:13px;color:${up ? '#5ae09a' : '#e06060'}">${up ? '▲' : '▼'} ${diff}</span>`;
+    }
+    const valStr = val != null ? val.toLocaleString('pt-BR') + (c.unit ? ' ' + c.unit : '') : '—';
+    return `<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${c.cor};border-radius:8px;padding:14px">
+      <div style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;line-height:1.3">${c.label}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${c.cor};line-height:1">${valStr}</div>
+      <div style="margin-top:6px;min-height:18px">${tendHtml}</div>
+    </div>`;
+  }).join('');
+
+  // ── Gráficos (só se houver dados) ─────────────────────────────────────
+  const temDados = dadosAno.length > 0;
+  const chartsHtml = temDados ? `
+    <div class="card" style="margin-top:16px">
+      <div class="card-head"><div class="card-title">Evolução Mensal dos Indicadores</div></div>
+      <canvas id="iq-c-linha" style="height:300px;max-height:300px"></canvas>
+    </div>
+    <div class="g2" style="margin-top:14px">
+      <div class="card">
+        <div class="card-head"><div class="card-title">Acumulado no Ano</div></div>
+        <canvas id="iq-c-barra" style="height:260px;max-height:260px"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">Perfil do Batalhão — ${mesAtual}</div></div>
+        <canvas id="iq-c-radar" style="height:260px;max-height:260px"></canvas>
+      </div>
+    </div>` : '';
+
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--bd)">
+        <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;letter-spacing:2px;color:#5a9de0;text-transform:uppercase">Indicadores de Qualidade — ${anoAtual}</div>
+        ${canEdit ? `<button onclick="openIqMo('${mesAtual}',${anoAtual})" style="padding:6px 16px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">+ Preencher ${mesAtual}</button>` : ''}
+      </div>
+      ${bannerHtml}
+      ${alertFalta}
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px">${kpiCards}</div>
+    </div>
+    ${chartsHtml}`;
+
+  if (temDados) {
+    iqDestroyCharts();
+    renderIqLinha(dadosAno);
+    renderIqBarra(dadosAno);
+    renderIqRadar(dadosAno, mesAtual);
+  }
+}
+
+function renderIqLinha(dados) {
+  const el = document.getElementById('iq-c-linha');
+  if (!el) return;
+  const mesesOrdenados = MESES.filter(m => dados.find(r => r.mes === m));
+  const datasets = IQ_CAMPOS.map(c => ({
+    label: c.label,
+    data: mesesOrdenados.map(m => { const r = dados.find(x => x.mes === m); return r ? (r[c.key] ?? null) : null; }),
+    borderColor: c.cor,
+    backgroundColor: 'transparent',
+    tension: 0.3,
+    pointRadius: 4,
+    borderWidth: 2,
+    spanGaps: false
+  }));
+  iqCharts.push(new Chart(el.getContext('2d'), {
+    type: 'line',
+    data: { labels: mesesOrdenados.map(m => m.slice(0,3)), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#ffffff', font: { size: 12 }, boxWidth: 12, padding: 14 } } },
+      scales: {
+        x: { grid: GR, ticks: { color: '#ffffff', font: { size: 12 } } },
+        y: { grid: GR, ticks: { color: '#ffffff' }, beginAtZero: true }
+      }
+    }
+  }));
+}
+
+function renderIqBarra(dados) {
+  const el = document.getElementById('iq-c-barra');
+  if (!el) return;
+  const campoCont = IQ_CAMPOS.filter(c => ['alunos_proerd','atendimento_vitima','conseg_ativo','bairros_pvs'].includes(c.key));
+  const mesesOrdenados = MESES.filter(m => dados.find(r => r.mes === m));
+  const datasets = campoCont.map(c => ({
+    label: c.label,
+    data: mesesOrdenados.map(m => { const r = dados.find(x => x.mes === m); return r ? (r[c.key] ?? 0) : 0; }),
+    backgroundColor: c.cor + 'aa',
+    borderColor: c.cor,
+    borderWidth: 1,
+    borderRadius: 3
+  }));
+  iqCharts.push(new Chart(el.getContext('2d'), {
+    type: 'bar',
+    data: { labels: mesesOrdenados.map(m => m.slice(0,3)), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#ffffff', font: { size: 12 }, boxWidth: 12, padding: 12 } } },
+      scales: {
+        x: { grid: GR, ticks: { color: '#ffffff', font: { size: 12 } } },
+        y: { grid: GR, ticks: { color: '#ffffff' }, beginAtZero: true }
+      }
+    }
+  }));
+}
+
+function renderIqRadar(dados, mesAtual) {
+  const el = document.getElementById('iq-c-radar');
+  if (!el) return;
+  const reg = dados.find(r => r.mes === mesAtual);
+  if (!reg) return;
+  const normalized = IQ_CAMPOS.map(c => {
+    const maxVal = Math.max(...dados.map(r => Number(r[c.key]) || 0), 1);
+    return Math.round((Number(reg[c.key]) || 0) / maxVal * 100);
+  });
+  iqCharts.push(new Chart(el.getContext('2d'), {
+    type: 'radar',
+    data: {
+      labels: IQ_CAMPOS.map(c => c.label),
+      datasets: [{
+        label: mesAtual,
+        data: normalized,
+        backgroundColor: 'rgba(90,157,224,.18)',
+        borderColor: '#5a9de0',
+        pointBackgroundColor: '#5a9de0',
+        borderWidth: 2,
+        pointRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#ffffff', font: { size: 12 } } } },
+      scales: {
+        r: {
+          grid: { color: 'rgba(255,255,255,.10)' },
+          angleLines: { color: 'rgba(255,255,255,.10)' },
+          pointLabels: { color: '#ffffff', font: { size: 11 } },
+          ticks: { display: false, beginAtZero: true, max: 100 }
+        }
+      }
+    }
+  }));
+}
+
+// Modal
+let iqMoMes = '', iqMoAno = 0;
+
+function openIqMo(mes, ano) {
+  iqMoMes = mes; iqMoAno = Number(ano);
+  const existente = iqData.find(r => r.mes === mes && r.ano === Number(ano));
+  document.getElementById('iq-mo-title').textContent = `Indicadores — ${mes} ${ano}`;
+  document.getElementById('iq-mo-msg').textContent = '';
+  document.getElementById('iq-mo-body').innerHTML =
+    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px">` +
+    IQ_CAMPOS.map(c => `
+      <div>
+        <label style="font-size:12px;color:var(--tx3);font-family:'DM Mono',monospace;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">${c.label}${c.unit ? ' (' + c.unit + ')' : ''}</label>
+        <input id="iq-inp-${c.key}" type="number" min="0" step="any"
+          value="${existente && existente[c.key] != null ? existente[c.key] : ''}"
+          style="width:100%;background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:7px 10px;border-radius:5px;font-size:14px;box-sizing:border-box">
+      </div>`).join('') +
+    `</div>`;
+  document.getElementById('iq-mo').style.display = 'flex';
+}
+
+function closeIqMo() {
+  document.getElementById('iq-mo').style.display = 'none';
+}
+
+function iqMoClickOut(e) {
+  if (e.target === document.getElementById('iq-mo')) closeIqMo();
+}
+
+async function iqSave() {
+  const body = { mes: iqMoMes, ano: iqMoAno };
+  IQ_CAMPOS.forEach(c => {
+    const v = document.getElementById(`iq-inp-${c.key}`)?.value.trim();
+    body[c.key] = (v !== '' && v != null) ? Number(v) : null;
+  });
+  const msgEl = document.getElementById('iq-mo-msg');
+  try {
+    const res = await authFetch(`${API}/indicadores-p3`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    msgEl.style.color = '#5ae09a';
+    msgEl.textContent = 'Dados salvos com sucesso!';
+    await loadIndicadoresP3();
+    setTimeout(closeIqMo, 800);
+  } catch (err) {
+    msgEl.style.color = '#e06060';
+    msgEl.textContent = err.message;
   }
 }
 
