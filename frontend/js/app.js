@@ -4470,7 +4470,7 @@ function goPage(id, btn) {
   document.getElementById('page-' + id).classList.add('on');
   btn.classList.add('on');
   updateSidebarImports('p3');
-  if (id === 'visao') renderIndicadoresP3();
+  if (id === 'visao') loadIndicadoresP3();
   setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
 }
 
