@@ -1012,7 +1012,7 @@ app.get('/api/indicadores-p3', requireAuth, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
   try {
     const { data, error } = await supabase
-      .from('indicadores_p3')
+      .from('indicadores_qualidade_p3')
       .select('*')
       .order('ano', { ascending: true })
       .order('mes', { ascending: true });
@@ -1029,7 +1029,7 @@ app.post('/api/indicadores-p3', requireAuth, requireRole('admin', 'p3', 'ti'), a
   const { mes, ano, disque_denuncia, tempo_resposta, cursos_pm, alunos_proerd, atendimento_vitima, conseg_ativo, bairros_pvs } = req.body;
   if (!mes || !ano) return res.status(400).json({ error: 'Mês e ano são obrigatórios' });
   try {
-    const { error } = await supabase.from('indicadores_p3').upsert({
+    const { error } = await supabase.from('indicadores_qualidade_p3').upsert({
       mes, ano,
       disque_denuncia:    disque_denuncia    != null ? Number(disque_denuncia)    : null,
       tempo_resposta:     tempo_resposta     != null ? Number(tempo_resposta)     : null,
