@@ -1629,7 +1629,7 @@ function moRender() {
     };
 
     const cvs = document.getElementById(canvasId);
-    cvs.style.height = '320px';
+    cvs.style.height = '400px';
     moCh.push(new Chart(cvs.getContext('2d'), {
       type: 'bar',
       plugins: [ciaSepPlugin(chartMuns), zeroLinePlugin],
@@ -1672,7 +1672,7 @@ function moRender() {
         },
         scales: {
           x: { grid: GR, ticks: { color: '#ffffff', font: { size: 12 } } },
-          y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff' }, suggestedMin: -30, suggestedMax: 30 }
+          y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff' }, suggestedMin: -20, suggestedMax: 20 }
         }
       }
     }));
