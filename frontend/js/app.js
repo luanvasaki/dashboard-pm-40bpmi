@@ -4554,8 +4554,8 @@ function prodBuildFilter() {
   h += `</select></div>`;
   // Meses
   h += `<div class="pf-field"><span class="pf-label">MÊS</span><div style="display:flex;gap:4px;flex-wrap:wrap">`;
-  h += `<button onclick="prodSetAllMeses()" class="pf-btn${allSel?' on':''}" style="font-size:11px;padding:4px 8px">Todos</button>`;
-  mesesDisp.forEach(m => h += `<button onclick="prodTogMes('${m}')" class="pf-btn${prodSelMeses.includes(m)?' on':''}" style="font-size:11px;padding:4px 8px">${m.slice(0,3)}</button>`);
+  h += `<button onclick="prodSetAllMeses()" class="pf-btn${allSel?' on':''}">Todos</button>`;
+  mesesDisp.forEach(m => h += `<button onclick="prodTogMes('${m}')" class="pf-btn${prodSelMeses.includes(m)?' on':''}">${m.slice(0,3)}</button>`);
   h += `</div></div>`;
   // CIA
   h += `<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" onchange="prodSetCia(this.value)">`;
