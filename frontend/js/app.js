@@ -1075,8 +1075,8 @@ function renderVisao() {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
         ctx.fillStyle = 'rgba(255,255,255,.95)';
-        ctx.font = "bold 11px 'DM Sans', sans-serif";
-        const lineH = 13;
+        ctx.font = "bold 13px 'DM Sans', sans-serif";
+        const lineH = 15;
         meta.data.forEach((bar, i) => {
           const raw = vmWrappedLabels[i] ?? vmEntries[i]?.label ?? '';
           const lines = Array.isArray(raw) ? raw : [raw];
