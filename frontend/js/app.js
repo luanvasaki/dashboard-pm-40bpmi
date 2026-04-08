@@ -245,7 +245,8 @@ function buildUserTable(users, me) {
 
   users.forEach(u => {
     const sStyle = STATUS_STYLE[u.status] || '';
-    const canEditRole = ['admin', 'p3', 'ti'].includes(me.role);
+    const canEditRole  = ['admin', 'p3', 'ti'].includes(me.role);
+    const canEditPosto = ['admin', 'p1', 'p3', 'ti'].includes(me.role);
     const editableRoles = ['viewer','p1','p3','ti'];
     const roleOpts = canEditRole
       ? editableRoles.map(r =>
@@ -268,7 +269,11 @@ function buildUserTable(users, me) {
 
     h += `<tr>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:#d8dce8">${u.nome}</td>
-      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--tx3)">${u.posto||'—'}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
+        ${canEditPosto
+          ? `<input value="${(u.posto||'').replace(/"/g,'&quot;')}" onblur="admChangePosto('${u.id}',this.value)" onkeydown="if(event.key==='Enter')this.blur()" style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:3px 8px;border-radius:4px;font-size:11px;width:120px" title="Edite e pressione Enter ou clique fora para salvar">`
+          : `<span style="color:var(--tx3)">${u.posto||'—'}</span>`}
+      </td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-family:'DM Mono',monospace;color:var(--tx3)">${u.matricula}</td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
         <select onchange="admChangeSecao('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${secaoOpts}</select>
@@ -339,6 +344,22 @@ async function admChangeSecao(id, secao) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     showAdmMsg('Função atualizada.', 'ok');
+  } catch (err) {
+    showAdmMsg(err.message, 'err');
+  }
+}
+
+async function admChangePosto(id, posto) {
+  if (!posto || !posto.trim()) return;
+  try {
+    const res = await authFetch(`${API}/admin/users/${id}/posto`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ posto })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showAdmMsg('Posto/Grad atualizado.', 'ok');
   } catch (err) {
     showAdmMsg(err.message, 'err');
   }

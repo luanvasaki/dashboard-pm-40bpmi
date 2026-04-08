@@ -375,6 +375,23 @@ app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'p3'), async
   }
 });
 
+// PATCH /api/admin/users/:id/posto — altera posto/graduação (admin, p1, p3, ti)
+app.patch('/api/admin/users/:id/posto', requireAuth, requireRole('admin', 'p1', 'p3', 'ti'), async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
+  const { posto } = req.body;
+  if (!posto || !posto.trim()) return res.status(400).json({ error: 'Posto/Grad não informado' });
+  try {
+    const { data: target } = await supabase.from(USUARIOS_TABLE).select('role').eq('id', req.params.id).single();
+    if (!target) return res.status(404).json({ error: 'Usuário não encontrado' });
+    if (target.role === 'admin') return res.status(403).json({ error: 'Usuário protegido — não pode ser alterado.' });
+    const { error } = await supabase.from(USUARIOS_TABLE).update({ posto: posto.trim() }).eq('id', req.params.id);
+    if (error) throw new Error(error.message);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/admin/users/:id/reset-senha — define matrícula como senha temporária (apenas p3)
 app.post('/api/admin/users/:id/reset-senha', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
