@@ -4198,11 +4198,11 @@ function renderHome() {
           const ok = d.aval <= d.meta;
           const col = ok ? '#4bc87a' : '#c84b4b';
           const status = ok ? '✓ Na meta' : '✗ Acima';
-          return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0${i<crimesSoma.length-1?';border-bottom:1px solid var(--bd)':''}">
-            <div style="flex:1;font-size:12px;color:var(--tx)">${d.c}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">Meta <b style="color:var(--tx2)">${d.meta}</b></div>
-            <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">Aval <b style="color:${col}">${d.aval}</b></div>
-            <div style="font-family:'DM Mono',monospace;font-size:10px;color:${col};width:60px;text-align:right">${status}</div>
+          return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0${i<crimesSoma.length-1?';border-bottom:1px solid var(--bd)':''}">
+            <div style="flex:1;font-size:14px;color:#ffffff">${d.c}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff">Meta <b style="color:#ffffff">${d.meta}</b></div>
+            <div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff">Aval <b style="color:${col}">${d.aval}</b></div>
+            <div style="font-family:'DM Mono',monospace;font-size:13px;color:${col};width:64px;text-align:right">${status}</div>
           </div>`;
         }).join('');
         insColsP3Meta.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px">
@@ -4227,10 +4227,10 @@ function renderHome() {
       if (munRank.length > 0) {
         const munRows3 = munRank.map((item, i) => {
           const col = item.fora >= 4 ? '#c84b4b' : item.fora >= 2 ? '#c8a84b' : '#e0d0a0';
-          return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0${i<munRank.length-1?';border-bottom:1px solid var(--bd)':''}">
-            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);width:14px;flex-shrink:0">${i+1}</div>
-            <div style="flex:1;font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.m}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:11px;color:${col};font-weight:700;white-space:nowrap">${item.fora}/7 ▲</div>
+          return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0${i<munRank.length-1?';border-bottom:1px solid var(--bd)':''}">
+            <div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff;width:18px;flex-shrink:0">${i+1}</div>
+            <div style="flex:1;font-size:14px;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.m}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:13px;color:${col};font-weight:700;white-space:nowrap">${item.fora}/7 ▲</div>
           </div>`;
         }).join('');
         insColsP3Fora.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px">
@@ -4265,12 +4265,12 @@ function renderHome() {
         return { label: cia.label, color: cia.color, ...s };
       }).filter(Boolean).sort((a, b) => b.pct - a.pct);
       if (ciaRank.length > 0) {
-        const ciaRows3 = ciaRank.map((c, i) => `<div style="display:flex;align-items:center;gap:8px;padding:5px 0${i<ciaRank.length-1?';border-bottom:1px solid var(--bd)':''}">
-          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);width:14px;flex-shrink:0">${i+1}</div>
-          <div style="width:9px;height:9px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
-          <div style="flex:1;font-size:12px;color:var(--tx)">${c.label}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:11px;color:${c.color};font-weight:700;width:36px;text-align:right">${c.pct}%</div>
-          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);width:54px;text-align:right">${c.total} PMs</div>
+        const ciaRows3 = ciaRank.map((c, i) => `<div style="display:flex;align-items:center;gap:8px;padding:8px 0${i<ciaRank.length-1?';border-bottom:1px solid var(--bd)':''}">
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff;width:18px;flex-shrink:0">${i+1}</div>
+          <div style="width:10px;height:10px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
+          <div style="flex:1;font-size:14px;color:#ffffff">${c.label}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:14px;color:${c.color};font-weight:700;width:40px;text-align:right">${c.pct}%</div>
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff;width:58px;text-align:right">${c.total} PMs</div>
         </div>`).join('');
         insColsP1.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #4bc87a;border-radius:10px;padding:20px">
           <div style="font-family:'DM Mono',monospace;font-size:12px;color:#4bc87a;letter-spacing:1.5px;margin-bottom:12px">P1 · DISPONIBILIDADE POR CIA</div>
@@ -4286,12 +4286,12 @@ function renderHome() {
         const maxTipo = tipoRank[0][1];
         const tipoRows3 = tipoRank.map(([tipo, cnt], i) => {
           const pct = maxTipo > 0 ? Math.round(cnt / maxTipo * 100) : 0;
-          return `<div style="margin-bottom:${i<tipoRank.length-1?'9':'0'}px">
-            <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-              <div style="font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:76%">${tipo}</div>
-              <div style="font-family:'DM Mono',monospace;font-size:11px;color:#c84b4b;font-weight:700">${cnt}</div>
+          return `<div style="margin-bottom:${i<tipoRank.length-1?'12':'0'}px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+              <div style="font-size:14px;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:76%">${tipo}</div>
+              <div style="font-family:'DM Mono',monospace;font-size:14px;color:#c84b4b;font-weight:700">${cnt}</div>
             </div>
-            <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px"><div style="height:100%;width:${pct}%;background:#c84b4b;border-radius:3px"></div></div>
+            <div style="background:rgba(255,255,255,.06);border-radius:3px;height:5px"><div style="height:100%;width:${pct}%;background:#c84b4b;border-radius:3px"></div></div>
           </div>`;
         }).join('');
         insColsP1.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #c84b4b;border-radius:10px;padding:20px">
