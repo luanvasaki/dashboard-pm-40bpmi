@@ -4726,8 +4726,8 @@ function prodRender() {
       const pct = maxMes > 0 ? Math.round(v / maxMes * 100) : 0;
       return `<div style="margin-bottom:${i < 4 ? '14' : '0'}px">
         <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-          <div style="font-size:16px;color:${i === 0 ? 'var(--tx)' : 'var(--tx3)'}">${i + 1}. ${m}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:15px;color:var(--tx2)">${v.toLocaleString('pt-BR')}</div>
+          <div style="font-size:17px;color:#ffffff;font-weight:${i === 0 ? '700' : '400'}">${i + 1}. ${m}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:17px;color:#ffffff;font-weight:700">${v.toLocaleString('pt-BR')}</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px"><div style="height:100%;width:${pct}%;background:#f0c040;border-radius:3px"></div></div>
       </div>`;
@@ -4750,11 +4750,11 @@ function prodRender() {
       const pct = Math.round(t.v / totGeral * 100);
       return `<div style="margin-bottom:16px">
         <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-          <div style="font-size:16px;color:var(--tx)">${t.label}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:15px;color:${t.cor};font-weight:700">${pct}%</div>
+          <div style="font-size:17px;color:#ffffff;font-weight:600">${t.label}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:17px;color:#ffffff;font-weight:700">${pct}%</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px"><div style="height:100%;width:${pct}%;background:${t.cor};border-radius:3px"></div></div>
-        <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--tx3);margin-top:4px">${t.v.toLocaleString('pt-BR')} no período</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;color:#ffffff;margin-top:4px">${t.v.toLocaleString('pt-BR')} no período</div>
       </div>`;
     }).join('');
     insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid var(--bd2);border-radius:10px;padding:20px">
