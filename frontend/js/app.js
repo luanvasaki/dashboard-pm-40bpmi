@@ -4700,8 +4700,8 @@ function prodRender() {
     const [ciaTopo, valTopo] = ciaCompRank[0];
     const runners = ciaCompRank.slice(1, 4).map(([c, v]) =>
       `<div style="display:flex;justify-content:space-between;margin-top:10px">
-        <span style="font-size:15px;color:var(--tx3)">${c}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:15px;color:var(--tx2)">${v.toLocaleString('pt-BR')}</span>
+        <span style="font-size:17px;color:#ffffff">${c}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:17px;color:#ffffff;font-weight:700">${v.toLocaleString('pt-BR')}</span>
       </div>`).join('');
     insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:10px;padding:20px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:10px">CIA em Destaque</div>
