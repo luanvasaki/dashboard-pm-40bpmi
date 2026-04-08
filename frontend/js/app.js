@@ -1628,7 +1628,9 @@ function moRender() {
       }
     };
 
-    moCh.push(new Chart(document.getElementById(canvasId).getContext('2d'), {
+    const cvs = document.getElementById(canvasId);
+    cvs.style.height = '320px';
+    moCh.push(new Chart(cvs.getContext('2d'), {
       type: 'bar',
       plugins: [ciaSepPlugin(chartMuns), zeroLinePlugin],
       data: { labels: chartMuns.map(munLabel), datasets: [
@@ -1636,6 +1638,7 @@ function moRender() {
       ]},
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: {
             labels: {
