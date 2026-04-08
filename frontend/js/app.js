@@ -5323,6 +5323,44 @@ function renderIndicadoresP3() {
       </div>
     </div>` : '';
 
+  // ── Tabela histórico ──────────────────────────────────────────────────
+  const todosDados = [...iqData].sort((a, b) => {
+    if (b.ano !== a.ano) return b.ano - a.ano;
+    return MES_ORD.indexOf(b.mes) - MES_ORD.indexOf(a.mes);
+  });
+  const historicoHtml = todosDados.length ? `
+    <div class="card" style="margin-top:16px">
+      <div class="card-head">
+        <div class="card-title">Histórico de Registros</div>
+        ${canEdit ? `<button onclick="openIqMo('${mesAtual}',${anoAtual})" style="padding:5px 14px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:5px;cursor:pointer;font-size:12px;font-weight:600">+ Preencher outro mês</button>` : ''}
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            <th style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">Mês / Ano</th>
+            ${IQ_CAMPOS.map(c => `<th style="text-align:right;padding:8px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);text-transform:uppercase;white-space:nowrap">${c.label}</th>`).join('')}
+            <th style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);text-transform:uppercase">Preenchido por</th>
+            <th style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);text-transform:uppercase">Data/Hora</th>
+            ${canEdit ? `<th style="padding:8px 12px;border-bottom:1px solid var(--bd)"></th>` : ''}
+          </tr></thead>
+          <tbody>
+            ${todosDados.map((r, i) => {
+              const dt  = r.preenchido_em ? new Date(r.preenchido_em) : null;
+              const dtStr = dt ? `${dt.getDate().toString().padStart(2,'0')}/${(dt.getMonth()+1).toString().padStart(2,'0')}/${dt.getFullYear()} ${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}` : '—';
+              const bg  = i % 2 ? '' : 'background:rgba(255,255,255,.02)';
+              return `<tr style="${bg}">
+                <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-weight:700;color:var(--tx);white-space:nowrap">${r.mes} ${r.ano}</td>
+                ${IQ_CAMPOS.map(c => `<td style="padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.03);text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:${r[c.key] != null ? 'var(--tx)' : 'var(--tx3)'}">${r[c.key] != null ? Number(r[c.key]).toLocaleString('pt-BR') : '—'}</td>`).join('')}
+                <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;color:var(--tx2)">${r.preenchido_por || '—'}</td>
+                <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap">${dtStr}</td>
+                ${canEdit ? `<td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03)"><button onclick="openIqMo('${r.mes}',${r.ano})" style="padding:3px 10px;background:rgba(90,157,224,.1);border:1px solid rgba(90,157,224,.25);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:11px">Editar</button></td>` : ''}
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>` : '';
+
   el.innerHTML = `
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--bd)">
@@ -5333,7 +5371,8 @@ function renderIndicadoresP3() {
       ${alertFalta}
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px">${kpiCards}</div>
     </div>
-    ${chartsHtml}`;
+    ${chartsHtml}
+    ${historicoHtml}`;
 
   if (temDados) {
     iqDestroyCharts();
@@ -5439,21 +5478,48 @@ function renderIqRadar(dados, mesAtual) {
 // Modal
 let iqMoMes = '', iqMoAno = 0;
 
+function iqMoFillCampos() {
+  const existente = iqData.find(r => r.mes === iqMoMes && r.ano === iqMoAno);
+  IQ_CAMPOS.forEach(c => {
+    const inp = document.getElementById(`iq-inp-${c.key}`);
+    if (inp) inp.value = existente && existente[c.key] != null ? existente[c.key] : '';
+  });
+  const badge = document.getElementById('iq-mo-badge');
+  if (badge) badge.textContent = existente ? '✎ Editar registro existente' : '+ Novo registro';
+  document.getElementById('iq-mo-msg').textContent = '';
+}
+
 function openIqMo(mes, ano) {
   iqMoMes = mes; iqMoAno = Number(ano);
-  const existente = iqData.find(r => r.mes === mes && r.ano === Number(ano));
-  document.getElementById('iq-mo-title').textContent = `Indicadores — ${mes} ${ano}`;
   document.getElementById('iq-mo-msg').textContent = '';
+
+  const anoAtual = new Date().getFullYear();
+  const anos = [...new Set([anoAtual - 1, anoAtual, anoAtual + 1, ...iqData.map(r => r.ano)])].sort();
+  const mesOpts  = MES_ORD.map(m => `<option value="${m}" ${m === iqMoMes ? 'selected' : ''}>${m}</option>`).join('');
+  const anoOpts  = anos.map(a => `<option value="${a}" ${a === iqMoAno ? 'selected' : ''}>${a}</option>`).join('');
+
   document.getElementById('iq-mo-body').innerHTML =
-    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px">` +
+    `<div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--bd)">
+      <div>
+        <label style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;display:block;margin-bottom:4px;text-transform:uppercase">Mês</label>
+        <select id="iq-sel-mes" onchange="iqMoMes=this.value;iqMoFillCampos()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:6px 10px;border-radius:5px;font-size:14px;cursor:pointer">${mesOpts}</select>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;display:block;margin-bottom:4px;text-transform:uppercase">Ano</label>
+        <select id="iq-sel-ano" onchange="iqMoAno=+this.value;iqMoFillCampos()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:6px 10px;border-radius:5px;font-size:14px;cursor:pointer">${anoOpts}</select>
+      </div>
+      <div id="iq-mo-badge" style="margin-top:18px;font-size:12px;color:var(--tx3);font-family:'DM Mono',monospace"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px">` +
     IQ_CAMPOS.map(c => `
       <div>
         <label style="font-size:12px;color:var(--tx3);font-family:'DM Mono',monospace;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">${c.label}${c.unit ? ' (' + c.unit + ')' : ''}</label>
         <input id="iq-inp-${c.key}" type="number" min="0" step="any"
-          value="${existente && existente[c.key] != null ? existente[c.key] : ''}"
           style="width:100%;background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:7px 10px;border-radius:5px;font-size:14px;box-sizing:border-box">
       </div>`).join('') +
     `</div>`;
+
+  iqMoFillCampos();
   document.getElementById('iq-mo').style.display = 'flex';
 }
 
