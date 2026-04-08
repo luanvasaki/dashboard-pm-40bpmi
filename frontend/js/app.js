@@ -4206,7 +4206,7 @@ function renderHome() {
           </div>`;
         }).join('');
         insColsP3Meta.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px">
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · CRIMES × META — ${mes3} ${ano3} — BATALHÃO</div>
+          <div style="font-family:'DM Mono',monospace;font-size:12px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · CRIMES × META — ${mes3} ${ano3} — BATALHÃO</div>
           ${crimesSomaRows}
         </div>`);
       }
@@ -4234,7 +4234,7 @@ function renderHome() {
           </div>`;
         }).join('');
         insColsP3Fora.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px">
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · CRIMES FORA DA META — ${mes3} ${ano3}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:12px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · CRIMES FORA DA META — ${mes3} ${ano3}</div>
           ${munRows3}
         </div>`);
       }
@@ -4273,7 +4273,7 @@ function renderHome() {
           <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);width:54px;text-align:right">${c.total} PMs</div>
         </div>`).join('');
         insColsP1.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #4bc87a;border-radius:10px;padding:20px">
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:#4bc87a;letter-spacing:1.5px;margin-bottom:12px">P1 · DISPONIBILIDADE POR CIA</div>
+          <div style="font-family:'DM Mono',monospace;font-size:12px;color:#4bc87a;letter-spacing:1.5px;margin-bottom:12px">P1 · DISPONIBILIDADE POR CIA</div>
           ${ciaRows3}
         </div>`);
       }
@@ -4295,7 +4295,7 @@ function renderHome() {
           </div>`;
         }).join('');
         insColsP1.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #c84b4b;border-radius:10px;padding:20px">
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:#c84b4b;letter-spacing:1.5px;margin-bottom:12px">P1 · RANKING AFASTAMENTOS POR TIPO</div>
+          <div style="font-family:'DM Mono',monospace;font-size:12px;color:#c84b4b;letter-spacing:1.5px;margin-bottom:12px">P1 · RANKING AFASTAMENTOS POR TIPO</div>
           ${tipoRows3}
         </div>`);
       }
@@ -4304,7 +4304,7 @@ function renderHome() {
     const insCols = [...insColsP1, ...insColsP3Meta, ...insColsP3Fora];
     if (insCols.length > 0) {
       insightsHtml = `<div style="margin-top:28px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:2px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bd)">INSIGHTS &amp; RANKINGS</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:#ffffff;letter-spacing:2px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bd)">INSIGHTS &amp; RANKINGS</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">${insCols.join('')}</div>
       </div>`;
     }
@@ -4346,18 +4346,18 @@ function renderHome() {
     const click   = s.soon ? '' : `onclick="${s.action};closeSidebarMobile()"`;
     const hover   = s.soon ? '' : `onmouseover="this.style.borderColor='${s.color}';this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,.35)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform='';this.style.boxShadow=''"`;
     return `<div ${click} ${hover} style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${s.soon?'var(--bd)':s.color};border-radius:10px;padding:26px 22px;cursor:${cursor};transition:all .2s;opacity:${opacity};display:flex;flex-direction:column">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px">
-        <div style="width:40px;height:40px;border-radius:10px;background:${s.color}18;border:1px solid ${s.color}33;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <i data-lucide="${s.icon}" style="width:19px;height:19px;stroke:${s.color};stroke-width:1.75"></i>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px">
+        <div style="width:44px;height:44px;border-radius:10px;background:${s.color}18;border:1px solid ${s.color}33;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i data-lucide="${s.icon}" style="width:22px;height:22px;stroke:${s.color};stroke-width:1.75"></i>
         </div>
-        ${s.soon ? `<span style="font-family:'DM Mono',monospace;font-size:9px;padding:3px 9px;border-radius:10px;background:rgba(255,255,255,.05);color:var(--tx3);letter-spacing:1px">EM BREVE</span>` : `<span style="font-family:'DM Mono',monospace;font-size:9px;padding:3px 9px;border-radius:10px;background:${s.color}18;color:${s.color};letter-spacing:1px">ATIVO</span>`}
+        ${s.soon ? `<span style="font-family:'DM Mono',monospace;font-size:10px;padding:3px 10px;border-radius:10px;background:rgba(255,255,255,.05);color:#ffffff;letter-spacing:1px">EM BREVE</span>` : `<span style="font-family:'DM Mono',monospace;font-size:10px;padding:3px 10px;border-radius:10px;background:${s.color}18;color:${s.color};letter-spacing:1px">ATIVO</span>`}
       </div>
-      <div style="margin-bottom:6px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${s.soon?'var(--tx3)':s.color};letter-spacing:1px;line-height:1;margin-bottom:2px">${s.label}</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:600;color:var(--tx);letter-spacing:.5px">${s.title}</div>
+      <div style="margin-bottom:8px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:800;color:${s.soon?'var(--tx3)':s.color};letter-spacing:1px;line-height:1;margin-bottom:4px">${s.label}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:600;color:#ffffff;letter-spacing:.5px">${s.title}</div>
       </div>
-      <div style="font-size:12px;color:var(--tx3);line-height:1.7">${s.desc}</div>
-      ${s.preview || (!s.soon ? `<div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px;font-family:'DM Mono',monospace;font-size:10px;color:${s.color};display:flex;align-items:center;gap:6px">Acessar <span style="font-size:14px">→</span></div>` : '')}
+      <div style="font-size:14px;color:#ffffff;line-height:1.7">${s.desc}</div>
+      ${s.preview || (!s.soon ? `<div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px;font-family:'DM Mono',monospace;font-size:13px;color:${s.color};display:flex;align-items:center;gap:6px">Acessar <span style="font-size:16px">→</span></div>` : '')}
     </div>`;
   }).join('');
 
@@ -4366,7 +4366,7 @@ function renderHome() {
       <div>
         <div class="ph-tag">40º BPM/I — SISTEMA DE GESTÃO</div>
         <div class="ph-title">${saudacao}, <span>${nome || 'Usuário'}</span></div>
-        <div style="font-size:12px;color:var(--tx3);margin-top:4px;text-transform:capitalize">${data} · ${hora}</div>
+        <div style="font-size:14px;color:#ffffff;margin-top:4px;text-transform:capitalize">${data} · ${hora}</div>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
