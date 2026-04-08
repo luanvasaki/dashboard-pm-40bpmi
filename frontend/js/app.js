@@ -5082,8 +5082,8 @@ function renderProdDetail() {
   if (!pdNatFilter) html += cardHtml('pd-cat', 'Detalhamento por Categoria', true);
   if (tipo === 'ocorrencias') {
     html += `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:10px">Natureza × Mês</div>
-      <div id="pd-matriz" style="overflow-x:auto;font-size:12px"></div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:12px">Natureza × Mês</div>
+      <div id="pd-matriz" style="overflow-x:auto;font-size:14px"></div>
     </div>`;
   }
   chartsEl.innerHTML = html;
@@ -5159,15 +5159,15 @@ function renderProdDetail() {
       if (!natList.length || !mesesUsados.length) { matEl.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:8px 0">Sem dados</div>'; }
       else {
         let tbl = `<table style="border-collapse:collapse;width:100%;min-width:400px"><thead><tr>
-          <th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--bd2);font-size:11px;color:var(--tx3)">Natureza</th>`;
-        mesesUsados.forEach(m => tbl += `<th style="padding:5px 8px;border-bottom:1px solid var(--bd2);font-size:11px;color:var(--tx3);text-align:right">${m.slice(0,3)}</th>`);
-        tbl += `<th style="padding:5px 8px;border-bottom:1px solid var(--bd2);font-size:11px;color:var(--tx3);text-align:right">Total</th></tr></thead><tbody>`;
+          <th style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--bd2);font-size:13px;color:var(--tx3)">Natureza</th>`;
+        mesesUsados.forEach(m => tbl += `<th style="padding:8px 12px;border-bottom:1px solid var(--bd2);font-size:13px;color:var(--tx3);text-align:right">${m.slice(0,3)}</th>`);
+        tbl += `<th style="padding:8px 12px;border-bottom:1px solid var(--bd2);font-size:13px;color:var(--tx3);text-align:right">Total</th></tr></thead><tbody>`;
         natList.forEach((nat, i) => {
           const rowTot = mesesUsados.reduce((s,m) => s+(natMes[nat][m]||0), 0);
           tbl += `<tr style="background:${i%2?'':'rgba(255,255,255,.02)'}">
-            <td style="padding:5px 8px;font-size:12px;color:var(--tx)">${nat}</td>`;
-          mesesUsados.forEach(m => { const v = natMes[nat][m]||0; tbl += `<td style="padding:5px 8px;text-align:right;font-size:12px;color:${v>0?'var(--tx)':'var(--tx3)'}">${v>0?v:'—'}</td>`; });
-          tbl += `<td style="padding:5px 8px;text-align:right;font-size:12px;font-weight:700;color:${cor}">${rowTot}</td></tr>`;
+            <td style="padding:8px 12px;font-size:14px;color:var(--tx)">${nat}</td>`;
+          mesesUsados.forEach(m => { const v = natMes[nat][m]||0; tbl += `<td style="padding:8px 12px;text-align:right;font-size:14px;color:${v>0?'var(--tx)':'var(--tx3)'}">${v>0?v:'—'}</td>`; });
+          tbl += `<td style="padding:8px 12px;text-align:right;font-size:14px;font-weight:700;color:${cor}">${rowTot}</td></tr>`;
         });
         tbl += '</tbody></table>';
         matEl.innerHTML = tbl;
