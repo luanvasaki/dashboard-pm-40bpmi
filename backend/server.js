@@ -1060,6 +1060,66 @@ app.post('/api/indicadores-p3', requireAuth, requireRole('admin', 'p3', 'ti'), a
   }
 });
 
+// GET /api/indicadores-p3/calculado — agrega indicadores automáticos dos dados existentes
+app.get('/api/indicadores-p3/calculado', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  const POP_SEADE = 44539225;
+  const r3 = v => Math.round(v * 1000) / 1000;
+  try {
+    const [racRes, presosRes, armasRes, efetivoRes] = await Promise.all([
+      supabase.from(TABLE_NAME).select('Ano,Crime,Avaliado'),
+      supabase.from('prod_pessoas_presas').select('ano,situacao,quantidade'),
+      supabase.from('prod_armas').select('ano,quantidade'),
+      supabase.from('efetivo_pm').select('re', { count: 'exact', head: true })
+    ]);
+    if (racRes.error) throw new Error(racRes.error.message);
+    if (presosRes.error) throw new Error(presosRes.error.message);
+    if (armasRes.error) throw new Error(armasRes.error.message);
+
+    const efetivo = efetivoRes.count || 1;
+    const racData    = racRes.data    || [];
+    const presosData = presosRes.data || [];
+    const armasData  = armasRes.data  || [];
+
+    const anos = [...new Set([
+      ...racData.map(r => r.Ano),
+      ...presosData.map(r => r.ano),
+      ...armasData.map(r => r.ano)
+    ])].filter(Boolean).sort();
+
+    const resultado = anos.map(ano => {
+      const racAno = racData.filter(r => r.Ano === ano);
+      const sumRac = crime => racAno.filter(r => r.Crime === crime).reduce((s, r) => s + (Number(r.Avaliado) || 0), 0);
+
+      const presosAno = presosData.filter(r => r.ano === ano);
+      const sumPresos = (...sits) => presosAno.filter(r => sits.includes(r.situacao)).reduce((s, r) => s + (Number(r.quantidade) || 0), 0);
+
+      const totalArmas  = armasData.filter(r => r.ano === ano).reduce((s, r) => s + (Number(r.quantidade) || 0), 0);
+      const flagrantes  = sumPresos('AUTUADO(A) EM FLAGRANTE');
+      const menores     = sumPresos('MENORES APREENDIDOS');
+      const procurados  = sumPresos('PROCURADA', 'CAPTURADO(A)', 'RECAPTURADO(A)');
+
+      return {
+        ano,
+        homicidio_doloso:  r3((sumRac('Homicídio')           * 100000) / POP_SEADE),
+        latrocinio:        0,
+        roubo_outros:      r3((sumRac('Roubo')               * 100000) / POP_SEADE),
+        roubo_veiculo:     r3((sumRac('Roubo de Veículos')   * 100000) / POP_SEADE),
+        furto_veiculo:     r3((sumRac('Furto de Veículos')   * 100000) / POP_SEADE),
+        armas_apreendidas: r3(totalArmas / efetivo),
+        flagrantes_pm:     r3(flagrantes / efetivo),
+        pessoas_presas:    r3(flagrantes / efetivo),
+        menores_presos:    r3(menores    / efetivo),
+        procurados:        r3(procurados / efetivo),
+      };
+    });
+
+    res.json(resultado);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/indicadores-p3/desbloquear — libera edição por 24h (somente p3/ti/admin)
 app.post('/api/indicadores-p3/desbloquear', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });

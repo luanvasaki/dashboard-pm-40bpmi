@@ -465,7 +465,43 @@ let charts   = {};
 // Indicadores de Qualidade P3
 let iqData = [];
 let iqCharts = [];
+let iqCalculadoData = [];
 const IQ_PRAZO_DIA = 10;
+
+// Dados históricos anuais 2021-2024
+const IQ_HISTORICO_ANOS = [2021, 2022, 2023, 2024];
+const IQ_HISTORICO = {
+  homicidio_doloso:       { 2021: 8.64,  2022: 0.074, 2023: 0.054, 2024: 0.049 },
+  latrocinio:             { 2021: 0,     2022: 0,     2023: 0,     2024: 0     },
+  roubo_outros:           { 2021: 0.842, 2022: 0.844, 2023: 0.743, 2024: 0.629 },
+  roubo_veiculo:          { 2021: 0.31,  2022: 0.283, 2023: 0.314, 2024: 0.225 },
+  furto_veiculo:          { 2021: 0.706, 2022: 0.707, 2023: 0.77,  2024: 0.754 },
+  armas_apreendidas:      { 2021: 0.44,  2022: 0.23,  2023: 0.36,  2024: 0.36  },
+  flagrantes_pm:          { 2021: 1.86,  2022: 1.75,  2023: 2.23,  2024: 2.46  },
+  pessoas_presas:         { 2021: 2.09,  2022: 1.94,  2023: 2.42,  2024: 3.99  },
+  menores_presos:         { 2021: 0.09,  2022: 0.06,  2023: 0.07,  2024: 0.14  },
+  procurados:             { 2021: 1.36,  2022: 1.31,  2023: 1.85,  2024: 1.96  },
+  disque_denuncia:        { 2021: 1.94,  2022: 1.59,  2023: 2.56,  2024: 3.69  },
+  tempo_resposta_urgente: { 2021: 0.65,  2022: 0.72,  2023: 0.63,  2024: 1.66  },
+  cursos_concluidos:      { 2021: 34.52, 2022: 15.36, 2023: 18.87, 2024: 24.35 },
+};
+
+// Indicadores automáticos (calculados do banco ou histórico fixo)
+const IQ_AUTO_CAMPOS = [
+  { key: 'homicidio_doloso',       label: 'Homicídio Doloso',        unit: '/100mil hab.', cor: '#c84b4b', melhor: 'menor', auto: true  },
+  { key: 'latrocinio',             label: 'Latrocínio',              unit: '/100mil hab.', cor: '#e06060', melhor: 'menor', auto: true  },
+  { key: 'roubo_outros',           label: 'Roubo Outros',            unit: '/100mil hab.', cor: '#e08a5a', melhor: 'menor', auto: true  },
+  { key: 'roubo_veiculo',          label: 'Roubo de Veículos',       unit: '/100mil hab.', cor: '#e0c05a', melhor: 'menor', auto: true  },
+  { key: 'furto_veiculo',          label: 'Furto de Veículos',       unit: '/100mil hab.', cor: '#9de05a', melhor: 'menor', auto: true  },
+  { key: 'armas_apreendidas',      label: 'Armas Apreendidas / PM',  unit: '',             cor: '#5a9de0', melhor: 'maior', auto: true  },
+  { key: 'flagrantes_pm',          label: 'Flagrantes / PM',         unit: '',             cor: '#5ae09a', melhor: 'maior', auto: true  },
+  { key: 'pessoas_presas',         label: 'Pessoas Presas / PM',     unit: '',             cor: '#4bc8a0', melhor: 'maior', auto: true  },
+  { key: 'menores_presos',         label: 'Menores Presos / PM',     unit: '',             cor: '#c84b9e', melhor: 'maior', auto: true  },
+  { key: 'procurados',             label: 'Procurados / PM',         unit: '',             cor: '#9b6de0', melhor: 'maior', auto: true  },
+  { key: 'disque_denuncia',        label: 'Disque Denúncia',         unit: '%',            cor: '#5a9de0', melhor: 'maior', auto: false },
+  { key: 'tempo_resposta_urgente', label: 'Tempo Resposta (≤20min)', unit: '',             cor: '#e08a5a', melhor: 'maior', auto: false },
+  { key: 'cursos_concluidos',      label: 'Cursos Concluídos',       unit: '%',            cor: '#c8a84b', melhor: 'maior', auto: false },
+];
 const IQ_CAMPOS = [
   { key: 'disque_denuncia',    label: 'Disque-Denúncia',              unit: '',    cor: '#5a9de0' },
   { key: 'tempo_resposta',     label: 'Tempo Resposta Urgente',       unit: 'min', cor: '#e08a5a' },
@@ -5226,6 +5262,85 @@ async function loadIndicadoresP3() {
     iqData = await res.json();
     renderIndicadoresP3();
   } catch(e) { /* silencia — tabela pode não existir ainda */ }
+  loadIqCalculado();
+}
+
+async function loadIqCalculado() {
+  try {
+    const res = await authFetch(`${API}/indicadores-p3/calculado`);
+    if (!res.ok) return;
+    iqCalculadoData = await res.json();
+    renderIqHistorico();
+  } catch(e) {}
+}
+
+function renderIqHistorico() {
+  const el = document.getElementById('iq-historico-section');
+  if (!el) return;
+
+  // Monta lista de anos: histórico + calculados
+  const anosCalc = iqCalculadoData.map(r => r.ano).filter(a => !IQ_HISTORICO_ANOS.includes(a));
+  const anos = [...IQ_HISTORICO_ANOS, ...anosCalc].sort();
+
+  const getVal = (key, ano) => {
+    if (IQ_HISTORICO_ANOS.includes(ano)) return IQ_HISTORICO[key]?.[ano] ?? null;
+    const calc = iqCalculadoData.find(r => r.ano === ano);
+    return calc ? (calc[key] ?? null) : null;
+  };
+
+  const fmtVal = (v, unit) => {
+    if (v === null) return '—';
+    return v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 3 }) + (unit ? ' ' + unit : '');
+  };
+
+  const headerCells = anos.map(a => {
+    const isCalc = !IQ_HISTORICO_ANOS.includes(a);
+    return `<th style="padding:8px 14px;border-bottom:1px solid var(--bd);text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:${isCalc ? '#5a9de0' : 'var(--tx3)'};${isCalc ? 'background:rgba(90,157,224,.06)' : ''}">${a}${isCalc ? ' ●' : ''}</th>`;
+  }).join('');
+
+  const tableRows = IQ_AUTO_CAMPOS.map(c => {
+    const vals = anos.map(a => getVal(c.key, a));
+    const cells = vals.map((v, i) => {
+      const isCalc = !IQ_HISTORICO_ANOS.includes(anos[i]);
+      const bg = isCalc ? 'background:rgba(90,157,224,.04)' : '';
+      if (v === null) return `<td style="padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.03);text-align:right;color:var(--tx3);${bg}">—</td>`;
+      const prev = vals.slice(0, i).reverse().find(x => x !== null) ?? null;
+      let trend = '';
+      if (prev !== null && v !== prev) {
+        const melhorou = c.melhor === 'maior' ? v > prev : v < prev;
+        trend = melhorou
+          ? ' <span style="color:#5ae09a;font-size:10px">▲</span>'
+          : ' <span style="color:#e06060;font-size:10px">▼</span>';
+      }
+      return `<td style="padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.03);text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--tx);${bg}">${fmtVal(v, c.unit)}${trend}</td>`;
+    }).join('');
+
+    const autoBadge = c.auto
+      ? `<span style="font-size:10px;background:rgba(90,157,224,.15);color:#5a9de0;border-radius:3px;padding:1px 5px;margin-left:6px;font-family:'DM Mono',monospace">AUTO</span>`
+      : '';
+
+    return `<tr>
+      <td style="padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.03);color:${c.cor};font-size:13px;white-space:nowrap">${c.label}${autoBadge}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="card" style="margin-top:16px">
+      <div class="card-head" style="flex-wrap:wrap;gap:8px">
+        <div class="card-title">Indicadores Históricos</div>
+        <span style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace">● anos em azul = calculados automaticamente do banco &nbsp;|&nbsp; AUTO = calculado via fórmula</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            <th style="text-align:left;padding:8px 14px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);white-space:nowrap">Indicador</th>
+            ${headerCells}
+          </tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 function iqDestroyCharts() {
