@@ -272,7 +272,7 @@ function buildUserTable(users, me) {
       <td style="padding:4px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
         ${canEditPosto
           ? `<select onchange="admChangePosto('${u.id}',this.value)" style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer">
-              ${ ['Sd PM','Cb PM','3º Sgt PM','2º Sgt PM','1º Sgt PM','Sub Ten PM','Asp Of PM','2º Ten PM','1º Ten PM','Cap PM','Maj PM','Ten Cel PM','Cel PM']
+              ${ ['Sd PM','Cb PM','3º Sgt PM','2º Sgt PM','1º Sgt PM','Subten PM','Asp Of PM','2º Ten PM','1º Ten PM','Cap PM','Maj PM','Ten Cel PM','Cel PM']
                 .map(p => `<option value="${p}" ${(u.posto||'')=== p?'selected':''}>${p}</option>`).join('') }
             </select>`
           : `<span style="color:var(--tx3)">${u.posto||'—'}</span>`}
