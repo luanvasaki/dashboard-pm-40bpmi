@@ -471,7 +471,7 @@ const IQ_PRAZO_DIA = 10;
 // Dados históricos anuais 2021-2024
 const IQ_HISTORICO_ANOS = [2021, 2022, 2023, 2024];
 const IQ_HISTORICO = {
-  homicidio_doloso:       { 2021: 8.64,  2022: 0.074, 2023: 0.054, 2024: 0.049 },
+  homicidio_doloso:       { 2021: 0.0864, 2022: 0.074, 2023: 0.054, 2024: 0.049 },
   latrocinio:             { 2021: 0,     2022: 0,     2023: 0,     2024: 0     },
   roubo_outros:           { 2021: 0.842, 2022: 0.844, 2023: 0.743, 2024: 0.629 },
   roubo_veiculo:          { 2021: 0.31,  2022: 0.283, 2023: 0.314, 2024: 0.225 },
