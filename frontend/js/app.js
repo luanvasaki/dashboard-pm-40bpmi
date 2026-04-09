@@ -470,7 +470,6 @@ const IQ_CAMPOS = [
   { key: 'disque_denuncia',    label: 'Disque-Denúncia',              unit: '',    cor: '#5a9de0' },
   { key: 'tempo_resposta',     label: 'Tempo Resposta Urgente',       unit: 'min', cor: '#e08a5a' },
   { key: 'cursos_pm',          label: 'PMs em Cursos Institucionais', unit: '',    cor: '#9de05a' },
-  { key: 'alunos_proerd',      label: 'Alunos PROERD',                unit: '',    cor: '#c84b9e' },
   { key: 'atendimento_vitima', label: 'Atend. Vítimas de Roubo',      unit: '',    cor: '#c84b4b' },
   { key: 'conseg_ativo',       label: 'CONSEGs Ativos',               unit: '',    cor: '#e0c05a' },
   { key: 'bairros_pvs',        label: 'Bairros PVS',                  unit: '',    cor: '#5ae09a' },
@@ -5427,7 +5426,7 @@ function renderIqLinha(dados) {
 function renderIqBarra(dados) {
   const el = document.getElementById('iq-c-barra');
   if (!el) return;
-  const campoCont = IQ_CAMPOS.filter(c => ['alunos_proerd','atendimento_vitima','conseg_ativo','bairros_pvs'].includes(c.key));
+  const campoCont = IQ_CAMPOS.filter(c => ['atendimento_vitima','conseg_ativo','bairros_pvs'].includes(c.key));
   const mesesOrdenados = MESES.filter(m => dados.find(r => r.mes === m));
   const datasets = campoCont.map(c => ({
     label: c.label,
