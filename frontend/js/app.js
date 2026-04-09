@@ -5341,19 +5341,33 @@ function renderIndicadoresP3() {
             ${IQ_CAMPOS.map(c => `<th style="text-align:right;padding:8px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);text-transform:uppercase;white-space:nowrap">${c.label}</th>`).join('')}
             <th style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);text-transform:uppercase">Preenchido por</th>
             <th style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);text-transform:uppercase">Data/Hora</th>
-            ${canEdit ? `<th style="padding:8px 12px;border-bottom:1px solid var(--bd)"></th>` : ''}
+            <th style="padding:8px 12px;border-bottom:1px solid var(--bd)"></th>
           </tr></thead>
           <tbody>
             ${todosDados.map((r, i) => {
               const dt  = r.preenchido_em ? new Date(r.preenchido_em) : null;
               const dtStr = dt ? `${dt.getDate().toString().padStart(2,'0')}/${(dt.getMonth()+1).toString().padStart(2,'0')}/${dt.getFullYear()} ${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}` : '—';
               const bg  = i % 2 ? '' : 'background:rgba(255,255,255,.02)';
+              const passado = iqIsMesPassado(r.mes, r.ano);
+              const desbloq = iqIsDesbloqueado(r);
+              let acaoHtml = '';
+              if (!passado) {
+                if (canEdit) acaoHtml = `<button onclick="openIqMo('${r.mes}',${r.ano})" style="padding:3px 10px;background:rgba(90,157,224,.1);border:1px solid rgba(90,157,224,.25);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:11px">Editar</button>`;
+              } else if (desbloq) {
+                const ate = new Date(r.desbloqueado_ate);
+                const ateStr = `${ate.getDate().toString().padStart(2,'0')}/${(ate.getMonth()+1).toString().padStart(2,'0')} ${ate.getHours().toString().padStart(2,'0')}:${ate.getMinutes().toString().padStart(2,'0')}`;
+                acaoHtml = `<span style="font-size:11px;color:#5ae09a;white-space:nowrap;display:block;margin-bottom:4px">🔓 até ${ateStr}</span>`;
+                if (canEdit) acaoHtml += `<button onclick="openIqMo('${r.mes}',${r.ano})" style="padding:3px 10px;background:rgba(90,157,224,.1);border:1px solid rgba(90,157,224,.25);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:11px">Editar</button>`;
+              } else {
+                if (canEdit) acaoHtml = `<button onclick="iqDesbloquear('${r.mes}',${r.ano})" style="padding:3px 10px;background:rgba(200,75,75,.1);border:1px solid rgba(200,75,75,.25);color:#e06060;border-radius:4px;cursor:pointer;font-size:11px;white-space:nowrap">🔒 Desbloquear 24h</button>`;
+                else acaoHtml = `<span style="font-size:13px;color:var(--tx3)">🔒</span>`;
+              }
               return `<tr style="${bg}">
                 <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-weight:700;color:var(--tx);white-space:nowrap">${r.mes} ${r.ano}</td>
                 ${IQ_CAMPOS.map(c => `<td style="padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.03);text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:${r[c.key] != null ? 'var(--tx)' : 'var(--tx3)'}">${r[c.key] != null ? Number(r[c.key]).toLocaleString('pt-BR') : '—'}</td>`).join('')}
                 <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;color:var(--tx2)">${r.preenchido_por || '—'}</td>
                 <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap">${dtStr}</td>
-                ${canEdit ? `<td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03)"><button onclick="openIqMo('${r.mes}',${r.ano})" style="padding:3px 10px;background:rgba(90,157,224,.1);border:1px solid rgba(90,157,224,.25);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:11px">Editar</button></td>` : ''}
+                <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03)">${acaoHtml}</td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -5473,6 +5487,30 @@ function renderIqRadar(dados, mesAtual) {
       }
     }
   }));
+}
+
+// Helpers de bloqueio
+function iqIsMesPassado(mes, ano) {
+  const hoje = new Date();
+  const anoAtual = hoje.getFullYear();
+  const mesAtual = MESES[hoje.getMonth()];
+  if (Number(ano) < anoAtual) return true;
+  if (Number(ano) > anoAtual) return false;
+  return MESES.indexOf(mes) < MESES.indexOf(mesAtual);
+}
+function iqIsDesbloqueado(r) {
+  return r.desbloqueado_ate && new Date(r.desbloqueado_ate) > new Date();
+}
+async function iqDesbloquear(mes, ano) {
+  if (!confirm(`Desbloquear ${mes} ${ano} para edição por 24 horas?`)) return;
+  const res = await authFetch(`${API}/indicadores-p3/desbloquear`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mes, ano })
+  });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error); return; }
+  await loadIndicadoresP3();
 }
 
 // Modal

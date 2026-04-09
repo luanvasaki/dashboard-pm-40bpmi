@@ -1029,6 +1029,18 @@ app.post('/api/indicadores-p3', requireAuth, requireRole('admin', 'p3', 'ti'), a
   const { mes, ano, disque_denuncia, tempo_resposta, cursos_pm, alunos_proerd, atendimento_vitima, conseg_ativo, bairros_pvs } = req.body;
   if (!mes || !ano) return res.status(400).json({ error: 'Mês e ano são obrigatórios' });
   try {
+    // Verifica se é mês passado com registro existente → precisa estar desbloqueado
+    const MESES_NOMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const hoje = new Date();
+    const mesAtualStr = MESES_NOMES[hoje.getMonth()];
+    const anoAtual = hoje.getFullYear();
+    const isCurrentMonth = mes === mesAtualStr && Number(ano) === anoAtual;
+    if (!isCurrentMonth) {
+      const { data: existing } = await supabase.from('indicadores_qualidade_p3').select('desbloqueado_ate').eq('mes', mes).eq('ano', Number(ano)).maybeSingle();
+      if (existing && (!existing.desbloqueado_ate || new Date(existing.desbloqueado_ate) <= new Date())) {
+        return res.status(403).json({ error: 'Registro bloqueado. Solicite ao P3 para desbloquear por 24h.' });
+      }
+    }
     const { error } = await supabase.from('indicadores_qualidade_p3').upsert({
       mes, ano,
       disque_denuncia:    disque_denuncia    != null ? Number(disque_denuncia)    : null,
@@ -1043,6 +1055,23 @@ app.post('/api/indicadores-p3', requireAuth, requireRole('admin', 'p3', 'ti'), a
     }, { onConflict: 'mes,ano' });
     if (error) throw new Error(error.message);
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/indicadores-p3/desbloquear — libera edição por 24h (somente p3/ti/admin)
+app.post('/api/indicadores-p3/desbloquear', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  const { mes, ano } = req.body;
+  if (!mes || !ano) return res.status(400).json({ error: 'Mês e ano obrigatórios' });
+  try {
+    const desbloqueado_ate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const { error } = await supabase.from('indicadores_qualidade_p3')
+      .update({ desbloqueado_ate })
+      .eq('mes', mes).eq('ano', Number(ano));
+    if (error) throw new Error(error.message);
+    res.json({ ok: true, desbloqueado_ate });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
