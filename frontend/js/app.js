@@ -5279,7 +5279,7 @@ function renderIqHistorico() {
   if (!el) return;
 
   // Monta lista de anos: histórico + calculados
-  const anosCalc = iqCalculadoData.map(r => r.ano).filter(a => !IQ_HISTORICO_ANOS.includes(a));
+  const anosCalc = iqCalculadoData.map(r => r.ano).filter(a => !IQ_HISTORICO_ANOS.includes(a) && a !== 2025);
   const anos = [...IQ_HISTORICO_ANOS, ...anosCalc].sort();
 
   const getVal = (key, ano) => {
