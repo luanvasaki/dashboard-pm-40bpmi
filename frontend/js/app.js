@@ -5241,7 +5241,7 @@ function renderIndicadoresP3() {
   const canEdit = ['admin','p3','ti'].includes(user.role);
   const hoje    = new Date();
   const anoAtual  = hoje.getFullYear();
-  const mesAtual  = MESES[hoje.getMonth()]; // usa o array MESES já existente no app
+  const mesAtual  = MES_ORD[hoje.getMonth()];
   const diaAtual  = hoje.getDate();
 
   const dadosAno         = iqData.filter(r => r.ano === anoAtual);
@@ -5492,7 +5492,7 @@ function renderIqRadar(dados, mesAtual) {
 function iqIsMesPassado(mes, ano) {
   const hoje = new Date();
   const anoAtual = hoje.getFullYear();
-  const mesAtual = MESES[hoje.getMonth()];
+  const mesAtual = MES_ORD[hoje.getMonth()];
   if (Number(ano) < anoAtual) return true;
   if (Number(ano) > anoAtual) return false;
   return MESES.indexOf(mes) < MESES.indexOf(mesAtual);
