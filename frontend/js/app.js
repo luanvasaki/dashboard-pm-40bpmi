@@ -4458,6 +4458,7 @@ function goSection(id, btn) {
     document.getElementById('page-p3prod').classList.add('on');
     updateSidebarImports('p3prod');
     loadProdData();
+    loadIndicadoresP3();
     return;
   }
 
@@ -4505,7 +4506,7 @@ function goPage(id, btn) {
   document.getElementById('page-' + id).classList.add('on');
   btn.classList.add('on');
   updateSidebarImports('p3');
-  if (id === 'visao') loadIndicadoresP3();
+  if (id === 'p3prod') loadIndicadoresP3();
   setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
 }
 
