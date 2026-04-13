@@ -5787,13 +5787,12 @@ async function loadDDData() {
 }
 
 function renderDDKpi() {
-  // filtra pelos mesmos filtros da grade de produtividade (mês + CIA)
+  // filtra apenas por mês (CIA do prod não corresponde às CIAs do DD)
   const filtrado = ddData.filter(r => {
-    const d = new Date(r.data + 'T00:00:00');
     if (prodSelMeses && prodSelMeses.length) {
+      const d = new Date(r.data + 'T00:00:00');
       if (!prodSelMeses.includes(MES_ORD[d.getMonth()])) return false;
     }
-    if (prodSelCia && r.cia && r.cia.trim().toLowerCase() !== prodSelCia.trim().toLowerCase()) return false;
     return true;
   });
   const mesesDisp = prodGetMesesDisp ? prodGetMesesDisp(prodSelAno) : [];
