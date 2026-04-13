@@ -505,8 +505,6 @@ const IQ_AUTO_CAMPOS = [
   { key: 'pessoas_presas',         label: 'Pessoas Presas',          unit: 'pess.',  cor: '#e08a5a', melhor: 'maior', auto: true,  fatorInv: IQ_EFETIVO_HIST },
   { key: 'menores_presos',         label: 'Menores Presos',          unit: 'pess.',  cor: '#c84b9e', melhor: 'maior', auto: true,  fatorInv: IQ_EFETIVO_HIST },
   { key: 'procurados',             label: 'Procurados',              unit: 'pess.',  cor: '#f7d060', melhor: 'maior', auto: true,  fatorInv: IQ_EFETIVO_HIST },
-  { key: 'disque_denuncia',        label: 'Disque Denúncia',         unit: '%',      cor: '#5a9de0', melhor: 'maior', auto: false, fatorInv: null },
-  { key: 'tempo_resposta_urgente', label: 'Tempo Resposta (≤20min)', unit: '',       cor: '#e08a5a', melhor: 'maior', auto: false, fatorInv: null },
   { key: 'cursos_concluidos',      label: 'Cursos Concluídos',       unit: 'PMs',   cor: '#c8a84b', melhor: 'maior', auto: false, fatorInv: IQ_EFETIVO_HIST / 100 },
 ];
 const IQ_CAMPOS = [
