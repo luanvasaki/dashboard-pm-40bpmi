@@ -5754,11 +5754,17 @@ const DD_STATUS_COR = {
   'Sem Averiguação':        '#e06060',
 };
 const ddNorm = s => (s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-const ddStatusMatch = (stored, expected) => ddNorm(stored) === ddNorm(expected);
-const ddStatusCor = s => {
-  const key = DD_STATUS.find(k => ddStatusMatch(s, k));
-  return key ? DD_STATUS_COR[key] : '#aaa';
+// classifica o status pelo conteúdo, independente de acento, case ou prefixo
+const ddClassStatus = s => {
+  const n = ddNorm(s);
+  if (n.includes('exito') && (n.includes(' com') || n.startsWith('com'))) return 'Averiguada com Êxito';
+  if (n.includes('exito') && (n.includes(' sem') || n.startsWith('sem'))) return 'Averiguada sem Êxito';
+  if (n.includes('andamento')) return 'Andamento';
+  if (n.includes('sem') && n.includes('aver')) return 'Sem Averiguação';
+  return s; // mantém original se não reconhecer
 };
+const ddStatusMatch = (stored, expected) => ddClassStatus(stored) === expected;
+const ddStatusCor = s => DD_STATUS_COR[ddClassStatus(s)] || '#aaa';
 
 let ddData        = [];
 let ddAnoFiltro   = new Date().getFullYear();

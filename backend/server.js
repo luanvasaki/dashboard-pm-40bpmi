@@ -1227,7 +1227,13 @@ app.post('/api/disque-denuncia/upload', requireAuth, requireRole('admin', 'p3', 
       if (!dataBase) return null;
       const cia = col('cia');
       const numero_dd = col('disque') || col('nº') || col('numero');
-      const status = col('status');
+      const rawStatus = col('status');
+      const normS = (rawStatus||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      let status = rawStatus;
+      if (normS.includes('exito') && (normS.includes(' com') || normS.startsWith('com'))) status = 'Averiguada com Êxito';
+      else if (normS.includes('exito') && (normS.includes(' sem') || normS.startsWith('sem'))) status = 'Averiguada sem Êxito';
+      else if (normS.includes('andamento')) status = 'Andamento';
+      else if (normS.includes('sem') && normS.includes('aver')) status = 'Sem Averiguação';
       const flagranteRaw = col('flagrante').toLowerCase();
       const flagrante = flagranteRaw === 'sim' || flagranteRaw === 'true' || flagranteRaw === '1';
       const quant_presos = parseInt(col('presos') || col('quant')) || 0;
