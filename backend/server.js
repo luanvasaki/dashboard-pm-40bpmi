@@ -1237,6 +1237,14 @@ app.post('/api/disque-denuncia/upload', requireAuth, requireRole('admin', 'p3', 
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique as colunas do CSV.' });
 
+    // Apaga registros dos anos presentes no CSV antes de inserir
+    const anos = [...new Set(rows.map(r => r.data.slice(0, 4)))];
+    for (const ano of anos) {
+      const { error: delErr } = await supabase.from('disque_denuncia_registros')
+        .delete().gte('data', `${ano}-01-01`).lte('data', `${ano}-12-31`);
+      if (delErr) throw new Error(delErr.message);
+    }
+
     const BATCH = 500;
     let total = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
