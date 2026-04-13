@@ -468,6 +468,7 @@ let iqCharts = [];
 let iqCalculadoData = [];
 let iqHistCharts = [];
 let iqProdFiltro = ''; // '' = todas; key = apenas essa
+let iqCrimeFiltro = ''; // '' = todas; key = apenas essa
 const IQ_PRAZO_DIA = 10;
 
 // Dados históricos anuais 2021-2024
@@ -5286,6 +5287,11 @@ function toggleIqProdFiltro(key) {
   renderIqHistorico();
 }
 
+function toggleIqCrimeFiltro(key) {
+  iqCrimeFiltro = key;
+  renderIqHistorico();
+}
+
 function renderIqHistorico() {
   iqHistCharts.forEach(c => { try { c.destroy(); } catch(e){} });
   iqHistCharts = [];
@@ -5338,7 +5344,14 @@ function renderIqHistorico() {
   // ── Grupos para gráficos ───────────────────────────────────────────────
   const CRIMES_CAMPOS  = IQ_AUTO_CAMPOS.filter(c => ['homicidio_doloso','latrocinio','roubo_outros','roubo_veiculo','furto_veiculo'].includes(c.key));
   const PROD_CAMPOS    = IQ_AUTO_CAMPOS.filter(c => ['armas_apreendidas','flagrantes_pm','pessoas_presas','menores_presos','procurados'].includes(c.key));
+  const CRIMES_ATIVOS = iqCrimeFiltro ? CRIMES_CAMPOS.filter(c => c.key === iqCrimeFiltro) : CRIMES_CAMPOS;
   const PROD_ATIVOS = iqProdFiltro ? PROD_CAMPOS.filter(c => c.key === iqProdFiltro) : PROD_CAMPOS;
+
+  const crimeFiltroHtml = `<select onchange="toggleIqCrimeFiltro(this.value)"
+    style="background:var(--bg2);color:var(--tx1);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer">
+    <option value="" style="background:#111;color:#fff">Todas as ocorrências</option>
+    ${CRIMES_CAMPOS.map(c => `<option value="${c.key}"${iqCrimeFiltro === c.key ? ' selected' : ''} style="background:#111;color:#fff">${c.label}</option>`).join('')}
+  </select>`;
 
   const prodFiltroHtml = `<select onchange="toggleIqProdFiltro(this.value)"
     style="background:var(--bg2);color:var(--tx1);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer">
@@ -5369,6 +5382,7 @@ function renderIqHistorico() {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
       <div class="card">
         <div class="card-head"><div class="card-title">Tendência — Criminalidade</div></div>
+        <div style="margin-bottom:12px">${crimeFiltroHtml}</div>
         <canvas id="iq-h-crimes" style="height:260px;max-height:260px"></canvas>
       </div>
       <div class="card">
@@ -5384,7 +5398,7 @@ function renderIqHistorico() {
   const crimeEl = document.getElementById('iq-h-crimes');
   if (crimeEl) iqHistCharts.push(new Chart(crimeEl.getContext('2d'), {
     type: 'line',
-    data: { labels: anos, datasets: CRIMES_CAMPOS.map(c => ({
+    data: { labels: anos, datasets: CRIMES_ATIVOS.map(c => ({
       label: c.label, data: anos.map(a => getVal(c, a)),
       borderColor: c.cor, backgroundColor: 'transparent', tension: 0.3, pointRadius: 5, borderWidth: 2
     }))},
