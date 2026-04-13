@@ -467,6 +467,7 @@ let iqData = [];
 let iqCharts = [];
 let iqCalculadoData = [];
 let iqHistCharts = [];
+let iqProdFiltro = null; // null = todos ativos
 const IQ_PRAZO_DIA = 10;
 
 // Dados históricos anuais 2021-2024
@@ -5280,6 +5281,12 @@ async function loadIqCalculado() {
   } catch(e) {}
 }
 
+function toggleIqProdFiltro(key) {
+  if (iqProdFiltro && iqProdFiltro.has(key)) iqProdFiltro.delete(key);
+  else if (iqProdFiltro) iqProdFiltro.add(key);
+  renderIqHistorico();
+}
+
 function renderIqHistorico() {
   iqHistCharts.forEach(c => { try { c.destroy(); } catch(e){} });
   iqHistCharts = [];
@@ -5330,8 +5337,18 @@ function renderIqHistorico() {
   }).join('');
 
   // ── Grupos para gráficos ───────────────────────────────────────────────
-  const CRIMES_CAMPOS = IQ_AUTO_CAMPOS.filter(c => ['homicidio_doloso','latrocinio','roubo_outros','roubo_veiculo','furto_veiculo'].includes(c.key));
-  const PROD_CAMPOS   = IQ_AUTO_CAMPOS.filter(c => ['armas_apreendidas','flagrantes_pm','pessoas_presas','menores_presos','procurados'].includes(c.key));
+  const CRIMES_CAMPOS  = IQ_AUTO_CAMPOS.filter(c => ['homicidio_doloso','latrocinio','roubo_outros','roubo_veiculo','furto_veiculo'].includes(c.key));
+  const PROD_CAMPOS    = IQ_AUTO_CAMPOS.filter(c => ['armas_apreendidas','flagrantes_pm','pessoas_presas','menores_presos','procurados'].includes(c.key));
+  if (!iqProdFiltro) iqProdFiltro = new Set(PROD_CAMPOS.map(c => c.key));
+  const PROD_ATIVOS    = PROD_CAMPOS.filter(c => iqProdFiltro.has(c.key));
+
+  const prodFiltroHtml = PROD_CAMPOS.map(c => {
+    const ativo = iqProdFiltro.has(c.key);
+    return `<button onclick="toggleIqProdFiltro('${c.key}')"
+      style="padding:4px 12px;border-radius:20px;border:1px solid ${c.cor};background:${ativo ? c.cor + '44' : 'transparent'};color:${ativo ? c.cor : 'var(--tx3)'};font-size:12px;cursor:pointer;font-family:'DM Mono',monospace;white-space:nowrap;transition:all .2s">
+      ${c.label}
+    </button>`;
+  }).join('');
 
   // ── Insights automáticos ───────────────────────────────────────────────
   const insights = [];
@@ -5396,6 +5413,7 @@ function renderIqHistorico() {
       </div>
       <div class="card">
         <div class="card-head"><div class="card-title">Tendência — Produtividade</div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">${prodFiltroHtml}</div>
         <canvas id="iq-h-prod" style="height:260px;max-height:260px"></canvas>
       </div>
     </div>
@@ -5425,7 +5443,7 @@ function renderIqHistorico() {
   const prodEl = document.getElementById('iq-h-prod');
   if (prodEl) iqHistCharts.push(new Chart(prodEl.getContext('2d'), {
     type: 'bar',
-    data: { labels: anos, datasets: PROD_CAMPOS.map(c => ({
+    data: { labels: anos, datasets: PROD_ATIVOS.map(c => ({
       label: c.label, data: anos.map(a => getVal(c, a)),
       backgroundColor: c.cor + 'aa', borderColor: c.cor, borderWidth: 1, borderRadius: 3
     }))},
