@@ -5781,8 +5781,9 @@ function renderDDSection() {
 
   const el = document.getElementById('dd-section');
   if (!el) return;
-  const canEdit = userRole && ['admin','p3','ti'].includes(userRole);
-  const canDel  = userRole && ['admin','p3'].includes(userRole);
+  const _role   = JSON.parse(localStorage.getItem('auth_user') || '{}').role || '';
+  const canEdit = ['admin','p3','ti'].includes(_role);
+  const canDel  = ['admin','p3'].includes(_role);
 
   // dados filtrados (tabela) vs todos do ano (gráficos)
   const registros = ddFiltrados();
