@@ -5756,12 +5756,13 @@ let ddEditId      = null;
 let ddChart       = null;
 
 async function loadDDData() {
+  renderDDSection(); // mostra o card imediatamente (mesmo vazio)
   try {
     const res = await authFetch(`${API}/disque-denuncia?ano=${ddAnoFiltro}`);
     if (!res.ok) return;
     ddData = await res.json();
     renderDDSection();
-  } catch(e) {}
+  } catch(e) { console.error('loadDDData:', e); }
 }
 
 function ddFiltrados() {
