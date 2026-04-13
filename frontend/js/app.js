@@ -5998,22 +5998,6 @@ function renderDDSection() {
         </div>
       </div>
 
-      <div style="overflow-x:auto">
-        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Registros</div>
-        <table style="width:100%;border-collapse:collapse">
-          <thead><tr>
-            <th style="${thStyle}">Data</th>
-            <th style="${thStyle}">Cia</th>
-            <th style="${thStyle}">Nº DD</th>
-            <th style="${thStyle}">Dt. Atendimento</th>
-            <th style="${thStyle}">Status</th>
-            <th style="${thStyle};text-align:center">Flagrante</th>
-            <th style="${thStyle};text-align:center">Presos</th>
-            <th style="${thStyle}"></th>
-          </tr></thead>
-          <tbody>${linhas || `<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--tx3);font-size:13px">Nenhum registro encontrado.</td></tr>`}</tbody>
-        </table>
-      </div>
     </div>`;
 
   // Renderiza gráfico após innerHTML
