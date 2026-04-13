@@ -4442,7 +4442,7 @@ function updateSidebarImports(section) {
     ];
     el.innerHTML = itens.map(([t, l, c]) =>
       `<button onclick="openProdUpl('${t}')" style="width:100%;padding:6px;margin-top:4px;background:rgba(0,0,0,.15);border:1px solid ${c}55;color:${c};border-radius:4px;cursor:pointer;font-size:10px;font-weight:600">↑ ${l}</button>`
-    ).join('');
+    ).join('') + `<button onclick="openDDUpl()" style="width:100%;padding:6px;margin-top:4px;background:rgba(0,0,0,.15);border:1px solid #5a9de055;color:#5a9de0;border-radius:4px;cursor:pointer;font-size:10px;font-weight:600">↑ Disque Denúncia</button>`;
   } else {
     el.innerHTML = '';
   }
