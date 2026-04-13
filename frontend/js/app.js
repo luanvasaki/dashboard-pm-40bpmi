@@ -5753,6 +5753,7 @@ let ddAnoFiltro   = new Date().getFullYear();
 let ddMesFiltro   = '';
 let ddCiaFiltro   = '';
 let ddEditId      = null;
+let ddChart       = null;
 
 async function loadDDData() {
   try {
@@ -5775,12 +5776,17 @@ function ddFiltrados() {
 }
 
 function renderDDSection() {
+  if (ddChart) { try { ddChart.destroy(); } catch(e){} ddChart = null; }
+
   const el = document.getElementById('dd-section');
   if (!el) return;
   const canEdit = userRole && ['admin','p3','ti'].includes(userRole);
   const canDel  = userRole && ['admin','p3'].includes(userRole);
 
+  // dados filtrados (tabela) vs todos do ano (gráficos)
   const registros = ddFiltrados();
+  const todos     = ddData; // todos do ano para gráficos
+
   const total       = registros.length;
   const exito       = registros.filter(r => r.status === 'Averiguada com Êxito').length;
   const semExito    = registros.filter(r => r.status === 'Averiguada sem Êxito').length;
@@ -5790,6 +5796,8 @@ function renderDDSection() {
   const pctAver     = total > 0 ? ((averiguadas / total) * 100).toFixed(1) : '—';
   const flagrantes  = registros.filter(r => r.flagrante).length;
   const presos      = registros.reduce((s, r) => s + (Number(r.quant_presos) || 0), 0);
+  const presosPerDD = averiguadas > 0 ? (presos / averiguadas).toFixed(2) : '—';
+  const pctExito    = averiguadas > 0 ? ((exito / averiguadas) * 100).toFixed(1) : '—';
 
   const kpis = [
     { label: 'Total Recebidas',        val: total,       cor: '#5a9de0' },
@@ -5797,16 +5805,68 @@ function renderDDSection() {
     { label: 'Averiguada s/ Êxito',    val: semExito,    cor: '#e08a5a' },
     { label: 'Em Andamento',           val: andamento,   cor: '#f7d060' },
     { label: 'Sem Averiguação',        val: semAver,     cor: '#e06060' },
-    { label: '% Averiguadas',          val: pctAver + (pctAver !== '—' ? '%' : ''), cor: '#c8a84b' },
+    { label: '% Averiguadas',          val: pctAver !== '—' ? pctAver + '%' : '—', cor: '#c8a84b' },
+    { label: '% Êxito s/ Averiguadas', val: pctExito !== '—' ? pctExito + '%' : '—', cor: '#5ae09a' },
     { label: 'Com Flagrante',          val: flagrantes,  cor: '#9b6de0' },
     { label: 'Total Presos',           val: presos,      cor: '#c84b4b' },
+    { label: 'Presos / Averiguada',    val: presosPerDD, cor: '#c84b9e' },
   ].map(k => `<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${k.cor};border-radius:8px;padding:14px">
     <div style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;line-height:1.3">${k.label}</div>
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${k.cor};line-height:1">${k.val}</div>
   </div>`).join('');
 
-  // Filtros de mês e Cia
-  const meses = [
+  // ── Evolução mensal (usa todos do ano p/ mostrar série completa) ──────────
+  const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const getMes = r => new Date(r.data + 'T00:00:00').getMonth(); // 0-11
+  const evolDatasets = [
+    { label: 'Averiguada c/ Êxito', status: 'Averiguada com Êxito',   cor: '#5ae09a' },
+    { label: 'Averiguada s/ Êxito', status: 'Averiguada sem Êxito',   cor: '#e08a5a' },
+    { label: 'Sem Averiguação',     status: 'Sem Averiguação',         cor: '#e06060' },
+    { label: 'Em Andamento',        status: 'Andamento',               cor: '#f7d060' },
+  ].map(d => ({
+    label: d.label,
+    data: MESES_LABEL.map((_, i) => todos.filter(r => getMes(r) === i && r.status === d.status).length),
+    backgroundColor: d.cor + 'bb',
+    borderColor: d.cor,
+    borderWidth: 1,
+    borderRadius: 3,
+  }));
+
+  // ── Ranking por Cia ───────────────────────────────────────────────────────
+  const rankingRows = DD_CIAS.map(cia => {
+    const ciaDados = registros.filter(r => r.cia === cia);
+    const cTotal   = ciaDados.length;
+    const cAver    = ciaDados.filter(r => ['Averiguada com Êxito','Averiguada sem Êxito'].includes(r.status)).length;
+    const cFlag    = ciaDados.filter(r => r.flagrante).length;
+    const cPresos  = ciaDados.reduce((s, r) => s + (Number(r.quant_presos) || 0), 0);
+    const cPct     = cTotal > 0 ? ((cAver / cTotal) * 100).toFixed(0) + '%' : '—';
+    return { cia, cTotal, cAver, cFlag, cPresos, cPct };
+  }).filter(r => r.cTotal > 0).sort((a, b) => b.cTotal - a.cTotal);
+
+  const thR = 'padding:7px 12px;border-bottom:1px solid var(--bd);font-family:"DM Mono",monospace;font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px';
+  const tdR = 'padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;color:var(--tx2)';
+  const rankingHtml = rankingRows.length ? `
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th style="${thR};text-align:left">Cia</th>
+        <th style="${thR};text-align:center">Total</th>
+        <th style="${thR};text-align:center">Averiguadas</th>
+        <th style="${thR};text-align:center">% Aver.</th>
+        <th style="${thR};text-align:center">Flagrantes</th>
+        <th style="${thR};text-align:center">Presos</th>
+      </tr></thead>
+      <tbody>${rankingRows.map(r => `<tr>
+        <td style="${tdR};font-weight:600;color:var(--tx)">${r.cia}</td>
+        <td style="${tdR};text-align:center">${r.cTotal}</td>
+        <td style="${tdR};text-align:center">${r.cAver}</td>
+        <td style="${tdR};text-align:center;color:#c8a84b">${r.cPct}</td>
+        <td style="${tdR};text-align:center;color:#9b6de0">${r.cFlag}</td>
+        <td style="${tdR};text-align:center;color:#c84b4b">${r.cPresos}</td>
+      </tr>`).join('')}</tbody>
+    </table>` : `<div style="color:var(--tx3);font-size:13px;padding:12px">Sem dados para o filtro selecionado.</div>`;
+
+  // ── Filtros ───────────────────────────────────────────────────────────────
+  const mesesOpt = [
     ['','Todos os meses'],
     ['01','Janeiro'],['02','Fevereiro'],['03','Março'],['04','Abril'],
     ['05','Maio'],['06','Junho'],['07','Julho'],['08','Agosto'],
@@ -5821,7 +5881,7 @@ function renderDDSection() {
         ${[2024,2025,2026,2027].map(a => `<option value="${a}"${ddAnoFiltro==a?' selected':''} style="${optStyle}">${a}</option>`).join('')}
       </select>
       <select onchange="ddSetFiltro('mes',this.value)" style="${selectStyle}">
-        ${meses.map(([v,l]) => `<option value="${v}"${ddMesFiltro===v?' selected':''} style="${optStyle}">${l}</option>`).join('')}
+        ${mesesOpt.map(([v,l]) => `<option value="${v}"${ddMesFiltro===v?' selected':''} style="${optStyle}">${l}</option>`).join('')}
       </select>
       <select onchange="ddSetFiltro('cia',this.value)" style="${selectStyle}">
         <option value="" style="${optStyle}">Todas as Cias</option>
@@ -5829,10 +5889,10 @@ function renderDDSection() {
       </select>
     </div>`;
 
-  // Tabela
+  // ── Tabela ────────────────────────────────────────────────────────────────
   const linhas = registros.map(r => {
-    const cor    = DD_STATUS_COR[r.status] || '#fff';
-    const dtFmt  = r.data ? r.data.split('-').reverse().join('/') : '—';
+    const cor     = DD_STATUS_COR[r.status] || '#fff';
+    const dtFmt   = r.data ? r.data.split('-').reverse().join('/') : '—';
     const dtAtFmt = r.data_atendimento ? r.data_atendimento.split('-').reverse().join('/') : '—';
     const flagHtml = r.flagrante
       ? `<span style="color:#5ae09a;font-weight:700">Sim</span>`
@@ -5868,9 +5928,23 @@ function renderDDSection() {
             <button onclick="openDDMo(null)" style="padding:6px 16px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">+ Novo Registro</button>
           </div>` : ''}
       </div>
+
       <div style="margin-bottom:14px">${filtrosHtml}</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:18px">${kpis}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-bottom:20px">${kpis}</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+        <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px">
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">Evolução Mensal — ${ddAnoFiltro}</div>
+          <canvas id="dd-chart-evolucao" style="height:240px;max-height:240px"></canvas>
+        </div>
+        <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px">
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">Ranking por Cia</div>
+          ${rankingHtml}
+        </div>
+      </div>
+
       <div style="overflow-x:auto">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Registros</div>
         <table style="width:100%;border-collapse:collapse">
           <thead><tr>
             <th style="${thStyle}">Data</th>
@@ -5886,6 +5960,23 @@ function renderDDSection() {
         </table>
       </div>
     </div>`;
+
+  // Renderiza gráfico após innerHTML
+  const canvasEl = document.getElementById('dd-chart-evolucao');
+  if (canvasEl && todos.length) {
+    ddChart = new Chart(canvasEl.getContext('2d'), {
+      type: 'bar',
+      data: { labels: MESES_LABEL, datasets: evolDatasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#fff', font: { size: 13 }, boxWidth: 13, padding: 14 } } },
+        scales: {
+          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 12 } } },
+          y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 12 } }, beginAtZero: true }
+        }
+      }
+    });
+  }
 }
 
 function ddSetFiltro(campo, valor) {
