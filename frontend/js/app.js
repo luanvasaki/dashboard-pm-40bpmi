@@ -6030,10 +6030,6 @@ function renderDDSection() {
           ${rankingHtml}
         </div>
         <div style="${cardBox}">
-          ${secTitle('Funil de Efetividade')}
-          <div style="display:flex;flex-direction:column;gap:6px;max-width:700px">${funilHtml}</div>
-        </div>
-        <div style="${cardBox}">
           ${secTitle('Tempo Médio de Atendimento (dias)')}
           <div style="font-size:12px;color:#aaa;font-family:'DM Mono',monospace;margin-bottom:12px;margin-top:-6px">n = registros com data de atendimento preenchida</div>
           <canvas id="dd-chart-tempo" style="height:280px;max-height:280px"></canvas>
