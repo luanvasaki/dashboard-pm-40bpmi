@@ -6030,8 +6030,8 @@ function renderDDSection() {
           ${rankingHtml}
         </div>
         <div style="${cardBox}">
-          ${secTitle('Tempo Médio de Atendimento (dias)')}
-          <div style="font-size:12px;color:#aaa;font-family:'DM Mono',monospace;margin-bottom:12px;margin-top:-6px">n = registros com data de atendimento preenchida</div>
+          <div style="font-family:'DM Mono',monospace;font-size:15px;color:#fff;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;font-weight:600">Tempo Médio de Atendimento (dias)</div>
+          <div style="font-size:13px;color:#fff;font-family:'DM Mono',monospace;margin-bottom:14px">n = registros com data de atendimento preenchida</div>
           <canvas id="dd-chart-tempo" style="height:280px;max-height:280px"></canvas>
         </div>
         <div style="${cardBox}">
