@@ -1138,6 +1138,68 @@ app.post('/api/indicadores-p3/desbloquear', requireAuth, requireRole('admin', 'p
   }
 });
 
+// ---------------------------------------------------------------------------
+// Disque Denúncia
+// ---------------------------------------------------------------------------
+const DD_CIAS = ['1ª Cia PM', '2ª Cia PM', '3ª Cia PM', 'FT'];
+const DD_STATUS = ['Andamento', 'Averiguada com Êxito', 'Averiguada sem Êxito', 'Sem Averiguação'];
+
+app.get('/api/disque-denuncia', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  const { ano } = req.query;
+  try {
+    let query = supabase.from('disque_denuncia_registros').select('*').order('data', { ascending: false });
+    if (ano) query = query.gte('data', `${ano}-01-01`).lte('data', `${ano}-12-31`);
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/disque-denuncia', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  const { data, cia, numero_dd, data_atendimento, status, flagrante, quant_presos } = req.body;
+  if (!data || !cia || !numero_dd || !status) return res.status(400).json({ error: 'Campos obrigatórios ausentes' });
+  if (!DD_CIAS.includes(cia)) return res.status(400).json({ error: 'Cia inválida' });
+  if (!DD_STATUS.includes(status)) return res.status(400).json({ error: 'Status inválido' });
+  try {
+    const { data: rec, error } = await supabase.from('disque_denuncia_registros').insert({
+      data, cia, numero_dd: numero_dd.trim(),
+      data_atendimento: data_atendimento || null,
+      status, flagrante: !!flagrante,
+      quant_presos: Number(quant_presos) || 0,
+      created_by: req.user.nome
+    }).select().single();
+    if (error) throw new Error(error.message);
+    res.json(rec);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.put('/api/disque-denuncia/:id', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  const { data, cia, numero_dd, data_atendimento, status, flagrante, quant_presos } = req.body;
+  if (!data || !cia || !numero_dd || !status) return res.status(400).json({ error: 'Campos obrigatórios ausentes' });
+  try {
+    const { error } = await supabase.from('disque_denuncia_registros').update({
+      data, cia, numero_dd: numero_dd.trim(),
+      data_atendimento: data_atendimento || null,
+      status, flagrante: !!flagrante,
+      quant_presos: Number(quant_presos) || 0
+    }).eq('id', req.params.id);
+    if (error) throw new Error(error.message);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/disque-denuncia/:id', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  try {
+    const { error } = await supabase.from('disque_denuncia_registros').delete().eq('id', req.params.id);
+    if (error) throw new Error(error.message);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });

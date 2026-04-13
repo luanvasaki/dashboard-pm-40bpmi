@@ -4464,6 +4464,7 @@ function goSection(id, btn) {
     updateSidebarImports('p3prod');
     loadProdData();
     loadIndicadoresP3();
+    loadDDData();
     return;
   }
 
@@ -5734,6 +5735,241 @@ async function iqSave() {
     msgEl.style.color = '#e06060';
     msgEl.textContent = err.message;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Disque Denúncia
+// ---------------------------------------------------------------------------
+
+const DD_CIAS    = ['1ª Cia PM', '2ª Cia PM', '3ª Cia PM', 'FT'];
+const DD_STATUS  = ['Andamento', 'Averiguada com Êxito', 'Averiguada sem Êxito', 'Sem Averiguação'];
+const DD_STATUS_COR = {
+  'Andamento':              '#f7d060',
+  'Averiguada com Êxito':   '#5ae09a',
+  'Averiguada sem Êxito':   '#e08a5a',
+  'Sem Averiguação':        '#e06060',
+};
+
+let ddData        = [];
+let ddAnoFiltro   = new Date().getFullYear();
+let ddMesFiltro   = '';
+let ddCiaFiltro   = '';
+let ddEditId      = null;
+
+async function loadDDData() {
+  try {
+    const res = await authFetch(`${API}/disque-denuncia?ano=${ddAnoFiltro}`);
+    if (!res.ok) return;
+    ddData = await res.json();
+    renderDDSection();
+  } catch(e) {}
+}
+
+function ddFiltrados() {
+  return ddData.filter(r => {
+    if (ddMesFiltro) {
+      const m = String(new Date(r.data + 'T00:00:00').getMonth() + 1).padStart(2, '0');
+      if (m !== ddMesFiltro) return false;
+    }
+    if (ddCiaFiltro && r.cia !== ddCiaFiltro) return false;
+    return true;
+  });
+}
+
+function renderDDSection() {
+  const el = document.getElementById('dd-section');
+  if (!el) return;
+  const canEdit = userRole && ['admin','p3','ti'].includes(userRole);
+  const canDel  = userRole && ['admin','p3'].includes(userRole);
+
+  const registros = ddFiltrados();
+  const total       = registros.length;
+  const exito       = registros.filter(r => r.status === 'Averiguada com Êxito').length;
+  const semExito    = registros.filter(r => r.status === 'Averiguada sem Êxito').length;
+  const andamento   = registros.filter(r => r.status === 'Andamento').length;
+  const semAver     = registros.filter(r => r.status === 'Sem Averiguação').length;
+  const averiguadas = exito + semExito;
+  const pctAver     = total > 0 ? ((averiguadas / total) * 100).toFixed(1) : '—';
+  const flagrantes  = registros.filter(r => r.flagrante).length;
+  const presos      = registros.reduce((s, r) => s + (Number(r.quant_presos) || 0), 0);
+
+  const kpis = [
+    { label: 'Total Recebidas',        val: total,       cor: '#5a9de0' },
+    { label: 'Averiguada c/ Êxito',    val: exito,       cor: '#5ae09a' },
+    { label: 'Averiguada s/ Êxito',    val: semExito,    cor: '#e08a5a' },
+    { label: 'Em Andamento',           val: andamento,   cor: '#f7d060' },
+    { label: 'Sem Averiguação',        val: semAver,     cor: '#e06060' },
+    { label: '% Averiguadas',          val: pctAver + (pctAver !== '—' ? '%' : ''), cor: '#c8a84b' },
+    { label: 'Com Flagrante',          val: flagrantes,  cor: '#9b6de0' },
+    { label: 'Total Presos',           val: presos,      cor: '#c84b4b' },
+  ].map(k => `<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${k.cor};border-radius:8px;padding:14px">
+    <div style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;line-height:1.3">${k.label}</div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${k.cor};line-height:1">${k.val}</div>
+  </div>`).join('');
+
+  // Filtros de mês e Cia
+  const meses = [
+    ['','Todos os meses'],
+    ['01','Janeiro'],['02','Fevereiro'],['03','Março'],['04','Abril'],
+    ['05','Maio'],['06','Junho'],['07','Julho'],['08','Agosto'],
+    ['09','Setembro'],['10','Outubro'],['11','Novembro'],['12','Dezembro'],
+  ];
+  const selectStyle = 'background:var(--bg2);color:var(--tx1);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:13px;font-family:"DM Mono",monospace;cursor:pointer';
+  const optStyle    = 'background:#111;color:#fff';
+
+  const filtrosHtml = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <select onchange="ddSetFiltro('ano',this.value)" style="${selectStyle}">
+        ${[2024,2025,2026,2027].map(a => `<option value="${a}"${ddAnoFiltro==a?' selected':''} style="${optStyle}">${a}</option>`).join('')}
+      </select>
+      <select onchange="ddSetFiltro('mes',this.value)" style="${selectStyle}">
+        ${meses.map(([v,l]) => `<option value="${v}"${ddMesFiltro===v?' selected':''} style="${optStyle}">${l}</option>`).join('')}
+      </select>
+      <select onchange="ddSetFiltro('cia',this.value)" style="${selectStyle}">
+        <option value="" style="${optStyle}">Todas as Cias</option>
+        ${DD_CIAS.map(c => `<option value="${c}"${ddCiaFiltro===c?' selected':''} style="${optStyle}">${c}</option>`).join('')}
+      </select>
+    </div>`;
+
+  // Tabela
+  const linhas = registros.map(r => {
+    const cor    = DD_STATUS_COR[r.status] || '#fff';
+    const dtFmt  = r.data ? r.data.split('-').reverse().join('/') : '—';
+    const dtAtFmt = r.data_atendimento ? r.data_atendimento.split('-').reverse().join('/') : '—';
+    const flagHtml = r.flagrante
+      ? `<span style="color:#5ae09a;font-weight:700">Sim</span>`
+      : `<span style="color:var(--tx3)">Não</span>`;
+    const acoes = canEdit
+      ? `<button onclick="openDDMo(${r.id})" style="background:transparent;border:1px solid var(--bd2);color:var(--tx2);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:12px;margin-right:4px">Editar</button>`
+      + (canDel ? `<button onclick="deleteDDRecord(${r.id})" style="background:transparent;border:1px solid #e06060;color:#e06060;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:12px">Excluir</button>` : '')
+      : '';
+    return `<tr>
+      <td style="padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--tx2);font-size:13px;white-space:nowrap">${dtFmt}</td>
+      <td style="padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--tx2);font-size:13px">${r.cia}</td>
+      <td style="padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--tx);font-size:13px;font-family:'DM Mono',monospace">${r.numero_dd}</td>
+      <td style="padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--tx2);font-size:13px;white-space:nowrap">${dtAtFmt}</td>
+      <td style="padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04)"><span style="color:${cor};font-size:12px;font-family:'DM Mono',monospace">${r.status}</span></td>
+      <td style="padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);text-align:center">${flagHtml}</td>
+      <td style="padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);text-align:center;color:var(--tx);font-size:13px">${r.quant_presos || 0}</td>
+      <td style="padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04)">${acoes}</td>
+    </tr>`;
+  }).join('');
+
+  const thStyle = 'padding:8px 12px;border-bottom:1px solid var(--bd);text-align:left;font-family:"DM Mono",monospace;font-size:11px;color:var(--tx3);white-space:nowrap;text-transform:uppercase;letter-spacing:1px';
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-head" style="flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="card-title">Disque Denúncia</div>
+          <span style="font-size:11px;color:#5a9de0;font-family:'DM Mono',monospace;letter-spacing:1px">${ddAnoFiltro}</span>
+        </div>
+        ${canEdit ? `<button onclick="openDDMo(null)" style="padding:6px 16px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">+ Novo Registro</button>` : ''}
+      </div>
+      <div style="margin-bottom:14px">${filtrosHtml}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:18px">${kpis}</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            <th style="${thStyle}">Data</th>
+            <th style="${thStyle}">Cia</th>
+            <th style="${thStyle}">Nº DD</th>
+            <th style="${thStyle}">Dt. Atendimento</th>
+            <th style="${thStyle}">Status</th>
+            <th style="${thStyle};text-align:center">Flagrante</th>
+            <th style="${thStyle};text-align:center">Presos</th>
+            <th style="${thStyle}"></th>
+          </tr></thead>
+          <tbody>${linhas || `<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--tx3);font-size:13px">Nenhum registro encontrado.</td></tr>`}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function ddSetFiltro(campo, valor) {
+  if (campo === 'ano') { ddAnoFiltro = Number(valor); loadDDData(); }
+  else if (campo === 'mes') { ddMesFiltro = valor; renderDDSection(); }
+  else if (campo === 'cia') { ddCiaFiltro = valor; renderDDSection(); }
+}
+
+function openDDMo(id) {
+  ddEditId = id;
+  const rec = id ? ddData.find(r => r.id === id) : null;
+  document.getElementById('dd-mo-title').textContent = id ? 'Editar Registro' : 'Novo Registro';
+  document.getElementById('dd-mo-msg').textContent = '';
+
+  const fmtDate = v => v ? v.slice(0,10) : '';
+  const selectStyle = 'width:100%;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:6px;padding:8px 10px;font-size:14px;margin-bottom:12px';
+  const inputStyle  = 'width:100%;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:6px;padding:8px 10px;font-size:14px;margin-bottom:12px;box-sizing:border-box';
+  const labelStyle  = 'display:block;font-size:12px;color:var(--tx3);font-family:"DM Mono",monospace;letter-spacing:1px;margin-bottom:4px;text-transform:uppercase';
+
+  document.getElementById('dd-mo-body').innerHTML = `
+    <label style="${labelStyle}">Data</label>
+    <input type="date" id="dd-f-data" value="${fmtDate(rec?.data)}" style="${inputStyle}">
+    <label style="${labelStyle}">Cia</label>
+    <select id="dd-f-cia" style="${selectStyle}">
+      ${DD_CIAS.map(c => `<option value="${c}"${rec?.cia===c?' selected':''}>${c}</option>`).join('')}
+    </select>
+    <label style="${labelStyle}">Nº Disque Denúncia</label>
+    <input type="text" id="dd-f-numero" value="${rec?.numero_dd||''}" placeholder="Ex: DD-2026-0001" style="${inputStyle}">
+    <label style="${labelStyle}">Data do Atendimento</label>
+    <input type="date" id="dd-f-dtatend" value="${fmtDate(rec?.data_atendimento)}" style="${inputStyle}">
+    <label style="${labelStyle}">Status</label>
+    <select id="dd-f-status" style="${selectStyle}">
+      ${DD_STATUS.map(s => `<option value="${s}"${(rec?.status||'Andamento')===s?' selected':''}>${s}</option>`).join('')}
+    </select>
+    <label style="${labelStyle}">Flagrante</label>
+    <select id="dd-f-flagrante" style="${selectStyle}">
+      <option value="false"${!rec?.flagrante?' selected':''}>Não</option>
+      <option value="true"${rec?.flagrante?' selected':''}>Sim</option>
+    </select>
+    <label style="${labelStyle}">Qtd. Presos</label>
+    <input type="number" id="dd-f-presos" value="${rec?.quant_presos||0}" min="0" style="${inputStyle}">
+  `;
+
+  const mo = document.getElementById('dd-mo');
+  mo.style.display = 'flex';
+}
+
+function closeDDMo() {
+  document.getElementById('dd-mo').style.display = 'none';
+  ddEditId = null;
+}
+
+function ddMoClickOut(e) {
+  if (e.target === document.getElementById('dd-mo')) closeDDMo();
+}
+
+async function ddSave() {
+  const msg = document.getElementById('dd-mo-msg');
+  const body = {
+    data:              document.getElementById('dd-f-data').value,
+    cia:               document.getElementById('dd-f-cia').value,
+    numero_dd:         document.getElementById('dd-f-numero').value.trim(),
+    data_atendimento:  document.getElementById('dd-f-dtatend').value || null,
+    status:            document.getElementById('dd-f-status').value,
+    flagrante:         document.getElementById('dd-f-flagrante').value === 'true',
+    quant_presos:      Number(document.getElementById('dd-f-presos').value) || 0,
+  };
+  if (!body.data || !body.numero_dd) { msg.textContent = 'Preencha Data e Nº DD.'; return; }
+  try {
+    const url    = ddEditId ? `${API}/disque-denuncia/${ddEditId}` : `${API}/disque-denuncia`;
+    const method = ddEditId ? 'PUT' : 'POST';
+    const res = await authFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok) { msg.textContent = data.error || 'Erro ao salvar.'; return; }
+    closeDDMo();
+    await loadDDData();
+  } catch(e) { msg.textContent = 'Erro de conexão.'; }
+}
+
+async function deleteDDRecord(id) {
+  if (!confirm('Excluir este registro?')) return;
+  try {
+    const res = await authFetch(`${API}/disque-denuncia/${id}`, { method: 'DELETE' });
+    if (!res.ok) { alert('Erro ao excluir.'); return; }
+    await loadDDData();
+  } catch(e) { alert('Erro de conexão.'); }
 }
 
 // ---------------------------------------------------------------------------
