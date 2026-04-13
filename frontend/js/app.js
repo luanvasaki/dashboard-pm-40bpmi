@@ -5978,11 +5978,7 @@ function renderDDSection() {
           <div class="card-title">Disque Denúncia</div>
           <span style="font-size:11px;color:#5a9de0;font-family:'DM Mono',monospace;letter-spacing:1px">${ddAnoFiltro}</span>
         </div>
-        ${canEdit ? `
-          <div style="display:flex;gap:8px">
-            <button onclick="openDDUpl()" style="padding:6px 16px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.3);color:#c8a84b;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">↑ Importar CSV</button>
-            <button onclick="openDDMo(null)" style="padding:6px 16px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">+ Novo Registro</button>
-          </div>` : ''}
+        ${canEdit ? `<button onclick="openDDUpl()" style="padding:6px 16px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.3);color:#c8a84b;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">↑ Importar CSV</button>` : ''}
       </div>
 
       <div style="margin-bottom:14px">${filtrosHtml}</div>
