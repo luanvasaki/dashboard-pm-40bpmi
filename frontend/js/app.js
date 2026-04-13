@@ -5346,42 +5346,6 @@ function renderIqHistorico() {
     ${PROD_CAMPOS.map(c => `<option value="${c.key}"${iqProdFiltro === c.key ? ' selected' : ''} style="background:#111;color:#fff">${c.label}</option>`).join('')}
   </select>`;
 
-  // ── Insights automáticos ───────────────────────────────────────────────
-  const insights = [];
-
-  // Latrocínio zerado
-  const latC = IQ_AUTO_CAMPOS.find(c => c.key === 'latrocinio');
-  const latVals = anos.map(a => getVal(latC, a)).filter(v => v !== null);
-  if (latVals.length && latVals.every(v => v === 0))
-    insights.push({ icon: '🏆', cor: '#5ae09a', titulo: 'Latrocínio Zerado', texto: `Nenhum latrocínio registrado em ${latVals.length} anos consecutivos.` });
-
-  // Tendência crimes
-  CRIMES_CAMPOS.filter(c => c.key !== 'latrocinio').forEach(c => {
-    const vals = anos.map(a => getVal(c, a)).filter(v => v !== null);
-    if (vals.length < 2 || vals[0] === 0) return;
-    const pct = Math.round((vals[vals.length-1] - vals[0]) / vals[0] * 100);
-    if (Math.abs(pct) < 10) return;
-    insights.push({ icon: pct < 0 ? '📉' : '📈', cor: pct < 0 ? '#5ae09a' : '#e06060', titulo: c.label,
-      texto: pct < 0 ? `Redução de ${Math.abs(pct)}% de ${anos[0]} a ${anos[anos.length-1]}.` : `Aumento de ${pct}% de ${anos[0]} a ${anos[anos.length-1]}.` });
-  });
-
-  // Tendência produtividade
-  PROD_CAMPOS.forEach(c => {
-    const vals = anos.map(a => getVal(c, a)).filter(v => v !== null);
-    if (vals.length < 2 || vals[0] === 0) return;
-    const pct = Math.round((vals[vals.length-1] - vals[0]) / vals[0] * 100);
-    if (Math.abs(pct) < 10) return;
-    insights.push({ icon: pct > 0 ? '⬆️' : '⬇️', cor: pct > 0 ? '#5ae09a' : '#e06060', titulo: c.label,
-      texto: pct > 0 ? `Crescimento de ${pct}% de ${anos[0]} a ${anos[anos.length-1]}.` : `Queda de ${Math.abs(pct)}% de ${anos[0]} a ${anos[anos.length-1]}.` });
-  });
-
-  const insightCardsHtml = insights.length
-    ? insights.map(ins => `<div style="background:var(--s2);border:1px solid var(--bd);border-left:3px solid ${ins.cor};border-radius:8px;padding:12px 14px">
-        <div style="font-size:18px;margin-bottom:6px">${ins.icon}</div>
-        <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:4px">${ins.titulo}</div>
-        <div style="font-size:12px;color:var(--tx2);line-height:1.5">${ins.texto}</div>
-      </div>`).join('')
-    : `<div style="color:var(--tx3);font-size:13px">Dados insuficientes para gerar insights.</div>`;
 
 
   // ── Render ─────────────────────────────────────────────────────────────
@@ -5412,11 +5376,6 @@ function renderIqHistorico() {
         <div style="margin-bottom:12px">${prodFiltroHtml}</div>
         <canvas id="iq-h-prod" style="height:260px;max-height:260px"></canvas>
       </div>
-    </div>
-
-    <div class="card" style="margin-top:16px">
-      <div class="card-head"><div class="card-title">Insights Automáticos</div></div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">${insightCardsHtml}</div>
     </div>
 
   `;
