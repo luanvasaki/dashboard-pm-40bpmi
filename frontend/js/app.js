@@ -5370,21 +5370,6 @@ function renderIqHistorico() {
       </div>`).join('')
     : `<div style="color:var(--tx3);font-size:13px">Dados insuficientes para gerar insights.</div>`;
 
-  // ── Destaques históricos ───────────────────────────────────────────────
-  const recordCardsHtml = IQ_AUTO_CAMPOS
-    .filter(c => !['disque_denuncia','tempo_resposta_urgente'].includes(c.key))
-    .map(c => {
-      const valsAno = anos.map(a => ({ ano: a, v: getVal(c, a) })).filter(x => x.v !== null);
-      if (!valsAno.length) return '';
-      const melhor = c.melhor === 'maior'
-        ? valsAno.reduce((m, x) => x.v > m.v ? x : m)
-        : valsAno.reduce((m, x) => x.v < m.v ? x : m);
-      return `<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${c.cor};border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;line-height:1.3">${c.label}</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${c.cor};line-height:1">${melhor.v.toLocaleString('pt-BR')}</div>
-        <div style="font-size:11px;color:var(--tx3);margin-top:4px">${c.melhor === 'maior' ? 'Melhor' : 'Menor'} — ${melhor.ano}</div>
-      </div>`;
-    }).join('');
 
   // ── Render ─────────────────────────────────────────────────────────────
   el.innerHTML = `
@@ -5420,10 +5405,7 @@ function renderIqHistorico() {
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">${insightCardsHtml}</div>
     </div>
 
-    <div class="card" style="margin-top:14px;margin-bottom:16px">
-      <div class="card-head"><div class="card-title">Destaques Históricos</div></div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">${recordCardsHtml}</div>
-    </div>`;
+  `;
 
   // Gráfico crimes
   const crimeEl = document.getElementById('iq-h-crimes');
