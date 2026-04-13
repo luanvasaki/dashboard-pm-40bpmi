@@ -4631,6 +4631,11 @@ function prodDestroyCharts() {
 function prodRender() {
   prodBuildFilter();
   prodDestroyCharts();
+  // sincroniza ano DD com filtro prod
+  if (prodSelAno && prodSelAno !== ddAnoFiltro) {
+    ddAnoFiltro = prodSelAno;
+    loadDDData();
+  }
   const tipos = ['ocorrencias','presos','armas','veiculos','entorpecentes'];
   const kpisEl = document.getElementById('prod-kpis');
   const chartsEl = document.getElementById('prod-charts');
@@ -5770,16 +5775,30 @@ async function loadDDData() {
 }
 
 function renderDDKpi() {
-  const total   = ddData.length;
-  const aver    = ddData.filter(r => ['Averiguada com Êxito','Averiguada sem Êxito'].includes(r.status)).length;
-  const pct     = total > 0 ? ((aver / total) * 100).toFixed(0) + '%' : '—';
-  const flags   = ddData.filter(r => r.flagrante).length;
+  // filtra pelo mesmo período selecionado na grade de produtividade
+  const filtrado = ddData.filter(r => {
+    const d = new Date(r.data + 'T00:00:00');
+    if (prodSelAno && d.getFullYear() !== prodSelAno) return false;
+    if (prodSelMeses && prodSelMeses.length) {
+      const nomeMes = MES_ORD[d.getMonth()];
+      if (!prodSelMeses.includes(nomeMes)) return false;
+    }
+    return true;
+  });
+  const mesesDisp = prodGetMesesDisp ? prodGetMesesDisp(prodSelAno) : [];
+  const periodoLbl = prodSelMeses && prodSelMeses.length === mesesDisp.length
+    ? 'Acumulado ' + (prodSelAno || '')
+    : (prodSelMeses || []).join(', ');
+  const total = filtrado.length;
+  const aver  = filtrado.filter(r => ['Averiguada com Êxito','Averiguada sem Êxito'].includes(r.status)).length;
+  const pct   = total > 0 ? ((aver / total) * 100).toFixed(0) + '%' : '—';
+  const flags = filtrado.filter(r => r.flagrante).length;
   return `<div id="dd-kpi-card" class="kpi" onclick="openDDDetail()" title="Clique para detalhes" style="cursor:pointer">
     <div class="kpi-top" style="background:#5a9de0"></div>
     <div class="kpi-lbl">Disque Denúncia</div>
     <div class="kpi-val" style="color:#5a9de0">${total.toLocaleString('pt-BR')}</div>
-    <div class="kpi-sub">${aver} averiguadas · ${flags} flagrantes</div>
-    <div class="kpi-sub" style="color:#c8a84b">${pct} averiguação</div>
+    <div class="kpi-sub">${periodoLbl}</div>
+    <div class="kpi-sub">${aver} averiguadas · ${flags} flagrantes · <span style="color:#c8a84b">${pct}</span></div>
     <div class="kpi-hint">▸ clique p/ detalhes</div>
   </div>`;
 }
