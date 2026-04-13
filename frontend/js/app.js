@@ -5771,7 +5771,10 @@ let ddAnoFiltro   = new Date().getFullYear();
 let ddMesFiltro   = []; // array de nomes de meses, vazio = todos
 let ddCiaFiltro   = '';
 let ddEditId      = null;
-let ddChart       = null;
+let ddChart  = null;
+let ddChart2 = null;
+let ddChart3 = null;
+let ddChart4 = null;
 
 async function loadDDData() {
   try {
@@ -5821,7 +5824,8 @@ function openDDDetail() {
 
 function closeDDDetail() {
   document.getElementById('dd-detail-mo').classList.remove('on');
-  if (ddChart) { try { ddChart.destroy(); } catch(e){} ddChart = null; }
+  [ddChart, ddChart2, ddChart3, ddChart4].forEach(ch => { if (ch) { try { ch.destroy(); } catch(e){} } });
+  ddChart = ddChart2 = ddChart3 = ddChart4 = null;
 }
 
 function ddDetailClickOut(e) {
@@ -5840,7 +5844,8 @@ function ddFiltrados() {
 }
 
 function renderDDSection() {
-  if (ddChart) { try { ddChart.destroy(); } catch(e){} ddChart = null; }
+  [ddChart, ddChart2, ddChart3, ddChart4].forEach(ch => { if (ch) { try { ch.destroy(); } catch(e){} } });
+  ddChart = ddChart2 = ddChart3 = ddChart4 = null;
 
   const el = document.getElementById('dd-detail-body');
   if (!el) return;
@@ -5848,9 +5853,8 @@ function renderDDSection() {
   const canEdit = ['admin','p3','ti'].includes(_role);
   const canDel  = ['admin','p3'].includes(_role);
 
-  // dados filtrados (tabela) vs todos do ano (gráficos)
   const registros = ddFiltrados();
-  const todos     = ddData; // todos do ano para gráficos
+  const todos     = ddData;
 
   const total       = registros.length;
   const exito       = registros.filter(r => ddStatusMatch(r.status, 'Averiguada com Êxito')).length;
@@ -5880,14 +5884,13 @@ function renderDDSection() {
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${k.cor};line-height:1">${k.val}</div>
   </div>`).join('');
 
-  // ── Evolução mensal (usa todos do ano p/ mostrar série completa) ──────────
   const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  const getMes = r => new Date(r.data + 'T00:00:00').getMonth(); // 0-11
+  const getMes = r => new Date(r.data + 'T00:00:00').getMonth();
   const evolDatasets = [
-    { label: 'Averiguada c/ Êxito', status: 'Averiguada com Êxito',   cor: '#5ae09a' },
-    { label: 'Averiguada s/ Êxito', status: 'Averiguada sem Êxito',   cor: '#e08a5a' },
-    { label: 'Sem Averiguação',     status: 'Sem Averiguação',         cor: '#e06060' },
-    { label: 'Em Andamento',        status: 'Andamento',               cor: '#f7d060' },
+    { label: 'Averiguada c/ Êxito', status: 'Averiguada com Êxito', cor: '#5ae09a' },
+    { label: 'Averiguada s/ Êxito', status: 'Averiguada sem Êxito', cor: '#e08a5a' },
+    { label: 'Sem Averiguação',     status: 'Sem Averiguação',       cor: '#e06060' },
+    { label: 'Em Andamento',        status: 'Andamento',             cor: '#f7d060' },
   ].map(d => ({
     label: d.label,
     data: MESES_LABEL.map((_, i) => todos.filter(r => getMes(r) === i && ddStatusMatch(r.status, d.status)).length),
@@ -5897,7 +5900,6 @@ function renderDDSection() {
     borderRadius: 3,
   }));
 
-  // ── Ranking por Cia ───────────────────────────────────────────────────────
   const rankingRows = DD_CIAS.map(cia => {
     const ciaDados = registros.filter(r => r.cia === cia);
     const cTotal   = ciaDados.length;
@@ -5930,52 +5932,80 @@ function renderDDSection() {
       </tr>`).join('')}</tbody>
     </table>` : `<div style="color:var(--tx3);font-size:13px;padding:12px">Sem dados para o filtro selecionado.</div>`;
 
-  // ── Filtros (padrão pf-btn) ───────────────────────────────────────────────
-  // meses com dados no banco (preserva ordem do calendário)
+  // Funil de Efetividade
+  const funilMax = total || 1;
+  const funilSteps = [
+    { label: 'Denúncias Recebidas', val: total,       cor: '#5a9de0', sub: '100% do total' },
+    { label: 'Averiguadas',          val: averiguadas, cor: '#c8a84b', sub: total > 0 ? ((averiguadas/total)*100).toFixed(0)+'% das recebidas' : '—' },
+    { label: 'Com Flagrante',        val: flagrantes,  cor: '#9b6de0', sub: total > 0 ? ((flagrantes/total)*100).toFixed(0)+'% das recebidas' : '—' },
+    { label: 'Pessoas Presas',       val: presos,      cor: '#c84b4b', sub: flagrantes > 0 ? (presos/flagrantes).toFixed(1)+' presos/flagrante' : '—' },
+  ];
+  const funilHtml = funilSteps.map((s, i) => {
+    const barPct = Math.max(8, (s.val / funilMax) * 100);
+    const arrow  = i < funilSteps.length - 1
+      ? `<div style="text-align:center;color:var(--tx3);font-size:10px;padding:3px 0;letter-spacing:1px">▼ ${funilSteps[i+1].sub}</div>`
+      : '';
+    return `
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+          <span style="font-size:12px;color:var(--tx2);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px">${s.label}</span>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.cor};line-height:1">${s.val.toLocaleString('pt-BR')}</span>
+        </div>
+        <div style="height:18px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${barPct}%;background:${s.cor}55;border-left:3px solid ${s.cor};border-radius:0 4px 4px 0"></div>
+        </div>
+      </div>${arrow}`;
+  }).join('');
+
+  // Tempo medio de atendimento por CIA
+  const tempoCia = DD_CIAS.map(cia => {
+    const comDatas = registros.filter(r => r.cia === cia && r.data && r.data_atendimento);
+    if (!comDatas.length) return { cia, media: 0, n: 0 };
+    const soma = comDatas.reduce((s, r) => {
+      return s + Math.abs(new Date(r.data_atendimento) - new Date(r.data + 'T00:00:00')) / 86400000;
+    }, 0);
+    return { cia, media: parseFloat((soma / comDatas.length).toFixed(1)), n: comDatas.length };
+  });
+
+  // Taxa de exito por CIA
+  const exitoCia = DD_CIAS.map(cia => {
+    const ciaDados = registros.filter(r => r.cia === cia);
+    return {
+      cia,
+      exito:    ciaDados.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito')).length,
+      semExito: ciaDados.filter(r => ddStatusMatch(r.status,'Averiguada sem Êxito')).length,
+    };
+  });
+
+  // Tendencia de efetividade mensal
+  const tendenciaData = MESES_LABEL.map((_, i) => {
+    const mesReg  = todos.filter(r => getMes(r) === i);
+    const mesAver = mesReg.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito') || ddStatusMatch(r.status,'Averiguada sem Êxito')).length;
+    const mesEx   = mesReg.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito')).length;
+    return mesAver > 0 ? parseFloat(((mesEx / mesAver) * 100).toFixed(1)) : null;
+  });
+  const tendenciaTotal = MESES_LABEL.map((_, i) =>
+    todos.filter(r => getMes(r) === i).length || null
+  );
+
   const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.data + 'T00:00:00').getMonth()] === m));
   const allMeses = ddMesFiltro.length === 0;
   let filtrosHtml = `<div class="pf" style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">`;
-  // Ano
   filtrosHtml += `<div class="pf-field"><span class="pf-label">ANO</span><select class="pf-select" onchange="ddSetFiltro('ano',this.value)">`;
   [2024,2025,2026,2027].forEach(a => filtrosHtml += `<option value="${a}"${ddAnoFiltro==a?' selected':''}>${a}</option>`);
   filtrosHtml += `</select></div>`;
-  // Meses com dados
   filtrosHtml += `<div class="pf-field"><span class="pf-label">MÊS</span><div style="display:flex;gap:4px;flex-wrap:wrap">`;
   filtrosHtml += `<button onclick="ddSetFiltro('mes','__all__')" class="pf-btn${allMeses?' on':''}">Todos</button>`;
   mesesComDados.forEach(m => filtrosHtml += `<button onclick="ddTogMes('${m}')" class="pf-btn${ddMesFiltro.includes(m)?' on':''}">${m.slice(0,3)}</button>`);
   filtrosHtml += `</div></div>`;
-  // CIA
   filtrosHtml += `<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" onchange="ddSetFiltro('cia',this.value)">`;
   filtrosHtml += `<option value="">Todas</option>`;
   DD_CIAS.forEach(c => filtrosHtml += `<option value="${c}"${ddCiaFiltro===c?' selected':''}>${c}</option>`);
   filtrosHtml += `</select></div>`;
   filtrosHtml += `</div></div>`;
 
-  // ── Tabela ────────────────────────────────────────────────────────────────
-  const linhas = registros.map(r => {
-    const cor     = ddStatusCor(r.status);
-    const dtFmt   = r.data ? r.data.split('-').reverse().join('/') : '—';
-    const dtAtFmt = r.data_atendimento ? r.data_atendimento.split('-').reverse().join('/') : '—';
-    const flagHtml = r.flagrante
-      ? `<span style="color:#5ae09a;font-weight:700">Sim</span>`
-      : `<span style="color:var(--tx3)">Não</span>`;
-    const acoes = canEdit
-      ? `<button onclick="openDDMo(${r.id})" style="background:transparent;border:1px solid var(--bd2);color:var(--tx2);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:12px;margin-right:4px">Editar</button>`
-      + (canDel ? `<button onclick="deleteDDRecord(${r.id})" style="background:transparent;border:1px solid #e06060;color:#e06060;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:12px">Excluir</button>` : '')
-      : '';
-    return `<tr>
-      <td style="padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--tx2);font-size:13px;white-space:nowrap">${dtFmt}</td>
-      <td style="padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--tx2);font-size:13px">${r.cia}</td>
-      <td style="padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--tx);font-size:13px;font-family:'DM Mono',monospace">${r.numero_dd}</td>
-      <td style="padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--tx2);font-size:13px;white-space:nowrap">${dtAtFmt}</td>
-      <td style="padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04)"><span style="color:${cor};font-size:12px;font-family:'DM Mono',monospace">${r.status}</span></td>
-      <td style="padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);text-align:center">${flagHtml}</td>
-      <td style="padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);text-align:center;color:var(--tx);font-size:13px">${r.quant_presos || 0}</td>
-      <td style="padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04)">${acoes}</td>
-    </tr>`;
-  }).join('');
-
-  const thStyle = 'padding:8px 12px;border-bottom:1px solid var(--bd);text-align:left;font-family:"DM Mono",monospace;font-size:11px;color:var(--tx3);white-space:nowrap;text-transform:uppercase;letter-spacing:1px';
+  const secTitle = txt => `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">${txt}</div>`;
+  const cardBox  = `background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px`;
 
   el.innerHTML = `
     <div class="card">
@@ -5990,31 +6020,150 @@ function renderDDSection() {
       <div style="margin-bottom:14px">${filtrosHtml}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-bottom:20px">${kpis}</div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
-        <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px">
-          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">Evolução Mensal — ${ddAnoFiltro}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div style="${cardBox}">
+          ${secTitle('Evolução Mensal — ' + ddAnoFiltro)}
           <canvas id="dd-chart-evolucao" style="height:240px;max-height:240px"></canvas>
         </div>
-        <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px">
-          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">Ranking por Cia</div>
+        <div style="${cardBox}">
+          ${secTitle('Ranking por CIA')}
           ${rankingHtml}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div style="${cardBox}">
+          ${secTitle('Funil de Efetividade')}
+          <div style="display:flex;flex-direction:column;gap:4px">${funilHtml}</div>
+        </div>
+        <div style="${cardBox}">
+          ${secTitle('Tempo Médio de Atendimento (dias)')}
+          <canvas id="dd-chart-tempo" style="height:200px;max-height:200px"></canvas>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div style="${cardBox}">
+          ${secTitle('Averiguações por CIA (Êxito vs Sem Êxito)')}
+          <canvas id="dd-chart-exito-cia" style="height:200px;max-height:200px"></canvas>
+        </div>
+        <div style="${cardBox}">
+          ${secTitle('Tendência de Efetividade Mensal')}
+          <canvas id="dd-chart-tendencia" style="height:200px;max-height:200px"></canvas>
         </div>
       </div>
 
     </div>`;
 
-  // Renderiza gráfico após innerHTML
-  const canvasEl = document.getElementById('dd-chart-evolucao');
-  if (canvasEl && todos.length) {
-    ddChart = new Chart(canvasEl.getContext('2d'), {
+  const c1 = document.getElementById('dd-chart-evolucao');
+  if (c1 && todos.length) {
+    ddChart = new Chart(c1.getContext('2d'), {
       type: 'bar',
       data: { labels: MESES_LABEL, datasets: evolDatasets },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#fff', font: { size: 13 }, boxWidth: 13, padding: 14 } } },
+        plugins: { legend: { labels: { color: '#fff', font: { size: 12 }, boxWidth: 12, padding: 12 } } },
         scales: {
           x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 12 } } },
           y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 12 } }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  const c2 = document.getElementById('dd-chart-tempo');
+  if (c2) {
+    const tempoCors = ['#5a9de0','#5ae09a','#f7d060','#e08a5a'];
+    ddChart2 = new Chart(c2.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: tempoCia.map(c => c.cia),
+        datasets: [{
+          label: 'Dias (média)',
+          data: tempoCia.map(c => c.media),
+          backgroundColor: tempoCors.map(c => c + 'bb'),
+          borderColor: tempoCors,
+          borderWidth: 1,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.raw} dias (n=${tempoCia[ctx.dataIndex].n})` } }
+        },
+        scales: {
+          x: { grid: GR, ticks: { color: '#fff', font: { size: 12 } }, beginAtZero: true },
+          y: { grid: { display: false }, ticks: { color: '#fff', font: { size: 13 } } }
+        }
+      }
+    });
+  }
+
+  const c3 = document.getElementById('dd-chart-exito-cia');
+  if (c3) {
+    ddChart3 = new Chart(c3.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: DD_CIAS,
+        datasets: [
+          { label: 'Com Êxito',  data: exitoCia.map(c => c.exito),    backgroundColor: '#5ae09abb', borderColor: '#5ae09a', borderWidth: 1, borderRadius: 3 },
+          { label: 'Sem Êxito',  data: exitoCia.map(c => c.semExito), backgroundColor: '#e08a5abb', borderColor: '#e08a5a', borderWidth: 1, borderRadius: 3 },
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#fff', font: { size: 12 }, boxWidth: 12, padding: 10 } } },
+        scales: {
+          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 12 } }, beginAtZero: true },
+          y: { stacked: true, grid: { display: false }, ticks: { color: '#fff', font: { size: 13 } } }
+        }
+      }
+    });
+  }
+
+  const c4 = document.getElementById('dd-chart-tendencia');
+  if (c4 && todos.length) {
+    ddChart4 = new Chart(c4.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: MESES_LABEL,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Total DD',
+            data: tendenciaTotal,
+            backgroundColor: '#5a9de033',
+            borderColor: '#5a9de066',
+            borderWidth: 1,
+            borderRadius: 3,
+            yAxisID: 'y',
+          },
+          {
+            type: 'line',
+            label: '% Êxito s/ Averiguadas',
+            data: tendenciaData,
+            borderColor: '#5ae09a',
+            backgroundColor: '#5ae09a20',
+            fill: true,
+            tension: 0.35,
+            pointBackgroundColor: '#5ae09a',
+            pointRadius: 4,
+            spanGaps: false,
+            yAxisID: 'y2',
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#fff', font: { size: 12 }, boxWidth: 12, padding: 10 } } },
+        scales: {
+          x:  { grid: GR, ticks: { color: '#fff', font: { size: 12 } } },
+          y:  { grid: GR, ticks: { color: '#fff', font: { size: 11 } }, beginAtZero: true, position: 'left' },
+          y2: { grid: { display: false }, ticks: { color: '#5ae09a', font: { size: 11 }, callback: v => v + '%' }, beginAtZero: true, max: 100, position: 'right' }
         }
       }
     });
