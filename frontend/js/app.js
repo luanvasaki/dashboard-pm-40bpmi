@@ -5787,22 +5787,12 @@ async function loadDDData() {
 }
 
 function renderDDKpi() {
-  // filtra apenas por mês (CIA do prod não corresponde às CIAs do DD)
-  const filtrado = ddData.filter(r => {
-    if (prodSelMeses && prodSelMeses.length) {
-      const d = new Date(r.data + 'T00:00:00');
-      if (!prodSelMeses.includes(MES_ORD[d.getMonth()])) return false;
-    }
-    return true;
-  });
-  const mesesDisp = prodGetMesesDisp ? prodGetMesesDisp(prodSelAno) : [];
-  const periodoLbl = (!prodSelMeses || prodSelMeses.length === mesesDisp.length)
-    ? 'Acumulado ' + ddAnoFiltro
-    : prodSelMeses.map(m => m.slice(0,3)).join(', ');
-  const total = filtrado.length;
-  const aver  = filtrado.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito') || ddStatusMatch(r.status,'Averiguada sem Êxito')).length;
+  // DD é independente da produtividade — sempre mostra o total do ano carregado
+  const total = ddData.length;
+  const aver  = ddData.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito') || ddStatusMatch(r.status,'Averiguada sem Êxito')).length;
   const pct   = total > 0 ? ((aver / total) * 100).toFixed(0) + '%' : '—';
-  const flags = filtrado.filter(r => r.flagrante).length;
+  const flags = ddData.filter(r => r.flagrante).length;
+  const periodoLbl = 'Acumulado ' + ddAnoFiltro;
   return `<div id="dd-kpi-card" class="kpi" onclick="openDDDetail()" title="Clique para detalhes" style="cursor:pointer">
     <div class="kpi-top" style="background:#5a9de0"></div>
     <div class="kpi-lbl">Disque Denúncia</div>
