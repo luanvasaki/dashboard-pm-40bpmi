@@ -4700,7 +4700,8 @@ function prodRender() {
       <div class="kpi-val" style="color:${VD_COR}">${totVD.toLocaleString('pt-BR')}</div>
       <div class="kpi-sub">${periodoLbl}</div>
       <div class="kpi-hint">▸ clique p/ detalhes</div>
-    </div>`;
+    </div>` +
+    renderDDKpi();
 
   // Cabeçalho de seção
   const sec = label => `<div style="grid-column:1/-1;display:flex;align-items:center;gap:12px;margin-top:10px;padding-bottom:8px;border-bottom:1px solid var(--bd2)">
@@ -5756,13 +5757,46 @@ let ddEditId      = null;
 let ddChart       = null;
 
 async function loadDDData() {
-  renderDDSection(); // mostra o card imediatamente (mesmo vazio)
   try {
     const res = await authFetch(`${API}/disque-denuncia?ano=${ddAnoFiltro}`);
     if (!res.ok) return;
     ddData = await res.json();
-    renderDDSection();
+    // atualiza KPI na grade se estiver visível
+    const kpiEl = document.getElementById('dd-kpi-card');
+    if (kpiEl) kpiEl.outerHTML = renderDDKpi();
+    // atualiza modal se estiver aberto
+    if (document.getElementById('dd-detail-mo').classList.contains('on')) renderDDSection();
   } catch(e) { console.error('loadDDData:', e); }
+}
+
+function renderDDKpi() {
+  const total   = ddData.length;
+  const aver    = ddData.filter(r => ['Averiguada com Êxito','Averiguada sem Êxito'].includes(r.status)).length;
+  const pct     = total > 0 ? ((aver / total) * 100).toFixed(0) + '%' : '—';
+  const flags   = ddData.filter(r => r.flagrante).length;
+  return `<div id="dd-kpi-card" class="kpi" onclick="openDDDetail()" title="Clique para detalhes" style="cursor:pointer">
+    <div class="kpi-top" style="background:#5a9de0"></div>
+    <div class="kpi-lbl">Disque Denúncia</div>
+    <div class="kpi-val" style="color:#5a9de0">${total.toLocaleString('pt-BR')}</div>
+    <div class="kpi-sub">${aver} averiguadas · ${flags} flagrantes</div>
+    <div class="kpi-sub" style="color:#c8a84b">${pct} averiguação</div>
+    <div class="kpi-hint">▸ clique p/ detalhes</div>
+  </div>`;
+}
+
+function openDDDetail() {
+  const mo = document.getElementById('dd-detail-mo');
+  mo.classList.add('on');
+  renderDDSection();
+}
+
+function closeDDDetail() {
+  document.getElementById('dd-detail-mo').classList.remove('on');
+  if (ddChart) { try { ddChart.destroy(); } catch(e){} ddChart = null; }
+}
+
+function ddDetailClickOut(e) {
+  if (e.target === document.getElementById('dd-detail-mo')) closeDDDetail();
 }
 
 function ddFiltrados() {
@@ -5779,7 +5813,7 @@ function ddFiltrados() {
 function renderDDSection() {
   if (ddChart) { try { ddChart.destroy(); } catch(e){} ddChart = null; }
 
-  const el = document.getElementById('dd-section');
+  const el = document.getElementById('dd-detail-body');
   if (!el) return;
   const _role   = JSON.parse(localStorage.getItem('auth_user') || '{}').role || '';
   const canEdit = ['admin','p3','ti'].includes(_role);
@@ -5982,7 +6016,7 @@ function renderDDSection() {
 }
 
 function ddSetFiltro(campo, valor) {
-  if (campo === 'ano') { ddAnoFiltro = Number(valor); loadDDData(); }
+  if (campo === 'ano') { ddAnoFiltro = Number(valor); loadDDData().then(() => renderDDSection()); }
   else if (campo === 'mes') { ddMesFiltro = valor; renderDDSection(); }
   else if (campo === 'cia') { ddCiaFiltro = valor; renderDDSection(); }
 }

@@ -454,8 +454,6 @@
   <div id="iq-section" style="margin-top:24px"></div>
   <!-- Indicadores Históricos e Automáticos -->
   <div id="iq-historico-section"></div>
-  <!-- Disque Denúncia -->
-  <div id="dd-section" style="margin-top:24px"></div>
 </div>
 
 <!-- Modal Upload Disque Denúncia -->
@@ -509,6 +507,25 @@
     <div style="display:flex;gap:8px">
       <button id="prod-upl-btn" onclick="prodUplConfirm()" disabled style="flex:1;padding:8px;background:var(--gold);color:#111;border:none;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;opacity:.5">Importar</button>
       <button onclick="closeProdUpl()" style="padding:8px 16px;background:var(--bg3);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-size:13px;cursor:pointer">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALHE DISQUE DENÚNCIA -->
+<div class="mo" id="dd-detail-mo" onclick="ddDetailClickOut(event)">
+  <div class="mo-box">
+    <div class="mo-head">
+      <div class="mo-tw">
+        <div class="mo-accent" style="background:#5a9de0"></div>
+        <div>
+          <div class="mo-crime">DISQUE DENÚNCIA</div>
+          <div class="mo-sub">ANÁLISE DETALHADA</div>
+        </div>
+      </div>
+      <button class="mo-close" onclick="closeDDDetail()">✕</button>
+    </div>
+    <div class="mo-body">
+      <div id="dd-detail-body"></div>
     </div>
   </div>
 </div>
