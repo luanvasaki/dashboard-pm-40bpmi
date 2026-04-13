@@ -5416,8 +5416,8 @@ function renderIqHistorico() {
       borderColor: c.cor, backgroundColor: 'transparent', tension: 0.3, pointRadius: 5, borderWidth: 2
     }))},
     options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#fff', font: { size: 11 }, boxWidth: 12, padding: 12 } } },
-      scales: { x: { grid: GR, ticks: { color: '#fff' } }, y: { grid: GR, ticks: { color: '#fff' }, beginAtZero: true } }
+      plugins: { legend: { labels: { color: '#fff', font: { size: 14 }, boxWidth: 14, padding: 16 } } },
+      scales: { x: { grid: GR, ticks: { color: '#fff', font: { size: 13 } } }, y: { grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true } }
     }
   }));
 
@@ -5430,8 +5430,8 @@ function renderIqHistorico() {
       backgroundColor: c.cor + 'aa', borderColor: c.cor, borderWidth: 1, borderRadius: 3
     }))},
     options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#fff', font: { size: 11 }, boxWidth: 12, padding: 12 } } },
-      scales: { x: { grid: GR, ticks: { color: '#fff' } }, y: { grid: GR, ticks: { color: '#fff' }, beginAtZero: true } }
+      plugins: { legend: { labels: { color: '#fff', font: { size: 14 }, boxWidth: 14, padding: 16 } } },
+      scales: { x: { grid: GR, ticks: { color: '#fff', font: { size: 13 } } }, y: { grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true } }
     }
   }));
 }
