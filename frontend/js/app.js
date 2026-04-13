@@ -5753,6 +5753,12 @@ const DD_STATUS_COR = {
   'Averiguada sem Êxito':   '#e08a5a',
   'Sem Averiguação':        '#e06060',
 };
+const ddNorm = s => (s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const ddStatusMatch = (stored, expected) => ddNorm(stored) === ddNorm(expected);
+const ddStatusCor = s => {
+  const key = DD_STATUS.find(k => ddStatusMatch(s, k));
+  return key ? DD_STATUS_COR[key] : '#aaa';
+};
 
 let ddData        = [];
 let ddAnoFiltro   = new Date().getFullYear();
@@ -5791,7 +5797,7 @@ function renderDDKpi() {
     : (prodSelMeses || []).join(', ');
   // total = todos os registros do período (qualquer status = já é uma denúncia recebida)
   const total = filtrado.length;
-  const aver  = filtrado.filter(r => ['Averiguada com Êxito','Averiguada sem Êxito'].includes(r.status)).length;
+  const aver  = filtrado.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito') || ddStatusMatch(r.status,'Averiguada sem Êxito')).length;
   const pct   = total > 0 ? ((aver / total) * 100).toFixed(0) + '%' : '—';
   const flags = filtrado.filter(r => r.flagrante).length;
   return `<div id="dd-kpi-card" class="kpi" onclick="openDDDetail()" title="Clique para detalhes" style="cursor:pointer">
@@ -5844,10 +5850,10 @@ function renderDDSection() {
   const todos     = ddData; // todos do ano para gráficos
 
   const total       = registros.length;
-  const exito       = registros.filter(r => r.status === 'Averiguada com Êxito').length;
-  const semExito    = registros.filter(r => r.status === 'Averiguada sem Êxito').length;
-  const andamento   = registros.filter(r => r.status === 'Andamento').length;
-  const semAver     = registros.filter(r => r.status === 'Sem Averiguação').length;
+  const exito       = registros.filter(r => ddStatusMatch(r.status, 'Averiguada com Êxito')).length;
+  const semExito    = registros.filter(r => ddStatusMatch(r.status, 'Averiguada sem Êxito')).length;
+  const andamento   = registros.filter(r => ddStatusMatch(r.status, 'Andamento')).length;
+  const semAver     = registros.filter(r => ddStatusMatch(r.status, 'Sem Averiguação')).length;
   const averiguadas = exito + semExito;
   const pctAver     = total > 0 ? ((averiguadas / total) * 100).toFixed(1) : '—';
   const flagrantes  = registros.filter(r => r.flagrante).length;
@@ -5881,7 +5887,7 @@ function renderDDSection() {
     { label: 'Em Andamento',        status: 'Andamento',               cor: '#f7d060' },
   ].map(d => ({
     label: d.label,
-    data: MESES_LABEL.map((_, i) => todos.filter(r => getMes(r) === i && r.status === d.status).length),
+    data: MESES_LABEL.map((_, i) => todos.filter(r => getMes(r) === i && ddStatusMatch(r.status, d.status)).length),
     backgroundColor: d.cor + 'bb',
     borderColor: d.cor,
     borderWidth: 1,
@@ -5892,7 +5898,7 @@ function renderDDSection() {
   const rankingRows = DD_CIAS.map(cia => {
     const ciaDados = registros.filter(r => r.cia === cia);
     const cTotal   = ciaDados.length;
-    const cAver    = ciaDados.filter(r => ['Averiguada com Êxito','Averiguada sem Êxito'].includes(r.status)).length;
+    const cAver    = ciaDados.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito') || ddStatusMatch(r.status,'Averiguada sem Êxito')).length;
     const cFlag    = ciaDados.filter(r => r.flagrante).length;
     const cPresos  = ciaDados.reduce((s, r) => s + (Number(r.quant_presos) || 0), 0);
     const cPct     = cTotal > 0 ? ((cAver / cTotal) * 100).toFixed(0) + '%' : '—';
@@ -5947,7 +5953,7 @@ function renderDDSection() {
 
   // ── Tabela ────────────────────────────────────────────────────────────────
   const linhas = registros.map(r => {
-    const cor     = DD_STATUS_COR[r.status] || '#fff';
+    const cor     = ddStatusCor(r.status);
     const dtFmt   = r.data ? r.data.split('-').reverse().join('/') : '—';
     const dtAtFmt = r.data_atendimento ? r.data_atendimento.split('-').reverse().join('/') : '—';
     const flagHtml = r.flagrante
