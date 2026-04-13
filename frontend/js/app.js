@@ -5768,7 +5768,7 @@ const ddStatusCor = s => DD_STATUS_COR[ddClassStatus(s)] || '#aaa';
 
 let ddData        = [];
 let ddAnoFiltro   = new Date().getFullYear();
-let ddMesFiltro   = '';
+let ddMesFiltro   = []; // array de nomes de meses, vazio = todos
 let ddCiaFiltro   = '';
 let ddEditId      = null;
 let ddChart       = null;
@@ -5833,9 +5833,9 @@ function ddDetailClickOut(e) {
 
 function ddFiltrados() {
   return ddData.filter(r => {
-    if (ddMesFiltro) {
-      const m = String(new Date(r.data + 'T00:00:00').getMonth() + 1).padStart(2, '0');
-      if (m !== ddMesFiltro) return false;
+    if (ddMesFiltro.length) {
+      const nomeMes = MES_ORD[new Date(r.data + 'T00:00:00').getMonth()];
+      if (!ddMesFiltro.includes(nomeMes)) return false;
     }
     if (ddCiaFiltro && r.cia !== ddCiaFiltro) return false;
     return true;
@@ -5933,29 +5933,25 @@ function renderDDSection() {
       </tr>`).join('')}</tbody>
     </table>` : `<div style="color:var(--tx3);font-size:13px;padding:12px">Sem dados para o filtro selecionado.</div>`;
 
-  // ── Filtros ───────────────────────────────────────────────────────────────
-  const mesesOpt = [
-    ['','Todos os meses'],
-    ['01','Janeiro'],['02','Fevereiro'],['03','Março'],['04','Abril'],
-    ['05','Maio'],['06','Junho'],['07','Julho'],['08','Agosto'],
-    ['09','Setembro'],['10','Outubro'],['11','Novembro'],['12','Dezembro'],
-  ];
-  const selectStyle = 'background:var(--bg2);color:var(--tx1);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:13px;font-family:"DM Mono",monospace;cursor:pointer';
-  const optStyle    = 'background:#111;color:#fff';
-
-  const filtrosHtml = `
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <select onchange="ddSetFiltro('ano',this.value)" style="${selectStyle}">
-        ${[2024,2025,2026,2027].map(a => `<option value="${a}"${ddAnoFiltro==a?' selected':''} style="${optStyle}">${a}</option>`).join('')}
-      </select>
-      <select onchange="ddSetFiltro('mes',this.value)" style="${selectStyle}">
-        ${mesesOpt.map(([v,l]) => `<option value="${v}"${ddMesFiltro===v?' selected':''} style="${optStyle}">${l}</option>`).join('')}
-      </select>
-      <select onchange="ddSetFiltro('cia',this.value)" style="${selectStyle}">
-        <option value="" style="${optStyle}">Todas as Cias</option>
-        ${DD_CIAS.map(c => `<option value="${c}"${ddCiaFiltro===c?' selected':''} style="${optStyle}">${c}</option>`).join('')}
-      </select>
-    </div>`;
+  // ── Filtros (padrão pf-btn) ───────────────────────────────────────────────
+  const allMeses = ddMesFiltro.length === 0;
+  const optStyle = 'background:#111;color:#fff';
+  let filtrosHtml = `<div class="pf" style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">`;
+  // Ano
+  filtrosHtml += `<div class="pf-field"><span class="pf-label">ANO</span><select class="pf-select" onchange="ddSetFiltro('ano',this.value)">`;
+  [2024,2025,2026,2027].forEach(a => filtrosHtml += `<option value="${a}"${ddAnoFiltro==a?' selected':''}>${a}</option>`);
+  filtrosHtml += `</select></div>`;
+  // Meses
+  filtrosHtml += `<div class="pf-field"><span class="pf-label">MÊS</span><div style="display:flex;gap:4px;flex-wrap:wrap">`;
+  filtrosHtml += `<button onclick="ddSetFiltro('mes','__all__')" class="pf-btn${allMeses?' on':''}">Todos</button>`;
+  MES_ORD.forEach(m => filtrosHtml += `<button onclick="ddTogMes('${m}')" class="pf-btn${ddMesFiltro.includes(m)?' on':''}">${m.slice(0,3)}</button>`);
+  filtrosHtml += `</div></div>`;
+  // CIA
+  filtrosHtml += `<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" onchange="ddSetFiltro('cia',this.value)">`;
+  filtrosHtml += `<option value="">Todas</option>`;
+  DD_CIAS.forEach(c => filtrosHtml += `<option value="${c}"${ddCiaFiltro===c?' selected':''}>${c}</option>`);
+  filtrosHtml += `</select></div>`;
+  filtrosHtml += `</div></div>`;
 
   // ── Tabela ────────────────────────────────────────────────────────────────
   const linhas = registros.map(r => {
@@ -6028,9 +6024,15 @@ function renderDDSection() {
 }
 
 function ddSetFiltro(campo, valor) {
-  if (campo === 'ano') { ddAnoFiltro = Number(valor); loadDDData().then(() => renderDDSection()); }
-  else if (campo === 'mes') { ddMesFiltro = valor; renderDDSection(); }
+  if (campo === 'ano') { ddAnoFiltro = Number(valor); ddMesFiltro = []; loadDDData().then(() => renderDDSection()); }
+  else if (campo === 'mes') { ddMesFiltro = valor === '__all__' ? [] : [valor]; renderDDSection(); }
   else if (campo === 'cia') { ddCiaFiltro = valor; renderDDSection(); }
+}
+
+function ddTogMes(mes) {
+  if (ddMesFiltro.includes(mes)) ddMesFiltro = ddMesFiltro.filter(m => m !== mes);
+  else ddMesFiltro = [...ddMesFiltro, mes];
+  renderDDSection();
 }
 
 function openDDMo(id) {
