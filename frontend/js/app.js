@@ -5910,8 +5910,8 @@ function renderDDSection() {
     return { cia, cTotal, cAver, cFlag, cPresos, cPct };
   }).filter(r => r.cTotal > 0).sort((a, b) => b.cTotal - a.cTotal);
 
-  const thR = 'padding:7px 12px;border-bottom:1px solid var(--bd);font-family:"DM Mono",monospace;font-size:11px;color:#ccc;text-transform:uppercase;letter-spacing:1px';
-  const tdR = 'padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;color:var(--tx2)';
+  const thR = 'padding:9px 14px;border-bottom:1px solid var(--bd);font-family:"DM Mono",monospace;font-size:12px;color:#ccc;text-transform:uppercase;letter-spacing:1px';
+  const tdR = 'padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:15px;color:var(--tx2)';
   const rankingHtml = rankingRows.length ? `
     <table style="width:100%;border-collapse:collapse">
       <thead><tr>
@@ -5948,8 +5948,8 @@ function renderDDSection() {
     return `
       <div>
         <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-          <span style="font-size:12px;color:#fff;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px">${s.label}</span>
-          <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.cor};line-height:1">${s.val.toLocaleString('pt-BR')}</span>
+          <span style="font-size:14px;color:#fff;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px">${s.label}</span>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${s.cor};line-height:1">${s.val.toLocaleString('pt-BR')}</span>
         </div>
         <div style="height:18px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden">
           <div style="height:100%;width:${barPct}%;background:${s.cor}55;border-left:3px solid ${s.cor};border-radius:0 4px 4px 0"></div>
@@ -6020,37 +6020,31 @@ function renderDDSection() {
       <div style="margin-bottom:14px">${filtrosHtml}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-bottom:20px">${kpis}</div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:16px">
         <div style="${cardBox}">
           ${secTitle('Evolução Mensal — ' + ddAnoFiltro)}
-          <canvas id="dd-chart-evolucao" style="height:240px;max-height:240px"></canvas>
+          <canvas id="dd-chart-evolucao" style="height:320px;max-height:320px"></canvas>
         </div>
         <div style="${cardBox}">
           ${secTitle('Ranking por CIA')}
           ${rankingHtml}
         </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
         <div style="${cardBox}">
           ${secTitle('Funil de Efetividade')}
-          <div style="display:flex;flex-direction:column;gap:4px">${funilHtml}</div>
+          <div style="display:flex;flex-direction:column;gap:6px;max-width:700px">${funilHtml}</div>
         </div>
         <div style="${cardBox}">
           ${secTitle('Tempo Médio de Atendimento (dias)')}
-          <div style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;margin-bottom:10px;margin-top:-6px">n = registros com data de atendimento preenchida</div>
-          <canvas id="dd-chart-tempo" style="height:200px;max-height:200px"></canvas>
+          <div style="font-size:12px;color:#aaa;font-family:'DM Mono',monospace;margin-bottom:12px;margin-top:-6px">n = registros com data de atendimento preenchida</div>
+          <canvas id="dd-chart-tempo" style="height:280px;max-height:280px"></canvas>
         </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
         <div style="${cardBox}">
           ${secTitle('Averiguações por CIA (Êxito vs Sem Êxito)')}
-          <canvas id="dd-chart-exito-cia" style="height:200px;max-height:200px"></canvas>
+          <canvas id="dd-chart-exito-cia" style="height:280px;max-height:280px"></canvas>
         </div>
         <div style="${cardBox}">
           ${secTitle('Tendência de Efetividade Mensal')}
-          <canvas id="dd-chart-tendencia" style="height:200px;max-height:200px"></canvas>
+          <canvas id="dd-chart-tendencia" style="height:300px;max-height:300px"></canvas>
         </div>
       </div>
 
@@ -6063,10 +6057,10 @@ function renderDDSection() {
       data: { labels: MESES_LABEL, datasets: evolDatasets },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#fff', font: { size: 12 }, boxWidth: 12, padding: 12 } } },
+        plugins: { legend: { labels: { color: '#fff', font: { size: 14 }, boxWidth: 14, padding: 16 } } },
         scales: {
-          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 12 } } },
-          y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 12 } }, beginAtZero: true }
+          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } } },
+          y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true }
         }
       }
     });
@@ -6096,8 +6090,8 @@ function renderDDSection() {
           tooltip: { callbacks: { label: ctx => ` ${ctx.raw} dias (n=${tempoCia[ctx.dataIndex].n})` } }
         },
         scales: {
-          x: { grid: GR, ticks: { color: '#fff', font: { size: 12 } }, beginAtZero: true },
-          y: { grid: { display: false }, ticks: { color: '#fff', font: { size: 13 } } }
+          x: { grid: GR, ticks: { color: '#fff', font: { size: 14 } }, beginAtZero: true },
+          y: { grid: { display: false }, ticks: { color: '#fff', font: { size: 14 } } }
         }
       }
     });
@@ -6117,10 +6111,10 @@ function renderDDSection() {
       options: {
         indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#fff', font: { size: 12 }, boxWidth: 12, padding: 10 } } },
+        plugins: { legend: { labels: { color: '#fff', font: { size: 14 }, boxWidth: 14, padding: 14 } } },
         scales: {
-          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 12 } }, beginAtZero: true },
-          y: { stacked: true, grid: { display: false }, ticks: { color: '#fff', font: { size: 13 } } }
+          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 14 } }, beginAtZero: true },
+          y: { stacked: true, grid: { display: false }, ticks: { color: '#fff', font: { size: 14 } } }
         }
       }
     });
@@ -6160,11 +6154,11 @@ function renderDDSection() {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#fff', font: { size: 12 }, boxWidth: 12, padding: 10 } } },
+        plugins: { legend: { labels: { color: '#fff', font: { size: 14 }, boxWidth: 14, padding: 14 } } },
         scales: {
-          x:  { grid: GR, ticks: { color: '#fff', font: { size: 12 } } },
-          y:  { grid: GR, ticks: { color: '#fff', font: { size: 11 } }, beginAtZero: true, position: 'left' },
-          y2: { grid: { display: false }, ticks: { color: '#5ae09a', font: { size: 11 }, callback: v => v + '%' }, beginAtZero: true, max: 100, position: 'right' }
+          x:  { grid: GR, ticks: { color: '#fff', font: { size: 13 } } },
+          y:  { grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true, position: 'left' },
+          y2: { grid: { display: false }, ticks: { color: '#5ae09a', font: { size: 13 }, callback: v => v + '%' }, beginAtZero: true, max: 100, position: 'right' }
         }
       }
     });
