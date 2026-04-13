@@ -1200,6 +1200,54 @@ app.delete('/api/disque-denuncia/:id', requireAuth, requireRole('admin', 'p3'), 
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+app.post('/api/disque-denuncia/upload', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  const { records } = req.body;
+  if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
+
+  const parseDate = v => {
+    if (!v) return null;
+    // DD/MM/YYYY → YYYY-MM-DD
+    const m = String(v).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    // YYYY-MM-DD
+    if (String(v).match(/^\d{4}-\d{2}-\d{2}/)) return String(v).slice(0,10);
+    return null;
+  };
+
+  try {
+    const rows = records.map(r => {
+      const col = k => {
+        const key = Object.keys(r).find(x => x.toLowerCase().trim().includes(k));
+        return key ? String(r[key]).trim() : '';
+      };
+      const data = parseDate(col('data do atend') ? col('data do atend') : col('data'));
+      const dataAtend = parseDate(col('data do atend'));
+      const dataBase  = parseDate(col('data'));
+      if (!dataBase) return null;
+      const cia = col('cia');
+      const numero_dd = col('disque') || col('nº') || col('numero');
+      const status = col('status');
+      const flagranteRaw = col('flagrante').toLowerCase();
+      const flagrante = flagranteRaw === 'sim' || flagranteRaw === 'true' || flagranteRaw === '1';
+      const quant_presos = parseInt(col('presos') || col('quant')) || 0;
+      if (!cia || !numero_dd || !DD_STATUS.includes(status)) return null;
+      return { data: dataBase, cia, numero_dd, data_atendimento: dataAtend, status, flagrante, quant_presos };
+    }).filter(Boolean);
+
+    if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique as colunas do CSV.' });
+
+    const BATCH = 500;
+    let total = 0;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const { error } = await supabase.from('disque_denuncia_registros').insert(rows.slice(i, i + BATCH));
+      if (error) throw new Error(error.message);
+      total += Math.min(BATCH, rows.length - i);
+    }
+    res.json({ ok: true, total });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });

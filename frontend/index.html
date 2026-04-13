@@ -458,6 +458,21 @@
   <div id="dd-section" style="margin-top:24px"></div>
 </div>
 
+<!-- Modal Upload Disque Denúncia -->
+<div id="dd-upl-mo" onclick="ddUplClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:24px;width:min(440px,92vw);max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:6px">Importar Disque Denúncia</div>
+    <div style="font-size:12px;color:var(--tx3);margin-bottom:14px;font-family:'DM Mono',monospace">Colunas esperadas: Data · Cia · Nº Disque Denuncia · Data do Atendimento · Status · Flagrante · Quant. Presos</div>
+    <input type="file" accept=".csv" id="dd-upl-file" onchange="ddUplFileChange()" style="width:100%;margin-bottom:10px;color:var(--tx);font-size:12px">
+    <div id="dd-upl-preview" style="font-size:12px;margin-bottom:10px;min-height:20px"></div>
+    <div id="dd-upl-msg" style="font-size:12px;margin-bottom:10px;min-height:16px"></div>
+    <div style="display:flex;gap:8px">
+      <button id="dd-upl-btn" onclick="ddUplConfirm()" disabled style="flex:1;padding:8px;background:var(--gold);color:#111;border:none;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;opacity:.5">Importar</button>
+      <button onclick="closeDDUpl()" style="padding:8px 16px;background:var(--bg3);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-size:13px;cursor:pointer">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Disque Denúncia -->
 <div id="dd-mo" onclick="ddMoClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;align-items:center;justify-content:center">
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:24px;width:min(500px,95vw);max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">

@@ -5862,7 +5862,11 @@ function renderDDSection() {
           <div class="card-title">Disque Denúncia</div>
           <span style="font-size:11px;color:#5a9de0;font-family:'DM Mono',monospace;letter-spacing:1px">${ddAnoFiltro}</span>
         </div>
-        ${canEdit ? `<button onclick="openDDMo(null)" style="padding:6px 16px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">+ Novo Registro</button>` : ''}
+        ${canEdit ? `
+          <div style="display:flex;gap:8px">
+            <button onclick="openDDUpl()" style="padding:6px 16px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.3);color:#c8a84b;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">↑ Importar CSV</button>
+            <button onclick="openDDMo(null)" style="padding:6px 16px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">+ Novo Registro</button>
+          </div>` : ''}
       </div>
       <div style="margin-bottom:14px">${filtrosHtml}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:18px">${kpis}</div>
@@ -5968,6 +5972,80 @@ async function deleteDDRecord(id) {
     if (!res.ok) { alert('Erro ao excluir.'); return; }
     await loadDDData();
   } catch(e) { alert('Erro de conexão.'); }
+}
+
+// ---------------------------------------------------------------------------
+// Disque Denúncia — Upload CSV
+// ---------------------------------------------------------------------------
+
+let ddUplParsed = [];
+
+function openDDUpl() {
+  ddUplParsed = [];
+  document.getElementById('dd-upl-file').value = '';
+  document.getElementById('dd-upl-preview').innerHTML = '';
+  document.getElementById('dd-upl-msg').innerHTML = '';
+  const btn = document.getElementById('dd-upl-btn');
+  btn.disabled = true; btn.style.opacity = '.5';
+  document.getElementById('dd-upl-mo').style.display = 'flex';
+}
+
+function closeDDUpl() {
+  document.getElementById('dd-upl-mo').style.display = 'none';
+}
+
+function ddUplClickOut(e) {
+  if (e.target === document.getElementById('dd-upl-mo')) closeDDUpl();
+}
+
+function ddUplFileChange() {
+  const file = document.getElementById('dd-upl-file').files[0];
+  const prev = document.getElementById('dd-upl-preview');
+  const btn  = document.getElementById('dd-upl-btn');
+  ddUplParsed = [];
+  btn.disabled = true; btn.style.opacity = '.5';
+  prev.innerHTML = '';
+  if (!file) return;
+  Papa.parse(file, {
+    header: true, skipEmptyLines: true,
+    complete: r => {
+      if (!r.data.length) { prev.innerHTML = '<span style="color:#e06060">Arquivo vazio.</span>'; return; }
+      const keys = Object.keys(r.data[0]).map(k => k.toLowerCase().trim());
+      const hasData = keys.some(k => k.includes('data'));
+      const hasCia  = keys.some(k => k.includes('cia'));
+      const hasNum  = keys.some(k => k.includes('disque') || k.includes('nº') || k.includes('numero'));
+      if (!hasData || !hasCia || !hasNum) {
+        prev.innerHTML = `<span style="color:#e06060">Colunas obrigatórias não encontradas. Verifique: Data, Cia, Nº Disque Denuncia.</span>`;
+        return;
+      }
+      ddUplParsed = r.data;
+      prev.innerHTML = `<span style="color:#4bc87a">✓ <b>${r.data.length}</b> registros lidos.</span>`;
+      btn.disabled = false; btn.style.opacity = '1';
+    },
+    error: err => { prev.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`; }
+  });
+}
+
+async function ddUplConfirm() {
+  const btn = document.getElementById('dd-upl-btn');
+  const msg = document.getElementById('dd-upl-msg');
+  if (!ddUplParsed.length) return;
+  btn.disabled = true; btn.style.opacity = '.5';
+  msg.innerHTML = '<span style="color:var(--tx3)">Enviando...</span>';
+  try {
+    const res = await authFetch(`${API}/disque-denuncia/upload`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ records: ddUplParsed })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
+    msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.total} registros importados.</span>`;
+    await loadDDData();
+    setTimeout(closeDDUpl, 1800);
+  } catch (err) {
+    msg.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`;
+    btn.disabled = false; btn.style.opacity = '1';
+  }
 }
 
 // ---------------------------------------------------------------------------
