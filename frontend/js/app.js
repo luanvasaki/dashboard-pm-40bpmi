@@ -5934,17 +5934,18 @@ function renderDDSection() {
     </table>` : `<div style="color:var(--tx3);font-size:13px;padding:12px">Sem dados para o filtro selecionado.</div>`;
 
   // ── Filtros (padrão pf-btn) ───────────────────────────────────────────────
+  // meses com dados no banco (preserva ordem do calendário)
+  const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.data + 'T00:00:00').getMonth()] === m));
   const allMeses = ddMesFiltro.length === 0;
-  const optStyle = 'background:#111;color:#fff';
   let filtrosHtml = `<div class="pf" style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">`;
   // Ano
   filtrosHtml += `<div class="pf-field"><span class="pf-label">ANO</span><select class="pf-select" onchange="ddSetFiltro('ano',this.value)">`;
   [2024,2025,2026,2027].forEach(a => filtrosHtml += `<option value="${a}"${ddAnoFiltro==a?' selected':''}>${a}</option>`);
   filtrosHtml += `</select></div>`;
-  // Meses
+  // Meses com dados
   filtrosHtml += `<div class="pf-field"><span class="pf-label">MÊS</span><div style="display:flex;gap:4px;flex-wrap:wrap">`;
   filtrosHtml += `<button onclick="ddSetFiltro('mes','__all__')" class="pf-btn${allMeses?' on':''}">Todos</button>`;
-  MES_ORD.forEach(m => filtrosHtml += `<button onclick="ddTogMes('${m}')" class="pf-btn${ddMesFiltro.includes(m)?' on':''}">${m.slice(0,3)}</button>`);
+  mesesComDados.forEach(m => filtrosHtml += `<button onclick="ddTogMes('${m}')" class="pf-btn${ddMesFiltro.includes(m)?' on':''}">${m.slice(0,3)}</button>`);
   filtrosHtml += `</div></div>`;
   // CIA
   filtrosHtml += `<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" onchange="ddSetFiltro('cia',this.value)">`;
