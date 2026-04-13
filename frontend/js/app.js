@@ -466,6 +466,7 @@ let charts   = {};
 let iqData = [];
 let iqCharts = [];
 let iqCalculadoData = [];
+let iqHistCharts = [];
 const IQ_PRAZO_DIA = 10;
 
 // Dados históricos anuais 2021-2024
@@ -5280,14 +5281,15 @@ async function loadIqCalculado() {
 }
 
 function renderIqHistorico() {
+  iqHistCharts.forEach(c => { try { c.destroy(); } catch(e){} });
+  iqHistCharts = [];
+
   const el = document.getElementById('iq-historico-section');
   if (!el) return;
 
-  // Monta lista de anos: histórico + calculados
   const anosCalc = iqCalculadoData.map(r => r.ano).filter(a => !IQ_HISTORICO_ANOS.includes(a) && a !== 2025);
   const anos = [...IQ_HISTORICO_ANOS, ...anosCalc].sort();
 
-  // Retorna o valor BRUTO (contagem real) para exibição
   const getVal = (c, ano) => {
     if (IQ_HISTORICO_ANOS.includes(ano)) {
       const v = IQ_HISTORICO[c.key]?.[ano] ?? null;
@@ -5303,6 +5305,7 @@ function renderIqHistorico() {
     return v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + (unit ? ' ' + unit : '');
   };
 
+  // ── Tabela ─────────────────────────────────────────────────────────────
   const headerCells = anos.map(a => {
     const isCalc = !IQ_HISTORICO_ANOS.includes(a);
     return `<th style="padding:8px 14px;border-bottom:1px solid var(--bd);text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:${isCalc ? '#5a9de0' : 'var(--tx3)'};${isCalc ? 'background:rgba(90,157,224,.06)' : ''}">${a}${isCalc ? ' ●' : ''}</th>`;
@@ -5318,28 +5321,77 @@ function renderIqHistorico() {
       let trend = '';
       if (prev !== null && v !== prev) {
         const melhorou = c.melhor === 'maior' ? v > prev : v < prev;
-        trend = melhorou
-          ? ' <span style="color:#5ae09a;font-size:10px">▲</span>'
-          : ' <span style="color:#e06060;font-size:10px">▼</span>';
+        trend = melhorou ? ' <span style="color:#5ae09a;font-size:10px">▲</span>' : ' <span style="color:#e06060;font-size:10px">▼</span>';
       }
       return `<td style="padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.03);text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--tx);${bg}">${fmtVal(v, c.unit)}${trend}</td>`;
     }).join('');
-
-    const autoBadge = c.auto
-      ? `<span style="font-size:10px;background:rgba(90,157,224,.15);color:#5a9de0;border-radius:3px;padding:1px 5px;margin-left:6px;font-family:'DM Mono',monospace">AUTO</span>`
-      : '';
-
-    return `<tr>
-      <td style="padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.03);color:${c.cor};font-size:13px;white-space:nowrap">${c.label}${autoBadge}</td>
-      ${cells}
-    </tr>`;
+    const autoBadge = c.auto ? `<span style="font-size:10px;background:rgba(90,157,224,.15);color:#5a9de0;border-radius:3px;padding:1px 5px;margin-left:6px;font-family:'DM Mono',monospace">AUTO</span>` : '';
+    return `<tr><td style="padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.03);color:${c.cor};font-size:13px;white-space:nowrap">${c.label}${autoBadge}</td>${cells}</tr>`;
   }).join('');
 
+  // ── Grupos para gráficos ───────────────────────────────────────────────
+  const CRIMES_CAMPOS = IQ_AUTO_CAMPOS.filter(c => ['homicidio_doloso','latrocinio','roubo_outros','roubo_veiculo','furto_veiculo'].includes(c.key));
+  const PROD_CAMPOS   = IQ_AUTO_CAMPOS.filter(c => ['armas_apreendidas','flagrantes_pm','pessoas_presas','menores_presos','procurados'].includes(c.key));
+
+  // ── Insights automáticos ───────────────────────────────────────────────
+  const insights = [];
+
+  // Latrocínio zerado
+  const latC = IQ_AUTO_CAMPOS.find(c => c.key === 'latrocinio');
+  const latVals = anos.map(a => getVal(latC, a)).filter(v => v !== null);
+  if (latVals.length && latVals.every(v => v === 0))
+    insights.push({ icon: '🏆', cor: '#5ae09a', titulo: 'Latrocínio Zerado', texto: `Nenhum latrocínio registrado em ${latVals.length} anos consecutivos.` });
+
+  // Tendência crimes
+  CRIMES_CAMPOS.filter(c => c.key !== 'latrocinio').forEach(c => {
+    const vals = anos.map(a => getVal(c, a)).filter(v => v !== null);
+    if (vals.length < 2 || vals[0] === 0) return;
+    const pct = Math.round((vals[vals.length-1] - vals[0]) / vals[0] * 100);
+    if (Math.abs(pct) < 10) return;
+    insights.push({ icon: pct < 0 ? '📉' : '📈', cor: pct < 0 ? '#5ae09a' : '#e06060', titulo: c.label,
+      texto: pct < 0 ? `Redução de ${Math.abs(pct)}% de ${anos[0]} a ${anos[anos.length-1]}.` : `Aumento de ${pct}% de ${anos[0]} a ${anos[anos.length-1]}.` });
+  });
+
+  // Tendência produtividade
+  PROD_CAMPOS.forEach(c => {
+    const vals = anos.map(a => getVal(c, a)).filter(v => v !== null);
+    if (vals.length < 2 || vals[0] === 0) return;
+    const pct = Math.round((vals[vals.length-1] - vals[0]) / vals[0] * 100);
+    if (Math.abs(pct) < 10) return;
+    insights.push({ icon: pct > 0 ? '⬆️' : '⬇️', cor: pct > 0 ? '#5ae09a' : '#e06060', titulo: c.label,
+      texto: pct > 0 ? `Crescimento de ${pct}% de ${anos[0]} a ${anos[anos.length-1]}.` : `Queda de ${Math.abs(pct)}% de ${anos[0]} a ${anos[anos.length-1]}.` });
+  });
+
+  const insightCardsHtml = insights.length
+    ? insights.map(ins => `<div style="background:var(--s2);border:1px solid var(--bd);border-left:3px solid ${ins.cor};border-radius:8px;padding:12px 14px">
+        <div style="font-size:18px;margin-bottom:6px">${ins.icon}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:4px">${ins.titulo}</div>
+        <div style="font-size:12px;color:var(--tx2);line-height:1.5">${ins.texto}</div>
+      </div>`).join('')
+    : `<div style="color:var(--tx3);font-size:13px">Dados insuficientes para gerar insights.</div>`;
+
+  // ── Destaques históricos ───────────────────────────────────────────────
+  const recordCardsHtml = IQ_AUTO_CAMPOS
+    .filter(c => !['disque_denuncia','tempo_resposta_urgente'].includes(c.key))
+    .map(c => {
+      const valsAno = anos.map(a => ({ ano: a, v: getVal(c, a) })).filter(x => x.v !== null);
+      if (!valsAno.length) return '';
+      const melhor = c.melhor === 'maior'
+        ? valsAno.reduce((m, x) => x.v > m.v ? x : m)
+        : valsAno.reduce((m, x) => x.v < m.v ? x : m);
+      return `<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${c.cor};border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;line-height:1.3">${c.label}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${c.cor};line-height:1">${melhor.v.toLocaleString('pt-BR')}</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:4px">${c.melhor === 'maior' ? 'Melhor' : 'Menor'} — ${melhor.ano}</div>
+      </div>`;
+    }).join('');
+
+  // ── Render ─────────────────────────────────────────────────────────────
   el.innerHTML = `
     <div class="card" style="margin-top:16px">
       <div class="card-head" style="flex-wrap:wrap;gap:8px">
         <div class="card-title">Indicadores Históricos</div>
-        <span style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace">● anos em azul = calculados automaticamente do banco &nbsp;|&nbsp; AUTO = calculado via fórmula</span>
+        <span style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace">● azul = calculado do banco &nbsp;|&nbsp; AUTO = cálculo automático</span>
       </div>
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse">
@@ -5350,7 +5402,56 @@ function renderIqHistorico() {
           <tbody>${tableRows}</tbody>
         </table>
       </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+      <div class="card">
+        <div class="card-head"><div class="card-title">Tendência — Criminalidade</div></div>
+        <canvas id="iq-h-crimes" style="height:260px;max-height:260px"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">Tendência — Produtividade</div></div>
+        <canvas id="iq-h-prod" style="height:260px;max-height:260px"></canvas>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-head"><div class="card-title">Insights Automáticos</div></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">${insightCardsHtml}</div>
+    </div>
+
+    <div class="card" style="margin-top:14px;margin-bottom:16px">
+      <div class="card-head"><div class="card-title">Destaques Históricos</div></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">${recordCardsHtml}</div>
     </div>`;
+
+  // Gráfico crimes
+  const crimeEl = document.getElementById('iq-h-crimes');
+  if (crimeEl) iqHistCharts.push(new Chart(crimeEl.getContext('2d'), {
+    type: 'line',
+    data: { labels: anos, datasets: CRIMES_CAMPOS.map(c => ({
+      label: c.label, data: anos.map(a => getVal(c, a)),
+      borderColor: c.cor, backgroundColor: 'transparent', tension: 0.3, pointRadius: 5, borderWidth: 2
+    }))},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#fff', font: { size: 11 }, boxWidth: 12, padding: 12 } } },
+      scales: { x: { grid: GR, ticks: { color: '#fff' } }, y: { grid: GR, ticks: { color: '#fff' }, beginAtZero: true } }
+    }
+  }));
+
+  // Gráfico produtividade
+  const prodEl = document.getElementById('iq-h-prod');
+  if (prodEl) iqHistCharts.push(new Chart(prodEl.getContext('2d'), {
+    type: 'bar',
+    data: { labels: anos, datasets: PROD_CAMPOS.map(c => ({
+      label: c.label, data: anos.map(a => getVal(c, a)),
+      backgroundColor: c.cor + 'aa', borderColor: c.cor, borderWidth: 1, borderRadius: 3
+    }))},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#fff', font: { size: 11 }, boxWidth: 12, padding: 12 } } },
+      scales: { x: { grid: GR, ticks: { color: '#fff' } }, y: { grid: GR, ticks: { color: '#fff' }, beginAtZero: true } }
+    }
+  }));
 }
 
 function iqDestroyCharts() {
