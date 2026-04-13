@@ -5880,7 +5880,7 @@ function renderDDSection() {
     { label: 'Total Presos',           val: presos,      cor: '#c84b4b' },
     { label: 'Presos / Averiguada',    val: presosPerDD, cor: '#c84b9e' },
   ].map(k => `<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${k.cor};border-radius:8px;padding:14px">
-    <div style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;line-height:1.3">${k.label}</div>
+    <div style="font-size:11px;color:#ccc;font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;line-height:1.3">${k.label}</div>
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${k.cor};line-height:1">${k.val}</div>
   </div>`).join('');
 
@@ -5910,7 +5910,7 @@ function renderDDSection() {
     return { cia, cTotal, cAver, cFlag, cPresos, cPct };
   }).filter(r => r.cTotal > 0).sort((a, b) => b.cTotal - a.cTotal);
 
-  const thR = 'padding:7px 12px;border-bottom:1px solid var(--bd);font-family:"DM Mono",monospace;font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px';
+  const thR = 'padding:7px 12px;border-bottom:1px solid var(--bd);font-family:"DM Mono",monospace;font-size:11px;color:#ccc;text-transform:uppercase;letter-spacing:1px';
   const tdR = 'padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;color:var(--tx2)';
   const rankingHtml = rankingRows.length ? `
     <table style="width:100%;border-collapse:collapse">
@@ -5930,7 +5930,7 @@ function renderDDSection() {
         <td style="${tdR};text-align:center;color:#9b6de0">${r.cFlag}</td>
         <td style="${tdR};text-align:center;color:#c84b4b">${r.cPresos}</td>
       </tr>`).join('')}</tbody>
-    </table>` : `<div style="color:var(--tx3);font-size:13px;padding:12px">Sem dados para o filtro selecionado.</div>`;
+    </table>` : `<div style="color:#aaa;font-size:13px;padding:12px">Sem dados para o filtro selecionado.</div>`;
 
   // Funil de Efetividade
   const funilMax = total || 1;
@@ -5943,12 +5943,12 @@ function renderDDSection() {
   const funilHtml = funilSteps.map((s, i) => {
     const barPct = Math.max(8, (s.val / funilMax) * 100);
     const arrow  = i < funilSteps.length - 1
-      ? `<div style="text-align:center;color:var(--tx3);font-size:10px;padding:3px 0;letter-spacing:1px">▼ ${funilSteps[i+1].sub}</div>`
+      ? `<div style="text-align:center;color:#aaa;font-size:10px;padding:3px 0;letter-spacing:1px">▼ ${funilSteps[i+1].sub}</div>`
       : '';
     return `
       <div>
         <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-          <span style="font-size:12px;color:var(--tx2);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px">${s.label}</span>
+          <span style="font-size:12px;color:#fff;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px">${s.label}</span>
           <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.cor};line-height:1">${s.val.toLocaleString('pt-BR')}</span>
         </div>
         <div style="height:18px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden">
@@ -6004,7 +6004,7 @@ function renderDDSection() {
   filtrosHtml += `</select></div>`;
   filtrosHtml += `</div></div>`;
 
-  const secTitle = txt => `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">${txt}</div>`;
+  const secTitle = txt => `<div style="font-family:'DM Mono',monospace;font-size:11px;color:#fff;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">${txt}</div>`;
   const cardBox  = `background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px`;
 
   el.innerHTML = `
@@ -6038,6 +6038,7 @@ function renderDDSection() {
         </div>
         <div style="${cardBox}">
           ${secTitle('Tempo Médio de Atendimento (dias)')}
+          <div style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;margin-bottom:10px;margin-top:-6px">n = registros com data de atendimento preenchida</div>
           <canvas id="dd-chart-tempo" style="height:200px;max-height:200px"></canvas>
         </div>
       </div>
@@ -6077,7 +6078,7 @@ function renderDDSection() {
     ddChart2 = new Chart(c2.getContext('2d'), {
       type: 'bar',
       data: {
-        labels: tempoCia.map(c => c.cia),
+        labels: tempoCia.map(c => c.n > 0 ? `${c.cia} (n=${c.n})` : c.cia),
         datasets: [{
           label: 'Dias (média)',
           data: tempoCia.map(c => c.media),
