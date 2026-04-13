@@ -508,8 +508,6 @@ const IQ_AUTO_CAMPOS = [
   { key: 'cursos_concluidos',      label: 'Cursos Concluídos',       unit: 'PMs',   cor: '#c8a84b', melhor: 'maior', auto: false, fatorInv: IQ_EFETIVO_HIST / 100 },
 ];
 const IQ_CAMPOS = [
-  { key: 'disque_denuncia',    label: 'Disque-Denúncia',              unit: '',    cor: '#5a9de0' },
-  { key: 'tempo_resposta',     label: 'Tempo Resposta Urgente',       unit: 'min', cor: '#e08a5a' },
   { key: 'cursos_pm',          label: 'PMs em Cursos Institucionais', unit: '',    cor: '#9de05a' },
   { key: 'atendimento_vitima', label: 'Atend. Vítimas de Roubo',      unit: '',    cor: '#c84b4b' },
   { key: 'conseg_ativo',       label: 'CONSEGs Ativos',               unit: '',    cor: '#e0c05a' },
