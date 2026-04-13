@@ -5787,25 +5787,12 @@ async function loadDDData() {
 }
 
 function renderDDKpi() {
-  // filtra pelo mesmo período selecionado na grade de produtividade
-  const filtrado = ddData.filter(r => {
-    const d = new Date(r.data + 'T00:00:00');
-    if (prodSelAno && d.getFullYear() !== prodSelAno) return false;
-    if (prodSelMeses && prodSelMeses.length) {
-      const nomeMes = MES_ORD[d.getMonth()];
-      if (!prodSelMeses.includes(nomeMes)) return false;
-    }
-    return true;
-  });
-  const mesesDisp = prodGetMesesDisp ? prodGetMesesDisp(prodSelAno) : [];
-  const periodoLbl = prodSelMeses && prodSelMeses.length === mesesDisp.length
-    ? 'Acumulado ' + (prodSelAno || '')
-    : (prodSelMeses || []).join(', ');
-  // total = todos os registros do período (qualquer status = já é uma denúncia recebida)
-  const total = filtrado.length;
-  const aver  = filtrado.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito') || ddStatusMatch(r.status,'Averiguada sem Êxito')).length;
+  // KPI mostra total do ano inteiro (filtros internos ficam no modal)
+  const total = ddData.length;
+  const aver  = ddData.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito') || ddStatusMatch(r.status,'Averiguada sem Êxito')).length;
   const pct   = total > 0 ? ((aver / total) * 100).toFixed(0) + '%' : '—';
-  const flags = filtrado.filter(r => r.flagrante).length;
+  const flags = ddData.filter(r => r.flagrante).length;
+  const periodoLbl = 'Acumulado ' + ddAnoFiltro;
   return `<div id="dd-kpi-card" class="kpi" onclick="openDDDetail()" title="Clique para detalhes" style="cursor:pointer">
     <div class="kpi-top" style="background:#5a9de0"></div>
     <div class="kpi-lbl">Disque Denúncia</div>
