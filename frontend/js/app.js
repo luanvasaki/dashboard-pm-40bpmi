@@ -487,20 +487,24 @@ const IQ_HISTORICO = {
 };
 
 // Indicadores automáticos (calculados do banco ou histórico fixo)
+// fatorInv: multiplicador para reverter o resultado histórico ao valor bruto
+//   per100k → × (44539225/100000)   | perPM → × 345   | null → mostrar como está
+const IQ_POP_SEADE = 44539225;
+const IQ_EFETIVO_HIST = 345;
 const IQ_AUTO_CAMPOS = [
-  { key: 'homicidio_doloso',       label: 'Homicídio Doloso',        unit: '/100mil hab.', cor: '#c84b4b', melhor: 'menor', auto: true  },
-  { key: 'latrocinio',             label: 'Latrocínio',              unit: '/100mil hab.', cor: '#e06060', melhor: 'menor', auto: true  },
-  { key: 'roubo_outros',           label: 'Roubo Outros',            unit: '/100mil hab.', cor: '#e08a5a', melhor: 'menor', auto: true  },
-  { key: 'roubo_veiculo',          label: 'Roubo de Veículos',       unit: '/100mil hab.', cor: '#e0c05a', melhor: 'menor', auto: true  },
-  { key: 'furto_veiculo',          label: 'Furto de Veículos',       unit: '/100mil hab.', cor: '#9de05a', melhor: 'menor', auto: true  },
-  { key: 'armas_apreendidas',      label: 'Armas Apreendidas / PM',  unit: '',             cor: '#5a9de0', melhor: 'maior', auto: true  },
-  { key: 'flagrantes_pm',          label: 'Flagrantes / PM',         unit: '',             cor: '#5ae09a', melhor: 'maior', auto: true  },
-  { key: 'pessoas_presas',         label: 'Pessoas Presas / PM',     unit: '',             cor: '#4bc8a0', melhor: 'maior', auto: true  },
-  { key: 'menores_presos',         label: 'Menores Presos / PM',     unit: '',             cor: '#c84b9e', melhor: 'maior', auto: true  },
-  { key: 'procurados',             label: 'Procurados / PM',         unit: '',             cor: '#9b6de0', melhor: 'maior', auto: true  },
-  { key: 'disque_denuncia',        label: 'Disque Denúncia',         unit: '%',            cor: '#5a9de0', melhor: 'maior', auto: false },
-  { key: 'tempo_resposta_urgente', label: 'Tempo Resposta (≤20min)', unit: '',             cor: '#e08a5a', melhor: 'maior', auto: false },
-  { key: 'cursos_concluidos',      label: 'Cursos Concluídos',       unit: '%',            cor: '#c8a84b', melhor: 'maior', auto: false },
+  { key: 'homicidio_doloso',       label: 'Homicídio Doloso',        unit: 'ocorr.', cor: '#c84b4b', melhor: 'menor', auto: true,  fatorInv: IQ_POP_SEADE / 100000 },
+  { key: 'latrocinio',             label: 'Latrocínio',              unit: 'ocorr.', cor: '#e06060', melhor: 'menor', auto: true,  fatorInv: IQ_POP_SEADE / 100000 },
+  { key: 'roubo_outros',           label: 'Roubo Outros',            unit: 'ocorr.', cor: '#e08a5a', melhor: 'menor', auto: true,  fatorInv: IQ_POP_SEADE / 100000 },
+  { key: 'roubo_veiculo',          label: 'Roubo de Veículos',       unit: 'ocorr.', cor: '#e0c05a', melhor: 'menor', auto: true,  fatorInv: IQ_POP_SEADE / 100000 },
+  { key: 'furto_veiculo',          label: 'Furto de Veículos',       unit: 'ocorr.', cor: '#9de05a', melhor: 'menor', auto: true,  fatorInv: IQ_POP_SEADE / 100000 },
+  { key: 'armas_apreendidas',      label: 'Armas Apreendidas',       unit: 'unid.',  cor: '#5a9de0', melhor: 'maior', auto: true,  fatorInv: IQ_EFETIVO_HIST },
+  { key: 'flagrantes_pm',          label: 'Flagrantes',              unit: 'ocorr.', cor: '#5ae09a', melhor: 'maior', auto: true,  fatorInv: IQ_EFETIVO_HIST },
+  { key: 'pessoas_presas',         label: 'Pessoas Presas',          unit: 'pess.',  cor: '#4bc8a0', melhor: 'maior', auto: true,  fatorInv: IQ_EFETIVO_HIST },
+  { key: 'menores_presos',         label: 'Menores Presos',          unit: 'pess.',  cor: '#c84b9e', melhor: 'maior', auto: true,  fatorInv: IQ_EFETIVO_HIST },
+  { key: 'procurados',             label: 'Procurados',              unit: 'pess.',  cor: '#9b6de0', melhor: 'maior', auto: true,  fatorInv: IQ_EFETIVO_HIST },
+  { key: 'disque_denuncia',        label: 'Disque Denúncia',         unit: '%',      cor: '#5a9de0', melhor: 'maior', auto: false, fatorInv: null },
+  { key: 'tempo_resposta_urgente', label: 'Tempo Resposta (≤20min)', unit: '',       cor: '#e08a5a', melhor: 'maior', auto: false, fatorInv: null },
+  { key: 'cursos_concluidos',      label: 'Cursos Concluídos',       unit: 'PMs',   cor: '#c8a84b', melhor: 'maior', auto: false, fatorInv: IQ_EFETIVO_HIST / 100 },
 ];
 const IQ_CAMPOS = [
   { key: 'disque_denuncia',    label: 'Disque-Denúncia',              unit: '',    cor: '#5a9de0' },
@@ -5283,15 +5287,20 @@ function renderIqHistorico() {
   const anosCalc = iqCalculadoData.map(r => r.ano).filter(a => !IQ_HISTORICO_ANOS.includes(a) && a !== 2025);
   const anos = [...IQ_HISTORICO_ANOS, ...anosCalc].sort();
 
-  const getVal = (key, ano) => {
-    if (IQ_HISTORICO_ANOS.includes(ano)) return IQ_HISTORICO[key]?.[ano] ?? null;
+  // Retorna o valor BRUTO (contagem real) para exibição
+  const getVal = (c, ano) => {
+    if (IQ_HISTORICO_ANOS.includes(ano)) {
+      const v = IQ_HISTORICO[c.key]?.[ano] ?? null;
+      if (v === null) return null;
+      return c.fatorInv != null ? Math.round(v * c.fatorInv) : v;
+    }
     const calc = iqCalculadoData.find(r => r.ano === ano);
-    return calc ? (calc[key] ?? null) : null;
+    return calc ? (calc[c.key] ?? null) : null;
   };
 
   const fmtVal = (v, unit) => {
     if (v === null) return '—';
-    return v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 3 }) + (unit ? ' ' + unit : '');
+    return v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + (unit ? ' ' + unit : '');
   };
 
   const headerCells = anos.map(a => {
@@ -5300,7 +5309,7 @@ function renderIqHistorico() {
   }).join('');
 
   const tableRows = IQ_AUTO_CAMPOS.map(c => {
-    const vals = anos.map(a => getVal(c.key, a));
+    const vals = anos.map(a => getVal(c, a));
     const cells = vals.map((v, i) => {
       const isCalc = !IQ_HISTORICO_ANOS.includes(anos[i]);
       const bg = isCalc ? 'background:rgba(90,157,224,.04)' : '';

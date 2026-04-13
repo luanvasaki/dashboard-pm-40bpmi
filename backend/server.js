@@ -1101,16 +1101,17 @@ app.get('/api/indicadores-p3/calculado', requireAuth, async (req, res) => {
 
       return {
         ano,
-        homicidio_doloso:  r3((sumRac('Homicídio')           * 100000) / POP_SEADE),
+        efetivo,
+        homicidio_doloso:  sumRac('Homicídio'),
         latrocinio:        0,
-        roubo_outros:      r3((sumRac('Roubo')               * 100000) / POP_SEADE),
-        roubo_veiculo:     r3((sumRac('Roubo de Veículos')   * 100000) / POP_SEADE),
-        furto_veiculo:     r3((sumRac('Furto de Veículos')   * 100000) / POP_SEADE),
-        armas_apreendidas: r3(totalArmas / efetivo),
-        flagrantes_pm:     r3(flagrantes / efetivo),
-        pessoas_presas:    r3(flagrantes / efetivo),
-        menores_presos:    r3(menores    / efetivo),
-        procurados:        r3(procurados / efetivo),
+        roubo_outros:      sumRac('Roubo'),
+        roubo_veiculo:     sumRac('Roubo de Veículos'),
+        furto_veiculo:     sumRac('Furto de Veículos'),
+        armas_apreendidas: totalArmas,
+        flagrantes_pm:     flagrantes,
+        pessoas_presas:    flagrantes,
+        menores_presos:    menores,
+        procurados:        procurados,
       };
     });
 
