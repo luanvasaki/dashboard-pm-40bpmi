@@ -5787,12 +5787,22 @@ async function loadDDData() {
 }
 
 function renderDDKpi() {
-  // DD é independente da produtividade — sempre mostra o total do ano carregado
-  const total = ddData.length;
-  const aver  = ddData.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito') || ddStatusMatch(r.status,'Averiguada sem Êxito')).length;
+  // Aplica filtro de meses apenas quando mês específico está selecionado
+  // (quando "Todos" está ativo, prodSelMeses só contém meses com dados de prod —
+  //  DD pode ter meses extras, então nesse caso mostramos todo o ddData)
+  const mesesDisp = prodGetMesesDisp ? prodGetMesesDisp(prodSelAno) : [];
+  const allMesesSel = !prodSelMeses.length || prodSelMeses.length === mesesDisp.length;
+  const base = allMesesSel ? ddData : ddData.filter(r => {
+    const d = new Date(r.data + 'T00:00:00');
+    return prodSelMeses.includes(MES_ORD[d.getMonth()]);
+  });
+  const total = base.length;
+  const aver  = base.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito') || ddStatusMatch(r.status,'Averiguada sem Êxito')).length;
   const pct   = total > 0 ? ((aver / total) * 100).toFixed(0) + '%' : '—';
-  const flags = ddData.filter(r => r.flagrante).length;
-  const periodoLbl = 'Acumulado ' + ddAnoFiltro;
+  const flags = base.filter(r => r.flagrante).length;
+  const periodoLbl = allMesesSel
+    ? 'Acumulado ' + ddAnoFiltro
+    : prodSelMeses.map(m => m.slice(0,3)).join(', ') + ' ' + ddAnoFiltro;
   return `<div id="dd-kpi-card" class="kpi" onclick="openDDDetail()" title="Clique para detalhes" style="cursor:pointer">
     <div class="kpi-top" style="background:#5a9de0"></div>
     <div class="kpi-lbl">Disque Denúncia</div>
