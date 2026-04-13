@@ -5342,8 +5342,8 @@ function renderIqHistorico() {
 
   const prodFiltroHtml = `<select onchange="toggleIqProdFiltro(this.value)"
     style="background:var(--bg2);color:var(--tx1);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer">
-    <option value="">Todas as ocorrências</option>
-    ${PROD_CAMPOS.map(c => `<option value="${c.key}"${iqProdFiltro === c.key ? ' selected' : ''}>${c.label}</option>`).join('')}
+    <option value="" style="background:#111;color:#fff">Todas as ocorrências</option>
+    ${PROD_CAMPOS.map(c => `<option value="${c.key}"${iqProdFiltro === c.key ? ' selected' : ''} style="background:#111;color:#fff">${c.label}</option>`).join('')}
   </select>`;
 
   // ── Insights automáticos ───────────────────────────────────────────────
