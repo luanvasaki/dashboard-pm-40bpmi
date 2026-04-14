@@ -5776,6 +5776,7 @@ let ddChart2 = null;
 let ddChart3 = null;
 let ddChart4 = null;
 let ddChart5 = null;
+let ddChart6 = null;
 
 async function loadDDData() {
   try {
@@ -5825,8 +5826,8 @@ function openDDDetail() {
 
 function closeDDDetail() {
   document.getElementById('dd-detail-mo').classList.remove('on');
-  [ddChart, ddChart2, ddChart3, ddChart4, ddChart5].forEach(ch => { if (ch) { try { ch.destroy(); } catch(e){} } });
-  ddChart = ddChart2 = ddChart3 = ddChart4 = ddChart5 = null;
+  [ddChart, ddChart2, ddChart3, ddChart4, ddChart5, ddChart6].forEach(ch => { if (ch) { try { ch.destroy(); } catch(e){} } });
+  ddChart = ddChart2 = ddChart3 = ddChart4 = ddChart5 = ddChart6 = null;
 }
 
 function ddDetailClickOut(e) {
@@ -5845,8 +5846,8 @@ function ddFiltrados() {
 }
 
 function renderDDSection() {
-  [ddChart, ddChart2, ddChart3, ddChart4, ddChart5].forEach(ch => { if (ch) { try { ch.destroy(); } catch(e){} } });
-  ddChart = ddChart2 = ddChart3 = ddChart4 = ddChart5 = null;
+  [ddChart, ddChart2, ddChart3, ddChart4, ddChart5, ddChart6].forEach(ch => { if (ch) { try { ch.destroy(); } catch(e){} } });
+  ddChart = ddChart2 = ddChart3 = ddChart4 = ddChart5 = ddChart6 = null;
 
   const el = document.getElementById('dd-detail-body');
   if (!el) return;
@@ -5911,7 +5912,7 @@ function renderDDSection() {
     const cPresos  = ciaDados.reduce((s, r) => s + (Number(r.quant_presos) || 0), 0);
     const cPct     = cTotal > 0 ? ((cAver / cTotal) * 100).toFixed(0) + '%' : '—';
     return { cia, cTotal, cAver, cFlag, cPresos, cPct };
-  }).filter(r => r.cTotal > 0).sort((a, b) => b.cTotal - a.cTotal);
+  }).sort((a, b) => b.cTotal - a.cTotal);
 
   const thR = 'padding:9px 14px;border-bottom:1px solid var(--bd);font-family:"DM Mono",monospace;font-size:12px;color:#ccc;text-transform:uppercase;letter-spacing:1px';
   const tdR = 'padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:15px;color:var(--tx2)';
@@ -5971,7 +5972,7 @@ function renderDDSection() {
     const cSemAv  = dados.filter(r => ddStatusMatch(r.status,'Sem Averiguação')).length;
     const pctExito = cAver > 0 ? parseFloat(((cExito / cAver) * 100).toFixed(1)) : 0;
     return { cia, cTotal, cExito, cSemEx, cAnd, cSemAv, pctExito };
-  }).filter(r => r.cTotal > 0).sort((a, b) => b.cTotal - a.cTotal);
+  }).sort((a, b) => b.cTotal - a.cTotal);
 
   // Taxa de exito por CIA
   const exitoCia = DD_CIAS.map(cia => {
@@ -6028,6 +6029,19 @@ function renderDDSection() {
 
       <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:16px">
         <div style="${cardBox}">
+          ${secTitle('Participação por CIA — Total de DDs Recebidas')}
+          <div style="display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap">
+            <div style="position:relative;width:220px;height:220px;flex-shrink:0">
+              <canvas id="dd-chart-donut"></canvas>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+                <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#fff;line-height:1">${total}</div>
+                <div style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;letter-spacing:1px;margin-top:2px">TOTAL DDs</div>
+              </div>
+            </div>
+            <div id="dd-donut-legend" style="display:flex;flex-direction:column;gap:10px"></div>
+          </div>
+        </div>
+        <div style="${cardBox}">
           ${secTitle('Evolução Mensal — ' + ddAnoFiltro)}
           <canvas id="dd-chart-evolucao" style="height:320px;max-height:320px"></canvas>
         </div>
@@ -6051,6 +6065,42 @@ function renderDDSection() {
       </div>
 
     </div>`;
+
+  const c6 = document.getElementById('dd-chart-donut');
+  if (c6) {
+    const donutCors = ['#5a9de0','#5ae09a','#f7d060','#c84b9e'];
+    const donutTotais = DD_CIAS.map(cia => registros.filter(r => r.cia === cia).length);
+    ddChart6 = new Chart(c6.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: DD_CIAS,
+        datasets: [{ data: donutTotais, backgroundColor: donutCors.map(c => c + 'cc'), borderColor: donutCors, borderWidth: 2, hoverOffset: 8 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        cutout: '68%',
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} DDs (${total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0}%)` } }
+        }
+      }
+    });
+    const legendEl = document.getElementById('dd-donut-legend');
+    if (legendEl) {
+      legendEl.innerHTML = DD_CIAS.map((cia, i) => {
+        const val = donutTotais[i];
+        const pct = total > 0 ? ((val / total) * 100).toFixed(1) : '0.0';
+        return `<div style="display:flex;align-items:center;gap:10px">
+          <div style="width:12px;height:12px;border-radius:50%;background:${donutCors[i]};flex-shrink:0"></div>
+          <div>
+            <span style="font-size:14px;color:#fff;font-family:'DM Mono',monospace;font-weight:600">${cia}</span>
+            <span style="font-size:13px;color:#aaa;margin-left:8px">${val} DDs</span>
+            <span style="font-size:13px;color:${donutCors[i]};margin-left:6px;font-weight:700">${pct}%</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
 
   const c1 = document.getElementById('dd-chart-evolucao');
   if (c1 && todos.length) {
