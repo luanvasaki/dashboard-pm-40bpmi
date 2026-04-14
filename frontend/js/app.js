@@ -5876,7 +5876,7 @@ function renderDDSection() {
     { label: 'Em Andamento',           val: andamento,   cor: '#f7d060' },
     { label: 'Sem Averiguação',        val: semAver,     cor: '#e06060' },
     { label: '% Averiguadas',          val: pctAver !== '—' ? pctAver + '%' : '—', cor: '#c8a84b' },
-    { label: '% Êxito s/ Averiguadas', val: pctExito !== '—' ? pctExito + '%' : '—', cor: '#5ae09a' },
+    { label: '% Êxito / Averiguadas', val: pctExito !== '—' ? pctExito + '%' : '—', cor: '#5ae09a' },
     { label: 'Com Flagrante',          val: flagrantes,  cor: '#9b6de0' },
     { label: 'Total Presos',           val: presos,      cor: '#c84b4b' },
     { label: 'Presos / Averiguada',    val: presosPerDD, cor: '#c84b9e' },
@@ -6092,7 +6092,7 @@ function renderDDSection() {
           },
           {
             type: 'line',
-            label: '% Êxito s/ Averiguadas',
+            label: '% Êxito / Averiguadas',
             data: rankCia.map(r => r.pctExito),
             borderColor: '#5ae09a',
             backgroundColor: '#5ae09a',
@@ -6173,7 +6173,7 @@ function renderDDSection() {
           },
           {
             type: 'line',
-            label: '% Êxito s/ Averiguadas',
+            label: '% Êxito / Averiguadas',
             data: tendenciaData,
             borderColor: '#5ae09a',
             backgroundColor: '#5ae09a20',
