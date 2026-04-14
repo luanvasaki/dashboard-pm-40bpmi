@@ -5886,6 +5886,8 @@ function renderDDSection() {
 
   const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const getMes = r => new Date(r.data + 'T00:00:00').getMonth();
+  // Evolução mensal: respeita filtro de CIA mas não de mês (para mostrar todos os meses)
+  const evolBase = ddCiaFiltro ? todos.filter(r => r.cia === ddCiaFiltro) : todos;
   const evolDatasets = [
     { label: 'Averiguada c/ Êxito', status: 'Averiguada com Êxito', cor: '#5ae09a' },
     { label: 'Averiguada s/ Êxito', status: 'Averiguada sem Êxito', cor: '#e08a5a' },
@@ -5893,7 +5895,7 @@ function renderDDSection() {
     { label: 'Em Andamento',        status: 'Andamento',             cor: '#f7d060' },
   ].map(d => ({
     label: d.label,
-    data: MESES_LABEL.map((_, i) => todos.filter(r => getMes(r) === i && ddStatusMatch(r.status, d.status)).length),
+    data: MESES_LABEL.map((_, i) => evolBase.filter(r => getMes(r) === i && ddStatusMatch(r.status, d.status)).length),
     backgroundColor: d.cor + 'bb',
     borderColor: d.cor,
     borderWidth: 1,
@@ -5956,16 +5958,6 @@ function renderDDSection() {
         </div>
       </div>${arrow}`;
   }).join('');
-
-  // Tempo medio de atendimento por CIA
-  const tempoCia = DD_CIAS.map(cia => {
-    const comDatas = registros.filter(r => r.cia === cia && r.data && r.data_atendimento);
-    if (!comDatas.length) return { cia, media: 0, n: 0 };
-    const soma = comDatas.reduce((s, r) => {
-      return s + Math.abs(new Date(r.data_atendimento) - new Date(r.data + 'T00:00:00')) / 86400000;
-    }, 0);
-    return { cia, media: parseFloat((soma / comDatas.length).toFixed(1)), n: comDatas.length };
-  });
 
   // Taxa de exito por CIA
   const exitoCia = DD_CIAS.map(cia => {
@@ -6030,11 +6022,6 @@ function renderDDSection() {
           ${rankingHtml}
         </div>
         <div style="${cardBox}">
-          <div style="font-family:'DM Mono',monospace;font-size:15px;color:#fff;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;font-weight:600">Tempo Médio de Atendimento (dias)</div>
-          <div style="font-size:13px;color:#fff;font-family:'DM Mono',monospace;margin-bottom:14px">n = registros com data de atendimento preenchida</div>
-          <canvas id="dd-chart-tempo" style="height:280px;max-height:280px"></canvas>
-        </div>
-        <div style="${cardBox}">
           ${secTitle('Averiguações por CIA (Êxito vs Sem Êxito)')}
           <canvas id="dd-chart-exito-cia" style="height:280px;max-height:280px"></canvas>
         </div>
@@ -6057,37 +6044,6 @@ function renderDDSection() {
         scales: {
           x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } } },
           y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true }
-        }
-      }
-    });
-  }
-
-  const c2 = document.getElementById('dd-chart-tempo');
-  if (c2) {
-    const tempoCors = ['#5a9de0','#5ae09a','#f7d060','#e08a5a'];
-    ddChart2 = new Chart(c2.getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: tempoCia.map(c => c.n > 0 ? `${c.cia} (n=${c.n})` : c.cia),
-        datasets: [{
-          label: 'Dias (média)',
-          data: tempoCia.map(c => c.media),
-          backgroundColor: tempoCors.map(c => c + 'bb'),
-          borderColor: tempoCors,
-          borderWidth: 1,
-          borderRadius: 4,
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.raw} dias (n=${tempoCia[ctx.dataIndex].n})` } }
-        },
-        scales: {
-          x: { grid: GR, ticks: { color: '#fff', font: { size: 14 } }, beginAtZero: true },
-          y: { grid: { display: false }, ticks: { color: '#fff', font: { size: 14 } } }
         }
       }
     });
