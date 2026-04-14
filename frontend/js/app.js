@@ -2273,6 +2273,16 @@ function normCiaKey(s) {
   return m ? m[1] : (s || '').toLowerCase().trim();
 }
 
+// Normaliza nome de CIA para exibição padronizada (ex: "1ª CIA PM" → "1.CIA", "FT" → "FT")
+function normCiaDisplay(s) {
+  const str = (s || '').trim();
+  const l = str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (l.includes('ft') || l.includes('forca') || l.includes('tatica')) return 'FT';
+  const m = str.match(/(\d+)/);
+  if (m) return m[1] + '.CIA';
+  return str;
+}
+
 async function loadMoOcorr() {
   const el = document.getElementById('mo-ocorr-table');
   if (!el) return;
@@ -4735,7 +4745,7 @@ function prodRender() {
   const aggByCia = (tipo, campo, extraFilt) => {
     const agg = {};
     (extraFilt ? filt[tipo].filter(extraFilt) : filt[tipo]).forEach(r => {
-      const cia = (r.cia || 'Não informado').trim();
+      const cia = r.cia ? normCiaDisplay(r.cia) : 'Não informado';
       agg[cia] = (agg[cia] || 0) + (Number(r[campo]) || 0);
     });
     return Object.entries(agg).sort((a, b) => b[1] - a[1]).slice(0, 8);
@@ -4756,7 +4766,7 @@ function prodRender() {
   const ciaComp = {};
   ['presos','armas','veiculos'].forEach(t => {
     filt[t].forEach(r => {
-      const cia = (r.cia || 'Não informado').trim();
+      const cia = r.cia ? normCiaDisplay(r.cia) : 'Não informado';
       ciaComp[cia] = (ciaComp[cia] || 0) + (Number(r[PROD_CAMPO[t]]) || 0);
     });
   });
@@ -5142,7 +5152,7 @@ function renderProdDetail() {
 
   // Ranking CIA
   const aggCia = {};
-  rows.forEach(r => { const c = (r.cia||'').trim(); if (c) aggCia[c] = (aggCia[c]||0) + (Number(r[campo])||0); });
+  rows.forEach(r => { const c = r.cia ? normCiaDisplay(r.cia) : ''; if (c) aggCia[c] = (aggCia[c]||0) + (Number(r[campo])||0); });
   const topCias = Object.entries(aggCia).sort((a,b) => b[1]-a[1]);
 
   // Mês de pico
