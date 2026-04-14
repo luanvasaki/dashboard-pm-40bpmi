@@ -5775,6 +5775,7 @@ let ddChart  = null;
 let ddChart2 = null;
 let ddChart3 = null;
 let ddChart4 = null;
+let ddChart5 = null;
 
 async function loadDDData() {
   try {
@@ -5824,8 +5825,8 @@ function openDDDetail() {
 
 function closeDDDetail() {
   document.getElementById('dd-detail-mo').classList.remove('on');
-  [ddChart, ddChart2, ddChart3, ddChart4].forEach(ch => { if (ch) { try { ch.destroy(); } catch(e){} } });
-  ddChart = ddChart2 = ddChart3 = ddChart4 = null;
+  [ddChart, ddChart2, ddChart3, ddChart4, ddChart5].forEach(ch => { if (ch) { try { ch.destroy(); } catch(e){} } });
+  ddChart = ddChart2 = ddChart3 = ddChart4 = ddChart5 = null;
 }
 
 function ddDetailClickOut(e) {
@@ -5844,8 +5845,8 @@ function ddFiltrados() {
 }
 
 function renderDDSection() {
-  [ddChart, ddChart2, ddChart3, ddChart4].forEach(ch => { if (ch) { try { ch.destroy(); } catch(e){} } });
-  ddChart = ddChart2 = ddChart3 = ddChart4 = null;
+  [ddChart, ddChart2, ddChart3, ddChart4, ddChart5].forEach(ch => { if (ch) { try { ch.destroy(); } catch(e){} } });
+  ddChart = ddChart2 = ddChart3 = ddChart4 = ddChart5 = null;
 
   const el = document.getElementById('dd-detail-body');
   if (!el) return;
@@ -5959,6 +5960,19 @@ function renderDDSection() {
       </div>${arrow}`;
   }).join('');
 
+  // Ranking por volume e efetividade
+  const rankCia = DD_CIAS.map(cia => {
+    const dados = registros.filter(r => r.cia === cia);
+    const cTotal  = dados.length;
+    const cAver   = dados.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito') || ddStatusMatch(r.status,'Averiguada sem Êxito')).length;
+    const cExito  = dados.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito')).length;
+    const cSemEx  = dados.filter(r => ddStatusMatch(r.status,'Averiguada sem Êxito')).length;
+    const cAnd    = dados.filter(r => ddStatusMatch(r.status,'Andamento')).length;
+    const cSemAv  = dados.filter(r => ddStatusMatch(r.status,'Sem Averiguação')).length;
+    const pctExito = cAver > 0 ? parseFloat(((cExito / cAver) * 100).toFixed(1)) : 0;
+    return { cia, cTotal, cExito, cSemEx, cAnd, cSemAv, pctExito };
+  }).filter(r => r.cTotal > 0).sort((a, b) => b.cTotal - a.cTotal);
+
   // Taxa de exito por CIA
   const exitoCia = DD_CIAS.map(cia => {
     const ciaDados = registros.filter(r => r.cia === cia);
@@ -6022,6 +6036,11 @@ function renderDDSection() {
           ${rankingHtml}
         </div>
         <div style="${cardBox}">
+          ${secTitle('Volume e Efetividade por CIA — Ranking')}
+          <div style="font-size:12px;color:#aaa;font-family:'DM Mono',monospace;margin-bottom:14px">Barras = total de DDs recebidas · Ordenado do maior para o menor</div>
+          <canvas id="dd-chart-ranking-cia" style="height:${Math.max(180, rankCia.length * 72)}px;max-height:600px"></canvas>
+        </div>
+        <div style="${cardBox}">
           ${secTitle('Averiguações por CIA (Êxito vs Sem Êxito)')}
           <canvas id="dd-chart-exito-cia" style="height:280px;max-height:280px"></canvas>
         </div>
@@ -6044,6 +6063,69 @@ function renderDDSection() {
         scales: {
           x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } } },
           y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  const c5 = document.getElementById('dd-chart-ranking-cia');
+  if (c5 && rankCia.length) {
+    const rankLabels = rankCia.map((r, i) => `${i + 1}º · ${r.cia}`);
+    const medalCors  = ['#c8a84b','#aab0bb','#c87850']; // ouro, prata, bronze
+    const barCors    = rankCia.map((_, i) => i < 3 ? medalCors[i] + 'cc' : '#5a9de088');
+    const borCors    = rankCia.map((_, i) => i < 3 ? medalCors[i] : '#5a9de0');
+    ddChart5 = new Chart(c5.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: rankLabels,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Total Recebidas',
+            data: rankCia.map(r => r.cTotal),
+            backgroundColor: barCors,
+            borderColor: borCors,
+            borderWidth: 2,
+            borderRadius: 4,
+            xAxisID: 'x',
+            order: 2,
+          },
+          {
+            type: 'line',
+            label: '% Êxito s/ Averiguadas',
+            data: rankCia.map(r => r.pctExito),
+            borderColor: '#5ae09a',
+            backgroundColor: '#5ae09a',
+            pointBackgroundColor: '#5ae09a',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 7,
+            pointHoverRadius: 9,
+            showLine: false,
+            xAxisID: 'x2',
+            order: 1,
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#fff', font: { size: 13 }, boxWidth: 14, padding: 14 } },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                if (ctx.datasetIndex === 0) return ` ${ctx.raw} DDs recebidas`;
+                const r = rankCia[ctx.dataIndex];
+                return ` ${ctx.raw}% êxito s/ averiguadas (${r.cExito} de ${r.cExito + r.cSemEx})`;
+              }
+            }
+          }
+        },
+        scales: {
+          x:  { grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true, title: { display: true, text: 'Total de DDs', color: '#aaa', font: { size: 12 } } },
+          x2: { position: 'top', grid: { display: false }, ticks: { color: '#5ae09a', font: { size: 12 }, callback: v => v + '%' }, min: 0, max: 100, title: { display: true, text: '% Êxito', color: '#5ae09a', font: { size: 12 } } },
+          y:  { grid: { display: false }, ticks: { color: '#fff', font: { size: 14, weight: '600' } } }
         }
       }
     });
