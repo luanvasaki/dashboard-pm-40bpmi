@@ -805,7 +805,6 @@ async function init() {
     updateSyncStatus();
     renderHome();
     loadP1(); // carrega dados P1 em background para exibir resumo na home
-    loadIndicadoresP3(); // carrega indicadores de qualidade P3
     if (window.lucide) lucide.createIcons();
   } catch (err) {
     console.error('Erro ao renderizar dashboard:', err);
@@ -4471,7 +4470,6 @@ function goSection(id, btn) {
     document.getElementById('page-p3prod').classList.add('on');
     updateSidebarImports('p3prod');
     loadProdData();
-    loadIndicadoresP3();
     loadDDData();
     return;
   }
@@ -4520,7 +4518,6 @@ function goPage(id, btn) {
   document.getElementById('page-' + id).classList.add('on');
   btn.classList.add('on');
   updateSidebarImports('p3');
-  if (id === 'p3prod') loadIndicadoresP3();
   setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
 }
 
