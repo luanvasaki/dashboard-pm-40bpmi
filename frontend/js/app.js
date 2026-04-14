@@ -5990,7 +5990,7 @@ function renderDDSection() {
   filtrosHtml += `</select></div>`;
   filtrosHtml += `<div class="pf-field"><span class="pf-label">MÊS</span><div style="display:flex;gap:4px;flex-wrap:wrap">`;
   filtrosHtml += `<button onclick="ddSetFiltro('mes','__all__')" class="pf-btn${allMeses?' on':''}">Todos</button>`;
-  mesesComDados.forEach(m => filtrosHtml += `<button onclick="ddTogMes('${m}')" class="pf-btn${ddMesFiltro.includes(m)?' on':''}">${m.slice(0,3)}</button>`);
+  mesesComDados.forEach(m => filtrosHtml += `<button onclick="ddTogMes('${m}')" class="pf-btn${(allMeses || ddMesFiltro.includes(m))?' on':''}">${m.slice(0,3)}</button>`);
   filtrosHtml += `</div></div>`;
   filtrosHtml += `<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" onchange="ddSetFiltro('cia',this.value)">`;
   filtrosHtml += `<option value="">Todas</option>`;
