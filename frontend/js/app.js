@@ -4941,7 +4941,7 @@ function renderCiaRanking(filt) {
         return `<div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;max-width:140px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;color:${ciaColor(cia)}">${cia}</div>
           <div style="font-family:'DM Mono',monospace;font-size:14px;color:#fff;font-weight:700">${score.toLocaleString('pt-BR')} pts</div>
-          <div style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace">${pct}% do 1º</div>
+          <div style="font-size:12px;color:#d0d4dc;font-family:'DM Mono',monospace">${pct}% do 1º</div>
           <div style="width:100%;height:${podiumHeights[i]};background:${medalCors[i]}18;border:2px solid ${medalCors[i]};border-bottom:none;border-radius:6px 6px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:10px">
             <span style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:${medalCors[i]}">${podiumPos[i]}</span>
           </div>
@@ -4950,7 +4950,7 @@ function renderCiaRanking(filt) {
     </div>`;
 
   // Tabela de pontuação por categoria
-  const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd);font-family:"DM Mono",monospace;font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px';
+  const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd);font-family:"DM Mono",monospace;font-size:13px;color:#d0d4dc;text-transform:uppercase;letter-spacing:1px';
   const tdS = 'padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px';
 
   const breakdownHtml = `
@@ -4964,13 +4964,13 @@ function renderCiaRanking(filt) {
         <tbody>
           ${cats.map(cat => `<tr>
             <td style="${tdS};color:${cat.cor};font-weight:600">${cat.label}</td>
-            <td style="${tdS};text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:#777">${cat.rateLabel}</td>
+            <td style="${tdS};text-align:center;font-family:'DM Mono',monospace;font-size:13px;color:#c0c8d8">${cat.rateLabel}</td>
             ${ranking.map(cia => {
               const b = scores[cia].breakdown[cat.label];
               const qtyStr = cat.label.includes('Entorpecentes') ? `${b.qty.toLocaleString('pt-BR')}g` : b.qty.toLocaleString('pt-BR');
               return `<td style="${tdS};text-align:center">
                 <div style="font-family:'DM Mono',monospace;color:${b.pts > 0 ? '#fff' : '#444'};font-weight:${b.pts > 0 ? '700' : '400'};font-size:14px">${b.pts.toLocaleString('pt-BR')}</div>
-                <div style="font-size:11px;color:#666;margin-top:1px">${b.qty > 0 ? qtyStr : '—'}</div>
+                <div style="font-size:12px;color:#a8b8cc;margin-top:1px">${b.qty > 0 ? qtyStr : '—'}</div>
               </td>`;
             }).join('')}
           </tr>`).join('')}
@@ -4986,9 +4986,9 @@ function renderCiaRanking(filt) {
   // Legenda de como é calculado
   const legendHtml = `
     <div style="background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:8px;padding:14px">
-      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#aaa;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Como é calculado</div>
-      <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:#ccc">
-        ${cats.map(cat => `<span style="color:${cat.cor};font-weight:600">${cat.label}</span><span style="color:#aaa"> ${cat.rateLabel}</span>`).join(' &nbsp;·&nbsp; ')}
+      <div style="font-family:'DM Mono',monospace;font-size:12px;color:#d0d4dc;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Como é calculado</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:#d0d4dc">
+        ${cats.map(cat => `<span style="color:${cat.cor};font-weight:600">${cat.label}</span><span style="color:#c0c8d8"> ${cat.rateLabel}</span>`).join(' &nbsp;·&nbsp; ')}
       </div>
     </div>`;
 
