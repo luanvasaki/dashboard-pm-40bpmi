@@ -4885,10 +4885,7 @@ function renderCiaRanking(filt) {
     const total = dados.length;
     const aver  = dados.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito') || ddStatusMatch(r.status,'Averiguada sem Êxito')).length;
     const exito = dados.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito')).length;
-    ddMetrics[disp] = {
-      pctAver:  total > 0 ? (aver / total) * 100 : 0,
-      pctExito: aver  > 0 ? (exito / aver) * 100 : 0,
-    };
+    ddMetrics[disp] = { aver, exito };
   });
 
   // Entorpecentes unidade principal
@@ -4906,9 +4903,9 @@ function renderCiaRanking(filt) {
   const cats = [
     { label: 'Armas Apreendidas',                        peso: 5, cor: '#c84b4b', vals: aggCiaProd('armas',    'quantidade') },
     { label: 'Pessoas Presas',                           peso: 3, cor: '#e0965a', vals: aggCiaProd('presos',   'quantidade') },
-    { label: 'DD — % Êxito / Averiguadas',               peso: 3, cor: '#5ae09a', vals: Object.fromEntries(CIAS_DISPLAY.map(c => [c, ddMetrics[c].pctExito])) },
+    { label: 'DD — Averiguadas c/ Êxito',                peso: 3, cor: '#5ae09a', vals: Object.fromEntries(CIAS_DISPLAY.map(c => [c, ddMetrics[c].exito])) },
     { label: 'Veículos Recuperados',                     peso: 2, cor: '#4bc8a0', vals: aggCiaProd('veiculos', 'quantidade') },
-    { label: 'DD — % Denúncias Averiguadas',             peso: 2, cor: '#5ae09a', vals: Object.fromEntries(CIAS_DISPLAY.map(c => [c, ddMetrics[c].pctAver])) },
+    { label: 'DD — Total Averiguadas',                   peso: 2, cor: '#5ae09a', vals: Object.fromEntries(CIAS_DISPLAY.map(c => [c, ddMetrics[c].aver])) },
     { label: prodEntorpUnit ? `Entorpecentes (${prodEntorpUnit})` : 'Entorpecentes', peso: 1, cor: '#9b6de0', vals: entorpAgg },
   ];
 
