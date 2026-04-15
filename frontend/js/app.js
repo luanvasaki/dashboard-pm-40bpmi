@@ -4922,8 +4922,7 @@ function renderCiaRanking(filt) {
   });
 
   const ranking    = [...CIAS_DISPLAY].sort((a, b) => scores[b].total - scores[a].total);
-  const topScore   = scores[ranking[0]]?.total || 1;
-  const ciaColor   = name => CIA_STRUCT.find(c => c.label === name)?.color || '#aaa';
+const ciaColor   = name => CIA_STRUCT.find(c => c.label === name)?.color || '#aaa';
   const periodoLabel = allMeses ? 'Acumulado ' + prodSelAno : prodSelMeses.join(', ');
 
   // Pódio (ordem: 2º · 1º · 3º)
@@ -4937,11 +4936,9 @@ function renderCiaRanking(filt) {
       ${podiumOrder.map((cia, i) => {
         if (!cia) return '<div style="flex:1;max-width:140px"></div>';
         const score = scores[cia].total;
-        const pct   = topScore > 0 ? Math.round((score / topScore) * 100) : 0;
         return `<div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;max-width:140px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;color:${ciaColor(cia)}">${cia}</div>
           <div style="font-family:'DM Mono',monospace;font-size:14px;color:#fff;font-weight:700">${score.toLocaleString('pt-BR')} pts</div>
-          <div style="font-size:12px;color:#d0d4dc;font-family:'DM Mono',monospace">${pct}% do 1º</div>
           <div style="width:100%;height:${podiumHeights[i]};background:${medalCors[i]}18;border:2px solid ${medalCors[i]};border-bottom:none;border-radius:6px 6px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:10px">
             <span style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:${medalCors[i]}">${podiumPos[i]}</span>
           </div>
