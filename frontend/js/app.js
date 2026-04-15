@@ -4846,7 +4846,6 @@ function prodRender() {
         `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">${insCards.join('')}</div>`
       : '');
 
-  renderCiaRanking(filt);
 }
 
 function renderCiaRanking(filt) {
