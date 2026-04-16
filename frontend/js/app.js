@@ -6165,13 +6165,8 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
             </div>
           </div>
           <div style="${cardBox}">
-            ${secTitle('Status de Averiguação')}
-            <div style="display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap">
-              <div style="width:220px;height:220px;flex-shrink:0">
-                <canvas id="dd-chart-pizza"></canvas>
-              </div>
-              <div id="dd-pizza-legend" style="display:flex;flex-direction:column;gap:10px"></div>
-            </div>
+            ${secTitle('Status de Averiguação por CIA')}
+            <canvas id="dd-chart-pizza" style="height:260px;max-height:260px"></canvas>
           </div>
         </div>
         <div style="${cardBox}">
@@ -6224,38 +6219,46 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
 
   const c4 = document.getElementById('dd-chart-pizza');
   if (c4) {
-    const pizzaLabels = ['Averiguada c/ Êxito', 'Averiguada s/ Êxito', 'Em Andamento', 'Sem Averiguação'];
-    const pizzaVals   = [exito, semExito, andamento, semAver];
-    const pizzaCors   = ['#5ae09a', '#e08a5a', '#f7d060', '#e06060'];
+    const statusCats = [
+      { label: 'Averiguada c/ Êxito', cor: '#5ae09a', match: 'Averiguada com Êxito' },
+      { label: 'Averiguada s/ Êxito', cor: '#e08a5a', match: 'Averiguada sem Êxito' },
+      { label: 'Em Andamento',        cor: '#f7d060', match: 'Em Andamento'          },
+      { label: 'Sem Averiguação',     cor: '#e06060', match: 'Sem Averiguação'       },
+    ];
+    const ciaLabels = DD_CIAS.map(c => normCiaDisplay(c));
     ddChart4 = new Chart(c4.getContext('2d'), {
-      type: 'pie',
+      type: 'bar',
       data: {
-        labels: pizzaLabels,
-        datasets: [{ data: pizzaVals, backgroundColor: pizzaCors.map(c => c + 'cc'), borderColor: pizzaCors, borderWidth: 2, hoverOffset: 8 }]
+        labels: ciaLabels,
+        datasets: statusCats.map(s => ({
+          label: s.label,
+          data: DD_CIAS.map(cia => registros.filter(r => r.cia === cia && ddStatusMatch(r.status, s.match)).length),
+          backgroundColor: s.cor + 'cc',
+          borderColor: s.cor,
+          borderWidth: 1,
+          borderRadius: 3,
+        }))
       },
       options: {
-        responsive: true, maintainAspectRatio: true,
+        responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} (${total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0}%)` } }
+          legend: { labels: { color: '#fff', font: { size: 13 }, boxWidth: 12, padding: 12 } },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const ciaTotal = registros.filter(r => normCiaDisplay(r.cia) === ctx.label).length;
+                const pct = ciaTotal > 0 ? ((ctx.raw / ciaTotal) * 100).toFixed(1) : '0.0';
+                return ` ${ctx.dataset.label}: ${ctx.raw} (${pct}%)`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } } },
+          y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true }
         }
       }
     });
-    const pizzaLegEl = document.getElementById('dd-pizza-legend');
-    if (pizzaLegEl) {
-      pizzaLegEl.innerHTML = pizzaLabels.map((lbl, i) => {
-        const val = pizzaVals[i];
-        const pct = total > 0 ? ((val / total) * 100).toFixed(1) : '0.0';
-        return `<div style="display:flex;align-items:center;gap:10px">
-          <div style="width:12px;height:12px;border-radius:50%;background:${pizzaCors[i]};flex-shrink:0"></div>
-          <div>
-            <span style="font-size:14px;color:#fff;font-family:'DM Mono',monospace;font-weight:600">${lbl}</span>
-            <span style="font-size:13px;color:#aaa;margin-left:8px">${val}</span>
-            <span style="font-size:13px;color:${pizzaCors[i]};margin-left:6px;font-weight:700">${pct}%</span>
-          </div>
-        </div>`;
-      }).join('');
-    }
   }
 
   const c1 = document.getElementById('dd-chart-evolucao');
