@@ -6035,11 +6035,8 @@ function renderDDSection() {
     { label: 'Averiguada s/ Êxito',    val: semExito,    cor: '#e08a5a' },
     { label: 'Em Andamento',           val: andamento,   cor: '#f7d060' },
     { label: 'Sem Averiguação',        val: semAver,     cor: '#e06060' },
-    { label: '% Averiguadas',          val: pctAver !== '—' ? pctAver + '%' : '—', cor: '#c8a84b' },
-    { label: '% Êxito / Averiguadas', val: pctExito !== '—' ? pctExito + '%' : '—', cor: '#5ae09a' },
     { label: 'Com Flagrante',          val: flagrantes,  cor: '#9b6de0' },
     { label: 'Total Presos',           val: presos,      cor: '#c84b4b' },
-    { label: 'Presos / Averiguada',    val: presosPerDD, cor: '#c84b9e' },
   ].map(k => `<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${k.cor};border-radius:8px;padding:14px">
     <div style="font-size:11px;color:#fff;font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;line-height:1.3">${k.label}</div>
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${k.cor};line-height:1">${k.val}</div>
