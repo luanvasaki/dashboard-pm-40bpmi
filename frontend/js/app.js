@@ -6117,18 +6117,7 @@ function renderDDSection() {
       </div>${arrow}`;
   }).join('');
 
-  // Tendencia de efetividade mensal
-  const tendenciaData = MESES_LABEL.map((_, i) => {
-    const mesReg  = todos.filter(r => getMes(r) === i);
-    const mesAver = mesReg.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito') || ddStatusMatch(r.status,'Averiguada sem Êxito')).length;
-    const mesEx   = mesReg.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito')).length;
-    return mesAver > 0 ? parseFloat(((mesEx / mesAver) * 100).toFixed(1)) : null;
-  });
-  const tendenciaTotal = MESES_LABEL.map((_, i) =>
-    todos.filter(r => getMes(r) === i).length || null
-  );
-
-  const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.data + 'T00:00:00').getMonth()] === m));
+const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.data + 'T00:00:00').getMonth()] === m));
   const allMeses = ddMesFiltro.length === 0;
   let filtrosHtml = `<div class="pf" style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">`;
   filtrosHtml += `<div class="pf-field"><span class="pf-label">ANO</span><select class="pf-select" onchange="ddSetFiltro('ano',this.value)">`;
@@ -6181,10 +6170,6 @@ function renderDDSection() {
         <div style="${cardBox}">
           ${secTitle('Ranking por CIA')}
           ${rankingHtml}
-        </div>
-        <div style="${cardBox}">
-          ${secTitle('Tendência de Efetividade Mensal')}
-          <canvas id="dd-chart-tendencia" style="height:300px;max-height:300px"></canvas>
         </div>
       </div>
 
@@ -6242,49 +6227,6 @@ function renderDDSection() {
     });
   }
 
-  const c4 = document.getElementById('dd-chart-tendencia');
-  if (c4 && todos.length) {
-    ddChart4 = new Chart(c4.getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: MESES_LABEL,
-        datasets: [
-          {
-            type: 'bar',
-            label: 'Total DD',
-            data: tendenciaTotal,
-            backgroundColor: '#5a9de033',
-            borderColor: '#5a9de066',
-            borderWidth: 1,
-            borderRadius: 3,
-            yAxisID: 'y',
-          },
-          {
-            type: 'line',
-            label: '% Êxito / Averiguadas',
-            data: tendenciaData,
-            borderColor: '#5ae09a',
-            backgroundColor: '#5ae09a20',
-            fill: true,
-            tension: 0.35,
-            pointBackgroundColor: '#5ae09a',
-            pointRadius: 4,
-            spanGaps: false,
-            yAxisID: 'y2',
-          }
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#fff', font: { size: 14 }, boxWidth: 14, padding: 14 } } },
-        scales: {
-          x:  { grid: GR, ticks: { color: '#fff', font: { size: 13 } } },
-          y:  { grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true, position: 'left' },
-          y2: { grid: { display: false }, ticks: { color: '#5ae09a', font: { size: 13 }, callback: v => v + '%' }, beginAtZero: true, max: 100, position: 'right' }
-        }
-      }
-    });
-  }
 }
 
 function ddSetFiltro(campo, valor) {
