@@ -6166,7 +6166,28 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
           </div>
           <div style="${cardBox}">
             ${secTitle('Status de Averiguação por CIA')}
-            <canvas id="dd-chart-pizza" style="height:260px;max-height:260px"></canvas>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
+              ${DD_CIAS.map((cia, i) => {
+                const lbl = normCiaDisplay(cia);
+                return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+                  <div style="font-family:'DM Mono',monospace;font-size:12px;color:#d0d4dc;letter-spacing:1px;text-transform:uppercase">${lbl}</div>
+                  <div style="position:relative;width:130px;height:130px">
+                    <canvas id="dd-chart-pizza-${i}"></canvas>
+                    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+                      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;line-height:1">${registros.filter(r => r.cia === cia).length}</div>
+                      <div style="font-size:9px;color:#aaa;font-family:'DM Mono',monospace;letter-spacing:1px">DDs</div>
+                    </div>
+                  </div>
+                </div>`;
+              }).join('')}
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;justify-content:center">
+              ${[['#5ae09a','c/ Êxito'],['#e08a5a','s/ Êxito'],['#f7d060','Em Andamento'],['#e06060','Sem Averiguação']].map(([cor,lbl]) =>
+                `<div style="display:flex;align-items:center;gap:5px">
+                  <div style="width:10px;height:10px;border-radius:50%;background:${cor};flex-shrink:0"></div>
+                  <span style="font-size:12px;color:#d0d4dc;font-family:'DM Mono',monospace">${lbl}</span>
+                </div>`).join('')}
+            </div>
           </div>
         </div>
         <div style="${cardBox}">
@@ -6217,49 +6238,33 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
     }
   }
 
-  const c4 = document.getElementById('dd-chart-pizza');
-  if (c4) {
-    const statusCats = [
-      { label: 'Averiguada c/ Êxito', cor: '#5ae09a', match: 'Averiguada com Êxito' },
-      { label: 'Averiguada s/ Êxito', cor: '#e08a5a', match: 'Averiguada sem Êxito' },
-      { label: 'Em Andamento',        cor: '#f7d060', match: 'Em Andamento'          },
-      { label: 'Sem Averiguação',     cor: '#e06060', match: 'Sem Averiguação'       },
-    ];
-    const ciaLabels = DD_CIAS.map(c => normCiaDisplay(c));
-    ddChart4 = new Chart(c4.getContext('2d'), {
-      type: 'bar',
+  const statusCats = [
+    { label: 'c/ Êxito',        cor: '#5ae09a', match: 'Averiguada com Êxito' },
+    { label: 's/ Êxito',        cor: '#e08a5a', match: 'Averiguada sem Êxito' },
+    { label: 'Em Andamento',    cor: '#f7d060', match: 'Em Andamento'          },
+    { label: 'Sem Averiguação', cor: '#e06060', match: 'Sem Averiguação'       },
+  ];
+  DD_CIAS.forEach((cia, i) => {
+    const canvas = document.getElementById(`dd-chart-pizza-${i}`);
+    if (!canvas) return;
+    const vals = statusCats.map(s => registros.filter(r => r.cia === cia && ddStatusMatch(r.status, s.match)).length);
+    const ciaTotal = vals.reduce((a, b) => a + b, 0);
+    new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
       data: {
-        labels: ciaLabels,
-        datasets: statusCats.map(s => ({
-          label: s.label,
-          data: DD_CIAS.map(cia => registros.filter(r => r.cia === cia && ddStatusMatch(r.status, s.match)).length),
-          backgroundColor: s.cor + 'cc',
-          borderColor: s.cor,
-          borderWidth: 1,
-          borderRadius: 3,
-        }))
+        labels: statusCats.map(s => s.label),
+        datasets: [{ data: vals, backgroundColor: statusCats.map(s => s.cor + 'cc'), borderColor: statusCats.map(s => s.cor), borderWidth: 2, hoverOffset: 6 }]
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: true,
+        cutout: '62%',
         plugins: {
-          legend: { labels: { color: '#fff', font: { size: 13 }, boxWidth: 12, padding: 12 } },
-          tooltip: {
-            callbacks: {
-              label: ctx => {
-                const ciaTotal = registros.filter(r => normCiaDisplay(r.cia) === ctx.label).length;
-                const pct = ciaTotal > 0 ? ((ctx.raw / ciaTotal) * 100).toFixed(1) : '0.0';
-                return ` ${ctx.dataset.label}: ${ctx.raw} (${pct}%)`;
-              }
-            }
-          }
-        },
-        scales: {
-          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } } },
-          y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true }
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} (${ciaTotal > 0 ? ((ctx.raw / ciaTotal) * 100).toFixed(1) : 0}%)` } }
         }
       }
     });
-  }
+  });
 
   const c1 = document.getElementById('dd-chart-evolucao');
   if (c1 && todos.length) {
