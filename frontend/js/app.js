@@ -6150,17 +6150,28 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-bottom:20px">${kpis}</div>
 
       <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:16px">
-        <div style="${cardBox}">
-          ${secTitle('Participação por CIA — Total de DDs Recebidas')}
-          <div style="display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap">
-            <div style="position:relative;width:220px;height:220px;flex-shrink:0">
-              <canvas id="dd-chart-donut"></canvas>
-              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
-                <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#fff;line-height:1">${total}</div>
-                <div style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;letter-spacing:1px;margin-top:2px">TOTAL DDs</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+          <div style="${cardBox}">
+            ${secTitle('Participação por CIA — Total de DDs Recebidas')}
+            <div style="display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap">
+              <div style="position:relative;width:220px;height:220px;flex-shrink:0">
+                <canvas id="dd-chart-donut"></canvas>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+                  <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#fff;line-height:1">${total}</div>
+                  <div style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;letter-spacing:1px;margin-top:2px">TOTAL DDs</div>
+                </div>
               </div>
+              <div id="dd-donut-legend" style="display:flex;flex-direction:column;gap:10px"></div>
             </div>
-            <div id="dd-donut-legend" style="display:flex;flex-direction:column;gap:10px"></div>
+          </div>
+          <div style="${cardBox}">
+            ${secTitle('Status de Averiguação')}
+            <div style="display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap">
+              <div style="width:220px;height:220px;flex-shrink:0">
+                <canvas id="dd-chart-pizza"></canvas>
+              </div>
+              <div id="dd-pizza-legend" style="display:flex;flex-direction:column;gap:10px"></div>
+            </div>
           </div>
         </div>
         <div style="${cardBox}">
@@ -6205,6 +6216,42 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
             <span style="font-size:14px;color:#fff;font-family:'DM Mono',monospace;font-weight:600">${cia}</span>
             <span style="font-size:13px;color:#aaa;margin-left:8px">${val} DDs</span>
             <span style="font-size:13px;color:${donutCors[i]};margin-left:6px;font-weight:700">${pct}%</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  const c4 = document.getElementById('dd-chart-pizza');
+  if (c4) {
+    const pizzaLabels = ['Averiguada c/ Êxito', 'Averiguada s/ Êxito', 'Em Andamento', 'Sem Averiguação'];
+    const pizzaVals   = [exito, semExito, andamento, semAver];
+    const pizzaCors   = ['#5ae09a', '#e08a5a', '#f7d060', '#e06060'];
+    ddChart4 = new Chart(c4.getContext('2d'), {
+      type: 'pie',
+      data: {
+        labels: pizzaLabels,
+        datasets: [{ data: pizzaVals, backgroundColor: pizzaCors.map(c => c + 'cc'), borderColor: pizzaCors, borderWidth: 2, hoverOffset: 8 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} (${total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0}%)` } }
+        }
+      }
+    });
+    const pizzaLegEl = document.getElementById('dd-pizza-legend');
+    if (pizzaLegEl) {
+      pizzaLegEl.innerHTML = pizzaLabels.map((lbl, i) => {
+        const val = pizzaVals[i];
+        const pct = total > 0 ? ((val / total) * 100).toFixed(1) : '0.0';
+        return `<div style="display:flex;align-items:center;gap:10px">
+          <div style="width:12px;height:12px;border-radius:50%;background:${pizzaCors[i]};flex-shrink:0"></div>
+          <div>
+            <span style="font-size:14px;color:#fff;font-family:'DM Mono',monospace;font-weight:600">${lbl}</span>
+            <span style="font-size:13px;color:#aaa;margin-left:8px">${val}</span>
+            <span style="font-size:13px;color:${pizzaCors[i]};margin-left:6px;font-weight:700">${pct}%</span>
           </div>
         </div>`;
       }).join('');
