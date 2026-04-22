@@ -6186,15 +6186,13 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
           ${secTitle('Ranking por Município — Top 10')}
           <canvas id="dd-chart-municipio" style="height:320px;max-height:320px"></canvas>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
-          <div style="${cardBox}">
-            ${secTitle('Tempo Médio de Atendimento por CIA (dias)')}
-            <canvas id="dd-chart-tempo" style="height:220px;max-height:220px"></canvas>
-          </div>
-          <div style="${cardBox}">
-            ${secTitle('Flagrantes por Mês')}
-            <canvas id="dd-chart-flagrante" style="height:220px;max-height:220px"></canvas>
-          </div>
+        <div style="${cardBox}">
+          ${secTitle('Tempo Médio de Atendimento por CIA (dias)')}
+          <canvas id="dd-chart-tempo" style="height:360px;max-height:360px"></canvas>
+        </div>
+        <div style="${cardBox}">
+          ${secTitle('Flagrantes por Mês')}
+          <canvas id="dd-chart-flagrante" style="height:360px;max-height:360px"></canvas>
         </div>
       </div>
 
