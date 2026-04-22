@@ -6194,47 +6194,59 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
     const donutExito  = DD_CIAS.map(cia => registros.filter(r => r.cia === cia && ddStatusMatch(r.status, 'Averiguada com Êxito')).length);
     const donutResto  = DD_CIAS.map((_, i) => donutTotais[i] - donutExito[i]);
 
-    // Intercala fatias: [CIA1-resto, CIA1-exito, CIA2-resto, CIA2-exito, ...]
-    const sliceLabels  = [];
-    const sliceData    = [];
-    const sliceBg      = [];
-    const sliceBorder  = [];
-    const sliceOffset  = [];
-    const sliceBorderW = [];
-    DD_CIAS.forEach((cia, i) => {
-      sliceLabels.push(cia);
-      sliceData.push(donutResto[i]);
-      sliceBg.push(donutCors[i]);
-      sliceBorder.push(donutCors[i]);
-      sliceOffset.push(0);
-      sliceBorderW.push(1);
-      sliceLabels.push(cia + ' c/ Êxito');
-      sliceData.push(donutExito[i]);
-      sliceBg.push(exitoCor);
-      sliceBorder.push('#fff');
-      sliceOffset.push(20);
-      sliceBorderW.push(3);
+    // Anel interno: [CIA1-exito, CIA1-resto, CIA2-exito, CIA2-resto, ...]
+    // alinhado com o anel externo para o êxito aparecer "dentro" da barra
+    const innerData   = [];
+    const innerBg     = [];
+    const innerBorder = [];
+    DD_CIAS.forEach((_, i) => {
+      innerData.push(donutExito[i]);
+      innerBg.push(exitoCor + 'ee');
+      innerBorder.push(exitoCor);
+      innerData.push(donutResto[i]);
+      innerBg.push('rgba(0,0,0,0)');
+      innerBorder.push('rgba(0,0,0,0)');
     });
 
     ddChart6 = new Chart(c6.getContext('2d'), {
       type: 'doughnut',
       data: {
-        labels: sliceLabels,
-        datasets: [{ data: sliceData, backgroundColor: sliceBg, borderColor: sliceBorder, borderWidth: sliceBorderW, offset: sliceOffset, hoverOffset: 8 }]
+        labels: [],
+        datasets: [
+          {
+            data: donutTotais,
+            backgroundColor: donutCors.map(c => c + 'dd'),
+            borderColor: donutCors,
+            borderWidth: 2,
+            weight: 3,
+            hoverOffset: 6
+          },
+          {
+            data: innerData,
+            backgroundColor: innerBg,
+            borderColor: innerBorder,
+            borderWidth: 1,
+            weight: 1,
+            hoverOffset: 4
+          }
+        ]
       },
       options: {
         responsive: true, maintainAspectRatio: true,
-        cutout: '54%',
+        cutout: '50%',
         plugins: {
           legend: { display: false },
           tooltip: {
+            filter: item => !(item.datasetIndex === 1 && item.dataIndex % 2 === 1),
             callbacks: {
               label: ctx => {
-                const isExito = ctx.dataIndex % 2 === 1;
-                const ciaIdx  = Math.floor(ctx.dataIndex / 2);
+                if (ctx.datasetIndex === 0) {
+                  const t = donutTotais[ctx.dataIndex];
+                  return ` ${DD_CIAS[ctx.dataIndex]}: ${t} DDs (${total > 0 ? ((t / total) * 100).toFixed(1) : 0}%)`;
+                }
+                const ciaIdx = Math.floor(ctx.dataIndex / 2);
                 const t = donutTotais[ciaIdx];
-                if (isExito) return ` ${DD_CIAS[ciaIdx]} c/ Êxito: ${ctx.raw} (${t > 0 ? ((ctx.raw / t) * 100).toFixed(1) : 0}% da CIA)`;
-                return ` ${DD_CIAS[ciaIdx]}: ${ctx.raw} DDs sem êxito`;
+                return ` ${DD_CIAS[ciaIdx]} c/ Êxito: ${ctx.raw} (${t > 0 ? ((ctx.raw / t) * 100).toFixed(1) : 0}% da CIA)`;
               }
             }
           }
