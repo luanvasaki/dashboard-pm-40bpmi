@@ -6151,11 +6151,17 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
         <div style="${cardBox}">
           ${secTitle('Participação por CIA — Total de DDs Recebidas e Averiguadas c/ Êxito')}
           <div style="display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap">
-            <div style="position:relative;width:220px;height:220px;flex-shrink:0">
-              <canvas id="dd-chart-donut"></canvas>
-              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
-                <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#fff;line-height:1">${total}</div>
-                <div style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;letter-spacing:1px;margin-top:2px">TOTAL DDs</div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0">
+              <div style="position:relative;width:240px;height:240px">
+                <canvas id="dd-chart-donut"></canvas>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+                  <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#fff;line-height:1">${total}</div>
+                  <div style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;letter-spacing:1px;margin-top:2px">TOTAL DDs</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;background:rgba(90,224,154,.1);border:1px solid rgba(90,224,154,.3);border-radius:20px;padding:4px 12px">
+                <span style="font-size:13px;color:#5ae09a">▲</span>
+                <span style="font-size:11px;color:#5ae09a;font-family:'DM Mono',monospace;letter-spacing:1px">fatias destacadas = c/ Êxito</span>
               </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
@@ -6206,7 +6212,7 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
       sliceData.push(donutExito[i]);
       sliceBg.push(exitoCor);
       sliceBorder.push('#fff');
-      sliceOffset.push(14);
+      sliceOffset.push(20);
       sliceBorderW.push(3);
     });
 
@@ -6218,7 +6224,7 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
       },
       options: {
         responsive: true, maintainAspectRatio: true,
-        cutout: '68%',
+        cutout: '54%',
         plugins: {
           legend: { display: false },
           tooltip: {
