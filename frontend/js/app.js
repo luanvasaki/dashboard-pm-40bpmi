@@ -6150,43 +6150,23 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-bottom:20px">${kpis}</div>
 
       <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:16px">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
-          <div style="${cardBox}">
-            ${secTitle('Participação por CIA — Total de DDs Recebidas')}
-            <div style="display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap">
-              <div style="position:relative;width:220px;height:220px;flex-shrink:0">
-                <canvas id="dd-chart-donut"></canvas>
-                <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
-                  <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#fff;line-height:1">${total}</div>
-                  <div style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;letter-spacing:1px;margin-top:2px">TOTAL DDs</div>
-                </div>
+        <div style="${cardBox}">
+          ${secTitle('Participação por CIA — Total de DDs Recebidas e Averiguadas c/ Êxito')}
+          <div style="display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap">
+            <div style="position:relative;width:220px;height:220px;flex-shrink:0">
+              <canvas id="dd-chart-donut"></canvas>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+                <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#fff;line-height:1">${total}</div>
+                <div style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;letter-spacing:1px;margin-top:2px">TOTAL DDs</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:grid;grid-template-columns:auto 110px 110px;gap:8px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.08)">
+                <span></span>
+                <span style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;letter-spacing:1px;text-align:right">TOTAL DDs</span>
+                <span style="font-size:11px;color:#5ae09a;font-family:'DM Mono',monospace;letter-spacing:1px;text-align:right">c/ ÊXITO</span>
               </div>
               <div id="dd-donut-legend" style="display:flex;flex-direction:column;gap:10px"></div>
-            </div>
-          </div>
-          <div style="${cardBox}">
-            ${secTitle('Status de Averiguação por CIA')}
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
-              ${DD_CIAS.map((cia, i) => {
-                const lbl = normCiaDisplay(cia);
-                return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px">
-                  <div style="font-family:'DM Mono',monospace;font-size:12px;color:#d0d4dc;letter-spacing:1px;text-transform:uppercase">${lbl}</div>
-                  <div style="position:relative;width:130px;height:130px">
-                    <canvas id="dd-chart-pizza-${i}"></canvas>
-                    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
-                      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;line-height:1">${registros.filter(r => r.cia === cia).length}</div>
-                      <div style="font-size:9px;color:#aaa;font-family:'DM Mono',monospace;letter-spacing:1px">DDs</div>
-                    </div>
-                  </div>
-                </div>`;
-              }).join('')}
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;justify-content:center">
-              ${[['#5ae09a','c/ Êxito'],['#e08a5a','s/ Êxito'],['#f7d060','Em Andamento'],['#e06060','Sem Averiguação']].map(([cor,lbl]) =>
-                `<div style="display:flex;align-items:center;gap:5px">
-                  <div style="width:10px;height:10px;border-radius:50%;background:${cor};flex-shrink:0"></div>
-                  <span style="font-size:12px;color:#d0d4dc;font-family:'DM Mono',monospace">${lbl}</span>
-                </div>`).join('')}
             </div>
           </div>
         </div>
@@ -6206,65 +6186,57 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
   if (c6) {
     const donutCors = ['#5a9de0','#5ae09a','#f7d060','#c84b9e'];
     const donutTotais = DD_CIAS.map(cia => registros.filter(r => r.cia === cia).length);
+    const donutExito  = DD_CIAS.map(cia => registros.filter(r => r.cia === cia && ddStatusMatch(r.status, 'Averiguada com Êxito')).length);
     ddChart6 = new Chart(c6.getContext('2d'), {
       type: 'doughnut',
       data: {
         labels: DD_CIAS,
-        datasets: [{ data: donutTotais, backgroundColor: donutCors.map(c => c + 'cc'), borderColor: donutCors, borderWidth: 2, hoverOffset: 8 }]
+        datasets: [
+          { label: 'Total DDs',   data: donutTotais, backgroundColor: donutCors.map(c => c + 'cc'), borderColor: donutCors, borderWidth: 2, hoverOffset: 8 },
+          { label: 'c/ Êxito',   data: donutExito,  backgroundColor: donutCors.map(c => c + '55'), borderColor: donutCors.map(c => c + '99'), borderWidth: 1, hoverOffset: 4 }
+        ]
       },
       options: {
         responsive: true, maintainAspectRatio: true,
-        cutout: '68%',
+        cutout: '55%',
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} DDs (${total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0}%)` } }
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                if (ctx.datasetIndex === 0) return ` ${ctx.label}: ${ctx.raw} DDs (${total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0}%)`;
+                const t = donutTotais[ctx.dataIndex];
+                return ` ${ctx.label} c/ Êxito: ${ctx.raw} (${t > 0 ? ((ctx.raw / t) * 100).toFixed(1) : 0}%)`;
+              }
+            }
+          }
         }
       }
     });
     const legendEl = document.getElementById('dd-donut-legend');
     if (legendEl) {
       legendEl.innerHTML = DD_CIAS.map((cia, i) => {
-        const val = donutTotais[i];
-        const pct = total > 0 ? ((val / total) * 100).toFixed(1) : '0.0';
-        return `<div style="display:flex;align-items:center;gap:10px">
-          <div style="width:12px;height:12px;border-radius:50%;background:${donutCors[i]};flex-shrink:0"></div>
-          <div>
+        const val  = donutTotais[i];
+        const exit = donutExito[i];
+        const pct  = total > 0 ? ((val / total) * 100).toFixed(1) : '0.0';
+        const exitPct = val > 0 ? ((exit / val) * 100).toFixed(1) : '0.0';
+        return `<div style="display:grid;grid-template-columns:auto 110px 110px;gap:8px;align-items:center">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:12px;height:12px;border-radius:50%;background:${donutCors[i]};flex-shrink:0"></div>
             <span style="font-size:14px;color:#fff;font-family:'DM Mono',monospace;font-weight:600">${cia}</span>
-            <span style="font-size:13px;color:#aaa;margin-left:8px">${val} DDs</span>
-            <span style="font-size:13px;color:${donutCors[i]};margin-left:6px;font-weight:700">${pct}%</span>
+          </div>
+          <div style="text-align:right">
+            <span style="font-size:14px;color:#fff;font-family:'DM Mono',monospace">${val}</span>
+            <span style="font-size:12px;color:${donutCors[i]};margin-left:5px;font-weight:700">${pct}%</span>
+          </div>
+          <div style="text-align:right">
+            <span style="font-size:14px;color:#5ae09a;font-family:'DM Mono',monospace">${exit}</span>
+            <span style="font-size:12px;color:#5ae09a88;margin-left:5px">${exitPct}%</span>
           </div>
         </div>`;
       }).join('');
     }
   }
-
-  const statusCats = [
-    { label: 'c/ Êxito',        cor: '#5ae09a', match: 'Averiguada com Êxito' },
-    { label: 's/ Êxito',        cor: '#e08a5a', match: 'Averiguada sem Êxito' },
-    { label: 'Em Andamento',    cor: '#f7d060', match: 'Em Andamento'          },
-    { label: 'Sem Averiguação', cor: '#e06060', match: 'Sem Averiguação'       },
-  ];
-  DD_CIAS.forEach((cia, i) => {
-    const canvas = document.getElementById(`dd-chart-pizza-${i}`);
-    if (!canvas) return;
-    const vals = statusCats.map(s => registros.filter(r => r.cia === cia && ddStatusMatch(r.status, s.match)).length);
-    const ciaTotal = vals.reduce((a, b) => a + b, 0);
-    new Chart(canvas.getContext('2d'), {
-      type: 'doughnut',
-      data: {
-        labels: statusCats.map(s => s.label),
-        datasets: [{ data: vals, backgroundColor: statusCats.map(s => s.cor + 'cc'), borderColor: statusCats.map(s => s.cor), borderWidth: 2, hoverOffset: 6 }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: true,
-        cutout: '62%',
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} (${ciaTotal > 0 ? ((ctx.raw / ciaTotal) * 100).toFixed(1) : 0}%)` } }
-        }
-      }
-    });
-  });
 
   const c1 = document.getElementById('dd-chart-evolucao');
   if (c1 && todos.length) {
