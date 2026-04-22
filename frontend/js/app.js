@@ -6182,6 +6182,20 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
           ${secTitle('Ranking por CIA')}
           ${rankingHtml}
         </div>
+        <div style="${cardBox}">
+          ${secTitle('Ranking por Município — Top 10')}
+          <canvas id="dd-chart-municipio" style="height:320px;max-height:320px"></canvas>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+          <div style="${cardBox}">
+            ${secTitle('Tempo Médio de Atendimento por CIA (dias)')}
+            <canvas id="dd-chart-tempo" style="height:220px;max-height:220px"></canvas>
+          </div>
+          <div style="${cardBox}">
+            ${secTitle('Flagrantes por Mês')}
+            <canvas id="dd-chart-flagrante" style="height:220px;max-height:220px"></canvas>
+          </div>
+        </div>
       </div>
 
     </div>`;
@@ -6276,6 +6290,108 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
         scales: {
           x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } } },
           y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  // Ranking por Município
+  const cMun = document.getElementById('dd-chart-municipio');
+  if (cMun) {
+    const munMap = {};
+    registros.forEach(r => {
+      const m = (r.municipio || '').trim();
+      if (!m) return;
+      if (!munMap[m]) munMap[m] = { total: 0, exito: 0 };
+      munMap[m].total++;
+      if (ddStatusMatch(r.status, 'Averiguada com Êxito')) munMap[m].exito++;
+    });
+    const munRows = Object.entries(munMap).sort((a, b) => b[1].total - a[1].total).slice(0, 10);
+    const munLabels = munRows.map(([m]) => m);
+    const munTotais = munRows.map(([, v]) => v.total);
+    const munExito  = munRows.map(([, v]) => v.exito);
+    const munResto  = munRows.map((_, i) => munTotais[i] - munExito[i]);
+    ddChart2 = new Chart(cMun.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: munLabels,
+        datasets: [
+          { label: 'Sem Êxito', data: munResto, backgroundColor: '#5a9de0bb', borderColor: '#5a9de0', borderWidth: 1, borderRadius: 3 },
+          { label: 'c/ Êxito',  data: munExito, backgroundColor: '#5ae09abb', borderColor: '#5ae09a', borderWidth: 1, borderRadius: 3 },
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#fff', font: { size: 13 }, boxWidth: 12, padding: 14 } } },
+        scales: {
+          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 12 } }, beginAtZero: true },
+          y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 12 } } }
+        }
+      }
+    });
+  }
+
+  // Tempo Médio de Atendimento por CIA
+  const cTempo = document.getElementById('dd-chart-tempo');
+  if (cTempo) {
+    const tempoMedias = DD_CIAS.map(cia => {
+      const recs = registros.filter(r => r.cia === cia && r.data && r.data_atendimento);
+      if (!recs.length) return null;
+      const dias = recs.map(r => Math.max(0, (new Date(r.data_atendimento) - new Date(r.data)) / 86400000));
+      return +(dias.reduce((a, b) => a + b, 0) / dias.length).toFixed(1);
+    });
+    const donutCors2 = ['#5a9de0','#e08a5a','#f7d060','#c84b9e'];
+    ddChart3 = new Chart(cTempo.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: DD_CIAS,
+        datasets: [{
+          label: 'Dias (média)',
+          data: tempoMedias,
+          backgroundColor: donutCors2.map(c => c + 'bb'),
+          borderColor: donutCors2,
+          borderWidth: 2,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ctx.raw !== null ? ` ${ctx.raw} dias (média)` : ' Sem dados' } }
+        },
+        scales: {
+          x: { grid: GR, ticks: { color: '#fff', font: { size: 13 } } },
+          y: { grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  // Flagrantes por Mês
+  const cFlag = document.getElementById('dd-chart-flagrante');
+  if (cFlag) {
+    const flagMes   = MESES_LABEL.map((_, i) => evolBase.filter(r => getMes(r) === i && r.flagrante).length);
+    const totalMes  = MESES_LABEL.map((_, i) => evolBase.filter(r => getMes(r) === i).length);
+    ddChart4 = new Chart(cFlag.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: MESES_LABEL,
+        datasets: [
+          { label: 'Flagrantes', data: flagMes,  backgroundColor: '#9b6de0bb', borderColor: '#9b6de0', borderWidth: 1, borderRadius: 3, yAxisID: 'y' },
+          { type: 'line', label: '% Flagrante', data: totalMes.map((t, i) => t > 0 ? +((flagMes[i] / t) * 100).toFixed(1) : null),
+            borderColor: '#f7d060', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 4,
+            pointBackgroundColor: '#f7d060', tension: 0.3, yAxisID: 'y2' }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#fff', font: { size: 12 }, boxWidth: 12, padding: 12 } } },
+        scales: {
+          x:  { grid: GR, ticks: { color: '#fff', font: { size: 11 } } },
+          y:  { grid: GR, ticks: { color: '#fff', font: { size: 11 } }, beginAtZero: true, position: 'left' },
+          y2: { grid: { display: false }, ticks: { color: '#f7d060', font: { size: 11 }, callback: v => v + '%' }, beginAtZero: true, position: 'right' }
         }
       }
     });
