@@ -6033,7 +6033,6 @@ function renderDDSection() {
     { label: 'Total Recebidas',        val: total,       cor: '#5a9de0' },
     { label: 'Averiguada c/ Êxito',    val: exito,       cor: '#5ae09a' },
     { label: 'Averiguada s/ Êxito',    val: semExito,    cor: '#e08a5a' },
-    { label: 'Em Andamento',           val: andamento,   cor: '#f7d060' },
     { label: 'Sem Averiguação',        val: semAver,     cor: '#e06060' },
     { label: 'Com Flagrante',          val: flagrantes,  cor: '#9b6de0' },
     { label: 'Total Presos',           val: presos,      cor: '#c84b4b' },
