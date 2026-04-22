@@ -6193,7 +6193,7 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
         </div>
         <div style="${cardBox}">
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
-            ${secTitle('Flagrantes por Mês')}
+            ${secTitle('Ocorrências por Mês — Êxito')}
             <select onchange="ddSetFlagCia(this.value)" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:5px 10px;border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer">
               <option value=""${ddFlagCiaFiltro===''?' selected':''}>Todas as CIAs</option>
               ${DD_CIAS.map(c => `<option value="${c}"${ddFlagCiaFiltro===c?' selected':''}>${c}</option>`).join('')}
@@ -6395,18 +6395,18 @@ function renderDDFlagranteChart() {
     return true;
   });
 
-  const flagMes    = MESES_LABEL.map((_, i) => base.filter(r => getMes(r) === i && r.flagrante).length);
-  const semFlagMes = MESES_LABEL.map((_, i) => base.filter(r => getMes(r) === i && !r.flagrante).length);
-  const totalMes   = MESES_LABEL.map((_, i) => base.filter(r => getMes(r) === i).length);
+  const exitoMes    = MESES_LABEL.map((_, i) => base.filter(r => getMes(r) === i && ddStatusMatch(r.status, 'Averiguada com Êxito')).length);
+  const semExitoMes = MESES_LABEL.map((_, i) => base.filter(r => getMes(r) === i && !ddStatusMatch(r.status, 'Averiguada com Êxito')).length);
+  const totalMes    = MESES_LABEL.map((_, i) => base.filter(r => getMes(r) === i).length);
 
   ddChart4 = new Chart(cFlag.getContext('2d'), {
     type: 'bar',
     data: {
       labels: MESES_LABEL,
       datasets: [
-        { label: 'Sem Flagrante', data: semFlagMes, backgroundColor: '#5a9de0bb', borderColor: '#5a9de0', borderWidth: 1, borderRadius: 3, stack: 's', yAxisID: 'y' },
-        { label: 'Com Flagrante', data: flagMes,    backgroundColor: '#9b6de0bb', borderColor: '#9b6de0', borderWidth: 1, borderRadius: 3, stack: 's', yAxisID: 'y' },
-        { type: 'line', label: '% Flagrante', data: totalMes.map((t, i) => t > 0 ? +((flagMes[i] / t) * 100).toFixed(1) : null),
+        { label: 'Sem Êxito',  data: semExitoMes, backgroundColor: '#5a9de0bb', borderColor: '#5a9de0', borderWidth: 1, borderRadius: 3, stack: 's', yAxisID: 'y' },
+        { label: 'c/ Êxito',   data: exitoMes,    backgroundColor: '#5ae09abb', borderColor: '#5ae09a', borderWidth: 1, borderRadius: 3, stack: 's', yAxisID: 'y' },
+        { type: 'line', label: '% Êxito', data: totalMes.map((t, i) => t > 0 ? +((exitoMes[i] / t) * 100).toFixed(1) : null),
           borderColor: '#f7d060', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 4,
           pointBackgroundColor: '#f7d060', tension: 0.3, yAxisID: 'y2' }
       ]
