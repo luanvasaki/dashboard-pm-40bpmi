@@ -6305,16 +6305,23 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
   // Ranking por Município
   const cMun = document.getElementById('dd-chart-municipio');
   if (cMun) {
-    const munMap = {};
+    const normMun = s => s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const munMap  = {};
+    const munLabel = {}; // guarda a forma de escrita mais frequente por chave normalizada
     registros.forEach(r => {
-      const m = (r.municipio || '').trim();
-      if (!m) return;
-      if (!munMap[m]) munMap[m] = { total: 0, exito: 0 };
-      munMap[m].total++;
-      if (ddStatusMatch(r.status, 'Averiguada com Êxito')) munMap[m].exito++;
+      const raw = (r.municipio || '').trim();
+      if (!raw) return;
+      const key = normMun(raw);
+      if (!munMap[key]) { munMap[key] = { total: 0, exito: 0 }; munLabel[key] = {}; }
+      munLabel[key][raw] = (munLabel[key][raw] || 0) + 1;
+      munMap[key].total++;
+      if (ddStatusMatch(r.status, 'Averiguada com Êxito')) munMap[key].exito++;
     });
     const munRows = Object.entries(munMap).sort((a, b) => b[1].total - a[1].total).slice(0, 10);
-    const munLabels = munRows.map(([m]) => m);
+    // exibe a variante mais frequente de cada município
+    const munLabels = munRows.map(([key]) =>
+      Object.entries(munLabel[key]).sort((a, b) => b[1] - a[1])[0][0]
+    );
     const munTotais = munRows.map(([, v]) => v.total);
     const munExito  = munRows.map(([, v]) => v.exito);
     const munResto  = munRows.map((_, i) => munTotais[i] - munExito[i]);
