@@ -6047,10 +6047,10 @@ function renderDDSection() {
   // Evolução mensal: respeita filtro de CIA mas não de mês (para mostrar todos os meses)
   const evolBase = ddCiaFiltro ? todos.filter(r => r.cia === ddCiaFiltro) : todos;
   const evolDatasets = [
-    { label: 'Averiguada c/ Êxito', status: 'Averiguada com Êxito', cor: '#5ae09a' },
     { label: 'Averiguada s/ Êxito', status: 'Averiguada sem Êxito', cor: '#e08a5a' },
     { label: 'Sem Averiguação',     status: 'Sem Averiguação',       cor: '#e06060' },
     { label: 'Em Andamento',        status: 'Andamento',             cor: '#f7d060' },
+    { label: 'Averiguada c/ Êxito', status: 'Averiguada com Êxito', cor: '#5ae09a', minBarLength: 6 },
   ].map(d => ({
     label: d.label,
     data: MESES_LABEL.map((_, i) => evolBase.filter(r => getMes(r) === i && ddStatusMatch(r.status, d.status)).length),
@@ -6058,6 +6058,7 @@ function renderDDSection() {
     borderColor: d.cor,
     borderWidth: 1,
     borderRadius: 3,
+    ...(d.minBarLength ? { minBarLength: d.minBarLength } : {}),
   }));
 
   const rankingRows = DD_CIAS.map(cia => {
@@ -6172,7 +6173,7 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
         </div>
         <div style="${cardBox}">
           ${secTitle('Evolução Mensal — ' + ddAnoFiltro)}
-          <canvas id="dd-chart-evolucao" style="height:320px;max-height:320px"></canvas>
+          <canvas id="dd-chart-evolucao" style="height:440px;max-height:440px"></canvas>
         </div>
         <div style="${cardBox}">
           ${secTitle('Ranking por CIA')}
