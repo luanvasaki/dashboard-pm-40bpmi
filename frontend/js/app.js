@@ -5929,6 +5929,7 @@ let ddData        = [];
 let ddAnoFiltro   = new Date().getFullYear();
 let ddMesFiltro   = []; // array de nomes de meses, vazio = todos
 let ddCiaFiltro   = '';
+let ddFlagCiaFiltro = '';
 let ddEditId      = null;
 let ddChart  = null;
 let ddChart2 = null;
@@ -6191,7 +6192,13 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
           <canvas id="dd-chart-tempo" style="height:360px;max-height:360px"></canvas>
         </div>
         <div style="${cardBox}">
-          ${secTitle('Flagrantes por Mês')}
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+            ${secTitle('Flagrantes por Mês')}
+            <select onchange="ddSetFlagCia(this.value)" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:5px 10px;border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer">
+              <option value=""${ddFlagCiaFiltro===''?' selected':''}>Todas as CIAs</option>
+              ${DD_CIAS.map(c => `<option value="${c}"${ddFlagCiaFiltro===c?' selected':''}>${c}</option>`).join('')}
+            </select>
+          </div>
           <canvas id="dd-chart-flagrante" style="height:360px;max-height:360px"></canvas>
         </div>
       </div>
@@ -6367,34 +6374,56 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
     });
   }
 
-  // Flagrantes por Mês
-  const cFlag = document.getElementById('dd-chart-flagrante');
-  if (cFlag) {
-    const flagMes   = MESES_LABEL.map((_, i) => evolBase.filter(r => getMes(r) === i && r.flagrante).length);
-    const totalMes  = MESES_LABEL.map((_, i) => evolBase.filter(r => getMes(r) === i).length);
-    ddChart4 = new Chart(cFlag.getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: MESES_LABEL,
-        datasets: [
-          { label: 'Flagrantes', data: flagMes,  backgroundColor: '#9b6de0bb', borderColor: '#9b6de0', borderWidth: 1, borderRadius: 3, yAxisID: 'y' },
-          { type: 'line', label: '% Flagrante', data: totalMes.map((t, i) => t > 0 ? +((flagMes[i] / t) * 100).toFixed(1) : null),
-            borderColor: '#f7d060', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 4,
-            pointBackgroundColor: '#f7d060', tension: 0.3, yAxisID: 'y2' }
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#fff', font: { size: 12 }, boxWidth: 12, padding: 12 } } },
-        scales: {
-          x:  { grid: GR, ticks: { color: '#fff', font: { size: 11 } } },
-          y:  { grid: GR, ticks: { color: '#fff', font: { size: 11 } }, beginAtZero: true, position: 'left' },
-          y2: { grid: { display: false }, ticks: { color: '#f7d060', font: { size: 11 }, callback: v => v + '%' }, beginAtZero: true, position: 'right' }
-        }
-      }
-    });
-  }
+  renderDDFlagranteChart();
 
+}
+
+function renderDDFlagranteChart() {
+  if (ddChart4) { try { ddChart4.destroy(); } catch(e){} ddChart4 = null; }
+  const cFlag = document.getElementById('dd-chart-flagrante');
+  if (!cFlag) return;
+
+  const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const getMes = r => new Date(r.data + 'T00:00:00').getMonth();
+
+  const base = ddData.filter(r => {
+    if (!r.data) return false;
+    if (new Date(r.data + 'T00:00:00').getFullYear() !== ddAnoFiltro) return false;
+    if (ddMesFiltro.length && !ddMesFiltro.includes(MESES_LABEL[getMes(r)])) return false;
+    if (ddCiaFiltro && r.cia !== ddCiaFiltro) return false;
+    if (ddFlagCiaFiltro && r.cia !== ddFlagCiaFiltro) return false;
+    return true;
+  });
+
+  const flagMes  = MESES_LABEL.map((_, i) => base.filter(r => getMes(r) === i && r.flagrante).length);
+  const totalMes = MESES_LABEL.map((_, i) => base.filter(r => getMes(r) === i).length);
+
+  ddChart4 = new Chart(cFlag.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: MESES_LABEL,
+      datasets: [
+        { label: 'Flagrantes', data: flagMes, backgroundColor: '#9b6de0bb', borderColor: '#9b6de0', borderWidth: 1, borderRadius: 3, yAxisID: 'y' },
+        { type: 'line', label: '% Flagrante', data: totalMes.map((t, i) => t > 0 ? +((flagMes[i] / t) * 100).toFixed(1) : null),
+          borderColor: '#f7d060', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 4,
+          pointBackgroundColor: '#f7d060', tension: 0.3, yAxisID: 'y2' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#fff', font: { size: 12 }, boxWidth: 12, padding: 12 } } },
+      scales: {
+        x:  { grid: GR, ticks: { color: '#fff', font: { size: 11 } } },
+        y:  { grid: GR, ticks: { color: '#fff', font: { size: 11 } }, beginAtZero: true, position: 'left' },
+        y2: { grid: { display: false }, ticks: { color: '#f7d060', font: { size: 11 }, callback: v => v + '%' }, beginAtZero: true, position: 'right' }
+      }
+    }
+  });
+}
+
+function ddSetFlagCia(valor) {
+  ddFlagCiaFiltro = valor;
+  renderDDFlagranteChart();
 }
 
 function ddSetFiltro(campo, valor) {
