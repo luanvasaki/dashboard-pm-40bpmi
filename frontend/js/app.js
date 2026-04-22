@@ -6050,7 +6050,7 @@ function renderDDSection() {
     { label: 'Averiguada s/ Êxito', status: 'Averiguada sem Êxito', cor: '#e08a5a' },
     { label: 'Sem Averiguação',     status: 'Sem Averiguação',       cor: '#e06060' },
     { label: 'Em Andamento',        status: 'Andamento',             cor: '#f7d060' },
-    { label: 'Averiguada c/ Êxito', status: 'Averiguada com Êxito', cor: '#5ae09a', minBarLength: 6 },
+    { label: 'Averiguada c/ Êxito', status: 'Averiguada com Êxito', cor: '#5ae09a' },
   ].map(d => ({
     label: d.label,
     data: MESES_LABEL.map((_, i) => evolBase.filter(r => getMes(r) === i && ddStatusMatch(r.status, d.status)).length),
@@ -6058,7 +6058,6 @@ function renderDDSection() {
     borderColor: d.cor,
     borderWidth: 1,
     borderRadius: 3,
-    ...(d.minBarLength ? { minBarLength: d.minBarLength } : {}),
   }));
 
   const rankingRows = DD_CIAS.map(cia => {
