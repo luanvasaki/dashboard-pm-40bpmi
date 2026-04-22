@@ -5378,10 +5378,51 @@ function renderProdDetail() {
   // --- Detalhamento por Categoria ---
   if (!pdNatFilter) {
     const breakField = PROD_BREAK[tipo] || 'entorpecente';
-    const catAgg = {};
-    rows.forEach(r => { const key = r[breakField] || 'Não informado'; catAgg[key] = (catAgg[key]||0) + (Number(r[campo])||0); });
+    const catAgg    = {};
+    const catCiaAgg = {};
+    rows.forEach(r => {
+      const key = r[breakField] || 'Não informado';
+      const cia = r.cia ? normCiaDisplay(r.cia) : 'Não informado';
+      const val = Number(r[campo]) || 0;
+      catAgg[key] = (catAgg[key] || 0) + val;
+      if (!catCiaAgg[key]) catCiaAgg[key] = {};
+      catCiaAgg[key][cia] = (catCiaAgg[key][cia] || 0) + val;
+    });
     const catEntries = Object.entries(catAgg).sort((a,b) => b[1]-a[1]).slice(0,15);
-    rdBar('pd-cat', catEntries.map(([k])=>k), catEntries.map(([,v])=>v));
+    const catLabels  = catEntries.map(([k]) => k);
+    const catValues  = catEntries.map(([,v]) => v);
+
+    const ctxCat = document.getElementById('pd-cat')?.getContext('2d');
+    if (ctxCat) {
+      if (!catLabels.length) { const e = document.getElementById('pd-cat-empty'); if(e) e.style.display=''; ctxCat.canvas.style.display='none'; }
+      else {
+        const h = Math.max(260, catLabels.length * 34 + 40);
+        ctxCat.canvas.style.height = h + 'px';
+        ctxCat.canvas.style.maxHeight = h + 'px';
+        pdChs.push(new Chart(ctxCat, {
+          type: 'bar',
+          data: { labels: catLabels, datasets: [{ data: catValues, backgroundColor: cor+'99', borderColor: cor, borderWidth: 1, borderRadius: 3 }] },
+          options: {
+            ...barOpts,
+            maintainAspectRatio: false,
+            plugins: {
+              ...barOpts.plugins,
+              tooltip: {
+                callbacks: {
+                  label: ctx => ` Total: ${ctx.raw.toLocaleString('pt-BR')}`,
+                  afterLabel: ctx => {
+                    const breakdown = catCiaAgg[ctx.label] || {};
+                    return Object.entries(breakdown)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([cia, v]) => `  ${cia}: ${v.toLocaleString('pt-BR')}`);
+                  }
+                }
+              }
+            }
+          }
+        }));
+      }
+    }
   }
 
   // --- Natureza × Mês (só ocorrências) ---
