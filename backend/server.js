@@ -1158,7 +1158,7 @@ app.get('/api/disque-denuncia', requireAuth, async (req, res) => {
 
 app.post('/api/disque-denuncia', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
-  const { data, cia, numero_dd, data_atendimento, status, flagrante, quant_presos } = req.body;
+  const { data, cia, numero_dd, data_atendimento, status, flagrante, quant_presos, municipio } = req.body;
   if (!data || !cia || !numero_dd || !status) return res.status(400).json({ error: 'Campos obrigatórios ausentes' });
   if (!DD_CIAS.includes(cia)) return res.status(400).json({ error: 'Cia inválida' });
   if (!DD_STATUS.includes(status)) return res.status(400).json({ error: 'Status inválido' });
@@ -1168,6 +1168,7 @@ app.post('/api/disque-denuncia', requireAuth, requireRole('admin', 'p3', 'ti'), 
       data_atendimento: data_atendimento || null,
       status, flagrante: !!flagrante,
       quant_presos: Number(quant_presos) || 0,
+      municipio: municipio?.trim() || null,
       created_by: req.user.nome
     }).select().single();
     if (error) throw new Error(error.message);
@@ -1177,14 +1178,15 @@ app.post('/api/disque-denuncia', requireAuth, requireRole('admin', 'p3', 'ti'), 
 
 app.put('/api/disque-denuncia/:id', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
-  const { data, cia, numero_dd, data_atendimento, status, flagrante, quant_presos } = req.body;
+  const { data, cia, numero_dd, data_atendimento, status, flagrante, quant_presos, municipio } = req.body;
   if (!data || !cia || !numero_dd || !status) return res.status(400).json({ error: 'Campos obrigatórios ausentes' });
   try {
     const { error } = await supabase.from('disque_denuncia_registros').update({
       data, cia, numero_dd: numero_dd.trim(),
       data_atendimento: data_atendimento || null,
       status, flagrante: !!flagrante,
-      quant_presos: Number(quant_presos) || 0
+      quant_presos: Number(quant_presos) || 0,
+      municipio: municipio?.trim() || null
     }).eq('id', req.params.id);
     if (error) throw new Error(error.message);
     res.json({ ok: true });
@@ -1237,8 +1239,9 @@ app.post('/api/disque-denuncia/upload', requireAuth, requireRole('admin', 'p3', 
       const flagranteRaw = col('flagrante').toLowerCase();
       const flagrante = flagranteRaw === 'sim' || flagranteRaw === 'true' || flagranteRaw === '1';
       const quant_presos = parseInt(col('presos') || col('quant')) || 0;
+      const municipio = col('municipio') || col('município') || null;
       if (!cia || !numero_dd || !DD_STATUS.includes(status)) return null;
-      return { data: dataBase, cia, numero_dd, data_atendimento: dataAtend, status, flagrante, quant_presos };
+      return { data: dataBase, cia, numero_dd, data_atendimento: dataAtend, status, flagrante, quant_presos, municipio: municipio || null };
     }).filter(Boolean);
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique as colunas do CSV.' });

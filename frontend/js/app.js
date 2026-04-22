@@ -6328,6 +6328,8 @@ function openDDMo(id) {
     </select>
     <label style="${labelStyle}">Qtd. Presos</label>
     <input type="number" id="dd-f-presos" value="${rec?.quant_presos||0}" min="0" style="${inputStyle}">
+    <label style="${labelStyle}">Município</label>
+    <input type="text" id="dd-f-municipio" value="${rec?.municipio||''}" placeholder="Ex: São Paulo" style="${inputStyle}">
   `;
 
   const mo = document.getElementById('dd-mo');
@@ -6353,6 +6355,7 @@ async function ddSave() {
     status:            document.getElementById('dd-f-status').value,
     flagrante:         document.getElementById('dd-f-flagrante').value === 'true',
     quant_presos:      Number(document.getElementById('dd-f-presos').value) || 0,
+    municipio:         document.getElementById('dd-f-municipio').value.trim() || null,
   };
   if (!body.data || !body.numero_dd) { msg.textContent = 'Preencha Data e Nº DD.'; return; }
   try {
