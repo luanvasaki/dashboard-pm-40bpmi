@@ -6194,59 +6194,45 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
     const donutExito  = DD_CIAS.map(cia => registros.filter(r => r.cia === cia && ddStatusMatch(r.status, 'Averiguada com Êxito')).length);
     const donutResto  = DD_CIAS.map((_, i) => donutTotais[i] - donutExito[i]);
 
-    // Anel interno: [CIA1-exito, CIA1-resto, CIA2-exito, CIA2-resto, ...]
-    // alinhado com o anel externo para o êxito aparecer "dentro" da barra
-    const innerData   = [];
-    const innerBg     = [];
-    const innerBorder = [];
+    // Anel único: [CIA1_esq, CIA1_verde, CIA1_dir, CIA2_esq, CIA2_verde, CIA2_dir, ...]
+    // verde centrado dentro do arco de cada CIA, longe das bordas entre CIAs
+    const sliceData   = [];
+    const sliceBg     = [];
+    const sliceBorder = [];
     DD_CIAS.forEach((_, i) => {
-      innerData.push(donutExito[i]);
-      innerBg.push(exitoCor + 'ee');
-      innerBorder.push(exitoCor);
-      innerData.push(donutResto[i]);
-      innerBg.push('rgba(0,0,0,0)');
-      innerBorder.push('rgba(0,0,0,0)');
+      const esq = Math.floor(donutResto[i] / 2);
+      const dir = donutResto[i] - esq;
+      sliceData.push(esq);          sliceBg.push(donutCors[i]);   sliceBorder.push('#131720');
+      sliceData.push(donutExito[i]); sliceBg.push(exitoCor);       sliceBorder.push('#131720');
+      sliceData.push(dir);          sliceBg.push(donutCors[i]);   sliceBorder.push('#131720');
     });
 
     ddChart6 = new Chart(c6.getContext('2d'), {
       type: 'doughnut',
       data: {
         labels: [],
-        datasets: [
-          {
-            data: donutTotais,
-            backgroundColor: donutCors.map(c => c + 'dd'),
-            borderColor: donutCors,
-            borderWidth: 2,
-            weight: 3,
-            hoverOffset: 6
-          },
-          {
-            data: innerData,
-            backgroundColor: innerBg,
-            borderColor: innerBorder,
-            borderWidth: 1,
-            weight: 1,
-            hoverOffset: 4
-          }
-        ]
+        datasets: [{
+          data: sliceData,
+          backgroundColor: sliceBg,
+          borderColor: sliceBorder,
+          borderWidth: 1,
+          hoverOffset: 6
+        }]
       },
       options: {
         responsive: true, maintainAspectRatio: true,
-        cutout: '50%',
+        cutout: '54%',
         plugins: {
           legend: { display: false },
           tooltip: {
-            filter: item => !(item.datasetIndex === 1 && item.dataIndex % 2 === 1),
+            filter: item => item.dataIndex % 3 !== 0 || sliceData[item.dataIndex] > 0,
             callbacks: {
               label: ctx => {
-                if (ctx.datasetIndex === 0) {
-                  const t = donutTotais[ctx.dataIndex];
-                  return ` ${DD_CIAS[ctx.dataIndex]}: ${t} DDs (${total > 0 ? ((t / total) * 100).toFixed(1) : 0}%)`;
-                }
-                const ciaIdx = Math.floor(ctx.dataIndex / 2);
-                const t = donutTotais[ciaIdx];
-                return ` ${DD_CIAS[ciaIdx]} c/ Êxito: ${ctx.raw} (${t > 0 ? ((ctx.raw / t) * 100).toFixed(1) : 0}% da CIA)`;
+                const ciaIdx = Math.floor(ctx.dataIndex / 3);
+                const pos    = ctx.dataIndex % 3;
+                const t      = donutTotais[ciaIdx];
+                if (pos === 1) return ` ${DD_CIAS[ciaIdx]} c/ Êxito: ${ctx.raw} (${t > 0 ? ((ctx.raw / t) * 100).toFixed(1) : 0}% da CIA)`;
+                return ` ${DD_CIAS[ciaIdx]}: ${t} DDs (${total > 0 ? ((t / total) * 100).toFixed(1) : 0}%)`;
               }
             }
           }
