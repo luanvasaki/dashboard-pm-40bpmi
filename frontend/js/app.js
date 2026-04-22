@@ -6049,7 +6049,6 @@ function renderDDSection() {
   const evolDatasets = [
     { label: 'Averiguada s/ Êxito', status: 'Averiguada sem Êxito', cor: '#e08a5a' },
     { label: 'Sem Averiguação',     status: 'Sem Averiguação',       cor: '#e06060' },
-    { label: 'Em Andamento',        status: 'Andamento',             cor: '#f7d060' },
     { label: 'Averiguada c/ Êxito', status: 'Averiguada com Êxito', cor: '#5ae09a' },
   ].map(d => ({
     label: d.label,
@@ -6184,29 +6183,47 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
 
   const c6 = document.getElementById('dd-chart-donut');
   if (c6) {
-    const donutCors = ['#5a9de0','#5ae09a','#f7d060','#c84b9e'];
+    const donutCors   = ['#5a9de0','#e08a5a','#f7d060','#c84b9e'];
+    const exitoCors   = ['#a0d4ff','#ffc8a0','#fff0a0','#f0a0d8'];
     const donutTotais = DD_CIAS.map(cia => registros.filter(r => r.cia === cia).length);
     const donutExito  = DD_CIAS.map(cia => registros.filter(r => r.cia === cia && ddStatusMatch(r.status, 'Averiguada com Êxito')).length);
+    const donutResto  = DD_CIAS.map((_, i) => donutTotais[i] - donutExito[i]);
+
+    // Intercala fatias: [CIA1-resto, CIA1-exito, CIA2-resto, CIA2-exito, ...]
+    const sliceLabels = [];
+    const sliceData   = [];
+    const sliceBg     = [];
+    const sliceBorder = [];
+    DD_CIAS.forEach((cia, i) => {
+      sliceLabels.push(cia);
+      sliceData.push(donutResto[i]);
+      sliceBg.push(donutCors[i] + 'cc');
+      sliceBorder.push(donutCors[i]);
+      sliceLabels.push(cia + ' c/ Êxito');
+      sliceData.push(donutExito[i]);
+      sliceBg.push(exitoCors[i] + 'ee');
+      sliceBorder.push(exitoCors[i]);
+    });
+
     ddChart6 = new Chart(c6.getContext('2d'), {
       type: 'doughnut',
       data: {
-        labels: DD_CIAS,
-        datasets: [
-          { label: 'Total DDs',   data: donutTotais, backgroundColor: donutCors.map(c => c + 'cc'), borderColor: donutCors, borderWidth: 2, hoverOffset: 8 },
-          { label: 'c/ Êxito',   data: donutExito,  backgroundColor: donutCors.map(c => c + '55'), borderColor: donutCors.map(c => c + '99'), borderWidth: 1, hoverOffset: 4 }
-        ]
+        labels: sliceLabels,
+        datasets: [{ data: sliceData, backgroundColor: sliceBg, borderColor: sliceBorder, borderWidth: 2, hoverOffset: 8 }]
       },
       options: {
         responsive: true, maintainAspectRatio: true,
-        cutout: '55%',
+        cutout: '68%',
         plugins: {
           legend: { display: false },
           tooltip: {
             callbacks: {
               label: ctx => {
-                if (ctx.datasetIndex === 0) return ` ${ctx.label}: ${ctx.raw} DDs (${total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0}%)`;
-                const t = donutTotais[ctx.dataIndex];
-                return ` ${ctx.label} c/ Êxito: ${ctx.raw} (${t > 0 ? ((ctx.raw / t) * 100).toFixed(1) : 0}%)`;
+                const isExito = ctx.dataIndex % 2 === 1;
+                const ciaIdx  = Math.floor(ctx.dataIndex / 2);
+                const t = donutTotais[ciaIdx];
+                if (isExito) return ` ${DD_CIAS[ciaIdx]} c/ Êxito: ${ctx.raw} (${t > 0 ? ((ctx.raw / t) * 100).toFixed(1) : 0}% da CIA)`;
+                return ` ${DD_CIAS[ciaIdx]}: ${ctx.raw} DDs sem êxito`;
               }
             }
           }
@@ -6216,13 +6233,14 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
     const legendEl = document.getElementById('dd-donut-legend');
     if (legendEl) {
       legendEl.innerHTML = DD_CIAS.map((cia, i) => {
-        const val  = donutTotais[i];
-        const exit = donutExito[i];
-        const pct  = total > 0 ? ((val / total) * 100).toFixed(1) : '0.0';
+        const val     = donutTotais[i];
+        const exit    = donutExito[i];
+        const pct     = total > 0 ? ((val / total) * 100).toFixed(1) : '0.0';
         const exitPct = val > 0 ? ((exit / val) * 100).toFixed(1) : '0.0';
         return `<div style="display:grid;grid-template-columns:auto 110px 110px;gap:8px;align-items:center">
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="width:12px;height:12px;border-radius:50%;background:${donutCors[i]};flex-shrink:0"></div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:10px;height:10px;border-radius:2px;background:${donutCors[i]};flex-shrink:0"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:${exitoCors[i]};flex-shrink:0"></div>
             <span style="font-size:14px;color:#fff;font-family:'DM Mono',monospace;font-weight:600">${cia}</span>
           </div>
           <div style="text-align:right">
@@ -6230,8 +6248,8 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
             <span style="font-size:12px;color:${donutCors[i]};margin-left:5px;font-weight:700">${pct}%</span>
           </div>
           <div style="text-align:right">
-            <span style="font-size:14px;color:#5ae09a;font-family:'DM Mono',monospace">${exit}</span>
-            <span style="font-size:12px;color:#5ae09a88;margin-left:5px">${exitPct}%</span>
+            <span style="font-size:14px;color:${exitoCors[i]};font-family:'DM Mono',monospace">${exit}</span>
+            <span style="font-size:12px;color:${exitoCors[i]}88;margin-left:5px">${exitPct}%</span>
           </div>
         </div>`;
       }).join('');
