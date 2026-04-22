@@ -6184,32 +6184,38 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
   const c6 = document.getElementById('dd-chart-donut');
   if (c6) {
     const donutCors   = ['#5a9de0','#e08a5a','#f7d060','#c84b9e'];
-    const exitoCors   = ['#a0d4ff','#ffc8a0','#fff0a0','#f0a0d8'];
+    const exitoCor    = '#5ae09a';
     const donutTotais = DD_CIAS.map(cia => registros.filter(r => r.cia === cia).length);
     const donutExito  = DD_CIAS.map(cia => registros.filter(r => r.cia === cia && ddStatusMatch(r.status, 'Averiguada com Êxito')).length);
     const donutResto  = DD_CIAS.map((_, i) => donutTotais[i] - donutExito[i]);
 
     // Intercala fatias: [CIA1-resto, CIA1-exito, CIA2-resto, CIA2-exito, ...]
-    const sliceLabels = [];
-    const sliceData   = [];
-    const sliceBg     = [];
-    const sliceBorder = [];
+    const sliceLabels  = [];
+    const sliceData    = [];
+    const sliceBg      = [];
+    const sliceBorder  = [];
+    const sliceOffset  = [];
+    const sliceBorderW = [];
     DD_CIAS.forEach((cia, i) => {
       sliceLabels.push(cia);
       sliceData.push(donutResto[i]);
-      sliceBg.push(donutCors[i] + 'cc');
+      sliceBg.push(donutCors[i]);
       sliceBorder.push(donutCors[i]);
+      sliceOffset.push(0);
+      sliceBorderW.push(1);
       sliceLabels.push(cia + ' c/ Êxito');
       sliceData.push(donutExito[i]);
-      sliceBg.push(exitoCors[i] + 'ee');
-      sliceBorder.push(exitoCors[i]);
+      sliceBg.push(exitoCor);
+      sliceBorder.push('#fff');
+      sliceOffset.push(14);
+      sliceBorderW.push(3);
     });
 
     ddChart6 = new Chart(c6.getContext('2d'), {
       type: 'doughnut',
       data: {
         labels: sliceLabels,
-        datasets: [{ data: sliceData, backgroundColor: sliceBg, borderColor: sliceBorder, borderWidth: 2, hoverOffset: 8 }]
+        datasets: [{ data: sliceData, backgroundColor: sliceBg, borderColor: sliceBorder, borderWidth: sliceBorderW, offset: sliceOffset, hoverOffset: 8 }]
       },
       options: {
         responsive: true, maintainAspectRatio: true,
@@ -6240,7 +6246,7 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
         return `<div style="display:grid;grid-template-columns:auto 110px 110px;gap:8px;align-items:center">
           <div style="display:flex;align-items:center;gap:6px">
             <div style="width:10px;height:10px;border-radius:2px;background:${donutCors[i]};flex-shrink:0"></div>
-            <div style="width:10px;height:10px;border-radius:2px;background:${exitoCors[i]};flex-shrink:0"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:${exitoCor};flex-shrink:0"></div>
             <span style="font-size:14px;color:#fff;font-family:'DM Mono',monospace;font-weight:600">${cia}</span>
           </div>
           <div style="text-align:right">
@@ -6248,8 +6254,8 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
             <span style="font-size:12px;color:${donutCors[i]};margin-left:5px;font-weight:700">${pct}%</span>
           </div>
           <div style="text-align:right">
-            <span style="font-size:14px;color:${exitoCors[i]};font-family:'DM Mono',monospace">${exit}</span>
-            <span style="font-size:12px;color:${exitoCors[i]}88;margin-left:5px">${exitPct}%</span>
+            <span style="font-size:14px;color:${exitoCor};font-family:'DM Mono',monospace">${exit}</span>
+            <span style="font-size:12px;color:${exitoCor}88;margin-left:5px">${exitPct}%</span>
           </div>
         </div>`;
       }).join('');
