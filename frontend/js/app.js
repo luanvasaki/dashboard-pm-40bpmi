@@ -6395,15 +6395,17 @@ function renderDDFlagranteChart() {
     return true;
   });
 
-  const flagMes  = MESES_LABEL.map((_, i) => base.filter(r => getMes(r) === i && r.flagrante).length);
-  const totalMes = MESES_LABEL.map((_, i) => base.filter(r => getMes(r) === i).length);
+  const flagMes    = MESES_LABEL.map((_, i) => base.filter(r => getMes(r) === i && r.flagrante).length);
+  const semFlagMes = MESES_LABEL.map((_, i) => base.filter(r => getMes(r) === i && !r.flagrante).length);
+  const totalMes   = MESES_LABEL.map((_, i) => base.filter(r => getMes(r) === i).length);
 
   ddChart4 = new Chart(cFlag.getContext('2d'), {
     type: 'bar',
     data: {
       labels: MESES_LABEL,
       datasets: [
-        { label: 'Flagrantes', data: flagMes, backgroundColor: '#9b6de0bb', borderColor: '#9b6de0', borderWidth: 1, borderRadius: 3, yAxisID: 'y' },
+        { label: 'Sem Flagrante', data: semFlagMes, backgroundColor: '#5a9de0bb', borderColor: '#5a9de0', borderWidth: 1, borderRadius: 3, stack: 's', yAxisID: 'y' },
+        { label: 'Com Flagrante', data: flagMes,    backgroundColor: '#9b6de0bb', borderColor: '#9b6de0', borderWidth: 1, borderRadius: 3, stack: 's', yAxisID: 'y' },
         { type: 'line', label: '% Flagrante', data: totalMes.map((t, i) => t > 0 ? +((flagMes[i] / t) * 100).toFixed(1) : null),
           borderColor: '#f7d060', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 4,
           pointBackgroundColor: '#f7d060', tension: 0.3, yAxisID: 'y2' }
@@ -6413,8 +6415,8 @@ function renderDDFlagranteChart() {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { labels: { color: '#fff', font: { size: 12 }, boxWidth: 12, padding: 12 } } },
       scales: {
-        x:  { grid: GR, ticks: { color: '#fff', font: { size: 11 } } },
-        y:  { grid: GR, ticks: { color: '#fff', font: { size: 11 } }, beginAtZero: true, position: 'left' },
+        x:  { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 11 } } },
+        y:  { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 11 } }, beginAtZero: true, position: 'left' },
         y2: { grid: { display: false }, ticks: { color: '#f7d060', font: { size: 11 }, callback: v => v + '%' }, beginAtZero: true, position: 'right' }
       }
     }
