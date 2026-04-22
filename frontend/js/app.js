@@ -6322,18 +6322,23 @@ const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.dat
     const munLabels = munRows.map(([key]) =>
       Object.entries(munLabel[key]).sort((a, b) => b[1] - a[1])[0][0]
     );
-    const munTotais = munRows.map(([, v]) => v.total);
-    const munExito  = munRows.map(([, v]) => v.exito);
-    const munResto  = munRows.map((_, i) => munTotais[i] - munExito[i]);
+    const ciaCors = ['#5a9de0','#e08a5a','#f7d060','#c84b9e'];
+    const munCiaDatasets = DD_CIAS.map((cia, ci) => ({
+      label: cia,
+      data: munRows.map(([key]) =>
+        registros.filter(r => {
+          const raw = (r.municipio || '').trim();
+          return raw && normMun(raw) === key && r.cia === cia;
+        }).length
+      ),
+      backgroundColor: ciaCors[ci] + 'cc',
+      borderColor: ciaCors[ci],
+      borderWidth: 1,
+      borderRadius: 3,
+    }));
     ddChart2 = new Chart(cMun.getContext('2d'), {
       type: 'bar',
-      data: {
-        labels: munLabels,
-        datasets: [
-          { label: 'Sem Êxito', data: munResto, backgroundColor: '#5a9de0bb', borderColor: '#5a9de0', borderWidth: 1, borderRadius: 3 },
-          { label: 'c/ Êxito',  data: munExito, backgroundColor: '#5ae09abb', borderColor: '#5ae09a', borderWidth: 1, borderRadius: 3 },
-        ]
-      },
+      data: { labels: munLabels, datasets: munCiaDatasets },
       options: {
         indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
