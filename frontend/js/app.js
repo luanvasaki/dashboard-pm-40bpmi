@@ -6603,7 +6603,92 @@ async function ddUplConfirm() {
 }
 
 // ---------------------------------------------------------------------------
+// Modo Inspetor (apenas admin / ti)
+// ---------------------------------------------------------------------------
+
+function initInspector() {
+  const role = (() => { try { return JSON.parse(localStorage.getItem('auth_user') || '{}').role || ''; } catch { return ''; } })();
+  if (!['admin', 'ti'].includes(role)) return;
+
+  let active = false;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    #inspector-btn{position:fixed;bottom:24px;right:24px;z-index:9998;background:#131720;border:2px solid rgba(90,157,224,.3);color:#5a9de0;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;box-shadow:0 2px 16px rgba(0,0,0,.5);transition:border-color .2s,background .2s;user-select:none;title:'Modo Inspetor'}
+    #inspector-btn.on{background:rgba(90,157,224,.18);border-color:#5a9de0}
+    #inspector-popup{position:fixed;z-index:9999;background:#1a1e2e;border:1px solid rgba(90,157,224,.45);border-radius:10px;padding:14px 16px;font-family:'DM Mono',monospace;font-size:12px;color:#d0d4dc;box-shadow:0 4px 24px rgba(0,0,0,.6);display:none;max-width:340px;min-width:200px;pointer-events:none;line-height:1.6}
+    body.inspector-on *{cursor:crosshair !important}
+    body.inspector-on canvas:hover,body.inspector-on div[id]:hover,body.inspector-on section[id]:hover{outline:2px solid rgba(90,157,224,.7) !important;outline-offset:3px !important}
+  `;
+  document.head.appendChild(style);
+
+  const btn = document.createElement('div');
+  btn.id = 'inspector-btn';
+  btn.title = 'Modo Inspetor';
+  btn.textContent = '🔍';
+  btn.onclick = () => {
+    active = !active;
+    btn.classList.toggle('on', active);
+    document.body.classList.toggle('inspector-on', active);
+    popup.style.display = 'none';
+  };
+  document.body.appendChild(btn);
+
+  const popup = document.createElement('div');
+  popup.id = 'inspector-popup';
+  document.body.appendChild(popup);
+
+  const getTitle = el => {
+    let node = el;
+    while (node && node !== document.body) {
+      const kids = node.children ? [...node.children] : [];
+      for (const k of kids) {
+        const st = k.getAttribute?.('style') || '';
+        const txt = (k.textContent || '').trim();
+        if (txt && txt.length < 100 && (st.includes('letter-spacing') || st.includes('text-transform') || st.includes('Barlow') || st.includes('font-weight:700') || st.includes('font-weight:800'))) {
+          return txt.split('\n')[0].trim();
+        }
+      }
+      node = node.parentElement;
+    }
+    return '';
+  };
+
+  document.addEventListener('mousemove', e => {
+    if (!active) return;
+    const target = e.target;
+    if (target === btn || popup.contains(target)) return;
+
+    let el = target;
+    while (el && el !== document.body) {
+      if (el.id && el.id !== 'inspector-popup' && el.id !== 'inspector-btn') break;
+      el = el.parentElement;
+    }
+    if (!el || el === document.body) { popup.style.display = 'none'; return; }
+
+    const title = getTitle(el) || el.id || el.tagName;
+    const tag   = el.tagName === 'CANVAS' ? '📊 Gráfico' : el.tagName === 'TABLE' ? '📋 Tabela' : '🗂 Elemento';
+
+    popup.innerHTML = `
+      <div style="color:#5a9de0;font-size:10px;letter-spacing:1.5px;margin-bottom:8px;font-weight:700">🔍 INSPETOR</div>
+      <div style="color:#fff;font-size:13px;font-weight:700;margin-bottom:4px;line-height:1.4">${title}</div>
+      <div style="color:#888;font-size:11px;margin-bottom:2px">${tag}</div>
+      <div style="color:#aaa;font-size:11px">ID: <span style="color:#c8a84b">${el.id || '(sem id)'}</span></div>
+    `;
+
+    const px = Math.min(e.clientX + 18, window.innerWidth - 360);
+    const py = Math.min(e.clientY + 18, window.innerHeight - 130);
+    popup.style.left = px + 'px';
+    popup.style.top  = py + 'px';
+    popup.style.display = 'block';
+  });
+
+  document.addEventListener('mouseleave', () => { popup.style.display = 'none'; });
+}
+
+// ---------------------------------------------------------------------------
 // Inicia a aplicação
 // ---------------------------------------------------------------------------
 
 init();
+initInspector();
