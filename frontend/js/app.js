@@ -6668,17 +6668,21 @@ function initInspector() {
   document.addEventListener('mousemove', e => {
     if (!active) return;
     const target = e.target;
-    if (target === btn || popup.contains(target)) return;
+    if (target === btn || target.closest?.('#inspector-popup') || target.closest?.('#inspector-btn')) return;
 
-    let el = target;
-    while (el && el !== document.body) {
-      if (el.id && el.id !== 'inspector-popup' && el.id !== 'inspector-btn') break;
-      el = el.parentElement;
+    // refEl: ancestral com id — usado para título e referência de código
+    let refEl = target;
+    while (refEl && refEl !== document.body) {
+      if (refEl.id && refEl.id !== 'inspector-popup' && refEl.id !== 'inspector-btn') break;
+      refEl = refEl.parentElement;
     }
-    if (!el || el === document.body) { popup.style.display = 'none'; return; }
+    if (!refEl || refEl === document.body) { popup.style.display = 'none'; return; }
 
-    const title = getTitle(el) || el.id || el.tagName;
-    const tag   = el.tagName === 'CANVAS' ? '📊 Gráfico' : el.tagName === 'TABLE' ? '📋 Tabela' : '🗂 Elemento';
+    // target é o elemento real sob o cursor — estilos mudam a cada elemento
+    const el = target;
+
+    const title = getTitle(refEl) || refEl.id || refEl.tagName;
+    const tag   = refEl.tagName === 'CANVAS' ? '📊 Gráfico' : refEl.tagName === 'TABLE' ? '📋 Tabela' : '🗂 Elemento';
 
     const cs   = window.getComputedStyle(el);
     const rect = el.getBoundingClientRect();
@@ -6688,17 +6692,17 @@ function initInspector() {
       if (m[4] !== undefined && parseFloat(m[4]) < 0.05) return 'transparente';
       return '#' + [m[1],m[2],m[3]].map(n => (+n).toString(16).padStart(2,'0')).join('');
     };
-    const fgHex   = toHex(cs.color);
-    const bgHex   = toHex(cs.backgroundColor);
+    const fgHex      = toHex(cs.color);
+    const bgHex      = toHex(cs.backgroundColor);
     const fontSize   = cs.fontSize;
     const fontWeight = cs.fontWeight;
     const fontFamily = cs.fontFamily.split(',')[0].replace(/['"]/g,'').trim();
     const w = Math.round(rect.width);
     const h = Math.round(rect.height);
-    const elClass = typeof el.className === 'string' ? el.className.trim().split(/\s+/)[0] : '';
-    const searchTerm = el.id ? `id="${el.id}"` : elClass ? `.${elClass}` : el.tagName.toLowerCase();
     const staticIds = ['user-block','sidebar','btn-admin','btn-logout','main-content','nav','header','pending-badge','user-nome','user-info'];
-    const srcFile = staticIds.includes(el.id) ? 'index.html' : el.id ? 'app.js' : 'index.html ou app.js';
+    const srcFile  = staticIds.includes(refEl.id) ? 'index.html' : refEl.id ? 'app.js' : 'index.html ou app.js';
+    const refClass = typeof refEl.className === 'string' ? refEl.className.trim().split(/\s+/)[0] : '';
+    const searchTerm = refEl.id ? `id="${refEl.id}"` : refClass ? `.${refClass}` : refEl.tagName.toLowerCase();
     const swatch = c => `<span style="display:inline-block;width:9px;height:9px;background:${c};border-radius:2px;margin-right:5px;border:1px solid rgba(255,255,255,.15);vertical-align:middle;flex-shrink:0"></span>`;
 
     popup.innerHTML = `
@@ -6706,8 +6710,8 @@ function initInspector() {
       <div style="color:#fff;font-size:13px;font-weight:700;margin-bottom:2px;line-height:1.4">${title}</div>
       <div style="color:#666;font-size:11px;margin-bottom:10px">${tag}</div>
       <div style="display:grid;grid-template-columns:80px 1fr;gap:4px 8px;font-size:11px;margin-bottom:10px;align-items:center">
-        <span style="color:#555">ID</span>
-        <span style="color:#c8a84b;font-family:'DM Mono',monospace">${el.id || '(sem id)'}</span>
+        <span style="color:#555">ID ref.</span>
+        <span style="color:#c8a84b;font-family:'DM Mono',monospace">${refEl.id || '(sem id)'}</span>
         <span style="color:#555">Tamanho</span>
         <span style="color:#d0d4dc">${w} × ${h} px</span>
         <span style="color:#555">Fonte</span>
@@ -6727,7 +6731,7 @@ function initInspector() {
     `;
 
     const popW = 340;
-    const popH = 260;
+    const popH = 270;
     const px = Math.min(e.clientX + 18, window.innerWidth - popW - 8);
     const py = Math.min(e.clientY + 18, window.innerHeight - popH - 8);
     popup.style.left = px + 'px';
