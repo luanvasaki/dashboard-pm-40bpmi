@@ -2757,13 +2757,13 @@ function renderP1() {
   const total = dataF.length;
 
   // ── KPI cards (clicáveis)
-  kpisEl.style.gridTemplateColumns = 'repeat(auto-fill,minmax(160px,1fr))';
+  kpisEl.style.gridTemplateColumns = 'repeat(auto-fill,minmax(210px,1fr))';
   const kpiCard = (label, val, sub, color, key) =>
-    `<div onclick="p1ShowKpiDetail('${key}')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px;cursor:pointer;transition:all .2s;min-height:110px;display:flex;flex-direction:column;justify-content:space-between" onmouseover="this.style.borderColor='${color}';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform=''">
-      <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--tx);text-transform:uppercase">${label}</div>
-      <div style="font-size:34px;font-weight:800;color:${color};font-family:'Barlow Condensed',sans-serif;line-height:1;margin:6px 0 4px">${val}</div>
+    `<div onclick="p1ShowKpiDetail('${key}')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:22px 24px;cursor:pointer;transition:all .2s;min-height:140px;display:flex;flex-direction:column;justify-content:space-between" onmouseover="this.style.borderColor='${color}';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform=''">
+      <div style="font-family:'DM Mono',monospace;font-size:15px;letter-spacing:2px;color:var(--tx);text-transform:uppercase">${label}</div>
+      <div style="font-size:34px;font-weight:800;color:${color};font-family:'Barlow Condensed',sans-serif;line-height:1;margin:8px 0 6px">${val}</div>
       <div>
-        ${sub ? `<div style="font-size:10px;color:var(--tx3);margin-bottom:6px;line-height:1.4">${sub}</div>` : ''}
+        ${sub ? `<div style="font-size:13px;color:var(--tx3);margin-bottom:8px;line-height:1.4">${sub}</div>` : ''}
         <div style="height:2px;background:${color};opacity:.25;border-radius:1px"></div>
       </div>
     </div>`;
