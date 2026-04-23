@@ -6614,15 +6614,16 @@ function initInspector() {
 
   const style = document.createElement('style');
   style.textContent = `
-    #inspector-btn{position:fixed;bottom:24px;right:24px;z-index:9998;background:#131720;border:2px solid rgba(90,157,224,.3);color:#5a9de0;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;box-shadow:0 2px 16px rgba(0,0,0,.5);transition:border-color .2s,background .2s;user-select:none;title:'Modo Inspetor'}
-    #inspector-btn.on{background:rgba(90,157,224,.18);border-color:#5a9de0}
+    #inspector-btn{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:#5a9de0;opacity:.45;transition:opacity .2s,color .2s;user-select:none;padding:2px 4px;border-radius:4px;flex-shrink:0}
+    #inspector-btn:hover{opacity:1}
+    #inspector-btn.on{opacity:1;color:#5ae09a}
     #inspector-popup{position:fixed;z-index:9999;background:#1a1e2e;border:1px solid rgba(90,157,224,.45);border-radius:10px;padding:14px 16px;font-family:'DM Mono',monospace;font-size:12px;color:#d0d4dc;box-shadow:0 4px 24px rgba(0,0,0,.6);display:none;max-width:340px;min-width:200px;pointer-events:none;line-height:1.6}
     body.inspector-on *{cursor:crosshair !important}
     body.inspector-on canvas:hover,body.inspector-on div[id]:hover,body.inspector-on section[id]:hover{outline:2px solid rgba(90,157,224,.7) !important;outline-offset:3px !important}
   `;
   document.head.appendChild(style);
 
-  const btn = document.createElement('div');
+  const btn = document.createElement('span');
   btn.id = 'inspector-btn';
   btn.title = 'Modo Inspetor';
   btn.textContent = '🔍';
@@ -6632,7 +6633,17 @@ function initInspector() {
     document.body.classList.toggle('inspector-on', active);
     popup.style.display = 'none';
   };
-  document.body.appendChild(btn);
+
+  const userNome = document.getElementById('user-nome');
+  if (userNome) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;';
+    userNome.parentNode.insertBefore(row, userNome);
+    row.appendChild(userNome);
+    row.appendChild(btn);
+  } else {
+    document.body.appendChild(btn);
+  }
 
   const popup = document.createElement('div');
   popup.id = 'inspector-popup';
