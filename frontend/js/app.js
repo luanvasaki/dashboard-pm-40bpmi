@@ -2813,7 +2813,7 @@ function renderP1() {
     }).join('');
     afastSection = `
       <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow-x:auto;margin-bottom:14px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#c84b4b;padding:14px 16px 0;text-transform:uppercase">Afastamentos — ${pmAfastados.length}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#c84b4b;padding:14px 16px 0;text-transform:uppercase">Afastamentos — ${pmAfastados.length}</div>
         <table style="width:100%;border-collapse:collapse;margin-top:8px">
           <thead><tr>
             <th style="${thL};width:44px;padding:8px 4px 8px 8px"></th><th style="${thL}">Nome de Guerra</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th>
@@ -2832,8 +2832,8 @@ function renderP1() {
       alertItems.push(`<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center">
         ${badge('RESTRIÇÃO', '#c8a84b')}
         <span style="font-size:12px;color:var(--tx)">${r.nome_guerra || r.nome}</span>
-        <span style="font-size:11px;color:var(--tx3)">${r.opm || ''}</span>
-        <span style="font-size:11px;color:var(--tx3);margin-left:auto">Vence em <b style="color:#c8a84b">${dias}d</b> — ${fmtDate(r.restricao_termino)}</span>
+        <span style="font-size:13px;color:#ffffff">${r.opm || ''}</span>
+        <span style="font-size:13px;color:#ffffff;margin-left:auto">Vence em <b style="color:#c8a84b">${dias}d</b> — ${fmtDate(r.restricao_termino)}</span>
       </div>`);
     });
   }
@@ -2844,15 +2844,15 @@ function renderP1() {
       alertItems.push(`<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center">
         ${badge('RETORNO', '#4bc87a')}
         <span style="font-size:12px;color:var(--tx)">${pm?.nome_guerra || a.nome || a.re}</span>
-        <span style="font-size:11px;color:var(--tx3)">${a.tipo_afastamento}</span>
-        <span style="font-size:11px;color:var(--tx3);margin-left:auto">Retorna em <b style="color:#4bc87a">${dias}d</b> — ${fmtDate(a.termino)}</span>
+        <span style="font-size:13px;color:#ffffff">${a.tipo_afastamento}</span>
+        <span style="font-size:13px;color:#ffffff;margin-left:auto">Retorna em <b style="color:#4bc87a">${dias}d</b> — ${fmtDate(a.termino)}</span>
       </div>`);
     });
   }
   if (alertItems.length) {
     alertSection = `
       <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-bottom:14px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#c8a84b;padding:14px 16px 8px;text-transform:uppercase">Alertas</div>
+        <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#c8a84b;padding:14px 16px 8px;text-transform:uppercase">Alertas</div>
         ${alertItems.join('')}
       </div>`;
   }
@@ -2898,8 +2898,8 @@ function renderP1() {
         style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:8px 12px;cursor:pointer;text-align:left;transition:all .15s;color:var(--tx2)"
         onmouseover="if(!this.classList.contains('sel')){this.style.borderColor='${cia.color}';this.style.color='var(--tx)'}"
         onmouseout="if(!this.classList.contains('sel')){this.style.borderColor='rgba(255,255,255,.1)';this.style.color='var(--tx2)'}">
-        <div style="font-size:11px;font-weight:600;color:inherit;white-space:nowrap">${u.label}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:11px;margin-top:3px;display:flex;gap:8px">
+        <div style="font-size:13px;font-weight:600;color:#ffffff;white-space:nowrap">${u.label}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:13px;margin-top:3px;display:flex;gap:8px">
           <span style="color:#4bc87a">${us.aptos} aptos</span>
           ${us.afst > 0 ? `<span style="color:#c84b4b">${us.afst} afst</span>` : ''}
           ${us.restr > 0 ? `<span style="color:#c8a84b">${us.restr} restr</span>` : ''}
@@ -2913,9 +2913,9 @@ function renderP1() {
       onmouseout="if(!this.classList.contains('sel')){this.style.boxShadow='';this.style.transform=''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
         <div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${cia.color};letter-spacing:.5px;line-height:1">${cia.label}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);margin-top:2px">Sede · ${cia.sede}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff;margin-top:2px">Sede · ${cia.sede}</div>
         </div>
         <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:20px;font-weight:700;color:var(--tx)">${s.total}</span></div>
       </div>
@@ -2940,7 +2940,7 @@ function renderP1() {
           <div style="font-family:'DM Mono',monospace;font-size:7px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
         </div>
       </div>
-      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);margin-bottom:12px;line-height:1.8">${catLine}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff;margin-bottom:12px;line-height:1.8">${catLine}</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">${unitBtns}</div>
     </div>`;
   }).join('');
@@ -2959,7 +2959,7 @@ function renderP1() {
       onmouseout="if(!this.classList.contains('sel')){this.style.boxShadow='';this.style.transform=''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
         <div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${s.color};letter-spacing:.5px;line-height:1">${unit}</div>
         </div>
         <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:20px;font-weight:700;color:var(--tx)">${d.length}</span></div>
@@ -2985,7 +2985,7 @@ function renderP1() {
           <div style="font-family:'DM Mono',monospace;font-size:7px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
         </div>
       </div>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);border-top:1px solid rgba(255,255,255,.05);padding-top:10px;line-height:1.8">${catLine || '—'}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff;border-top:1px solid rgba(255,255,255,.05);padding-top:10px;line-height:1.8">${catLine || '—'}</div>
     </div>`;
   }).join('');
 
@@ -3019,7 +3019,7 @@ function renderP1() {
         </div>`).join('');
       claroSection = `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin-bottom:14px">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px">
-          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase">Claro Operacional — Ranking por Disponibilidade</div>
+          <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase">Claro Operacional — Ranking por Disponibilidade</div>
           <button onclick="openVagasModal()" style="font-size:10px;padding:3px 10px;background:rgba(90,157,224,.1);border:1px solid rgba(90,157,224,.25);color:#5a9de0;border-radius:4px;cursor:pointer">⚙ Editar Vagas</button>
         </div>
         ${rows}
@@ -3029,7 +3029,7 @@ function renderP1() {
     if (true) {
       claroSection = `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
         <div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;margin-bottom:4px">Claro Operacional</div>
+          <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;margin-bottom:4px">Claro Operacional</div>
           <div style="font-size:12px;color:var(--tx3)">Configure o efetivo fixado (vagas) para calcular o claro operacional por unidade.</div>
         </div>
         <button onclick="openVagasModal()" style="padding:7px 16px;background:rgba(90,157,224,.15);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap">⚙ Configurar Vagas</button>
@@ -3043,7 +3043,7 @@ function renderP1() {
 
   bodyEl.innerHTML = claroSection + feriasSection + afastSection + alertSection + eapSection + `
     <div style="margin-bottom:6px">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia <span style="opacity:.7;font-weight:400">· clique na sub-unidade para ver os PMs</span></div>
+      <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia <span style="opacity:.7;font-weight:400">· clique na sub-unidade para ver os PMs</span></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
         ${ciaCards}${unmatchedCards}
       </div>
