@@ -3043,7 +3043,7 @@ function renderP1() {
 
   bodyEl.innerHTML = claroSection + feriasSection + afastSection + alertSection + eapSection + `
     <div style="margin-bottom:6px">
-      <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia <span style="opacity:.7;font-weight:400">· clique na sub-unidade para ver os PMs</span></div>
+      <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia <span style="font-weight:400">· clique na sub-unidade para ver os PMs</span></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
         ${ciaCards}${unmatchedCards}
       </div>
@@ -6697,6 +6697,8 @@ function initInspector() {
     const fontSize   = cs.fontSize;
     const fontWeight = cs.fontWeight;
     const fontFamily = cs.fontFamily.split(',')[0].replace(/['"]/g,'').trim();
+    const opacity    = parseFloat(cs.opacity);
+    const opacityTxt = opacity >= 1 ? '100%' : `${Math.round(opacity * 100)}% ⚠ texto aparece mais apagado`;
     const w = Math.round(rect.width);
     const h = Math.round(rect.height);
     const staticIds = ['user-block','sidebar','btn-admin','btn-logout','main-content','nav','header','pending-badge','user-nome','user-info'];
@@ -6722,6 +6724,8 @@ function initInspector() {
         <span style="color:#d0d4dc;display:flex;align-items:center">${swatch(cs.color)}${fgHex}</span>
         <span style="color:#555">Cor fundo</span>
         <span style="color:#d0d4dc;display:flex;align-items:center">${swatch(cs.backgroundColor)}${bgHex}</span>
+        <span style="color:#555">Opacidade</span>
+        <span style="color:${opacity < 1 ? '#c8a84b' : '#d0d4dc'}">${opacityTxt}</span>
       </div>
       <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:8px;font-size:10px">
         <div style="color:#555;margin-bottom:3px;letter-spacing:1px;text-transform:uppercase">Buscar no código</div>
