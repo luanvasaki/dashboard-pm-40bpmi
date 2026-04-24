@@ -2606,9 +2606,10 @@ let p1ByUnit     = {};   // OPM → PM[] (populado em renderP1)
 let p1AfastHoje  = {};   // RE → afastamentos ativos hoje (populado em renderP1)
 let p1Vagas      = [];   // efetivo fixado por OPM
 let p1FiltroOpm  = '';   // filtro ativo por OPM
-let prontoCurrentRe = '';// RE do prontuário aberto
-let p1UnitClickOut = null; // handler de click fora do detalhe de unidade
-let p1KpiClickOut  = null; // handler de click fora do detalhe de KPI
+let prontoCurrentRe  = '';   // RE do prontuário aberto
+let p1ClosingPronto  = false;// flag: acabou de fechar prontuário — evita fechar painel CIA
+let p1UnitClickOut   = null; // handler de click fora do detalhe de unidade
+let p1KpiClickOut    = null; // handler de click fora do detalhe de KPI
 
 // ── Estrutura orgânica do 40º BPM/I ─────────────────────────────────────────
 const CIA_STRUCT = [
@@ -2727,18 +2728,19 @@ function renderP1() {
     return isNaN(d) || d.getFullYear() !== anoAtual;
   });
 
-  // ── Controle de Férias
+  // ── Controle de Férias / LP
   const isFer = t => /f[eé]rias/i.test(t || '');
+  const isLP  = t => /^lp$/i.test((t || '').trim());
   const em15s = (() => { const d = new Date(); d.setDate(d.getDate() + 15); return d.toISOString().split('T')[0]; })();
+  const em30s = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split('T')[0]; })();
   const afastsF      = p1FiltroOpm ? p1Afasts.filter(a => reSetF.has(a.re)) : p1Afasts;
   const ferEmGozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && a.termino >= hoje);
   const ferEm15Dias  = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio > hoje && a.inicio <= em15s);
+  const ferLpEm30    = afastsF.filter(a => (isFer(a.tipo_afastamento) || isLP(a.tipo_afastamento)) && a.inicio > hoje && a.inicio <= em30s);
   const resFeriasAno = new Set(p1Afasts.filter(a => isFer(a.tipo_afastamento) && (a.inicio||'').startsWith(String(anoAtual))).map(a => a.re));
   const semFeriasAno = dataF.filter(r => !resFeriasAno.has(r.re));
 
   // Restrições vencendo em 30 dias
-  const em30 = new Date(); em30.setDate(em30.getDate() + 30);
-  const em30s = em30.toISOString().split('T')[0];
   const vencendoRestricao = p1Data.filter(r =>
     (r.possui_restricao || '').toLowerCase().startsWith('s') &&
     r.restricao_termino && r.restricao_termino >= hoje && r.restricao_termino <= em30s
@@ -2802,8 +2804,9 @@ function renderP1() {
       const _av = `<div data-foto-re="${r.re}" data-nome="${(r.nome_guerra||r.nome).replace(/"/g,'&quot;')}" data-posto="${(r.posto||'').replace(/"/g,'&quot;')}" onclick="openProntuario('${_fotoRe}')" style="cursor:pointer;display:inline-block">${p1AvatarSVG(r.nome_guerra||r.nome, r.posto)}</div>`;
       return `<tr>
         <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.03);width:44px;vertical-align:middle">${_av}</td>
-        <td style="${tdL};cursor:pointer" onclick="openProntuario('${_fotoRe}')">${r.nome_guerra || r.nome}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx2)">${r.posto || '—'}</td>
+        <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${r.re || '—'}</td>
+        <td style="${tdL};cursor:pointer" onclick="openProntuario('${_fotoRe}')">${r.nome_guerra || r.nome}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${r.opm || '—'}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')}">${badge(tipo, '#c84b4b')}</td>
         <td style="${tdS}">${fmtDate(ats[0]?.inicio)}</td>
@@ -2816,7 +2819,7 @@ function renderP1() {
         <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#c84b4b;padding:14px 16px 0;text-transform:uppercase">Afastamentos — ${pmAfastados.length}</div>
         <table style="width:100%;border-collapse:collapse;margin-top:8px">
           <thead><tr>
-            <th style="${thL};width:44px;padding:8px 4px 8px 8px"></th><th style="${thL}">Nome de Guerra</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th>
+            <th style="${thL};width:44px;padding:8px 4px 8px 8px"></th><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome de Guerra</th><th style="${thL}">OPM</th>
             <th style="${thL}">Tipo</th><th style="${thS}">Início</th><th style="${thS}">Término</th><th style="${thS}">Dias restantes</th>
           </tr></thead><tbody>${afRows}</tbody>
         </table>
@@ -2846,6 +2849,20 @@ function renderP1() {
         <span style="font-size:12px;color:var(--tx)">${pm?.nome_guerra || a.nome || a.re}</span>
         <span style="font-size:13px;color:#ffffff">${a.tipo_afastamento}</span>
         <span style="font-size:13px;color:#ffffff;margin-left:auto">Retorna em <b style="color:#4bc87a">${dias}d</b> — ${fmtDate(a.termino)}</span>
+      </div>`);
+    });
+  }
+  if (ferLpEm30.length) {
+    ferLpEm30.sort((a, b) => (a.inicio||'').localeCompare(b.inicio||'')).forEach(a => {
+      const pm = p1Data.find(r => r.re === a.re);
+      const diasAte = Math.ceil((new Date(a.inicio) - new Date(hoje)) / 86400000);
+      const tipo = isFer(a.tipo_afastamento) ? 'FÉRIAS' : 'LP';
+      const cor  = isFer(a.tipo_afastamento) ? '#5a9de0' : '#9b6de0';
+      alertItems.push(`<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center">
+        ${badge(tipo, cor)}
+        <span style="font-size:11px;color:var(--tx2)">${pm?.posto||''}</span>
+        <span style="font-size:12px;color:var(--tx)">${pm?.nome_guerra || pm?.nome || a.re}</span>
+        <span style="font-size:13px;color:#ffffff;margin-left:auto">Inicia em <b style="color:${cor}">${diasAte}d</b> — ${fmtDate(a.inicio)}</span>
       </div>`);
     });
   }
@@ -3295,30 +3312,30 @@ function p1ShowKpiDetail(tipo) {
         ? `<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#c84b4b22;color:#c84b4b;font-family:'DM Mono',monospace">${afst[0]?.tipo_afastamento||'Afastado'}</span>`
         : `<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#4bc87a22;color:#4bc87a;font-family:'DM Mono',monospace">Apto</span>`;
       return `<tr>
+        <td style="${tdS}">${r.posto||'—'}</td>
         <td style="${tdS}">${r.re}</td>
         <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
-        <td style="${tdS}">${r.posto||'—'}</td>
         <td style="${tdS}">${r.opm||'—'}</td>
         <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03)">${s}</td>
       </tr>`;
     }).join('');
     html = wrapDetail('Todo o Efetivo', dataF.length, '#c8a84b', closeBtn,
       `<table style="width:100%;border-collapse:collapse">
-        <thead><tr><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th><th style="${thL}">Status</th></tr></thead>
+        <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thL}">Status</th></tr></thead>
         <tbody>${rows}</tbody></table>`);
   }
 
   else if (tipo === 'aptos') {
     const list = dataF.filter(r => !p1AfastHoje[r.re]);
     const rows = list.map(r => `<tr>
+      <td style="${tdS}">${r.posto||'—'}</td>
       <td style="${tdS}">${r.re}</td>
       <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
-      <td style="${tdS}">${r.posto||'—'}</td>
       <td style="${tdS}">${r.opm||'—'}</td>
     </tr>`).join('');
     html = wrapDetail('Aptos', list.length, '#4bc87a', closeBtn,
       `<table style="width:100%;border-collapse:collapse">
-        <thead><tr><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th></tr></thead>
+        <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th></tr></thead>
         <tbody>${rows}</tbody></table>`);
   }
 
@@ -3339,6 +3356,7 @@ function p1ShowKpiDetail(tipo) {
         const nm = pm?.nome_guerra || pm?.nome || a.nome || a.re;
         const dias = a.termino ? Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000) : null;
         inner += `<tr>
+          <td style="${tdS}">${pm?.posto||'—'}</td>
           <td style="${tdS}">${a.re}</td>
           <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(a.re)}')">${nm}</td>
           <td style="${tdS}">${pm?.opm||a.opm||'—'}</td>
@@ -3349,7 +3367,7 @@ function p1ShowKpiDetail(tipo) {
     });
     html = wrapDetail('Afastamentos Ativos', ativos.length, '#c84b4b', closeBtn,
       `<table style="width:100%;border-collapse:collapse">
-        <thead><tr><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Início</th><th style="${thR}">Dias Rest.</th></tr></thead>
+        <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Início</th><th style="${thR}">Dias Rest.</th></tr></thead>
         <tbody>${inner}</tbody></table>`);
   }
 
@@ -3446,7 +3464,7 @@ function p1ShowKpiDetail(tipo) {
   if (p1KpiClickOut) document.removeEventListener('click', p1KpiClickOut);
   setTimeout(() => {
     p1KpiClickOut = e => {
-      if (prontoCurrentRe) return; // prontuário aberto — não fecha o painel
+      if (prontoCurrentRe || p1ClosingPronto) return;
       const kpisEl = document.getElementById('p1-kpis');
       if (!det.contains(e.target) && !(kpisEl && kpisEl.contains(e.target))) {
         det.innerHTML = ''; det.dataset.active = '';
@@ -3600,10 +3618,20 @@ async function openProntuario(re) {
   document.getElementById('pronto-status').innerHTML = statusHtml;
 
   // EAP
-  const eapOk = pm.data_eap && !isNaN(new Date(pm.data_eap)) && new Date(pm.data_eap).getFullYear() === anoAtual;
-  document.getElementById('pronto-eap').innerHTML = eapOk
-    ? `<span style="color:#4bc87a">✓ ${fmtD(pm.data_eap)}</span>`
-    : `<span style="color:#c8a84b">⚠ Pendente ${anoAtual}</span>`;
+  const eapDate = pm.data_eap ? new Date(pm.data_eap) : null;
+  const eapOk   = eapDate && !isNaN(eapDate) && eapDate.getUTCFullYear() === anoAtual;
+  if (eapOk) {
+    const d1 = eapDate;
+    const d3 = new Date(d1); d3.setUTCDate(d3.getUTCDate() + 2);
+    const p2 = n => String(n).padStart(2,'0');
+    const d1d = p2(d1.getUTCDate()), d3d = p2(d3.getUTCDate());
+    const mon = p2(d3.getUTCMonth() + 1), yr = d3.getUTCFullYear();
+    document.getElementById('pronto-eap').innerHTML =
+      `<span style="color:#4bc87a;font-weight:600">EAP ${anoAtual} ✓</span>` +
+      `<div style="font-size:11px;color:var(--tx3);margin-top:2px">${d1d} à ${d3d}/${mon}/${yr}</div>`;
+  } else {
+    document.getElementById('pronto-eap').innerHTML = `<span style="color:#c8a84b">⚠ Pendente ${anoAtual}</span>`;
+  }
 
   // Restrição
   document.getElementById('pronto-restr').innerHTML = emRestr
@@ -3665,6 +3693,8 @@ function closeProntuario() {
   const mo = document.getElementById('pronto-mo');
   if (mo) mo.style.display = 'none';
   prontoCurrentRe = '';
+  p1ClosingPronto = true;
+  setTimeout(() => { p1ClosingPronto = false; }, 120);
 }
 function prontoClickOut(e) { if (e.target.id === 'pronto-mo') closeProntuario(); }
 
@@ -4071,7 +4101,7 @@ function p1ShowPmList(pms, label) {
   if (p1UnitClickOut) document.removeEventListener('click', p1UnitClickOut);
   setTimeout(() => {
     p1UnitClickOut = e => {
-      if (prontoCurrentRe) return; // prontuário aberto — não fecha o painel
+      if (prontoCurrentRe || p1ClosingPronto) return;
       if (!det.contains(e.target) && !e.target.closest('.p1-uc') && !e.target.closest('.p1-ubtn')) {
         p1CloseUnit();
       }
