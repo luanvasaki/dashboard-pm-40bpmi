@@ -940,29 +940,46 @@ function mapProdRow(tipo, r) {
     ano, mes, cia, quantidade: parseFloat(r['Quantidade de Entorpecentes']) || 0
   };
   if (tipo === 'visita-solidaria') {
-    const dataStr = (r['Data da ocorrência'] || r['Data da Ocorrência'] || r['Data da ocorrencia'] || '').trim();
+    // Normaliza chaves para busca insensível a acento e maiúscula
+    const nk = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+    const idx = {};
+    Object.entries(r).forEach(([k, v]) => { idx[nk(k)] = v; });
+    const get = (...keys) => {
+      for (const k of keys) { const v = idx[nk(k)]; if (v !== undefined) return (v||'').trim(); }
+      return '';
+    };
+    // Busca parcial como fallback: encontra chave que contém todos os fragmentos
+    const getPartial = (...frags) => {
+      const key = Object.keys(idx).find(k => frags.every(f => k.includes(nk(f))));
+      return key ? (idx[key]||'').trim() : '';
+    };
+
+    const dataStr = get('Data da ocorrência','Data da Ocorrência','Data da ocorrencia') || getPartial('data','ocorr');
     let vsAno = 0, vsMes = '';
     const dm = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
     if (dm) {
       vsAno = parseInt(dm[3]);
       vsMes = normMes(_MESES_PT[parseInt(dm[2]) - 1] || '');
+    } else {
+      const dm2 = dataStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (dm2) { vsAno = parseInt(dm2[1]); vsMes = normMes(_MESES_PT[parseInt(dm2[2]) - 1] || ''); }
     }
     return {
       ano: vsAno, mes: vsMes,
-      cia:                  normCia(r['Cia PM'] || r['CIA PM'] || r['CIA'] || ''),
-      data_ocorrencia:      dataStr,
-      nome_vitima:          (r['Nome da Vitima'] || r['Nome da Vítima'] || '').trim(),
-      parentesco_agressor:  (r['Parentesco do Agressor'] || '').trim(),
-      bairro:               (r['Bairro'] || '').trim(),
-      cidade:               (r['Cidade'] || '').trim(),
-      quer_acompanhamento:  (r['A vitima Gostaria do acompanhamento da Visita Solidária'] || r['A vítima Gostaria do acompanhamento da Visita Solidária'] || '').trim(),
-      visita_1:             (r['1ª Telefonema (visita)'] || '').trim(),
-      visita_2:             (r['2ª Visita Pessoal'] || '').trim(),
-      visita_3:             (r['3ª Visita Pessoal'] || '').trim(),
-      visita_4:             (r['4ª Visita Pessoal'] || '').trim(),
-      visita_5:             (r['5ª Visita Pessoal'] || '').trim(),
-      visita_6:             (r['6ª Visita Pessoal'] || '').trim(),
-      medida_protetiva:     (r['Atualmente possui medida protetiva (Sim/Não)'] || '').trim(),
+      cia:                 normCia(get('Cia PM','CIA PM','CIA','Cia')),
+      data_ocorrencia:     dataStr,
+      nome_vitima:         get('Nome da Vitima','Nome da Vítima','Nome da vitima'),
+      parentesco_agressor: get('Parentesco do Agressor','Parentesco'),
+      bairro:              get('Bairro'),
+      cidade:              get('Cidade'),
+      quer_acompanhamento: get('A vitima Gostaria do acompanhamento da Visita Solidária','A vítima Gostaria do acompanhamento da Visita Solidária') || getPartial('vitima','gostaria'),
+      visita_1:            get('1ª Telefonema (visita)','1a Telefonema (visita)','1ª Telefonema'),
+      visita_2:            get('2ª Visita Pessoal','2a Visita Pessoal'),
+      visita_3:            get('3ª Visita Pessoal','3a Visita Pessoal'),
+      visita_4:            get('4ª Visita Pessoal','4a Visita Pessoal'),
+      visita_5:            get('5ª Visita Pessoal','5a Visita Pessoal'),
+      visita_6:            get('6ª Visita Pessoal','6a Visita Pessoal'),
+      medida_protetiva:    get('Atualmente possui medida protetiva (Sim/Não)','Atualmente possui medida protetiva (Sim/Nao)') || getPartial('medida','protetiva'),
     };
   }
   return null;
