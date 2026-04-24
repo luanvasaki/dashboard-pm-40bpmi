@@ -5562,9 +5562,9 @@ function renderProdDetail() {
     // ── HTML: mini-KPI helper ──
     const mkpi = (lbl, val, sub, c) =>
       `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${c};border-radius:8px;padding:12px 14px;min-width:110px;flex:1">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${c};margin-bottom:5px">${lbl}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:700;color:#fff;line-height:1">${val}</div>
-        ${sub?`<div style="font-size:11px;color:var(--tx3);margin-top:4px">${sub}</div>`:''}
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${c};margin-bottom:5px">${lbl}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:700;color:#ffffff;line-height:1">${val}</div>
+        ${sub?`<div style="font-size:13px;color:#ffffff;margin-top:4px">${sub}</div>`:''}
       </div>`;
 
     // ── HTML: barra de ranking ──
@@ -5572,8 +5572,8 @@ function renderProdDetail() {
       const pct = max > 0 ? Math.round(val/max*100) : 0;
       return `<div style="margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-          <div style="font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:74%">${label}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:12px;color:${c};font-weight:700">${val}</div>
+          <div style="font-size:13px;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:74%">${label}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:${c};font-weight:700">${val}</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:2px;height:4px"><div style="height:100%;width:${pct}%;background:${c};border-radius:2px"></div></div>
       </div>`;
@@ -5662,29 +5662,30 @@ function renderProdDetail() {
           ${mkpi('Acompanhadas', vsAcompanhados.toLocaleString('pt-BR'), `${vsTotalContatos} contatos`, VD_COR2)}
           ${mkpi('Med. Protetiva', vsMedProt.toLocaleString('pt-BR'), 'possuem atualmente', '#f0c040')}
           <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${gaugeColor};border-radius:8px;padding:12px 14px;min-width:110px;flex:1">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${gaugeColor};margin-bottom:5px">% Acompanhamento</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${gaugeColor};margin-bottom:5px">% Acompanhamento</div>
             <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:700;color:${gaugeColor};line-height:1">${vsPctAcomp !== null ? vsPctAcomp+'%' : '—'}</div>
             <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px;margin-top:8px"><div style="height:100%;width:${Math.min(vsPctAcomp||0,100)}%;background:${gaugeColor};border-radius:3px"></div></div>
-            <div style="font-size:11px;color:var(--tx3);margin-top:4px">${vsAcompanhados} de ${totVDModal} ocorrências VD</div>
+            <div style="font-size:13px;color:#ffffff;margin-top:4px">${vsAcompanhados} de ${totVDModal} ocorrências VD</div>
           </div>
         </div>
 
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:16px">
           ${topParent.length ? `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${VD_COR2};border-radius:8px;padding:14px 16px">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${VD_COR2};margin-bottom:10px">Parentesco do Agressor</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${VD_COR2};margin-bottom:10px">Parentesco do Agressor</div>
             ${topParent.map(([p,v])=>mkBar(p,v,maxP,VD_COR2)).join('')}
           </div>` : ''}
           ${topBairros.length ? `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #5a9de0;border-radius:8px;padding:14px 16px">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#5a9de0;margin-bottom:10px">Bairros com Mais Ocorrências</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#5a9de0;margin-bottom:10px">Bairros com Mais Ocorrências</div>
             ${topBairros.map(([b,v])=>mkBar(b,v,maxB,'#5a9de0')).join('')}
           </div>` : ''}
           ${avgIntvs.some(v=>v!==null) ? `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:8px;padding:14px 16px">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#f0c040;margin-bottom:10px">Intervalo Médio (dias)</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#f0c040;margin-bottom:4px">Intervalo Médio entre Contatos</div>
+            <div style="font-size:12px;color:#ffffff;margin-bottom:10px">dias entre cada etapa da visita solidária</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
-              ${['1→2','2→3','3→4','4→5','5→6'].map((lbl,i)=>avgIntvs[i]!==null?`<div style="text-align:center;flex:1;min-width:44px">
-                <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:#f0c040">${avgIntvs[i]}</div>
-                <div style="font-size:10px;color:var(--tx3)">dias</div>
-                <div style="font-size:10px;color:var(--tx2)">${lbl}</div>
+              ${['1ª→2ª','2ª→3ª','3ª→4ª','4ª→5ª','5ª→6ª'].map((lbl,i)=>avgIntvs[i]!==null?`<div style="text-align:center;flex:1;min-width:52px">
+                <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:#f0c040">${avgIntvs[i]}</div>
+                <div style="font-size:12px;color:#ffffff;margin-top:2px">dias</div>
+                <div style="font-size:12px;color:#ffffff;margin-top:1px">${lbl}</div>
               </div>`:''  ).join('')}
             </div>
           </div>` : ''}
@@ -5693,8 +5694,8 @@ function renderProdDetail() {
         ${reiterHtml}
 
         <div style="margin-top:16px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${VD_COR2};margin-bottom:10px">Evolução Mensal — Visita Solidária</div>
-          ${hasEvo ? `<canvas id="vs-modal-evo" style="max-height:180px"></canvas>` : `<div style="color:var(--tx3);font-size:12px">Sem dados para o período.</div>`}
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${VD_COR2};margin-bottom:10px">Evolução Mensal — Visita Solidária</div>
+          ${hasEvo ? `<div style="position:relative;height:300px"><canvas id="vs-modal-evo" style="height:300px"></canvas></div>` : `<div style="color:#ffffff;font-size:13px">Sem dados para o período.</div>`}
         </div>
       </div>`;
 
@@ -5711,20 +5712,20 @@ function renderProdDetail() {
           data: {
             labels: evoLabels,
             datasets: [
-              { label: 'Querem acomp.', data: evoQuer,  borderColor:'#4bc87a', backgroundColor:'#4bc87a22', borderWidth:2, fill:false, tension:0.4, pointRadius:4, pointBackgroundColor:'#4bc87a' },
-              { label: 'Não querem',    data: evoNao,   borderColor:'#e06060', backgroundColor:'#e0606022', borderWidth:2, fill:false, tension:0.4, pointRadius:4, pointBackgroundColor:'#e06060' },
-              { label: 'Acompanhadas',  data: evoAcomp, borderColor:VD_COR2,   backgroundColor:VD_COR2+'22', borderWidth:2, fill:false, tension:0.4, pointRadius:4, pointBackgroundColor:VD_COR2 },
+              { label: 'Querem acomp.', data: evoQuer,  borderColor:'#4bc87a', backgroundColor:'#4bc87a22', borderWidth:2, fill:false, tension:0.4, pointRadius:5, pointBackgroundColor:'#4bc87a' },
+              { label: 'Não querem',    data: evoNao,   borderColor:'#e06060', backgroundColor:'#e0606022', borderWidth:2, fill:false, tension:0.4, pointRadius:5, pointBackgroundColor:'#e06060' },
+              { label: 'Acompanhadas',  data: evoAcomp, borderColor:VD_COR2,   backgroundColor:VD_COR2+'22', borderWidth:2, fill:false, tension:0.4, pointRadius:5, pointBackgroundColor:VD_COR2 },
             ]
           },
           options: {
             responsive:true, maintainAspectRatio:false,
             plugins: {
-              legend: { display:true, labels:{ color:'rgba(255,255,255,.7)', font:{size:11}, boxWidth:12, padding:14 } },
+              legend: { display:true, labels:{ color:'#ffffff', font:{size:13}, boxWidth:14, padding:18 } },
               tooltip: { callbacks:{ label: i => ` ${i.dataset.label}: ${i.raw.toLocaleString('pt-BR')}` } }
             },
             scales: {
-              x: { grid:GR, ticks:{ color:'rgba(255,255,255,.55)', font:{size:11} } },
-              y: { grid:GR, beginAtZero:true, ticks:{ color:'rgba(255,255,255,.45)', font:{size:11} } }
+              x: { grid:GR, ticks:{ color:'#ffffff', font:{size:13} } },
+              y: { grid:GR, beginAtZero:true, ticks:{ color:'#ffffff', font:{size:13} } }
             }
           }
         }));
