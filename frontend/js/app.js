@@ -4443,11 +4443,12 @@ function updateSidebarImports(section) {
   } else if (section === 'p3prod') {
     if (!isP3) { el.innerHTML = ''; return; }
     const itens = [
-      ['ocorrencias',   'Ocorrências Gerais',     '#5a9de0'],
-      ['presos',        'Pessoas Presas',          '#e0965a'],
-      ['armas',         'Armas Apreendidas',       '#c84b4b'],
-      ['veiculos',      'Veículos Recuperados',    '#4bc8a0'],
-      ['entorpecentes', 'Entorpecentes',           '#9b6de0'],
+      ['ocorrencias',      'Ocorrências Gerais',       '#5a9de0'],
+      ['presos',           'Pessoas Presas',            '#e0965a'],
+      ['armas',            'Armas Apreendidas',         '#c84b4b'],
+      ['veiculos',         'Veículos Recuperados',      '#4bc8a0'],
+      ['entorpecentes',    'Entorpecentes',             '#9b6de0'],
+      ['visita-solidaria', 'Visita Solidária (VD)',     '#e05a8a'],
     ];
     el.innerHTML = itens.map(([t, l, c]) =>
       `<button onclick="openProdUpl('${t}')" style="width:100%;padding:6px;margin-top:4px;background:rgba(0,0,0,.15);border:1px solid ${c}55;color:${c};border-radius:4px;cursor:pointer;font-size:10px;font-weight:600">↑ ${l}</button>`
@@ -4524,7 +4525,7 @@ function goPage(id, btn) {
 // ---------------------------------------------------------------------------
 // PRODUTIVIDADE P3
 // ---------------------------------------------------------------------------
-let prodRaw = { ocorrencias: [], presos: [], armas: [], veiculos: [], entorpecentes: [], loaded: false };
+let prodRaw = { ocorrencias: [], presos: [], armas: [], veiculos: [], entorpecentes: [], visitaSolidaria: [], loaded: false };
 let prodSelAno    = null;
 let prodSelMeses  = [];
 let prodSelCia    = null;
@@ -4543,11 +4544,12 @@ const PROD_CORES = {
   entorpecentes: '#9b6de0'
 };
 const PROD_LABELS = {
-  ocorrencias:   'Ocorrências Atendidas',
-  presos:        'Pessoas Presas',
-  armas:         'Armas Apreendidas',
-  veiculos:      'Veículos Recuperados',
-  entorpecentes: 'Entorpecentes Apreendidos'
+  ocorrencias:        'Ocorrências Atendidas',
+  presos:             'Pessoas Presas',
+  armas:              'Armas Apreendidas',
+  veiculos:           'Veículos Recuperados',
+  entorpecentes:      'Entorpecentes Apreendidos',
+  'visita-solidaria': 'Visita Solidária (VD)'
 };
 const PROD_CAMPO = {
   ocorrencias:   'contagem',
@@ -4579,7 +4581,7 @@ function prodSum(arr, field) {
 
 function prodGetAnosDisp() {
   const all = new Set();
-  ['ocorrencias','presos','armas','veiculos','entorpecentes'].forEach(k => {
+  ['ocorrencias','presos','armas','veiculos','entorpecentes','visitaSolidaria'].forEach(k => {
     if (Array.isArray(prodRaw[k])) prodRaw[k].forEach(r => r.ano && all.add(r.ano));
   });
   return [...all].sort((a, b) => b - a);
@@ -4587,7 +4589,7 @@ function prodGetAnosDisp() {
 
 function prodGetMesesDisp(ano) {
   const all = new Set();
-  ['ocorrencias','presos','armas','veiculos','entorpecentes'].forEach(k => {
+  ['ocorrencias','presos','armas','veiculos','entorpecentes','visitaSolidaria'].forEach(k => {
     if (Array.isArray(prodRaw[k]))
       prodRaw[k].filter(r => !ano || r.ano === ano).forEach(r => r.mes && all.add((r.mes||'').toLowerCase()));
   });
@@ -4596,7 +4598,7 @@ function prodGetMesesDisp(ano) {
 
 function prodGetCiasDisp() {
   const all = new Set();
-  ['ocorrencias','presos','armas','veiculos','entorpecentes'].forEach(k => {
+  ['ocorrencias','presos','armas','veiculos','entorpecentes','visitaSolidaria'].forEach(k => {
     if (Array.isArray(prodRaw[k])) prodRaw[k].forEach(r => r.cia && all.add(r.cia.trim()));
   });
   return [...all].sort();
@@ -4835,6 +4837,233 @@ function prodRender() {
     </div>`);
   }
 
+  // ─── Visita Solidária VD ──────────────────────────────────────────────────
+  const filtVS = prodFilter(prodRaw.visitaSolidaria || []);
+  const VD_COR2 = '#e05a8a';
+
+  const vsSection = (() => {
+    if (!filtVS.length) return `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${VD_COR2};border-radius:10px;padding:20px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${VD_COR2};margin-bottom:10px">Visita Solidária — Acompanhamento Pós-Ocorrência</div>
+      <div style="color:var(--tx3);font-size:13px">Nenhum dado de visita solidária importado. Use o botão <b>↑ Visita Solidária (VD)</b> na barra lateral.</div>
+    </div>`;
+
+    // Métricas básicas
+    const simRx = /^sim$/i;
+    const naoRx = /^n[ãa]o$/i;
+    const vsQuer    = filtVS.filter(r => simRx.test((r.quer_acompanhamento||'').trim())).length;
+    const vsNaoQuer = filtVS.filter(r => naoRx.test((r.quer_acompanhamento||'').trim())).length;
+    const vsMedProt = filtVS.filter(r => simRx.test((r.medida_protetiva||'').trim())).length;
+
+    // Contatos realizados por vítima
+    const vsFields = ['visita_1','visita_2','visita_3','visita_4','visita_5','visita_6'];
+    const vsAcompanhados  = filtVS.filter(r => vsFields.some(f => r[f] && r[f].trim())).length;
+    const vsTotalContatos = filtVS.reduce((s, r) => s + vsFields.filter(f => r[f] && r[f].trim()).length, 0);
+    const vsPctAcomp      = totVD > 0 ? Math.round(vsAcompanhados / totVD * 100) : null;
+
+    // Reiterações: mesma vítima com múltiplas ocorrências
+    const normNome = s => (s||'').toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ');
+    const nomeGrp = {};
+    filtVS.forEach(r => { const k = normNome(r.nome_vitima); if (k) nomeGrp[k] = (nomeGrp[k]||0) + 1; });
+    const reiterantes = Object.entries(nomeGrp).filter(([,v]) => v > 1).sort((a,b) => b[1]-a[1]);
+    const vsReiterantes = reiterantes.length;
+    const vsOcorrReiter = reiterantes.reduce((s,[,v]) => s + v, 0);
+
+    // Intervalo médio entre contatos consecutivos
+    const parseVSDate = s => {
+      if (!s) return null;
+      const m = s.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+      return m ? new Date(+m[3], +m[2]-1, +m[1]) : null;
+    };
+    const intervalSums = [0,0,0,0,0], intervalCounts = [0,0,0,0,0];
+    filtVS.forEach(r => {
+      const dates = vsFields.map(f => parseVSDate(r[f])).filter(Boolean).sort((a,b) => a-b);
+      for (let i = 1; i < dates.length; i++) {
+        const diff = Math.round((dates[i] - dates[i-1]) / 86400000);
+        if (diff >= 0 && i-1 < 5) { intervalSums[i-1] += diff; intervalCounts[i-1]++; }
+      }
+    });
+    const avgIntervals = intervalSums.map((s,i) => intervalCounts[i] > 0 ? Math.round(s/intervalCounts[i]) : null);
+    const hasIntervals = avgIntervals.some(v => v !== null);
+
+    // Parentesco do agressor
+    const parentescoAgg = {};
+    filtVS.forEach(r => {
+      const p = (r.parentesco_agressor||'').trim() || 'Não informado';
+      parentescoAgg[p] = (parentescoAgg[p]||0) + 1;
+    });
+    const topParentesco = Object.entries(parentescoAgg).sort((a,b)=>b[1]-a[1]).slice(0,6);
+
+    // Bairros com mais ocorrências
+    const bairroAgg = {};
+    filtVS.forEach(r => { const b = (r.bairro||'').trim(); if (b) bairroAgg[b] = (bairroAgg[b]||0) + 1; });
+    const topBairros = Object.entries(bairroAgg).sort((a,b)=>b[1]-a[1]).slice(0,6);
+
+    // ── Mini KPIs ──
+    const miniKpi = (label, valor, sub, cor) =>
+      `<div style="background:var(--bg);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:8px;padding:14px 16px;min-width:120px;flex:1">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${cor};margin-bottom:6px">${label}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:26px;font-weight:700;color:#fff;line-height:1">${valor}</div>
+        ${sub ? `<div style="font-size:11px;color:var(--tx3);margin-top:5px">${sub}</div>` : ''}
+      </div>`;
+
+    const gaugeColor = vsPctAcomp === null ? '#888' : vsPctAcomp >= 80 ? '#4bc87a' : vsPctAcomp >= 50 ? '#f0c040' : '#e06060';
+    const gaugeVal   = vsPctAcomp !== null ? vsPctAcomp + '%' : '—';
+
+    const kpisHtml = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">
+      ${miniKpi('Querem Acompanhamento', vsQuer.toLocaleString('pt-BR'), 'vítimas aceitaram a visita', '#4bc87a')}
+      ${miniKpi('Não Querem', vsNaoQuer.toLocaleString('pt-BR'), 'vítimas recusaram', '#e06060')}
+      ${miniKpi('Vítimas Acompanhadas', vsAcompanhados.toLocaleString('pt-BR'), `${vsTotalContatos} contatos no total`, VD_COR2)}
+      ${miniKpi('Medida Protetiva', vsMedProt.toLocaleString('pt-BR'), 'possuem atualmente', '#f0c040')}
+      <div style="background:var(--bg);border:1px solid var(--bd2);border-top:2px solid ${gaugeColor};border-radius:8px;padding:14px 16px;min-width:120px;flex:1">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${gaugeColor};margin-bottom:6px">% Acompanhamento</div>
+        <div style="font-family:'DM Mono',monospace;font-size:26px;font-weight:700;color:${gaugeColor};line-height:1">${gaugeVal}</div>
+        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:5px;margin-top:8px"><div style="height:100%;width:${Math.min(vsPctAcomp||0,100)}%;background:${gaugeColor};border-radius:3px"></div></div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:5px">${vsAcompanhados} acompanhadas de ${totVD} ocorrências VD</div>
+      </div>
+    </div>`;
+
+    // ── Reiterações ──
+    const reiterHtml = (() => {
+      if (!vsReiterantes) return `<div style="background:var(--bg);border:1px solid var(--bd2);border-top:2px solid #9b6de0;border-radius:8px;padding:14px 16px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#9b6de0;margin-bottom:8px">Reiterações</div>
+        <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:700;color:#fff">0</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:4px">nenhuma vítima com mais de 1 ocorrência</div>
+      </div>`;
+      const topList = reiterantes.slice(0,4).map(([nome, cnt]) => {
+        const display = nome.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+          <div style="font-size:13px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72%">${display}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:#9b6de0;font-weight:700;white-space:nowrap">${cnt}x</div>
+        </div>`;
+      }).join('');
+      return `<div style="background:var(--bg);border:1px solid var(--bd2);border-top:2px solid #9b6de0;border-radius:8px;padding:14px 16px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#9b6de0;margin-bottom:6px">Reiterações</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px">
+          <div style="font-family:'DM Mono',monospace;font-size:26px;font-weight:700;color:#fff">${vsReiterantes}</div>
+          <div style="font-size:11px;color:var(--tx3)">${vsOcorrReiter} ocorrências</div>
+        </div>
+        ${topList}
+        ${reiterantes.length > 4 ? `<div style="font-size:11px;color:var(--tx3);margin-top:6px">+${reiterantes.length-4} outras vítimas reincidentes</div>` : ''}
+      </div>`;
+    })();
+
+    // ── Parentesco ──
+    const parentHtml = (() => {
+      if (!topParentesco.length) return '';
+      const maxP = topParentesco[0][1];
+      const items = topParentesco.map(([p, v]) => {
+        const pct = maxP > 0 ? Math.round(v/maxP*100) : 0;
+        return `<div style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <div style="font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72%">${p}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;color:${VD_COR2};font-weight:700">${v}</div>
+          </div>
+          <div style="background:rgba(255,255,255,.06);border-radius:2px;height:4px"><div style="height:100%;width:${pct}%;background:${VD_COR2};border-radius:2px"></div></div>
+        </div>`;
+      }).join('');
+      return `<div style="background:var(--bg);border:1px solid var(--bd2);border-top:2px solid ${VD_COR2};border-radius:8px;padding:14px 16px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${VD_COR2};margin-bottom:10px">Parentesco do Agressor</div>
+        ${items}
+      </div>`;
+    })();
+
+    // ── Bairros ──
+    const bairroHtml = (() => {
+      if (!topBairros.length) return '';
+      const maxB = topBairros[0][1];
+      const items = topBairros.map(([b, v]) => {
+        const pct = maxB > 0 ? Math.round(v/maxB*100) : 0;
+        return `<div style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <div style="font-size:12px;color:var(--tx)">${b}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;color:#5a9de0;font-weight:700">${v}</div>
+          </div>
+          <div style="background:rgba(255,255,255,.06);border-radius:2px;height:4px"><div style="height:100%;width:${pct}%;background:#5a9de0;border-radius:2px"></div></div>
+        </div>`;
+      }).join('');
+      return `<div style="background:var(--bg);border:1px solid var(--bd2);border-top:2px solid #5a9de0;border-radius:8px;padding:14px 16px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#5a9de0;margin-bottom:10px">Bairros com Mais Ocorrências</div>
+        ${items}
+      </div>`;
+    })();
+
+    // ── Intervalo entre contatos ──
+    const intervalHtml = (() => {
+      if (!hasIntervals) return '';
+      const labels = ['1ª→2ª', '2ª→3ª', '3ª→4ª', '4ª→5ª', '5ª→6ª'];
+      const items = avgIntervals.map((v, i) => v !== null
+        ? `<div style="text-align:center;flex:1;min-width:60px">
+            <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:#f0c040">${v}</div>
+            <div style="font-size:10px;color:var(--tx3);margin-top:2px">dias</div>
+            <div style="font-size:10px;color:var(--tx2);margin-top:1px">${labels[i]}</div>
+          </div>` : ''
+      ).join('');
+      return `<div style="background:var(--bg);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:8px;padding:14px 16px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#f0c040;margin-bottom:12px">Intervalo Médio entre Contatos</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">${items}</div>
+      </div>`;
+    })();
+
+    // ── Evolução mensal: 3 séries ──
+    const evoBase = (prodRaw.visitaSolidaria || [])
+      .filter(r => !prodSelAno || r.ano === prodSelAno)
+      .filter(r => !prodSelCia || (r.cia||'').trim().toLowerCase() === (prodSelCia||'').trim().toLowerCase());
+    const evoAgg = {};
+    mesesDisp.forEach(m => evoAgg[m] = { quer: 0, nao: 0, acomp: 0 });
+    evoBase.forEach(r => {
+      const mk = MES_ORD.find(x => x.toLowerCase() === (r.mes||'').toLowerCase()) || '';
+      if (!mk || !evoAgg[mk]) return;
+      if (simRx.test((r.quer_acompanhamento||'').trim())) evoAgg[mk].quer++;
+      if (naoRx.test((r.quer_acompanhamento||'').trim())) evoAgg[mk].nao++;
+      if (vsFields.some(f => r[f] && r[f].trim())) evoAgg[mk].acomp++;
+    });
+    const evoLabels = mesesDisp.map(m => m.slice(0,3));
+    const evoQuer  = mesesDisp.map(m => evoAgg[m].quer);
+    const evoNao   = mesesDisp.map(m => evoAgg[m].nao);
+    const evoAcomp = mesesDisp.map(m => evoAgg[m].acomp);
+    const hasEvo   = [...evoQuer, ...evoNao, ...evoAcomp].some(v => v > 0);
+
+    const chartId = 'vs-evo-ch';
+    if (hasEvo) {
+      requestAnimationFrame(() => {
+        const ctx = document.getElementById(chartId)?.getContext('2d');
+        if (!ctx) return;
+        prodChs.push(new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: evoLabels,
+            datasets: [
+              { label: 'Querem acomp.',   data: evoQuer,  borderColor: '#4bc87a', backgroundColor: '#4bc87a22', borderWidth: 2, fill: false, tension: 0.4, pointBackgroundColor: '#4bc87a', pointRadius: 4 },
+              { label: 'Não querem',      data: evoNao,   borderColor: '#e06060', backgroundColor: '#e0606022', borderWidth: 2, fill: false, tension: 0.4, pointBackgroundColor: '#e06060', pointRadius: 4 },
+              { label: 'Acompanhadas',    data: evoAcomp, borderColor: VD_COR2,   backgroundColor: VD_COR2+'22', borderWidth: 2, fill: false, tension: 0.4, pointBackgroundColor: VD_COR2, pointRadius: 4 },
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { display: true, labels: { color: 'rgba(255,255,255,.7)', font: { size: 11 }, boxWidth: 12, padding: 16 } },
+              tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw.toLocaleString('pt-BR')}` } }
+            },
+            scales: {
+              x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 11 } } },
+              y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 11 } } }
+            }
+          }
+        }));
+      });
+    }
+
+    const cardsRow = [reiterHtml, parentHtml, bairroHtml, intervalHtml].filter(Boolean).join('');
+
+    return `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${VD_COR2};border-radius:10px;padding:20px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${VD_COR2};margin-bottom:16px">Visita Solidária — Acompanhamento Pós-Ocorrência</div>
+      ${kpisHtml}
+      ${cardsRow ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:18px">${cardsRow}</div>` : ''}
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${VD_COR2};margin-bottom:10px">Evolução Mensal</div>
+      ${hasEvo ? `<canvas id="${chartId}" style="max-height:200px"></canvas>` : `<div style="color:var(--tx3);font-size:12px;padding:8px 0">Sem dados para o período.</div>`}
+    </div>`;
+  })();
+
   // Monta HTML de todas as seções
   chartsEl.innerHTML =
     (ciaRankCards
@@ -4844,7 +5073,9 @@ function prodRender() {
     (insCards.length
       ? sec('3 · Insights do Período') +
         `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">${insCards.join('')}</div>`
-      : '');
+      : '') +
+    sec('4 · Violência Doméstica — Visita Solidária') +
+    vsSection;
 
 }
 
@@ -5030,19 +5261,21 @@ async function loadProdData(force) {
   if (kpisEl) kpisEl.innerHTML = '<div style="grid-column:1/-1;color:var(--tx3);font-size:13px;padding:20px 0">Carregando dados de produtividade...</div>';
   if (chartsEl) chartsEl.innerHTML = '';
   try {
-    const [ocorr, presos, armas, veiculos, entorp] = await Promise.all([
+    const [ocorr, presos, armas, veiculos, entorp, visitaSol] = await Promise.all([
       authFetch(`${API}/prod/ocorrencias`).then(r => r.json()),
       authFetch(`${API}/prod/presos`).then(r => r.json()),
       authFetch(`${API}/prod/armas`).then(r => r.json()),
       authFetch(`${API}/prod/veiculos`).then(r => r.json()),
       authFetch(`${API}/prod/entorpecentes`).then(r => r.json()),
+      authFetch(`${API}/prod/visita-solidaria`).then(r => r.json()).catch(() => []),
     ]);
     prodRaw = {
-      ocorrencias:   Array.isArray(ocorr)   ? ocorr   : [],
-      presos:        Array.isArray(presos)   ? presos   : [],
-      armas:         Array.isArray(armas)    ? armas    : [],
-      veiculos:      Array.isArray(veiculos) ? veiculos : [],
-      entorpecentes: Array.isArray(entorp)   ? entorp   : [],
+      ocorrencias:    Array.isArray(ocorr)     ? ocorr     : [],
+      presos:         Array.isArray(presos)    ? presos    : [],
+      armas:          Array.isArray(armas)     ? armas     : [],
+      veiculos:       Array.isArray(veiculos)  ? veiculos  : [],
+      entorpecentes:  Array.isArray(entorp)    ? entorp    : [],
+      visitaSolidaria: Array.isArray(visitaSol) ? visitaSol : [],
       loaded: true
     };
     const anosDisp = prodGetAnosDisp();
@@ -5087,11 +5320,19 @@ function prodUplFileChange() {
     complete: r => {
       if (!r.data.length) { prev.innerHTML = '<span style="color:#e06060">Arquivo vazio.</span>'; return; }
       const keys = Object.keys(r.data[0]).map(k => k.toLowerCase());
-      const hasAno = keys.some(k => k.includes('ano'));
-      const hasMes = keys.some(k => k.includes('mês') || k.includes('mes'));
-      if (!hasAno || !hasMes) {
-        prev.innerHTML = `<span style="color:#e06060">Colunas "Ano de Data" e "Mês de Data" não encontradas no CSV.</span>`;
-        return;
+      if (prodUplTipo === 'visita-solidaria') {
+        const hasData = keys.some(k => k.includes('data') && k.includes('ocorr'));
+        if (!hasData) {
+          prev.innerHTML = `<span style="color:#e06060">Coluna "Data da ocorrência" não encontrada no CSV.</span>`;
+          return;
+        }
+      } else {
+        const hasAno = keys.some(k => k.includes('ano'));
+        const hasMes = keys.some(k => k.includes('mês') || k.includes('mes'));
+        if (!hasAno || !hasMes) {
+          prev.innerHTML = `<span style="color:#e06060">Colunas "Ano de Data" e "Mês de Data" não encontradas no CSV.</span>`;
+          return;
+        }
       }
       prodUplParsed = r.data;
       prev.innerHTML = `<span style="color:#4bc87a">✓ <b>${r.data.length}</b> registros lidos.</span>`;

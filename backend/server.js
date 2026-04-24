@@ -901,11 +901,12 @@ app.post('/api/p1/vagas', requireAuth, requireRole('admin', 'p1'), async (req, r
 // PRODUTIVIDADE P3
 // ---------------------------------------------------------------------------
 const PROD_TABS = {
-  ocorrencias:   'prod_ocorrencias',
-  presos:        'prod_pessoas_presas',
-  armas:         'prod_armas',
-  veiculos:      'prod_veiculos',
-  entorpecentes: 'prod_entorpecentes'
+  ocorrencias:        'prod_ocorrencias',
+  presos:             'prod_pessoas_presas',
+  armas:              'prod_armas',
+  veiculos:           'prod_veiculos',
+  entorpecentes:      'prod_entorpecentes',
+  'visita-solidaria': 'prod_visita_solidaria'
 };
 
 function mapProdRow(tipo, r) {
@@ -938,6 +939,32 @@ function mapProdRow(tipo, r) {
     entorpecente:   (r['Entorpecente'] || '').trim(),
     ano, mes, cia, quantidade: parseFloat(r['Quantidade de Entorpecentes']) || 0
   };
+  if (tipo === 'visita-solidaria') {
+    const dataStr = (r['Data da ocorrência'] || r['Data da Ocorrência'] || r['Data da ocorrencia'] || '').trim();
+    let vsAno = 0, vsMes = '';
+    const dm = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (dm) {
+      vsAno = parseInt(dm[3]);
+      vsMes = normMes(_MESES_PT[parseInt(dm[2]) - 1] || '');
+    }
+    return {
+      ano: vsAno, mes: vsMes,
+      cia:                  normCia(r['Cia PM'] || r['CIA PM'] || r['CIA'] || ''),
+      data_ocorrencia:      dataStr,
+      nome_vitima:          (r['Nome da Vitima'] || r['Nome da Vítima'] || '').trim(),
+      parentesco_agressor:  (r['Parentesco do Agressor'] || '').trim(),
+      bairro:               (r['Bairro'] || '').trim(),
+      cidade:               (r['Cidade'] || '').trim(),
+      quer_acompanhamento:  (r['A vitima Gostaria do acompanhamento da Visita Solidária'] || r['A vítima Gostaria do acompanhamento da Visita Solidária'] || '').trim(),
+      visita_1:             (r['1ª Telefonema (visita)'] || '').trim(),
+      visita_2:             (r['2ª Visita Pessoal'] || '').trim(),
+      visita_3:             (r['3ª Visita Pessoal'] || '').trim(),
+      visita_4:             (r['4ª Visita Pessoal'] || '').trim(),
+      visita_5:             (r['5ª Visita Pessoal'] || '').trim(),
+      visita_6:             (r['6ª Visita Pessoal'] || '').trim(),
+      medida_protetiva:     (r['Atualmente possui medida protetiva (Sim/Não)'] || '').trim(),
+    };
+  }
   return null;
 }
 
