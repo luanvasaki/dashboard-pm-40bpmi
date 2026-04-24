@@ -4566,11 +4566,14 @@ const PROD_BREAK = {
   entorpecentes: 'entorpecente'
 };
 
+// Normaliza CIA para exibição: "1Cia", "1CIA", "1ªCIA" → "1ª CIA"
+const normCiaDisp = s => { const m = (s||'').trim().match(/(\d+)/); return m ? m[1] + 'ª CIA' : (s||'').trim(); };
+
 function prodFilter(arr) {
   return arr.filter(r => {
     if (prodSelAno && r.ano !== prodSelAno) return false;
     if (prodSelMeses.length && !prodSelMeses.some(m => m.toLowerCase() === (r.mes||'').toLowerCase())) return false;
-    if (prodSelCia && (r.cia || '').trim().toLowerCase() !== prodSelCia.trim().toLowerCase()) return false;
+    if (prodSelCia && normCiaDisp(r.cia) !== normCiaDisp(prodSelCia)) return false;
     return true;
   });
 }
@@ -4599,9 +4602,13 @@ function prodGetMesesDisp(ano) {
 function prodGetCiasDisp() {
   const all = new Set();
   ['ocorrencias','presos','armas','veiculos','entorpecentes','visitaSolidaria'].forEach(k => {
-    if (Array.isArray(prodRaw[k])) prodRaw[k].forEach(r => r.cia && all.add(r.cia.trim()));
+    if (Array.isArray(prodRaw[k])) prodRaw[k].forEach(r => r.cia && all.add(normCiaDisp(r.cia.trim())));
   });
-  return [...all].sort();
+  return [...all].sort((a, b) => {
+    const na = parseInt(a), nb = parseInt(b);
+    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+    return a.localeCompare(b, 'pt-BR');
+  });
 }
 
 function prodBuildFilter() {
@@ -4625,7 +4632,7 @@ function prodBuildFilter() {
   // CIA
   h += `<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" onchange="prodSetCia(this.value)">`;
   h += `<option value="">Todas</option>`;
-  cias.forEach(c => h += `<option value="${c}"${c.toLowerCase()===( prodSelCia||'').toLowerCase()?' selected':''}>${c}</option>`);
+  cias.forEach(c => h += `<option value="${c}"${normCiaDisp(c)===normCiaDisp(prodSelCia||'')?' selected':''}>${c}</option>`);
   h += `</select></div>`;
   h += `</div>`;
   el.innerHTML = h;
@@ -5255,7 +5262,7 @@ function buildPdFilter() {
   if (cias.length) {
     h += '<span class="pf-sep"></span>';
     h += '<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" onchange="pdSetCia(this.value)"><option value="">Todas</option>';
-    cias.forEach(c => h += `<option value="${c}"${c === pdSelCia ? ' selected' : ''}>${c}</option>`);
+    cias.forEach(c => h += `<option value="${c}"${normCiaDisp(c) === normCiaDisp(pdSelCia) ? ' selected' : ''}>${c}</option>`);
     h += '</select></div>';
   }
   document.getElementById('pd-filter-bar').innerHTML = h;
@@ -5304,7 +5311,7 @@ function renderProdDetail() {
   // Filtrado: aplica CIA + meses
   const rows = baseRows.filter(r => {
     if (pdMeses.length && !pdMeses.some(m => m.toLowerCase() === (r.mes||'').toLowerCase())) return false;
-    if (pdSelCia && (r.cia||'').trim().toLowerCase() !== pdSelCia.toLowerCase()) return false;
+    if (pdSelCia && normCiaDisp(r.cia) !== normCiaDisp(pdSelCia)) return false;
     return true;
   });
 
@@ -5370,7 +5377,7 @@ function renderProdDetail() {
   rdBar('pd-cia', topCias.map(([k])=>k), topCias.map(([,v])=>v));
 
   // --- Evolução Mensal (ignora filtro de meses, mostra todos do ano com CIA aplicada) ---
-  const rowsParaEvo = baseRows.filter(r => !pdSelCia || (r.cia||'').trim().toLowerCase() === pdSelCia.toLowerCase());
+  const rowsParaEvo = baseRows.filter(r => !pdSelCia || normCiaDisp(r.cia) === normCiaDisp(pdSelCia));
   const aggEvo = {};
   mesesDisp.forEach(m => aggEvo[m] = 0);
   rowsParaEvo.forEach(r => { const mk = MES_ORD.find(x => x.toLowerCase() === (r.mes||'').toLowerCase()) || r.mes || ''; if (mesesDisp.includes(mk)) aggEvo[mk] = (aggEvo[mk]||0) + (Number(r[campo])||0); });
@@ -5481,19 +5488,16 @@ function renderProdDetail() {
     const naoRx = /^n[ãa]o$/i;
     const vsFields = ['visita_1','visita_2','visita_3','visita_4','visita_5','visita_6'];
 
-    // Normaliza CIA para comparação: extrai só o número ("1ª CIA", "1Cia", "1CIA" → "1")
-    const ciaN = s => { const m = (s||'').match(/(\d+)/); return m ? m[1] : (s||'').trim().toLowerCase(); };
-
     // Filtra VS pelo mesmo período/CIA do modal
     const filtVS = (prodRaw.visitaSolidaria || []).filter(r => {
       if (prodSelAno && r.ano !== prodSelAno) return false;
       if (pdMeses.length && !pdMeses.some(m => m.toLowerCase() === (r.mes||'').toLowerCase())) return false;
-      if (pdSelCia && ciaN(r.cia) !== ciaN(pdSelCia)) return false;
+      if (pdSelCia && normCiaDisp(r.cia) !== normCiaDisp(pdSelCia)) return false;
       return true;
     });
     // Para reiterações: ignora filtro de ano e mês — detecta mesma vítima em qualquer período
     const allYearVS = (prodRaw.visitaSolidaria || []).filter(r => {
-      if (pdSelCia && ciaN(r.cia) !== ciaN(pdSelCia)) return false;
+      if (pdSelCia && normCiaDisp(r.cia) !== normCiaDisp(pdSelCia)) return false;
       return true;
     });
 
@@ -5646,7 +5650,7 @@ function renderProdDetail() {
     // ── Evolução mensal: 3 séries ──
     const evoBase = (prodRaw.visitaSolidaria || [])
       .filter(r => !prodSelAno || r.ano === prodSelAno)
-      .filter(r => !pdSelCia || ciaN(r.cia) === ciaN(pdSelCia));
+      .filter(r => !pdSelCia || normCiaDisp(r.cia) === normCiaDisp(pdSelCia));
     const evoAgg = {};
     mesesDisp.forEach(m => evoAgg[m] = { quer: 0, nao: 0, acomp: 0 });
     evoBase.filter(r => pdMeses.some(m => m.toLowerCase() === (r.mes||'').toLowerCase())).forEach(r => {
