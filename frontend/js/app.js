@@ -4837,233 +4837,6 @@ function prodRender() {
     </div>`);
   }
 
-  // ─── Visita Solidária VD ──────────────────────────────────────────────────
-  const filtVS = prodFilter(prodRaw.visitaSolidaria || []);
-  const VD_COR2 = '#e05a8a';
-
-  const vsSection = (() => {
-    if (!filtVS.length) return `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${VD_COR2};border-radius:10px;padding:20px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${VD_COR2};margin-bottom:10px">Visita Solidária — Acompanhamento Pós-Ocorrência</div>
-      <div style="color:var(--tx3);font-size:13px">Nenhum dado de visita solidária importado. Use o botão <b>↑ Visita Solidária (VD)</b> na barra lateral.</div>
-    </div>`;
-
-    // Métricas básicas
-    const simRx = /^sim$/i;
-    const naoRx = /^n[ãa]o$/i;
-    const vsQuer    = filtVS.filter(r => simRx.test((r.quer_acompanhamento||'').trim())).length;
-    const vsNaoQuer = filtVS.filter(r => naoRx.test((r.quer_acompanhamento||'').trim())).length;
-    const vsMedProt = filtVS.filter(r => simRx.test((r.medida_protetiva||'').trim())).length;
-
-    // Contatos realizados por vítima
-    const vsFields = ['visita_1','visita_2','visita_3','visita_4','visita_5','visita_6'];
-    const vsAcompanhados  = filtVS.filter(r => vsFields.some(f => r[f] && r[f].trim())).length;
-    const vsTotalContatos = filtVS.reduce((s, r) => s + vsFields.filter(f => r[f] && r[f].trim()).length, 0);
-    const vsPctAcomp      = totVD > 0 ? Math.round(vsAcompanhados / totVD * 100) : null;
-
-    // Reiterações: mesma vítima com múltiplas ocorrências
-    const normNome = s => (s||'').toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ');
-    const nomeGrp = {};
-    filtVS.forEach(r => { const k = normNome(r.nome_vitima); if (k) nomeGrp[k] = (nomeGrp[k]||0) + 1; });
-    const reiterantes = Object.entries(nomeGrp).filter(([,v]) => v > 1).sort((a,b) => b[1]-a[1]);
-    const vsReiterantes = reiterantes.length;
-    const vsOcorrReiter = reiterantes.reduce((s,[,v]) => s + v, 0);
-
-    // Intervalo médio entre contatos consecutivos
-    const parseVSDate = s => {
-      if (!s) return null;
-      const m = s.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-      return m ? new Date(+m[3], +m[2]-1, +m[1]) : null;
-    };
-    const intervalSums = [0,0,0,0,0], intervalCounts = [0,0,0,0,0];
-    filtVS.forEach(r => {
-      const dates = vsFields.map(f => parseVSDate(r[f])).filter(Boolean).sort((a,b) => a-b);
-      for (let i = 1; i < dates.length; i++) {
-        const diff = Math.round((dates[i] - dates[i-1]) / 86400000);
-        if (diff >= 0 && i-1 < 5) { intervalSums[i-1] += diff; intervalCounts[i-1]++; }
-      }
-    });
-    const avgIntervals = intervalSums.map((s,i) => intervalCounts[i] > 0 ? Math.round(s/intervalCounts[i]) : null);
-    const hasIntervals = avgIntervals.some(v => v !== null);
-
-    // Parentesco do agressor
-    const parentescoAgg = {};
-    filtVS.forEach(r => {
-      const p = (r.parentesco_agressor||'').trim() || 'Não informado';
-      parentescoAgg[p] = (parentescoAgg[p]||0) + 1;
-    });
-    const topParentesco = Object.entries(parentescoAgg).sort((a,b)=>b[1]-a[1]).slice(0,6);
-
-    // Bairros com mais ocorrências
-    const bairroAgg = {};
-    filtVS.forEach(r => { const b = (r.bairro||'').trim(); if (b) bairroAgg[b] = (bairroAgg[b]||0) + 1; });
-    const topBairros = Object.entries(bairroAgg).sort((a,b)=>b[1]-a[1]).slice(0,6);
-
-    // ── Mini KPIs ──
-    const miniKpi = (label, valor, sub, cor) =>
-      `<div style="background:var(--bg);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:8px;padding:14px 16px;min-width:120px;flex:1">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${cor};margin-bottom:6px">${label}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:26px;font-weight:700;color:#fff;line-height:1">${valor}</div>
-        ${sub ? `<div style="font-size:11px;color:var(--tx3);margin-top:5px">${sub}</div>` : ''}
-      </div>`;
-
-    const gaugeColor = vsPctAcomp === null ? '#888' : vsPctAcomp >= 80 ? '#4bc87a' : vsPctAcomp >= 50 ? '#f0c040' : '#e06060';
-    const gaugeVal   = vsPctAcomp !== null ? vsPctAcomp + '%' : '—';
-
-    const kpisHtml = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">
-      ${miniKpi('Querem Acompanhamento', vsQuer.toLocaleString('pt-BR'), 'vítimas aceitaram a visita', '#4bc87a')}
-      ${miniKpi('Não Querem', vsNaoQuer.toLocaleString('pt-BR'), 'vítimas recusaram', '#e06060')}
-      ${miniKpi('Vítimas Acompanhadas', vsAcompanhados.toLocaleString('pt-BR'), `${vsTotalContatos} contatos no total`, VD_COR2)}
-      ${miniKpi('Medida Protetiva', vsMedProt.toLocaleString('pt-BR'), 'possuem atualmente', '#f0c040')}
-      <div style="background:var(--bg);border:1px solid var(--bd2);border-top:2px solid ${gaugeColor};border-radius:8px;padding:14px 16px;min-width:120px;flex:1">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${gaugeColor};margin-bottom:6px">% Acompanhamento</div>
-        <div style="font-family:'DM Mono',monospace;font-size:26px;font-weight:700;color:${gaugeColor};line-height:1">${gaugeVal}</div>
-        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:5px;margin-top:8px"><div style="height:100%;width:${Math.min(vsPctAcomp||0,100)}%;background:${gaugeColor};border-radius:3px"></div></div>
-        <div style="font-size:11px;color:var(--tx3);margin-top:5px">${vsAcompanhados} acompanhadas de ${totVD} ocorrências VD</div>
-      </div>
-    </div>`;
-
-    // ── Reiterações ──
-    const reiterHtml = (() => {
-      if (!vsReiterantes) return `<div style="background:var(--bg);border:1px solid var(--bd2);border-top:2px solid #9b6de0;border-radius:8px;padding:14px 16px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#9b6de0;margin-bottom:8px">Reiterações</div>
-        <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:700;color:#fff">0</div>
-        <div style="font-size:11px;color:var(--tx3);margin-top:4px">nenhuma vítima com mais de 1 ocorrência</div>
-      </div>`;
-      const topList = reiterantes.slice(0,4).map(([nome, cnt]) => {
-        const display = nome.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)">
-          <div style="font-size:13px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72%">${display}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:13px;color:#9b6de0;font-weight:700;white-space:nowrap">${cnt}x</div>
-        </div>`;
-      }).join('');
-      return `<div style="background:var(--bg);border:1px solid var(--bd2);border-top:2px solid #9b6de0;border-radius:8px;padding:14px 16px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#9b6de0;margin-bottom:6px">Reiterações</div>
-        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px">
-          <div style="font-family:'DM Mono',monospace;font-size:26px;font-weight:700;color:#fff">${vsReiterantes}</div>
-          <div style="font-size:11px;color:var(--tx3)">${vsOcorrReiter} ocorrências</div>
-        </div>
-        ${topList}
-        ${reiterantes.length > 4 ? `<div style="font-size:11px;color:var(--tx3);margin-top:6px">+${reiterantes.length-4} outras vítimas reincidentes</div>` : ''}
-      </div>`;
-    })();
-
-    // ── Parentesco ──
-    const parentHtml = (() => {
-      if (!topParentesco.length) return '';
-      const maxP = topParentesco[0][1];
-      const items = topParentesco.map(([p, v]) => {
-        const pct = maxP > 0 ? Math.round(v/maxP*100) : 0;
-        return `<div style="margin-bottom:8px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-            <div style="font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72%">${p}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:12px;color:${VD_COR2};font-weight:700">${v}</div>
-          </div>
-          <div style="background:rgba(255,255,255,.06);border-radius:2px;height:4px"><div style="height:100%;width:${pct}%;background:${VD_COR2};border-radius:2px"></div></div>
-        </div>`;
-      }).join('');
-      return `<div style="background:var(--bg);border:1px solid var(--bd2);border-top:2px solid ${VD_COR2};border-radius:8px;padding:14px 16px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${VD_COR2};margin-bottom:10px">Parentesco do Agressor</div>
-        ${items}
-      </div>`;
-    })();
-
-    // ── Bairros ──
-    const bairroHtml = (() => {
-      if (!topBairros.length) return '';
-      const maxB = topBairros[0][1];
-      const items = topBairros.map(([b, v]) => {
-        const pct = maxB > 0 ? Math.round(v/maxB*100) : 0;
-        return `<div style="margin-bottom:8px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-            <div style="font-size:12px;color:var(--tx)">${b}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:12px;color:#5a9de0;font-weight:700">${v}</div>
-          </div>
-          <div style="background:rgba(255,255,255,.06);border-radius:2px;height:4px"><div style="height:100%;width:${pct}%;background:#5a9de0;border-radius:2px"></div></div>
-        </div>`;
-      }).join('');
-      return `<div style="background:var(--bg);border:1px solid var(--bd2);border-top:2px solid #5a9de0;border-radius:8px;padding:14px 16px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#5a9de0;margin-bottom:10px">Bairros com Mais Ocorrências</div>
-        ${items}
-      </div>`;
-    })();
-
-    // ── Intervalo entre contatos ──
-    const intervalHtml = (() => {
-      if (!hasIntervals) return '';
-      const labels = ['1ª→2ª', '2ª→3ª', '3ª→4ª', '4ª→5ª', '5ª→6ª'];
-      const items = avgIntervals.map((v, i) => v !== null
-        ? `<div style="text-align:center;flex:1;min-width:60px">
-            <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:#f0c040">${v}</div>
-            <div style="font-size:10px;color:var(--tx3);margin-top:2px">dias</div>
-            <div style="font-size:10px;color:var(--tx2);margin-top:1px">${labels[i]}</div>
-          </div>` : ''
-      ).join('');
-      return `<div style="background:var(--bg);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:8px;padding:14px 16px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#f0c040;margin-bottom:12px">Intervalo Médio entre Contatos</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">${items}</div>
-      </div>`;
-    })();
-
-    // ── Evolução mensal: 3 séries ──
-    const evoBase = (prodRaw.visitaSolidaria || [])
-      .filter(r => !prodSelAno || r.ano === prodSelAno)
-      .filter(r => !prodSelCia || (r.cia||'').trim().toLowerCase() === (prodSelCia||'').trim().toLowerCase());
-    const evoAgg = {};
-    mesesDisp.forEach(m => evoAgg[m] = { quer: 0, nao: 0, acomp: 0 });
-    evoBase.forEach(r => {
-      const mk = MES_ORD.find(x => x.toLowerCase() === (r.mes||'').toLowerCase()) || '';
-      if (!mk || !evoAgg[mk]) return;
-      if (simRx.test((r.quer_acompanhamento||'').trim())) evoAgg[mk].quer++;
-      if (naoRx.test((r.quer_acompanhamento||'').trim())) evoAgg[mk].nao++;
-      if (vsFields.some(f => r[f] && r[f].trim())) evoAgg[mk].acomp++;
-    });
-    const evoLabels = mesesDisp.map(m => m.slice(0,3));
-    const evoQuer  = mesesDisp.map(m => evoAgg[m].quer);
-    const evoNao   = mesesDisp.map(m => evoAgg[m].nao);
-    const evoAcomp = mesesDisp.map(m => evoAgg[m].acomp);
-    const hasEvo   = [...evoQuer, ...evoNao, ...evoAcomp].some(v => v > 0);
-
-    const chartId = 'vs-evo-ch';
-    if (hasEvo) {
-      requestAnimationFrame(() => {
-        const ctx = document.getElementById(chartId)?.getContext('2d');
-        if (!ctx) return;
-        prodChs.push(new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: evoLabels,
-            datasets: [
-              { label: 'Querem acomp.',   data: evoQuer,  borderColor: '#4bc87a', backgroundColor: '#4bc87a22', borderWidth: 2, fill: false, tension: 0.4, pointBackgroundColor: '#4bc87a', pointRadius: 4 },
-              { label: 'Não querem',      data: evoNao,   borderColor: '#e06060', backgroundColor: '#e0606022', borderWidth: 2, fill: false, tension: 0.4, pointBackgroundColor: '#e06060', pointRadius: 4 },
-              { label: 'Acompanhadas',    data: evoAcomp, borderColor: VD_COR2,   backgroundColor: VD_COR2+'22', borderWidth: 2, fill: false, tension: 0.4, pointBackgroundColor: VD_COR2, pointRadius: 4 },
-            ]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: {
-              legend: { display: true, labels: { color: 'rgba(255,255,255,.7)', font: { size: 11 }, boxWidth: 12, padding: 16 } },
-              tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw.toLocaleString('pt-BR')}` } }
-            },
-            scales: {
-              x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 11 } } },
-              y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 11 } } }
-            }
-          }
-        }));
-      });
-    }
-
-    const cardsRow = [reiterHtml, parentHtml, bairroHtml, intervalHtml].filter(Boolean).join('');
-
-    return `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${VD_COR2};border-radius:10px;padding:20px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${VD_COR2};margin-bottom:16px">Visita Solidária — Acompanhamento Pós-Ocorrência</div>
-      ${kpisHtml}
-      ${cardsRow ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:18px">${cardsRow}</div>` : ''}
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${VD_COR2};margin-bottom:10px">Evolução Mensal</div>
-      ${hasEvo ? `<canvas id="${chartId}" style="max-height:200px"></canvas>` : `<div style="color:var(--tx3);font-size:12px;padding:8px 0">Sem dados para o período.</div>`}
-    </div>`;
-  })();
-
   // Monta HTML de todas as seções
   chartsEl.innerHTML =
     (ciaRankCards
@@ -5073,9 +4846,7 @@ function prodRender() {
     (insCards.length
       ? sec('3 · Insights do Período') +
         `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">${insCards.join('')}</div>`
-      : '') +
-    sec('4 · Violência Doméstica — Visita Solidária') +
-    vsSection;
+      : '');
 
 }
 
@@ -5699,6 +5470,248 @@ function renderProdDetail() {
         tbl += '</tbody></table>';
         matEl.innerHTML = tbl;
       }
+    }
+  }
+
+  // --- Visita Solidária (só quando modal de Violência Doméstica) ---
+  const normStrPd = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  if (pdNatFilter && normStrPd(pdNatFilter).includes('violencia domestica')) {
+    const VD_COR2 = '#e05a8a';
+    const simRx = /^sim$/i;
+    const naoRx = /^n[ãa]o$/i;
+    const vsFields = ['visita_1','visita_2','visita_3','visita_4','visita_5','visita_6'];
+
+    // Filtra VS pelo mesmo período/CIA do modal
+    const filtVS = (prodRaw.visitaSolidaria || []).filter(r => {
+      if (prodSelAno && r.ano !== prodSelAno) return false;
+      if (pdMeses.length && !pdMeses.some(m => m.toLowerCase() === (r.mes||'').toLowerCase())) return false;
+      if (pdSelCia && (r.cia||'').trim().toLowerCase() !== pdSelCia.toLowerCase()) return false;
+      return true;
+    });
+
+    const totVDModal = total; // total do modal já filtrado
+
+    // Métricas básicas
+    const vsQuer         = filtVS.filter(r => simRx.test((r.quer_acompanhamento||'').trim())).length;
+    const vsNaoQuer      = filtVS.filter(r => naoRx.test((r.quer_acompanhamento||'').trim())).length;
+    const vsMedProt      = filtVS.filter(r => simRx.test((r.medida_protetiva||'').trim())).length;
+    const vsAcompanhados = filtVS.filter(r => vsFields.some(f => r[f] && r[f].trim())).length;
+    const vsTotalContatos= filtVS.reduce((s, r) => s + vsFields.filter(f => r[f] && r[f].trim()).length, 0);
+    const vsPctAcomp     = totVDModal > 0 ? Math.round(vsAcompanhados / totVDModal * 100) : null;
+    const gaugeColor     = vsPctAcomp === null ? '#888' : vsPctAcomp >= 80 ? '#4bc87a' : vsPctAcomp >= 50 ? '#f0c040' : '#e06060';
+
+    // Helpers
+    const parseVSDate = s => {
+      if (!s) return null;
+      const m = s.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+      return m ? new Date(+m[3], +m[2]-1, +m[1]) : null;
+    };
+    const normNome = s => (s||'').toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ');
+    const titleNome = s => s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+    // Reiterações com histórico detalhado por vítima
+    const nomeMap = {};
+    filtVS.forEach(r => {
+      const k = normNome(r.nome_vitima);
+      if (!k) return;
+      if (!nomeMap[k]) nomeMap[k] = { nome: r.nome_vitima, ocorrencias: [] };
+      nomeMap[k].ocorrencias.push(r);
+    });
+    const reiterantes = Object.values(nomeMap)
+      .filter(v => v.ocorrencias.length > 1)
+      .sort((a, b) => b.ocorrencias.length - a.ocorrencias.length);
+
+    // Intervalo médio entre contatos
+    const iSums = [0,0,0,0,0], iCounts = [0,0,0,0,0];
+    filtVS.forEach(r => {
+      const dates = vsFields.map(f => parseVSDate(r[f])).filter(Boolean).sort((a,b) => a-b);
+      for (let i = 1; i < dates.length; i++) {
+        const diff = Math.round((dates[i] - dates[i-1]) / 86400000);
+        if (diff >= 0 && i-1 < 5) { iSums[i-1] += diff; iCounts[i-1]++; }
+      }
+    });
+    const avgIntvs = iSums.map((s,i) => iCounts[i] > 0 ? Math.round(s/iCounts[i]) : null);
+
+    // Parentesco
+    const parentAgg = {};
+    filtVS.forEach(r => { const p = (r.parentesco_agressor||'').trim()||'Não informado'; parentAgg[p] = (parentAgg[p]||0)+1; });
+    const topParent = Object.entries(parentAgg).sort((a,b)=>b[1]-a[1]).slice(0,6);
+
+    // Bairros
+    const bairroAgg = {};
+    filtVS.forEach(r => { const b=(r.bairro||'').trim(); if(b) bairroAgg[b]=(bairroAgg[b]||0)+1; });
+    const topBairros = Object.entries(bairroAgg).sort((a,b)=>b[1]-a[1]).slice(0,6);
+
+    // ── HTML: mini-KPI helper ──
+    const mkpi = (lbl, val, sub, c) =>
+      `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${c};border-radius:8px;padding:12px 14px;min-width:110px;flex:1">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${c};margin-bottom:5px">${lbl}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:700;color:#fff;line-height:1">${val}</div>
+        ${sub?`<div style="font-size:11px;color:var(--tx3);margin-top:4px">${sub}</div>`:''}
+      </div>`;
+
+    // ── HTML: barra de ranking ──
+    const mkBar = (label, val, max, c) => {
+      const pct = max > 0 ? Math.round(val/max*100) : 0;
+      return `<div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+          <div style="font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:74%">${label}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:12px;color:${c};font-weight:700">${val}</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border-radius:2px;height:4px"><div style="height:100%;width:${pct}%;background:${c};border-radius:2px"></div></div>
+      </div>`;
+    };
+
+    // ── Reiterações detalhadas ──
+    const reiterHtml = (() => {
+      if (!reiterantes.length) return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #9b6de0;border-radius:8px;padding:14px 16px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#9b6de0;margin-bottom:8px">Reiterações</div>
+        <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:#fff">0</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:4px">nenhuma vítima com mais de 1 ocorrência</div>
+      </div>`;
+
+      const cards = reiterantes.map(v => {
+        const ocorrs = v.ocorrencias.slice().sort((a,b) => {
+          const da = parseVSDate(a.data_ocorrencia), db = parseVSDate(b.data_ocorrencia);
+          return (da||0) - (db||0);
+        });
+        const bairros = [...new Set(ocorrs.map(o => (o.bairro||'').trim()).filter(Boolean))];
+        const mesmoCal = bairros.length <= 1;
+        const rows = ocorrs.map((o, i) => {
+          const nContatos = vsFields.filter(f => o[f] && o[f].trim()).length;
+          const quer = simRx.test((o.quer_acompanhamento||'').trim()) ? 'Sim' : naoRx.test((o.quer_acompanhamento||'').trim()) ? 'Não' : '—';
+          return `<tr style="background:${i%2?'':'rgba(255,255,255,.02)'}">
+            <td style="padding:5px 8px;font-size:12px;color:var(--tx);white-space:nowrap">${o.data_ocorrencia||'—'}</td>
+            <td style="padding:5px 8px;font-size:12px;color:var(--tx)">${(o.bairro||'—')}</td>
+            <td style="padding:5px 8px;font-size:12px;color:${quer==='Sim'?'#4bc87a':quer==='Não'?'#e06060':'var(--tx3)'};text-align:center">${quer}</td>
+            <td style="padding:5px 8px;font-size:12px;color:${VD_COR2};text-align:center;font-family:'DM Mono',monospace">${nContatos}</td>
+          </tr>`;
+        }).join('');
+        return `<div style="background:rgba(155,109,224,.07);border:1px solid rgba(155,109,224,.25);border-radius:8px;padding:12px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <div style="font-size:13px;font-weight:700;color:#fff">${titleNome(normNome(v.nome))}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;color:#9b6de0;font-weight:700">${ocorrs.length}x</div>
+            <div style="font-size:11px;color:${mesmoCal?'#f0c040':'#4bc87a'};margin-left:auto">${mesmoCal?'⚠ mesmo local':'locais diferentes'}</div>
+          </div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="text-align:left;padding:4px 8px;font-size:10px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)">Data</th>
+              <th style="text-align:left;padding:4px 8px;font-size:10px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)">Bairro</th>
+              <th style="text-align:center;padding:4px 8px;font-size:10px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)">Quer visita</th>
+              <th style="text-align:center;padding:4px 8px;font-size:10px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)">Contatos</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+      }).join('');
+
+      return `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #9b6de0;border-radius:10px;padding:16px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9b6de0;margin-bottom:4px">Reiterações</div>
+        <div style="font-size:12px;color:var(--tx3);margin-bottom:14px">${reiterantes.length} vítima(s) com mais de 1 ocorrência no período</div>
+        ${cards}
+      </div>`;
+    })();
+
+    // ── Evolução mensal: 3 séries ──
+    const evoBase = (prodRaw.visitaSolidaria || [])
+      .filter(r => !prodSelAno || r.ano === prodSelAno)
+      .filter(r => !pdSelCia || (r.cia||'').trim().toLowerCase() === pdSelCia.toLowerCase());
+    const evoAgg = {};
+    mesesDisp.forEach(m => evoAgg[m] = { quer: 0, nao: 0, acomp: 0 });
+    evoBase.filter(r => pdMeses.some(m => m.toLowerCase() === (r.mes||'').toLowerCase())).forEach(r => {
+      const mk = MES_ORD.find(x => x.toLowerCase() === (r.mes||'').toLowerCase()) || '';
+      if (!mk || !evoAgg[mk]) return;
+      if (simRx.test((r.quer_acompanhamento||'').trim())) evoAgg[mk].quer++;
+      if (naoRx.test((r.quer_acompanhamento||'').trim())) evoAgg[mk].nao++;
+      if (vsFields.some(f => r[f] && r[f].trim())) evoAgg[mk].acomp++;
+    });
+    const evoLabels = mesesDisp.map(m => m.slice(0,3));
+    const evoQuer  = mesesDisp.map(m => evoAgg[m]?.quer  || 0);
+    const evoNao   = mesesDisp.map(m => evoAgg[m]?.nao   || 0);
+    const evoAcomp = mesesDisp.map(m => evoAgg[m]?.acomp || 0);
+    const hasEvo   = [...evoQuer,...evoNao,...evoAcomp].some(v=>v>0);
+
+    // ── Monta HTML do bloco VS ──
+    const maxP = topParent[0]?.[1] || 1;
+    const maxB = topBairros[0]?.[1] || 1;
+
+    const vsHtml = `
+      <div style="grid-column:1/-1;border-top:1px solid var(--bd2);margin-top:8px;padding-top:18px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${VD_COR2};margin-bottom:14px">Visita Solidária — Acompanhamento</div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+          ${mkpi('Querem Visita', vsQuer.toLocaleString('pt-BR'), 'aceitaram', '#4bc87a')}
+          ${mkpi('Não Querem', vsNaoQuer.toLocaleString('pt-BR'), 'recusaram', '#e06060')}
+          ${mkpi('Acompanhadas', vsAcompanhados.toLocaleString('pt-BR'), `${vsTotalContatos} contatos`, VD_COR2)}
+          ${mkpi('Med. Protetiva', vsMedProt.toLocaleString('pt-BR'), 'possuem atualmente', '#f0c040')}
+          <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${gaugeColor};border-radius:8px;padding:12px 14px;min-width:110px;flex:1">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${gaugeColor};margin-bottom:5px">% Acompanhamento</div>
+            <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:700;color:${gaugeColor};line-height:1">${vsPctAcomp !== null ? vsPctAcomp+'%' : '—'}</div>
+            <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px;margin-top:8px"><div style="height:100%;width:${Math.min(vsPctAcomp||0,100)}%;background:${gaugeColor};border-radius:3px"></div></div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:4px">${vsAcompanhados} de ${totVDModal} ocorrências VD</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:16px">
+          ${topParent.length ? `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${VD_COR2};border-radius:8px;padding:14px 16px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${VD_COR2};margin-bottom:10px">Parentesco do Agressor</div>
+            ${topParent.map(([p,v])=>mkBar(p,v,maxP,VD_COR2)).join('')}
+          </div>` : ''}
+          ${topBairros.length ? `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #5a9de0;border-radius:8px;padding:14px 16px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#5a9de0;margin-bottom:10px">Bairros com Mais Ocorrências</div>
+            ${topBairros.map(([b,v])=>mkBar(b,v,maxB,'#5a9de0')).join('')}
+          </div>` : ''}
+          ${avgIntvs.some(v=>v!==null) ? `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:8px;padding:14px 16px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#f0c040;margin-bottom:10px">Intervalo Médio (dias)</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              ${['1→2','2→3','3→4','4→5','5→6'].map((lbl,i)=>avgIntvs[i]!==null?`<div style="text-align:center;flex:1;min-width:44px">
+                <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:#f0c040">${avgIntvs[i]}</div>
+                <div style="font-size:10px;color:var(--tx3)">dias</div>
+                <div style="font-size:10px;color:var(--tx2)">${lbl}</div>
+              </div>`:''  ).join('')}
+            </div>
+          </div>` : ''}
+        </div>
+
+        ${reiterHtml}
+
+        <div style="margin-top:16px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${VD_COR2};margin-bottom:10px">Evolução Mensal — Visita Solidária</div>
+          ${hasEvo ? `<canvas id="vs-modal-evo" style="max-height:180px"></canvas>` : `<div style="color:var(--tx3);font-size:12px">Sem dados para o período.</div>`}
+        </div>
+      </div>`;
+
+    // Injeta o bloco no modal
+    const pdChartsEl = document.getElementById('pd-charts');
+    if (pdChartsEl) pdChartsEl.insertAdjacentHTML('beforeend', vsHtml);
+
+    if (hasEvo) {
+      requestAnimationFrame(() => {
+        const ctx = document.getElementById('vs-modal-evo')?.getContext('2d');
+        if (!ctx) return;
+        pdChs.push(new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: evoLabels,
+            datasets: [
+              { label: 'Querem acomp.', data: evoQuer,  borderColor:'#4bc87a', backgroundColor:'#4bc87a22', borderWidth:2, fill:false, tension:0.4, pointRadius:4, pointBackgroundColor:'#4bc87a' },
+              { label: 'Não querem',    data: evoNao,   borderColor:'#e06060', backgroundColor:'#e0606022', borderWidth:2, fill:false, tension:0.4, pointRadius:4, pointBackgroundColor:'#e06060' },
+              { label: 'Acompanhadas',  data: evoAcomp, borderColor:VD_COR2,   backgroundColor:VD_COR2+'22', borderWidth:2, fill:false, tension:0.4, pointRadius:4, pointBackgroundColor:VD_COR2 },
+            ]
+          },
+          options: {
+            responsive:true, maintainAspectRatio:false,
+            plugins: {
+              legend: { display:true, labels:{ color:'rgba(255,255,255,.7)', font:{size:11}, boxWidth:12, padding:14 } },
+              tooltip: { callbacks:{ label: i => ` ${i.dataset.label}: ${i.raw.toLocaleString('pt-BR')}` } }
+            },
+            scales: {
+              x: { grid:GR, ticks:{ color:'rgba(255,255,255,.55)', font:{size:11} } },
+              y: { grid:GR, beginAtZero:true, ticks:{ color:'rgba(255,255,255,.45)', font:{size:11} } }
+            }
+          }
+        }));
+      });
     }
   }
 }
