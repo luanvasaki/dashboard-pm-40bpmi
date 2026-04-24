@@ -5603,8 +5603,8 @@ function renderProdDetail() {
           const nContatos = vsFields.filter(f => o[f] && o[f].trim()).length;
           const quer = simRx.test((o.quer_acompanhamento||'').trim()) ? 'Sim' : naoRx.test((o.quer_acompanhamento||'').trim()) ? 'Não' : '—';
           return `<tr style="background:${i%2?'':'rgba(255,255,255,.02)'}">
-            <td style="padding:5px 8px;font-size:12px;color:var(--tx);white-space:nowrap">${o.data_ocorrencia||'—'}</td>
-            <td style="padding:5px 8px;font-size:12px;color:var(--tx)">${(o.bairro||'—')}</td>
+            <td style="padding:5px 8px;font-size:12px;color:var(--tx);white-space:nowrap;overflow:hidden">${o.data_ocorrencia||'—'}</td>
+            <td style="padding:5px 8px;font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(o.bairro||'').replace(/"/g,'&quot;')}">${(o.bairro||'—')}</td>
             <td style="padding:5px 8px;font-size:12px;color:${quer==='Sim'?'#4bc87a':quer==='Não'?'#e06060':'var(--tx3)'};text-align:center">${quer}</td>
             <td style="padding:5px 8px;font-size:12px;color:${VD_COR2};text-align:center;font-family:'DM Mono',monospace">${nContatos}</td>
           </tr>`;
@@ -5615,7 +5615,13 @@ function renderProdDetail() {
             <div style="font-family:'DM Mono',monospace;font-size:12px;color:#9b6de0;font-weight:700">${ocorrs.length}x</div>
             <div style="font-size:11px;color:${mesmoCal?'#f0c040':'#4bc87a'};margin-left:auto">${mesmoCal?'⚠ mesmo local':'locais diferentes'}</div>
           </div>
-          <table style="width:100%;border-collapse:collapse">
+          <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+            <colgroup>
+              <col style="width:105px">
+              <col>
+              <col style="width:95px">
+              <col style="width:80px">
+            </colgroup>
             <thead><tr>
               <th style="text-align:left;padding:4px 8px;font-size:10px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)">Data</th>
               <th style="text-align:left;padding:4px 8px;font-size:10px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)">Bairro</th>
@@ -5629,7 +5635,7 @@ function renderProdDetail() {
 
       return `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #9b6de0;border-radius:10px;padding:16px">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9b6de0;margin-bottom:4px">Reiterações</div>
-        <div style="font-size:12px;color:var(--tx3);margin-bottom:14px">${reiterantes.length} vítima(s) com mais de 1 ocorrência registrada</div>
+        <div style="font-size:13px;color:#ffffff;margin-bottom:14px">${reiterantes.length} vítima(s) com mais de 1 ocorrência registrada</div>
         ${cards}
       </div>`;
     })();
