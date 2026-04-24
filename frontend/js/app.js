@@ -5532,15 +5532,32 @@ function renderProdDetail() {
     });
     const avgIntvs = iSums.map((s,i) => iCounts[i] > 0 ? Math.round(s/iCounts[i]) : null);
 
+    // Normaliza texto para chave de agrupamento
+    const normGrp = s => (s||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ');
+    const toTitle  = s => s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
     // Parentesco
-    const parentAgg = {};
-    filtVS.forEach(r => { const p = (r.parentesco_agressor||'').trim()||'Não informado'; parentAgg[p] = (parentAgg[p]||0)+1; });
-    const topParent = Object.entries(parentAgg).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    const parentAgg = {}, parentDisp = {};
+    filtVS.forEach(r => {
+      const raw = (r.parentesco_agressor||'').trim() || 'Não informado';
+      const key = normGrp(raw);
+      parentAgg[key] = (parentAgg[key]||0) + 1;
+      if (!parentDisp[key]) parentDisp[key] = toTitle(raw);
+    });
+    const topParent = Object.entries(parentAgg).sort((a,b)=>b[1]-a[1]).slice(0,6)
+      .map(([k,v]) => [parentDisp[k], v]);
 
     // Bairros
-    const bairroAgg = {};
-    filtVS.forEach(r => { const b=(r.bairro||'').trim(); if(b) bairroAgg[b]=(bairroAgg[b]||0)+1; });
-    const topBairros = Object.entries(bairroAgg).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    const bairroAgg = {}, bairroDisp = {};
+    filtVS.forEach(r => {
+      const raw = (r.bairro||'').trim();
+      if (!raw) return;
+      const key = normGrp(raw);
+      bairroAgg[key] = (bairroAgg[key]||0) + 1;
+      if (!bairroDisp[key]) bairroDisp[key] = toTitle(raw);
+    });
+    const topBairros = Object.entries(bairroAgg).sort((a,b)=>b[1]-a[1]).slice(0,6)
+      .map(([k,v]) => [bairroDisp[k], v]);
 
     // ── HTML: mini-KPI helper ──
     const mkpi = (lbl, val, sub, c) =>
