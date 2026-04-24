@@ -6948,6 +6948,44 @@ function initInspector() {
     return '';
   };
 
+  // Gera frase pronta para descrever o elemento ao Claude
+  const buildClaudeRef = (targetEl) => {
+    const directText = node => {
+      let t = '';
+      for (const n of node.childNodes) if (n.nodeType === 3) t += n.textContent;
+      return t.replace(/\s+/g, ' ').trim();
+    };
+    let elTxt = directText(targetEl);
+    if (!elTxt) elTxt = (targetEl.textContent || '').replace(/\s+/g, ' ').trim();
+    if (elTxt.length > 50) elTxt = elTxt.slice(0, 47) + '…';
+
+    const looksLikeTitle = el => {
+      const st = (el.getAttribute?.('style') || '').replace(/\s/g, '');
+      const txt = (el.textContent || '').trim();
+      if (!txt || txt.length > 80) return false;
+      return st.includes('letter-spacing') || st.includes('text-transform:uppercase') ||
+             /font-weight:[78]/.test(st);
+    };
+
+    let sectionTxt = '';
+    let walker = targetEl.parentElement;
+    while (walker && walker !== document.body && !sectionTxt) {
+      for (const child of walker.children) {
+        if (child.contains(targetEl) || child === targetEl) continue;
+        if (looksLikeTitle(child)) {
+          const t = child.textContent.trim().replace(/\s+/g, ' ');
+          if (t && t !== elTxt && t.length < 70) { sectionTxt = t.slice(0, 55); break; }
+        }
+      }
+      walker = walker.parentElement;
+    }
+
+    if (elTxt && sectionTxt && elTxt !== sectionTxt) return `"${elTxt}" dentro de "${sectionTxt}"`;
+    if (elTxt) return `"${elTxt}"`;
+    if (sectionTxt) return `dentro de "${sectionTxt}"`;
+    return '(elemento sem texto)';
+  };
+
   document.addEventListener('mousemove', e => {
     if (!active) return;
     const target = e.target;
@@ -6989,6 +7027,7 @@ function initInspector() {
     const refClass = typeof refEl.className === 'string' ? refEl.className.trim().split(/\s+/)[0] : '';
     const searchTerm = refEl.id ? `id="${refEl.id}"` : refClass ? `.${refClass}` : refEl.tagName.toLowerCase();
     const swatch = c => `<span style="display:inline-block;width:9px;height:9px;background:${c};border-radius:2px;margin-right:5px;border:1px solid rgba(255,255,255,.15);vertical-align:middle;flex-shrink:0"></span>`;
+    const claudeRef = buildClaudeRef(el);
 
     popup.innerHTML = `
       <div style="color:#5a9de0;font-size:10px;letter-spacing:1.5px;margin-bottom:8px;font-weight:700">🔍 INSPETOR</div>
@@ -7010,15 +7049,19 @@ function initInspector() {
         <span style="color:#555">Opacidade</span>
         <span style="color:${opacity < 1 ? '#c8a84b' : '#d0d4dc'}">${opacityTxt}</span>
       </div>
-      <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:8px;font-size:10px">
+      <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:8px;margin-bottom:8px;font-size:10px">
         <div style="color:#555;margin-bottom:3px;letter-spacing:1px;text-transform:uppercase">Buscar no código</div>
         <div style="color:#c8a84b;font-family:'DM Mono',monospace;margin-bottom:2px">${searchTerm}</div>
         <div style="color:#444">em <span style="color:#6a8fc0">${srcFile}</span></div>
       </div>
+      <div style="border-top:1px solid rgba(90,224,154,.2);padding-top:8px;background:rgba(90,224,154,.04);border-radius:0 0 6px 6px;margin:-2px -2px -2px -2px;padding:8px 10px">
+        <div style="color:#5ae09a;font-size:10px;letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:5px">💬 Diga ao Claude</div>
+        <div style="color:#e8f5ee;font-size:11.5px;line-height:1.55;word-break:break-word;user-select:text">${claudeRef}</div>
+      </div>
     `;
 
     const popW = 340;
-    const popH = 270;
+    const popH = 330;
     const px = Math.min(e.clientX + 18, window.innerWidth - popW - 8);
     const py = Math.min(e.clientY + 18, window.innerHeight - popH - 8);
     popup.style.left = px + 'px';
