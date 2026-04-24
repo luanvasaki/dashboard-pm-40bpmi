@@ -5488,9 +5488,8 @@ function renderProdDetail() {
       if (pdSelCia && (r.cia||'').trim().toLowerCase() !== pdSelCia.toLowerCase()) return false;
       return true;
     });
-    // Para reiterações: ignora filtro de mês — detecta mesma vítima em datas/meses diferentes
+    // Para reiterações: ignora filtro de ano e mês — detecta mesma vítima em qualquer período
     const allYearVS = (prodRaw.visitaSolidaria || []).filter(r => {
-      if (prodSelAno && r.ano !== prodSelAno) return false;
       if (pdSelCia && (r.cia||'').trim().toLowerCase() !== pdSelCia.toLowerCase()) return false;
       return true;
     });
@@ -5630,7 +5629,7 @@ function renderProdDetail() {
 
       return `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #9b6de0;border-radius:10px;padding:16px">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9b6de0;margin-bottom:4px">Reiterações</div>
-        <div style="font-size:12px;color:var(--tx3);margin-bottom:14px">${reiterantes.length} vítima(s) com mais de 1 ocorrência no ano</div>
+        <div style="font-size:12px;color:var(--tx3);margin-bottom:14px">${reiterantes.length} vítima(s) com mais de 1 ocorrência registrada</div>
         ${cards}
       </div>`;
     })();
