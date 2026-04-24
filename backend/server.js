@@ -38,7 +38,12 @@ const USUARIOS_TABLE     = 'usuarios';
 const OCORRENCIAS_TABLE  = 'ocorrencias';
 
 // Helpers de normalização para dados InfoCrim
-function normCia(s) { return (s||'').replace(/^(\d+ª)CIA$/,'$1 CIA').trim(); }
+function normCia(s) {
+  if (!s) return '';
+  const m = s.trim().match(/^(\d+)[ªa°]?\s*cia/i);
+  if (m) return m[1] + 'ª CIA';
+  return s.trim();
+}
 const _MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 function normMes(s) {
   const v = (s||'').trim();

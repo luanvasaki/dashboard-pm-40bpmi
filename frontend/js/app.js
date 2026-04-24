@@ -5481,16 +5481,19 @@ function renderProdDetail() {
     const naoRx = /^n[ãa]o$/i;
     const vsFields = ['visita_1','visita_2','visita_3','visita_4','visita_5','visita_6'];
 
+    // Normaliza CIA para comparação: extrai só o número ("1ª CIA", "1Cia", "1CIA" → "1")
+    const ciaN = s => { const m = (s||'').match(/(\d+)/); return m ? m[1] : (s||'').trim().toLowerCase(); };
+
     // Filtra VS pelo mesmo período/CIA do modal
     const filtVS = (prodRaw.visitaSolidaria || []).filter(r => {
       if (prodSelAno && r.ano !== prodSelAno) return false;
       if (pdMeses.length && !pdMeses.some(m => m.toLowerCase() === (r.mes||'').toLowerCase())) return false;
-      if (pdSelCia && (r.cia||'').trim().toLowerCase() !== pdSelCia.toLowerCase()) return false;
+      if (pdSelCia && ciaN(r.cia) !== ciaN(pdSelCia)) return false;
       return true;
     });
     // Para reiterações: ignora filtro de ano e mês — detecta mesma vítima em qualquer período
     const allYearVS = (prodRaw.visitaSolidaria || []).filter(r => {
-      if (pdSelCia && (r.cia||'').trim().toLowerCase() !== pdSelCia.toLowerCase()) return false;
+      if (pdSelCia && ciaN(r.cia) !== ciaN(pdSelCia)) return false;
       return true;
     });
 
@@ -5643,7 +5646,7 @@ function renderProdDetail() {
     // ── Evolução mensal: 3 séries ──
     const evoBase = (prodRaw.visitaSolidaria || [])
       .filter(r => !prodSelAno || r.ano === prodSelAno)
-      .filter(r => !pdSelCia || (r.cia||'').trim().toLowerCase() === pdSelCia.toLowerCase());
+      .filter(r => !pdSelCia || ciaN(r.cia) === ciaN(pdSelCia));
     const evoAgg = {};
     mesesDisp.forEach(m => evoAgg[m] = { quer: 0, nao: 0, acomp: 0 });
     evoBase.filter(r => pdMeses.some(m => m.toLowerCase() === (r.mes||'').toLowerCase())).forEach(r => {
