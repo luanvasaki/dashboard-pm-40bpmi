@@ -938,6 +938,7 @@ app.post('/api/p1/quadro/upload', requireAuth, requireRole('admin', 'p1'), async
     const rows = records.map(r => ({
       municipio:     gs(r, 'Municipio', 'Município'),
       opm:           gs(r, 'OPM', 'opm'),
+      cia:           gs(r, 'CIA', 'Cia', 'Companhia'),
       fx_ten_cel:    gi(r, 'Fixado Ten Cel', 'Fx Ten Cel'),
       ex_ten_cel:    gi(r, 'Existente Ten Cel', 'Ex Ten Cel'),
       fx_maj:        gi(r, 'Fixado Maj', 'Fx Maj'),

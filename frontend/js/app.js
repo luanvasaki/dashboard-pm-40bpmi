@@ -3810,108 +3810,114 @@ async function prontoRemoveFoto() {
 // ── Quadro Fixado do Efetivo ─────────────────────────────────────────────────
 
 function renderQuadroFixado() {
-  // Normalização OPM (remove acentos, ordinais e espaços para comparação)
-  const normQ = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[ªº°]/g,'').replace(/\s+/g,'').trim();
-
-  // Calcula claro (fx_total - ex_total) e ordena do maior para menor
-  const urgRows = p1Quadro.map(q => {
-    const fx = Number(q.fx_total) || 0;
-    const ex = Number(q.ex_total) || 0;
-    return { ...q, _claro: fx - ex };
-  }).sort((a, b) => b._claro - a._claro);
-
   const claroColor = c => c > 5 ? '#c84b4b' : c > 0 ? '#c8a84b' : '#4bc87a';
   const claroLabel = c => c > 0 ? `−${c}` : c === 0 ? '0' : `+${Math.abs(c)}`;
+  const claroP = (fx, ex) => fx > 0 ? (((fx - ex) / fx) * 100).toFixed(1) + '%' : '—';
 
-  const thQ = 'padding:6px 10px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:10px;color:#ffffff;letter-spacing:1px;text-transform:uppercase;text-align:right;white-space:nowrap';
-  const thQL = thQ.replace('text-align:right','text-align:left');
-  const tdQ = 'padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.03);font-family:"DM Mono",monospace;font-size:11px;color:var(--tx3);text-align:right;white-space:nowrap';
-  const tdQL = 'padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap';
+  const th  = 'padding:7px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;text-align:right';
+  const thL = th + ';text-align:left';
+  const td  = 'padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:12px;color:var(--tx3);text-align:right;white-space:nowrap';
+  const tdL = 'padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap';
 
-  const urgRowsHtml = urgRows.map(q => {
-    const claro = q._claro;
-    const cc = claroColor(claro);
-    const fxOf = Number(q.fx_ten_cel||0)+Number(q.fx_maj||0)+Number(q.fx_cap||0)+Number(q.fx_ten||0)+Number(q.fx_of_med||0);
-    const exOf = Number(q.ex_ten_cel||0)+Number(q.ex_maj||0)+Number(q.ex_cap||0)+Number(q.ex_ten||0)+Number(q.ex_of_med||0);
-    const fxSub = Number(q.fx_subten_sgt||0);
-    const exSub = Number(q.ex_subten_sgt||0);
-    const fxCb  = Number(q.fx_cb_sd||0);
-    const exCb  = Number(q.ex_cb_sd||0);
-    return `<tr>
-      <td style="${tdQL}">${q.municipio||'—'}</td>
-      <td style="${tdQL}">${q.opm||'—'}</td>
-      <td style="${tdQ}">${fxOf}/<span style="color:#c8a84b">${exOf}</span></td>
-      <td style="${tdQ}">${fxSub}/<span style="color:#c8a84b">${exSub}</span></td>
-      <td style="${tdQ}">${fxCb}/<span style="color:#c8a84b">${exCb}</span></td>
-      <td style="${tdQ}">${Number(q.fx_total)||0}</td>
-      <td style="${tdQ}">${Number(q.ex_total)||0}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.03);font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${cc};text-align:right">${claroLabel(claro)}</td>
+  // Agrupa por CIA
+  const byCia = {};
+  p1Quadro.forEach(q => {
+    const cia = (q.cia || '').trim() || 'Sem CIA';
+    if (!byCia[cia]) byCia[cia] = [];
+    byCia[cia].push(q);
+  });
+  const cias = Object.keys(byCia).sort();
+
+  let bodyHtml = '';
+  let gtFxSub = 0, gtExSub = 0, gtFxCb = 0, gtExCb = 0, gtFx = 0, gtEx = 0;
+
+  cias.forEach(cia => {
+    const rows = byCia[cia];
+    // Cabeçalho da CIA
+    bodyHtml += `<tr>
+      <td colspan="7" style="padding:8px 12px 4px;background:rgba(90,157,224,.08);border-top:1px solid rgba(90,157,224,.2);border-bottom:1px solid rgba(90,157,224,.12);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;font-weight:700">${cia}</td>
     </tr>`;
-  }).join('');
 
-  // Tabela completa com todos os postos
-  const fullRowsHtml = p1Quadro.map(q => {
-    const pairs = [
-      ['TC/CEL', q.fx_ten_cel, q.ex_ten_cel],
-      ['MAJ',    q.fx_maj,     q.ex_maj],
-      ['CAP',    q.fx_cap,     q.ex_cap],
-      ['TEN',    q.fx_ten,     q.ex_ten],
-      ['OF MED', q.fx_of_med,  q.ex_of_med],
-      ['ST/SGT', q.fx_subten_sgt, q.ex_subten_sgt],
-      ['CB/SD',  q.fx_cb_sd,   q.ex_cb_sd],
-    ];
-    const postosCells = pairs.map(([, fx, ex]) =>
-      `<td style="${tdQ}">${Number(fx)||0}</td><td style="${tdQ.replace('color:var(--tx3)','color:#c8a84b')}">${Number(ex)||0}</td>`
-    ).join('');
-    const claro = (Number(q.fx_total)||0) - (Number(q.ex_total)||0);
-    const cc = claroColor(claro);
-    return `<tr>
-      <td style="${tdQL}">${q.municipio||'—'}</td>
-      <td style="${tdQL}">${q.opm||'—'}</td>
-      ${postosCells}
-      <td style="${tdQ}">${Number(q.fx_total)||0}</td>
-      <td style="${tdQ.replace('color:var(--tx3)','color:#c8a84b')}">${Number(q.ex_total)||0}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.03);font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${cc};text-align:right">${claroLabel(claro)}</td>
+    let cFxSub = 0, cExSub = 0, cFxCb = 0, cExCb = 0, cFx = 0, cEx = 0;
+
+    rows.forEach(q => {
+      const fxSub = Number(q.fx_subten_sgt) || 0;
+      const exSub = Number(q.ex_subten_sgt) || 0;
+      const fxCb  = Number(q.fx_cb_sd)      || 0;
+      const exCb  = Number(q.ex_cb_sd)      || 0;
+      const fx    = Number(q.fx_total)       || 0;
+      const ex    = Number(q.ex_total)       || 0;
+      const claro = fx - ex;
+      const cc    = claroColor(claro);
+      cFxSub += fxSub; cExSub += exSub;
+      cFxCb  += fxCb;  cExCb  += exCb;
+      cFx    += fx;    cEx    += ex;
+
+      bodyHtml += `<tr>
+        <td style="${tdL}">${q.municipio || '—'}</td>
+        <td style="${tdL}">${q.opm       || '—'}</td>
+        <td style="${td}">${fxSub}</td>
+        <td style="${td};color:#c8a84b">${exSub}</td>
+        <td style="${td}">${fxCb}</td>
+        <td style="${td};color:#c8a84b">${exCb}</td>
+        <td style="${td};font-size:13px;font-weight:700;color:${cc}">${claroLabel(claro)}</td>
+      </tr>`;
+    });
+
+    // Subtotal CIA
+    const cClaro = cFx - cEx;
+    const cCc = claroColor(cClaro);
+    bodyHtml += `<tr style="background:rgba(255,255,255,.03)">
+      <td style="${tdL};color:var(--tx3);font-size:11px" colspan="2">Subtotal ${cia}</td>
+      <td style="${td};font-weight:600;color:#fff">${cFxSub}</td>
+      <td style="${td};font-weight:600;color:#c8a84b">${cExSub}</td>
+      <td style="${td};font-weight:600;color:#fff">${cFxCb}</td>
+      <td style="${td};font-weight:600;color:#c8a84b">${cExCb}</td>
+      <td style="${td};font-size:13px;font-weight:700;color:${cCc}">${claroLabel(cClaro)}</td>
     </tr>`;
-  }).join('');
 
-  const fullHeaderPares = [
-    'TC/CEL','MAJ','CAP','TEN','OF MED','ST/SGT','CB/SD'
-  ].map(p => `<th style="${thQ}">FX</th><th style="${thQ.replace('#ffffff','#c8a84b')}">${p}<br>EX</th>`).join('');
+    gtFxSub += cFxSub; gtExSub += cExSub;
+    gtFxCb  += cFxCb;  gtExCb  += cExCb;
+    gtFx    += cFx;    gtEx    += cEx;
+  });
+
+  // Linha de total geral (Total FX, Total EX, Claro, Claro%)
+  if (p1Quadro.length) {
+    const gtClaro = gtFx - gtEx;
+    const gtCc = claroColor(gtClaro);
+    bodyHtml += `<tr style="border-top:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05)">
+      <td style="${tdL};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--tx2)" colspan="2">Total Geral — FX ${gtFx} / EX ${gtEx}</td>
+      <td style="${td};font-weight:700;color:#fff">${gtFxSub}</td>
+      <td style="${td};font-weight:700;color:#c8a84b">${gtExSub}</td>
+      <td style="${td};font-weight:700;color:#fff">${gtFxCb}</td>
+      <td style="${td};font-weight:700;color:#c8a84b">${gtExCb}</td>
+      <td style="padding:8px 12px;font-family:'DM Mono',monospace;text-align:right;white-space:nowrap">
+        <span style="font-size:14px;font-weight:800;color:${gtCc}">${claroLabel(gtClaro)}</span>
+        <span style="font-size:10px;color:${gtCc};margin-left:4px">${claroP(gtFx, gtEx)}</span>
+      </td>
+    </tr>`;
+  }
+
+  const emptyMsg = !p1Quadro.length
+    ? `<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--tx3);font-size:12px">Nenhum dado importado. Use o menu lateral para importar o CSV do Quadro de Claros.</td></tr>`
+    : '';
 
   return `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin-bottom:14px">
-    <div style="padding:14px 16px 8px">
-      <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase">Quadro Fixado do Efetivo — Claro por Unidade</div>
+    <div style="padding:14px 16px 10px;border-bottom:1px solid var(--bd)">
+      <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase">Quadro Fixado do Efetivo</div>
     </div>
     <div style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse">
         <thead><tr>
-          <th style="${thQL}">Município</th>
-          <th style="${thQL}">OPM</th>
-          <th style="${thQ}">Of (FX/EX)</th>
-          <th style="${thQ}">Sgt/Sub (FX/EX)</th>
-          <th style="${thQ}">Cb/Sd (FX/EX)</th>
-          <th style="${thQ}">Total FX</th>
-          <th style="${thQ}">Total EX</th>
-          <th style="${thQ}">Claro</th>
+          <th style="${thL}">Município</th>
+          <th style="${thL}">OPM</th>
+          <th style="${th};color:#fff">St/Sgt FX</th>
+          <th style="${th};color:#c8a84b">St/Sgt EX</th>
+          <th style="${th};color:#fff">Cb/Sd FX</th>
+          <th style="${th};color:#c8a84b">Cb/Sd EX</th>
+          <th style="${th}">Claro</th>
         </tr></thead>
-        <tbody>${urgRowsHtml}</tbody>
-      </table>
-    </div>
-    <div style="border-top:1px solid rgba(255,255,255,.06);margin-top:2px;padding:10px 16px 4px">
-      <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:6px">Detalhamento Completo por Posto</div>
-    </div>
-    <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse">
-        <thead><tr>
-          <th style="${thQL}">Município</th>
-          <th style="${thQL}">OPM</th>
-          ${fullHeaderPares}
-          <th style="${thQ}">Total FX</th>
-          <th style="${thQ.replace('#ffffff','#c8a84b')}">Total EX</th>
-          <th style="${thQ}">Claro</th>
-        </tr></thead>
-        <tbody>${fullRowsHtml}</tbody>
+        <tbody>${emptyMsg}${bodyHtml}</tbody>
       </table>
     </div>
   </div>`;
