@@ -3411,20 +3411,21 @@ function p1ShowKpiDetail(tipo) {
     };
     const cS = 'font-family:"DM Mono",monospace;font-size:12px;color:var(--tx3)';
     const cL = 'font-size:13px;font-weight:600;color:var(--tx)';
+    const pC = 'padding:8px 6px 8px 4px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
     const rowsFeitos = feitos.map(r => `<tr>
-      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cS}">${r.posto||'—'}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cS}">${r.re}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cS}">${r.opm||'—'}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cS};color:#4bc87a">${fmtEap(r.data_eap)}</td>
+      <td style="${pC};${cS}">${r.posto||'—'}</td>
+      <td style="${pC};${cS}">${r.re}</td>
+      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+      <td style="${pC};${cS}">${r.opm||'—'}</td>
+      <td style="${pC};${cS};color:#4bc87a">${fmtEap(r.data_eap)}</td>
     </tr>`).join('');
     const rowsPend = pend.map(r => `<tr>
-      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cS}">${r.posto||'—'}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cS}">${r.re}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cS}">${r.opm||'—'}</td>
+      <td style="${pC};${cS}">${r.posto||'—'}</td>
+      <td style="${pC};${cS}">${r.re}</td>
+      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+      <td style="${pC};${cS}">${r.opm||'—'}</td>
     </tr>`).join('');
-    const thE = 'padding:8px 12px;border-bottom:1px solid rgba(90,157,224,.25);background:rgba(90,157,224,.06);font-family:"DM Mono",monospace;font-size:11px;color:#5a9de0;letter-spacing:1px;text-transform:uppercase;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    const thE = 'padding:8px 6px 8px 4px;border-bottom:1px solid rgba(90,157,224,.25);background:rgba(90,157,224,.06);font-family:"DM Mono",monospace;font-size:11px;color:#5a9de0;letter-spacing:1px;text-transform:uppercase;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
     const tdEf = s => `padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${s||''}`;
     const inner = `
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;color:#4bc87a;text-transform:uppercase;padding:10px 12px 6px">Realizaram — ${feitos.length}</div>
