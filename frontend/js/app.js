@@ -3422,15 +3422,16 @@ function p1ShowKpiDetail(tipo) {
       <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
       <td style="${tdS}">${r.opm||'—'}</td>
     </tr>`).join('');
+    const thE = 'padding:8px 12px;border-bottom:1px solid rgba(90,157,224,.25);background:rgba(90,157,224,.06);font-family:"DM Mono",monospace;font-size:11px;color:#5a9de0;letter-spacing:1px;text-transform:uppercase;text-align:left';
     const inner = `
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#4bc87a;text-transform:uppercase;padding:10px 12px 4px">Realizaram — ${feitos.length}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;color:#4bc87a;text-transform:uppercase;padding:10px 12px 6px">Realizaram — ${feitos.length}</div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
-        <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thL}">Período</th></tr></thead>
+        <thead><tr><th style="${thE}">Posto</th><th style="${thE}">RE</th><th style="${thE}">Nome</th><th style="${thE}">OPM</th><th style="${thE}">Período EAP</th></tr></thead>
         <tbody>${rowsFeitos||`<tr><td colspan="5" style="padding:12px;color:var(--tx3);font-size:12px;text-align:center">Nenhum realizado ainda</td></tr>`}</tbody>
       </table>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#c8a84b;text-transform:uppercase;padding:4px 12px 4px;border-top:1px solid rgba(255,255,255,.06)">Pendentes — ${pend.length}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;color:#c8a84b;text-transform:uppercase;padding:4px 12px 6px;border-top:1px solid rgba(255,255,255,.06)">Pendentes — ${pend.length}</div>
       <table style="width:100%;border-collapse:collapse">
-        <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th></tr></thead>
+        <thead><tr><th style="${thE}">Posto</th><th style="${thE}">RE</th><th style="${thE}">Nome</th><th style="${thE}">OPM</th></tr></thead>
         <tbody>${rowsPend||`<tr><td colspan="4" style="padding:12px;color:var(--tx3);font-size:12px;text-align:center">Todos realizaram ✓</td></tr>`}</tbody>
       </table>`;
     html = wrapDetail(`EAP ${anoAtual}`, null, '#c8a84b', closeBtn, inner);
