@@ -3409,28 +3409,33 @@ function p1ShowKpiDetail(tipo) {
       const d3 = new Date(d); d3.setUTCDate(d3.getUTCDate() + 2);
       return `${p2(d.getUTCDate())} à ${p2(d3.getUTCDate())}/${p2(d3.getUTCMonth()+1)}/${d3.getUTCFullYear()}`;
     };
+    const cS = 'font-family:"DM Mono",monospace;font-size:12px;color:var(--tx3)';
+    const cL = 'font-size:13px;font-weight:600;color:var(--tx)';
     const rowsFeitos = feitos.map(r => `<tr>
-      <td style="${tdS}">${r.posto||'—'}</td>
-      <td style="${tdS}">${r.re}</td>
-      <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
-      <td style="${tdS}">${r.opm||'—'}</td>
-      <td style="${tdS};color:#4bc87a">${fmtEap(r.data_eap)}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cS}">${r.posto||'—'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cS}">${r.re}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cS}">${r.opm||'—'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cS};color:#4bc87a">${fmtEap(r.data_eap)}</td>
     </tr>`).join('');
     const rowsPend = pend.map(r => `<tr>
-      <td style="${tdS}">${r.posto||'—'}</td>
-      <td style="${tdS}">${r.re}</td>
-      <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
-      <td style="${tdS}">${r.opm||'—'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cS}">${r.posto||'—'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cS}">${r.re}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${cS}">${r.opm||'—'}</td>
     </tr>`).join('');
-    const thE = 'padding:8px 12px;border-bottom:1px solid rgba(90,157,224,.25);background:rgba(90,157,224,.06);font-family:"DM Mono",monospace;font-size:11px;color:#5a9de0;letter-spacing:1px;text-transform:uppercase;text-align:left';
+    const thE = 'padding:8px 12px;border-bottom:1px solid rgba(90,157,224,.25);background:rgba(90,157,224,.06);font-family:"DM Mono",monospace;font-size:11px;color:#5a9de0;letter-spacing:1px;text-transform:uppercase;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    const tdEf = s => `padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${s||''}`;
     const inner = `
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;color:#4bc87a;text-transform:uppercase;padding:10px 12px 6px">Realizaram — ${feitos.length}</div>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:16px">
+        <colgroup><col style="width:110px"><col style="width:80px"><col><col style="width:100px"><col style="width:130px"></colgroup>
         <thead><tr><th style="${thE}">Posto</th><th style="${thE}">RE</th><th style="${thE}">Nome</th><th style="${thE}">OPM</th><th style="${thE}">Período EAP</th></tr></thead>
         <tbody>${rowsFeitos||`<tr><td colspan="5" style="padding:12px;color:var(--tx3);font-size:12px;text-align:center">Nenhum realizado ainda</td></tr>`}</tbody>
       </table>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;color:#c8a84b;text-transform:uppercase;padding:4px 12px 6px;border-top:1px solid rgba(255,255,255,.06)">Pendentes — ${pend.length}</div>
-      <table style="width:100%;border-collapse:collapse">
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        <colgroup><col style="width:110px"><col style="width:80px"><col><col style="width:100px"></colgroup>
         <thead><tr><th style="${thE}">Posto</th><th style="${thE}">RE</th><th style="${thE}">Nome</th><th style="${thE}">OPM</th></tr></thead>
         <tbody>${rowsPend||`<tr><td colspan="4" style="padding:12px;color:var(--tx3);font-size:12px;text-align:center">Todos realizaram ✓</td></tr>`}</tbody>
       </table>`;
