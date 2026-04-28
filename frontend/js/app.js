@@ -3513,48 +3513,73 @@ function p1ShowKpiDetail(tipo) {
   }
 
   else if (tipo === 'quadro') {
-    const excl   = s => /cfp|uis\s*m[eé]d|uis\s*odonto/i.test(s||'');
-    const qRows  = p1Quadro.filter(q => !excl(q.opm));
-    const cColor = c => c < 0 ? '#c84b4b' : c === 0 ? '#c8a84b' : '#4bc87a';
-    const cLabel = c => c < 0 ? `+${Math.abs(c)} estourado` : c === 0 ? '0' : `−${c}`;
+    const excl = s => /cfp|uis\s*m[eé]d|uis\s*odonto/i.test(s||'');
+    const qRows = p1Quadro.filter(q => !excl(q.opm));
+
+    // Inferir CIA a partir do p1Data (cruza por OPM ou municipio)
+    const normStr = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[ªº°]/g,'').replace(/\s+/g,' ').trim();
+    const opmCiaMap = {};
+    p1Data.forEach(pm => {
+      const cia = (pm.cia||'').trim();
+      if (!cia) return;
+      const key = normStr(pm.opm||'');
+      if (key && !opmCiaMap[key]) opmCiaMap[key] = normCiaDisp(cia);
+    });
+    const getCia = q => {
+      if ((q.cia||'').trim()) return normCiaDisp(q.cia);
+      const nOpm = normStr(q.opm||'');
+      const nMun = normStr(q.municipio||'');
+      const found = Object.entries(opmCiaMap).find(([k]) =>
+        k === nOpm || k === nMun || k.includes(nMun) || nMun.includes(k) || k.includes(nOpm) || nOpm.includes(k)
+      );
+      return found?.[1] || (q.opm||'').trim() || '—';
+    };
+
+    // +X (estourado) = RED, -X (vagas) = GREEN, 0 = branco
+    const cColor = c => c < 0 ? '#c84b4b' : c === 0 ? 'var(--tx3)' : '#4bc87a';
+    const cVal   = c => c < 0 ? `+${Math.abs(c)}` : c === 0 ? '0' : `−${c}`;
     const cPct   = (c, fx) => fx > 0 ? ((c / fx) * 100).toFixed(1) + '%' : '—';
 
-    const thH = 'padding:7px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);text-align:right;white-space:nowrap';
+    const thH  = 'padding:8px 14px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);text-align:right;white-space:nowrap';
     const thHL = thH + ';text-align:left';
-    const tdc  = 'padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:12px;text-align:right;white-space:nowrap';
-    const tdcL = 'padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap';
+    const tdc  = 'padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:13px;text-align:right;white-space:nowrap';
+    const tdcL = 'padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;font-weight:600;color:var(--tx);white-space:nowrap';
 
+    // Agrupa por CIA inferida
     const byCia = {};
     qRows.forEach(q => {
-      const c = (q.cia||'').trim() || 'Sem CIA';
+      const c = getCia(q);
       if (!byCia[c]) byCia[c] = [];
       byCia[c].push(q);
     });
     const cias = Object.keys(byCia).sort();
 
-    // Ranking de cidades com maior claro (positivo = faltam PMs)
+    // Ranking: top 5 cidades com maior claro total (mais vagas em aberto)
     const ranking = [...qRows]
-      .map(q => ({ opm: q.opm||'—', mun: q.municipio||'—', cia: (q.cia||'').trim()||'Sem CIA', claro: (Number(q.fx_total)||0)-(Number(q.ex_total)||0), fx: Number(q.fx_total)||0 }))
+      .map(q => {
+        const fx = Number(q.fx_total)||0, ex = Number(q.ex_total)||0;
+        return { mun: q.municipio||q.opm||'—', cia: getCia(q), claro: fx-ex, fx };
+      })
       .filter(r => r.claro > 0)
       .sort((a,b) => b.claro - a.claro)
       .slice(0, 5);
 
     let rankHtml = '';
     if (ranking.length) {
-      rankHtml = `<div style="padding:12px 16px;border-bottom:1px solid var(--bd)">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#c8a84b;text-transform:uppercase;margin-bottom:8px">Cidades que mais precisam de PMs</div>
-        <div style="display:flex;flex-direction:column;gap:4px">
+      rankHtml = `<div style="padding:14px 18px;border-bottom:1px solid var(--bd)">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;color:#c8a84b;text-transform:uppercase;margin-bottom:10px">Cidades que mais precisam de PMs</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
           ${ranking.map((r,i) => {
             const pct = r.fx > 0 ? ((r.claro/r.fx)*100).toFixed(0) : 0;
-            const bar = `<div style="height:4px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:3px"><div style="height:100%;width:${pct}%;background:#c84b4b;border-radius:2px"></div></div>`;
-            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-              <div>
-                <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">${i+1}. </span>
-                <span style="font-size:12px;font-weight:600;color:var(--tx)">${r.mun}</span>
-                <span style="font-size:10px;color:var(--tx3);margin-left:4px">${r.cia}</span>
+            const bar = `<div style="height:5px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:4px"><div style="height:100%;width:${pct}%;background:#c84b4b;border-radius:3px"></div></div>`;
+            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+              <div style="flex:1;min-width:0">
+                <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3)">${i+1}. </span>
+                <span style="font-size:14px;font-weight:700;color:var(--tx)">${r.mun}</span>
+                <span style="font-size:12px;color:#5a9de0;margin-left:6px">${r.cia}</span>
                 ${bar}
               </div>
-              <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:#c84b4b;white-space:nowrap">−${r.claro} (${pct}%)</span>
+              <span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:800;color:#c84b4b;white-space:nowrap">−${r.claro} <span style="font-size:12px;font-weight:400">(${pct}%)</span></span>
             </div>`;
           }).join('')}
         </div>
@@ -3566,32 +3591,34 @@ function p1ShowKpiDetail(tipo) {
 
     cias.forEach(cia => {
       const rows = byCia[cia];
-      bodyQ += `<tr><td colspan="7" style="padding:8px 14px 4px;background:rgba(90,157,224,.07);border-top:1px solid rgba(90,157,224,.18);border-bottom:1px solid rgba(90,157,224,.1);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;font-weight:700">${cia}</td></tr>`;
-      let cFxSub=0,cExSub=0,cFxCb=0,cExCb=0,cFx=0,cEx=0;
+      bodyQ += `<tr><td colspan="8" style="padding:9px 16px 5px;background:rgba(90,157,224,.07);border-top:1px solid rgba(90,157,224,.2);border-bottom:1px solid rgba(90,157,224,.12);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;font-weight:700">${cia}</td></tr>`;
+      let cFxSub=0, cCSub=0, cFxCb=0, cCCb=0, cFx=0, cEx=0;
       rows.forEach(q => {
         const fxSub = Number(q.fx_subten_sgt)||0, exSub = Number(q.ex_subten_sgt)||0;
         const fxCb  = Number(q.fx_cb_sd)||0,      exCb  = Number(q.ex_cb_sd)||0;
         const fx    = Number(q.fx_total)||0,        ex    = Number(q.ex_total)||0;
         const cS = fxSub-exSub, cC = fxCb-exCb, cT = fx-ex;
-        cFxSub+=fxSub;cExSub+=exSub;cFxCb+=fxCb;cExCb+=exCb;cFx+=fx;cEx+=ex;
+        cFxSub+=fxSub; cCSub+=cS; cFxCb+=fxCb; cCCb+=cC; cFx+=fx; cEx+=ex;
         bodyQ += `<tr>
           <td style="${tdcL}">${q.municipio||'—'}</td>
-          <td style="${tdcL};font-weight:400;color:var(--tx3)">${q.opm||'—'}</td>
+          <td style="${tdcL};font-weight:400;font-size:12px;color:var(--tx3)">${q.opm||'—'}</td>
           <td style="${tdc};color:var(--tx2)">${fxSub}</td>
-          <td style="${tdc};font-weight:700;color:${cColor(cS)}">${cLabel(cS)}</td>
+          <td style="${tdc};font-size:14px;font-weight:800;color:${cColor(cS)}">${cVal(cS)}</td>
+          <td style="${tdc};font-size:11px;color:${cColor(cS)}">${cPct(cS,fxSub)}</td>
           <td style="${tdc};color:var(--tx2)">${fxCb}</td>
-          <td style="${tdc};font-weight:700;color:${cColor(cC)}">${cLabel(cC)}</td>
-          <td style="${tdc};font-weight:700;color:${cColor(cT)}">${cPct(cT,fx)}</td>
+          <td style="${tdc};font-size:14px;font-weight:800;color:${cColor(cC)}">${cVal(cC)}</td>
+          <td style="${tdc};font-size:11px;color:${cColor(cC)}">${cPct(cC,fxCb)}</td>
         </tr>`;
       });
       const cT = cFx-cEx;
-      bodyQ += `<tr style="background:rgba(255,255,255,.025)">
-        <td style="${tdcL};color:var(--tx3);font-size:11px" colspan="2">Subtotal ${cia} — FX ${cFx} / EX ${cEx}</td>
-        <td style="${tdc};color:#fff">${cFxSub}</td>
-        <td style="${tdc};font-weight:700;color:${cColor(cFx-cEx? cFxSub-cExSub:0)}">${cLabel(cFxSub-cExSub)}</td>
-        <td style="${tdc};color:#fff">${cFxCb}</td>
-        <td style="${tdc};font-weight:700;color:${cColor(cFxCb-cExCb)}">${cLabel(cFxCb-cExCb)}</td>
-        <td style="${tdc};font-weight:700;color:${cColor(cT)}">${cPct(cT,cFx)}</td>
+      bodyQ += `<tr style="background:rgba(255,255,255,.03);border-top:1px solid rgba(255,255,255,.07)">
+        <td style="${tdcL};color:var(--tx3);font-size:11px;letter-spacing:.5px" colspan="2">Subtotal ${cia} — FX ${cFx} / EX ${cEx}</td>
+        <td style="${tdc};color:#fff;font-weight:600">${cFxSub}</td>
+        <td style="${tdc};font-size:14px;font-weight:800;color:${cColor(cCSub)}">${cVal(cCSub)}</td>
+        <td style="${tdc};font-size:11px;color:${cColor(cCSub)}">${cPct(cCSub,cFxSub)}</td>
+        <td style="${tdc};color:#fff;font-weight:600">${cFxCb}</td>
+        <td style="${tdc};font-size:14px;font-weight:800;color:${cColor(cCCb)}">${cVal(cCCb)}</td>
+        <td style="${tdc};font-size:11px;color:${cColor(cCCb)}">${cPct(cCCb,cFxCb)}</td>
       </tr>`;
       gtFx+=cFx; gtEx+=cEx;
     });
@@ -3599,30 +3626,31 @@ function p1ShowKpiDetail(tipo) {
     const gtClaro = gtFx-gtEx;
     const gtCc = cColor(gtClaro);
     if (qRows.length) {
-      bodyQ += `<tr style="border-top:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05)">
-        <td style="${tdcL};text-transform:uppercase;font-size:10px;letter-spacing:1px;color:var(--tx2)" colspan="2">Total Geral — FX ${gtFx} / EX ${gtEx}</td>
-        <td colspan="4" style="${tdc}"></td>
-        <td style="padding:8px 12px;font-family:'DM Mono',monospace;text-align:right;white-space:nowrap">
-          <span style="font-size:15px;font-weight:800;color:${gtCc}">${cLabel(gtClaro)}</span>
-          <span style="font-size:11px;color:${gtCc};margin-left:5px">${cPct(gtClaro,gtFx)}</span>
+      bodyQ += `<tr style="border-top:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05)">
+        <td style="${tdcL};text-transform:uppercase;font-size:11px;letter-spacing:1px;color:var(--tx2)" colspan="2">Total Geral — FX ${gtFx} / EX ${gtEx}</td>
+        <td colspan="5" style="${tdc}"></td>
+        <td style="padding:10px 14px;font-family:'DM Mono',monospace;text-align:right;white-space:nowrap">
+          <span style="font-size:16px;font-weight:900;color:${gtCc}">${cVal(gtClaro)}</span>
+          <span style="font-size:12px;color:${gtCc};margin-left:6px">${cPct(gtClaro,gtFx)}</span>
         </td>
       </tr>`;
     }
 
-    const tableHeader = `<table style="width:100%;border-collapse:collapse">
+    const tableHdr = `<table style="width:100%;border-collapse:collapse">
       <thead><tr>
         <th style="${thHL}">Município</th>
         <th style="${thHL}">OPM</th>
         <th style="${thH}">St/Sgt FX</th>
         <th style="${thH}">Claro</th>
+        <th style="${thH}">%</th>
         <th style="${thH}">Cb/Sd FX</th>
         <th style="${thH}">Claro</th>
-        <th style="${thH}">Claro %</th>
+        <th style="${thH}">%</th>
       </tr></thead>
-      <tbody>${bodyQ || '<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px">Nenhum dado. Importe o CSV pelo menu lateral.</td></tr>'}</tbody>
+      <tbody>${bodyQ || '<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--tx3);font-size:13px">Nenhum dado. Importe o CSV pelo menu lateral.</td></tr>'}</tbody>
     </table>`;
 
-    html = wrapDetail('Quadro Fixado do Efetivo', null, '#4bc87a', closeBtn, rankHtml + tableHeader);
+    html = wrapDetail('Quadro Fixado do Efetivo', null, '#4bc87a', closeBtn, rankHtml + tableHdr);
   }
 
   det.innerHTML = html;
