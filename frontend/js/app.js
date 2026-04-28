@@ -3706,15 +3706,18 @@ async function openProntuario(re) {
   const extratoHtml = extrato.length
     ? extrato.map(a => {
         const ativo = a.inicio <= hoje && a.termino >= hoje;
+        const tdE = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:11px;color:var(--tx3)';
         return `<tr>
-          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;color:${ativo?'var(--tx)':'var(--tx3)'}">${a.tipo_afastamento || '—'}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${fmtD(a.inicio)}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${fmtD(a.termino)}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${a.n_dias ? a.n_dias + 'd' : '—'}</td>
+          <td style="${tdE};font-size:12px;color:${ativo?'var(--tx)':'var(--tx3)'};font-family:inherit">${a.tipo_afastamento || '—'}</td>
+          <td style="${tdE}">${fmtD(a.inicio)}</td>
+          <td style="${tdE}">${fmtD(a.termino)}</td>
+          <td style="${tdE}">${a.n_dias ? a.n_dias + 'd' : '—'}</td>
+          <td style="${tdE};color:var(--tx2)">${a.nbi || '—'}</td>
+          <td style="${tdE};color:var(--tx2)">${a.bol_g || '—'}</td>
           <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04)">${ativo ? '<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:#c84b4b22;color:#c84b4b;font-family:DM Mono,monospace">ATIVO</span>' : ''}</td>
         </tr>`;
       }).join('')
-    : '<tr><td colspan="5" style="padding:14px 10px;color:var(--tx3);font-size:12px;text-align:center">Nenhum afastamento registrado.</td></tr>';
+    : '<tr><td colspan="7" style="padding:14px 10px;color:var(--tx3);font-size:12px;text-align:center">Nenhum afastamento registrado.</td></tr>';
   document.getElementById('pronto-extrato').innerHTML = extratoHtml;
 }
 
