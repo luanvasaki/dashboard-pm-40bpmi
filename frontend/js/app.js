@@ -3810,9 +3810,6 @@ async function prontoRemoveFoto() {
 // ── Quadro Fixado do Efetivo ─────────────────────────────────────────────────
 
 function renderQuadroFixado() {
-  const _role = JSON.parse(localStorage.getItem('auth_user') || '{}').role || '';
-  const podeUpload = ['p1','admin','ti'].includes(_role);
-
   // Normalização OPM (remove acentos, ordinais e espaços para comparação)
   const normQ = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[ªº°]/g,'').replace(/\s+/g,'').trim();
 
@@ -3882,14 +3879,9 @@ function renderQuadroFixado() {
     'TC/CEL','MAJ','CAP','TEN','OF MED','ST/SGT','CB/SD'
   ].map(p => `<th style="${thQ}">FX</th><th style="${thQ.replace('#ffffff','#c8a84b')}">${p}<br>EX</th>`).join('');
 
-  const uploadBtn = podeUpload
-    ? `<button onclick="openQuadroUpload()" style="font-size:10px;padding:3px 10px;background:rgba(90,157,224,.1);border:1px solid rgba(90,157,224,.25);color:#5a9de0;border-radius:4px;cursor:pointer">↑ Atualizar CSV</button>`
-    : '';
-
   return `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin-bottom:14px">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px">
+    <div style="padding:14px 16px 8px">
       <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase">Quadro Fixado do Efetivo — Claro por Unidade</div>
-      ${uploadBtn}
     </div>
     <div style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse">
@@ -4791,7 +4783,8 @@ function updateSidebarImports(section) {
     if (!isP1) { el.innerHTML = ''; return; }
     el.innerHTML = `
       <button onclick="openP1Upload()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Efetivo</button>
-      <button onclick="openAfUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Afastamentos</button>`;
+      <button onclick="openAfUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Afastamentos</button>
+      <button onclick="openQuadroUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(75,200,122,.12);border:1px solid rgba(75,200,122,.3);color:#4bc87a;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600">↑ Importar Quadro de Claros</button>`;
   } else if (section === 'p3') {
     if (!isP3) { el.innerHTML = ''; return; }
     el.innerHTML = `
