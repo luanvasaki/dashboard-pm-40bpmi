@@ -3067,7 +3067,7 @@ function renderP1() {
   const eapSection = '';
 
   // ── Quadro Fixado do Efetivo
-  const quadroSection = p1Quadro.length > 0 ? renderQuadroFixado() : '';
+  const quadroSection = renderQuadroFixado();
 
   bodyEl.innerHTML = claroSection + quadroSection + feriasSection + afastSection + alertSection + eapSection + `
     <div style="margin-bottom:6px">
