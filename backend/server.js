@@ -902,6 +902,72 @@ app.post('/api/p1/vagas', requireAuth, requireRole('admin', 'p1'), async (req, r
   }
 });
 
+// ── QUADRO FIXADO DO EFETIVO ─────────────────────────────────────────────────
+const QUADRO_TABLE = 'p1_quadro_fixado';
+
+app.get('/api/p1/quadro', requireAuth, async (req, res) => {
+  try {
+    if (!supabase) return res.json([]);
+    const { data, error } = await supabase.from(QUADRO_TABLE).select('*').order('opm').order('municipio');
+    if (error) throw new Error(error.message);
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/p1/quadro/upload', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+    const records = req.body?.records;
+    if (!Array.isArray(records) || !records.length)
+      return res.status(400).json({ error: 'Nenhum registro recebido.' });
+
+    const nk = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[\s./]+/g,'');
+    const gi = (r, ...keys) => {
+      const idx = {};
+      Object.entries(r).forEach(([k, v]) => { idx[nk(k)] = v; });
+      for (const k of keys) { const v = idx[nk(k)]; if (v !== undefined) return parseInt(v) || 0; }
+      return 0;
+    };
+    const gs = (r, ...keys) => {
+      const idx = {};
+      Object.entries(r).forEach(([k, v]) => { idx[nk(k)] = v; });
+      for (const k of keys) { const v = idx[nk(k)]; if (v !== undefined) return (v||'').trim(); }
+      return '';
+    };
+
+    const rows = records.map(r => ({
+      municipio:     gs(r, 'Municipio', 'Município'),
+      opm:           gs(r, 'OPM', 'opm'),
+      fx_ten_cel:    gi(r, 'Fixado Ten Cel', 'Fx Ten Cel'),
+      ex_ten_cel:    gi(r, 'Existente Ten Cel', 'Ex Ten Cel'),
+      fx_maj:        gi(r, 'Fixado Maj', 'Fx Maj'),
+      ex_maj:        gi(r, 'Existente Maj', 'Ex Maj'),
+      fx_cap:        gi(r, 'Fixado Cap', 'Fx Cap'),
+      ex_cap:        gi(r, 'Existente Cap', 'Ex Cap'),
+      fx_ten:        gi(r, 'Fixado Ten', 'Fx Ten'),
+      ex_ten:        gi(r, 'Existente Ten', 'Ex Ten'),
+      fx_of_med:     gi(r, 'Fixado Of Med/Dent', 'Fixado Of Med', 'Fx Of Med'),
+      ex_of_med:     gi(r, 'Existente Of Med/Dent', 'Existente Of Med', 'Ex Of Med'),
+      fx_subten_sgt: gi(r, 'Fixado Subten / Sgt', 'Fixado Subten/Sgt', 'Fx Subten Sgt'),
+      ex_subten_sgt: gi(r, 'Existente Subten / Sgt', 'Existente Subten/Sgt', 'Ex Subten Sgt'),
+      fx_cb_sd:      gi(r, 'Fixado Cb/Sd', 'Fixado Cb Sd', 'Fx Cb Sd'),
+      ex_cb_sd:      gi(r, 'Existente Cb/Sd', 'Existente Cb Sd', 'Ex Cb Sd'),
+      fx_total:      gi(r, 'FX', 'fx', 'Total FX', 'Total Fixado'),
+      ex_total:      gi(r, 'EX', 'ex', 'Total EX', 'Total Existente'),
+    })).filter(r => r.opm);
+
+    if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique a coluna OPM.' });
+
+    await supabase.from(QUADRO_TABLE).delete().neq('id', 0);
+    const BATCH = 100;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const { error } = await supabase.from(QUADRO_TABLE).insert(rows.slice(i, i + BATCH));
+      if (error) throw new Error(error.message);
+    }
+    res.json({ ok: true, inserted: rows.length });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ---------------------------------------------------------------------------
 // PRODUTIVIDADE P3
 // ---------------------------------------------------------------------------

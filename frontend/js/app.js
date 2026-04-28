@@ -2605,6 +2605,7 @@ let p1Fotos      = {};   // RE → foto_base64 | null
 let p1ByUnit     = {};   // OPM → PM[] (populado em renderP1)
 let p1AfastHoje  = {};   // RE → afastamentos ativos hoje (populado em renderP1)
 let p1Vagas      = [];   // efetivo fixado por OPM
+let p1Quadro     = [];   // quadro fixado do efetivo (por posto)
 let p1FiltroOpm  = '';   // filtro ativo por OPM
 let prontoCurrentRe  = '';   // RE do prontuário aberto
 let p1ClosingPronto  = false;// flag: acabou de fechar prontuário — evita fechar painel CIA
@@ -2669,15 +2670,18 @@ async function loadP1() {
     body.innerHTML = '';
   }
   try {
-    const [r1, r2, r3] = await Promise.all([
+    const [r1, r2, r3, r4] = await Promise.all([
       authFetch(`${API}/efetivo`),
       authFetch(`${API}/afastamentos`),
-      authFetch(`${API}/p1/vagas`)
+      authFetch(`${API}/p1/vagas`),
+      authFetch(`${API}/p1/quadro`)
     ]);
     p1Data   = await r1.json();
     p1Afasts = await r2.json();
     const vagasRaw = await r3.json();
     p1Vagas  = Array.isArray(vagasRaw) ? vagasRaw : [];
+    const quadroRaw = await r4.json();
+    p1Quadro = Array.isArray(quadroRaw) ? quadroRaw : [];
     if (renderingP1) renderP1();
     renderHome();
   } catch (err) {
@@ -3062,8 +3066,10 @@ function renderP1() {
   const feriasSection = '';
   const eapSection = '';
 
+  // ── Quadro Fixado do Efetivo
+  const quadroSection = p1Quadro.length > 0 ? renderQuadroFixado() : '';
 
-  bodyEl.innerHTML = claroSection + feriasSection + afastSection + alertSection + eapSection + `
+  bodyEl.innerHTML = claroSection + quadroSection + feriasSection + afastSection + alertSection + eapSection + `
     <div style="margin-bottom:6px">
       <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia <span style="font-weight:400">· clique na sub-unidade para ver os PMs</span></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
@@ -3801,6 +3807,285 @@ async function prontoRemoveFoto() {
   } catch (_) { msg.style.color = '#e06060'; msg.textContent = 'Erro ao remover.'; }
 }
 
+// ── Quadro Fixado do Efetivo ─────────────────────────────────────────────────
+
+function renderQuadroFixado() {
+  const _role = JSON.parse(localStorage.getItem('auth_user') || '{}').role || '';
+  const podeUpload = ['p1','admin','ti'].includes(_role);
+
+  // Normalização OPM (remove acentos, ordinais e espaços para comparação)
+  const normQ = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[ªº°]/g,'').replace(/\s+/g,'').trim();
+
+  // Calcula claro (fx_total - ex_total) e ordena do maior para menor
+  const urgRows = p1Quadro.map(q => {
+    const fx = Number(q.fx_total) || 0;
+    const ex = Number(q.ex_total) || 0;
+    return { ...q, _claro: fx - ex };
+  }).sort((a, b) => b._claro - a._claro);
+
+  const claroColor = c => c > 5 ? '#c84b4b' : c > 0 ? '#c8a84b' : '#4bc87a';
+  const claroLabel = c => c > 0 ? `−${c}` : c === 0 ? '0' : `+${Math.abs(c)}`;
+
+  const thQ = 'padding:6px 10px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:10px;color:#ffffff;letter-spacing:1px;text-transform:uppercase;text-align:right;white-space:nowrap';
+  const thQL = thQ.replace('text-align:right','text-align:left');
+  const tdQ = 'padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.03);font-family:"DM Mono",monospace;font-size:11px;color:var(--tx3);text-align:right;white-space:nowrap';
+  const tdQL = 'padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap';
+
+  const urgRowsHtml = urgRows.map(q => {
+    const claro = q._claro;
+    const cc = claroColor(claro);
+    const fxOf = Number(q.fx_ten_cel||0)+Number(q.fx_maj||0)+Number(q.fx_cap||0)+Number(q.fx_ten||0)+Number(q.fx_of_med||0);
+    const exOf = Number(q.ex_ten_cel||0)+Number(q.ex_maj||0)+Number(q.ex_cap||0)+Number(q.ex_ten||0)+Number(q.ex_of_med||0);
+    const fxSub = Number(q.fx_subten_sgt||0);
+    const exSub = Number(q.ex_subten_sgt||0);
+    const fxCb  = Number(q.fx_cb_sd||0);
+    const exCb  = Number(q.ex_cb_sd||0);
+    return `<tr>
+      <td style="${tdQL}">${q.municipio||'—'}</td>
+      <td style="${tdQL}">${q.opm||'—'}</td>
+      <td style="${tdQ}">${fxOf}/<span style="color:#c8a84b">${exOf}</span></td>
+      <td style="${tdQ}">${fxSub}/<span style="color:#c8a84b">${exSub}</span></td>
+      <td style="${tdQ}">${fxCb}/<span style="color:#c8a84b">${exCb}</span></td>
+      <td style="${tdQ}">${Number(q.fx_total)||0}</td>
+      <td style="${tdQ}">${Number(q.ex_total)||0}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.03);font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${cc};text-align:right">${claroLabel(claro)}</td>
+    </tr>`;
+  }).join('');
+
+  // Tabela completa com todos os postos
+  const fullRowsHtml = p1Quadro.map(q => {
+    const pairs = [
+      ['TC/CEL', q.fx_ten_cel, q.ex_ten_cel],
+      ['MAJ',    q.fx_maj,     q.ex_maj],
+      ['CAP',    q.fx_cap,     q.ex_cap],
+      ['TEN',    q.fx_ten,     q.ex_ten],
+      ['OF MED', q.fx_of_med,  q.ex_of_med],
+      ['ST/SGT', q.fx_subten_sgt, q.ex_subten_sgt],
+      ['CB/SD',  q.fx_cb_sd,   q.ex_cb_sd],
+    ];
+    const postosCells = pairs.map(([, fx, ex]) =>
+      `<td style="${tdQ}">${Number(fx)||0}</td><td style="${tdQ.replace('color:var(--tx3)','color:#c8a84b')}">${Number(ex)||0}</td>`
+    ).join('');
+    const claro = (Number(q.fx_total)||0) - (Number(q.ex_total)||0);
+    const cc = claroColor(claro);
+    return `<tr>
+      <td style="${tdQL}">${q.municipio||'—'}</td>
+      <td style="${tdQL}">${q.opm||'—'}</td>
+      ${postosCells}
+      <td style="${tdQ}">${Number(q.fx_total)||0}</td>
+      <td style="${tdQ.replace('color:var(--tx3)','color:#c8a84b')}">${Number(q.ex_total)||0}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.03);font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${cc};text-align:right">${claroLabel(claro)}</td>
+    </tr>`;
+  }).join('');
+
+  const fullHeaderPares = [
+    'TC/CEL','MAJ','CAP','TEN','OF MED','ST/SGT','CB/SD'
+  ].map(p => `<th style="${thQ}">FX</th><th style="${thQ.replace('#ffffff','#c8a84b')}">${p}<br>EX</th>`).join('');
+
+  const uploadBtn = podeUpload
+    ? `<button onclick="openQuadroUpload()" style="font-size:10px;padding:3px 10px;background:rgba(90,157,224,.1);border:1px solid rgba(90,157,224,.25);color:#5a9de0;border-radius:4px;cursor:pointer">↑ Atualizar CSV</button>`
+    : '';
+
+  return `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px">
+      <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase">Quadro Fixado do Efetivo — Claro por Unidade</div>
+      ${uploadBtn}
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr>
+          <th style="${thQL}">Município</th>
+          <th style="${thQL}">OPM</th>
+          <th style="${thQ}">Of (FX/EX)</th>
+          <th style="${thQ}">Sgt/Sub (FX/EX)</th>
+          <th style="${thQ}">Cb/Sd (FX/EX)</th>
+          <th style="${thQ}">Total FX</th>
+          <th style="${thQ}">Total EX</th>
+          <th style="${thQ}">Claro</th>
+        </tr></thead>
+        <tbody>${urgRowsHtml}</tbody>
+      </table>
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,.06);margin-top:2px;padding:10px 16px 4px">
+      <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:6px">Detalhamento Completo por Posto</div>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr>
+          <th style="${thQL}">Município</th>
+          <th style="${thQL}">OPM</th>
+          ${fullHeaderPares}
+          <th style="${thQ}">Total FX</th>
+          <th style="${thQ.replace('#ffffff','#c8a84b')}">Total EX</th>
+          <th style="${thQ}">Claro</th>
+        </tr></thead>
+        <tbody>${fullRowsHtml}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+// Retorna HTML compacto do quadro para uma CIA/sub-unidade específica
+function quadroForUnit(opmLabel) {
+  if (!p1Quadro.length) return '';
+  const normQ = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[ªº°]/g,'').replace(/\s+/g,'').trim();
+  const nLabel = normQ(opmLabel);
+  // Tenta match exato; se não achar, tenta por inclusão (label pode ter "Sede · OPM")
+  const q = p1Quadro.find(r => normQ(r.opm) === nLabel) ||
+            p1Quadro.find(r => nLabel.includes(normQ(r.opm)) || normQ(r.opm).includes(nLabel));
+  if (!q) return '';
+
+  // PMs presentes nesta unidade (match exato pelo OPM do quadro ou pelo label)
+  const nOpm = normQ(q.opm);
+  const unitPms = Object.entries(p1ByUnit)
+    .filter(([opm]) => normQ(opm) === nOpm || normQ(opm) === nLabel)
+    .flatMap(([, arr]) => arr);
+
+  const present = cat => unitPms.filter(r => p1Cat(r.posto) === cat && !p1AfastHoje[r.re]).length;
+
+  const grupos = [
+    { label: 'Oficiais',   fx: (Number(q.fx_ten_cel)||0)+(Number(q.fx_maj)||0)+(Number(q.fx_cap)||0)+(Number(q.fx_ten)||0)+(Number(q.fx_of_med)||0), ex: (Number(q.ex_ten_cel)||0)+(Number(q.ex_maj)||0)+(Number(q.ex_cap)||0)+(Number(q.ex_ten)||0)+(Number(q.ex_of_med)||0), cat: 'of' },
+    { label: 'St / Sgt',   fx: Number(q.fx_subten_sgt)||0, ex: Number(q.ex_subten_sgt)||0, cat: 'sub' },
+    { label: 'Cb / Sd',    fx: Number(q.fx_cb_sd)||0,      ex: Number(q.ex_cb_sd)||0,      cat: 'cbsd' },
+  ];
+  const totalFx = Number(q.fx_total)||0;
+  const totalEx = Number(q.ex_total)||0;
+  const totalClaro = totalFx - totalEx;
+  const claroColor = c => c > 5 ? '#c84b4b' : c > 0 ? '#c8a84b' : '#4bc87a';
+
+  const rows = grupos.map(g => {
+    const pres = present(g.cat);
+    return `<tr>
+      <td style="padding:5px 8px;font-size:12px;color:var(--tx)">${g.label}</td>
+      <td style="padding:5px 8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);text-align:right">${g.fx}</td>
+      <td style="padding:5px 8px;font-family:'DM Mono',monospace;font-size:11px;color:#c8a84b;text-align:right">${g.ex}</td>
+      <td style="padding:5px 8px;font-family:'DM Mono',monospace;font-size:11px;color:#4bc87a;text-align:right">${pres}</td>
+    </tr>`;
+  }).join('');
+
+  return `<div style="margin-top:14px;border-top:1px solid rgba(255,255,255,.07);padding-top:12px">
+    <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;margin-bottom:8px">Quadro Fixado</div>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th style="padding:4px 8px;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-align:left;letter-spacing:1px">GRADUAÇÃO</th>
+        <th style="padding:4px 8px;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-align:right;letter-spacing:1px">FIXADO</th>
+        <th style="padding:4px 8px;font-family:'DM Mono',monospace;font-size:9px;color:#c8a84b;text-align:right;letter-spacing:1px">EX QUAD</th>
+        <th style="padding:4px 8px;font-family:'DM Mono',monospace;font-size:9px;color:#4bc87a;text-align:right;letter-spacing:1px">PRESENTE</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;padding:6px 8px;background:rgba(255,255,255,.03);border-radius:4px">
+      <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">TOTAL FX <b style="color:var(--tx)">${totalFx}</b> · EX <b style="color:#c8a84b">${totalEx}</b></span>
+      <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:${claroColor(totalClaro)}">CLARO ${totalClaro > 0 ? '−'+totalClaro : totalClaro === 0 ? '0' : '+'+Math.abs(totalClaro)}</span>
+    </div>
+  </div>`;
+}
+
+// ── Upload Quadro Fixado ──────────────────────────────────────────────────────
+
+let p1QuadroParsed = [];
+
+function openQuadroUpload() {
+  const mo = document.getElementById('quadro-upl-mo');
+  if (!mo) return;
+  mo.style.display = 'flex';
+  document.getElementById('quadro-upl-file').value = '';
+  document.getElementById('quadro-upl-preview').textContent = '';
+  document.getElementById('quadro-upl-msg').textContent = '';
+  const btn = document.getElementById('quadro-upl-btn');
+  btn.disabled = true; btn.style.opacity = '.5';
+  p1QuadroParsed = [];
+}
+
+function closeQuadroUpload() {
+  const mo = document.getElementById('quadro-upl-mo');
+  if (mo) mo.style.display = 'none';
+}
+
+function quadroUplClickOut(e) {
+  if (e.target === document.getElementById('quadro-upl-mo')) closeQuadroUpload();
+}
+
+function quadroFileChange() {
+  const file = document.getElementById('quadro-upl-file').files[0];
+  const prev = document.getElementById('quadro-upl-preview');
+  const btn  = document.getElementById('quadro-upl-btn');
+  p1QuadroParsed = [];
+  btn.disabled = true; btn.style.opacity = '.5';
+  prev.innerHTML = '';
+  document.getElementById('quadro-upl-msg').innerHTML = '';
+  if (!file) return;
+
+  // Mapeamento flexível de colunas do CSV
+  const HEADER_MAP = {
+    'municipio': 'municipio', 'município': 'municipio',
+    'opm': 'opm',
+    'fx ten cel': 'fx_ten_cel', 'fx_ten_cel': 'fx_ten_cel',
+    'ex ten cel': 'ex_ten_cel', 'ex_ten_cel': 'ex_ten_cel',
+    'fx maj': 'fx_maj', 'fx_maj': 'fx_maj',
+    'ex maj': 'ex_maj', 'ex_maj': 'ex_maj',
+    'fx cap': 'fx_cap', 'fx_cap': 'fx_cap',
+    'ex cap': 'ex_cap', 'ex_cap': 'ex_cap',
+    'fx ten': 'fx_ten', 'fx_ten': 'fx_ten',
+    'ex ten': 'ex_ten', 'ex_ten': 'ex_ten',
+    'fx of med': 'fx_of_med', 'fx_of_med': 'fx_of_med',
+    'ex of med': 'ex_of_med', 'ex_of_med': 'ex_of_med',
+    'fx subten sgt': 'fx_subten_sgt', 'fx_subten_sgt': 'fx_subten_sgt', 'fx st sgt': 'fx_subten_sgt',
+    'ex subten sgt': 'ex_subten_sgt', 'ex_subten_sgt': 'ex_subten_sgt', 'ex st sgt': 'ex_subten_sgt',
+    'fx cb sd': 'fx_cb_sd', 'fx_cb_sd': 'fx_cb_sd',
+    'ex cb sd': 'ex_cb_sd', 'ex_cb_sd': 'ex_cb_sd',
+    'fx total': 'fx_total', 'fx_total': 'fx_total',
+    'ex total': 'ex_total', 'ex_total': 'ex_total',
+  };
+
+  Papa.parse(file, {
+    header: true, skipEmptyLines: true,
+    transformHeader: h => {
+      const k = h.trim().toLowerCase().replace(/[ºª°]/g,'');
+      return HEADER_MAP[k] || h.trim();
+    },
+    complete: r => {
+      if (!r.data.length) { prev.innerHTML = '<span style="color:#e06060">Arquivo vazio.</span>'; return; }
+      const required = ['municipio', 'opm'];
+      const missing  = required.filter(c => !Object.keys(r.data[0]).includes(c));
+      if (missing.length) {
+        prev.innerHTML = `<span style="color:#e06060">Colunas ausentes: <b>${missing.join(', ')}</b>.</span>`;
+        return;
+      }
+      p1QuadroParsed = r.data.map(row => {
+        const n = {};
+        Object.entries(row).forEach(([k, v]) => { n[k] = (v||'').trim(); });
+        return n;
+      }).filter(row => row.opm);
+      prev.innerHTML = `<span style="color:#4bc87a">✓ <b>${p1QuadroParsed.length}</b> unidades lidas.</span>`;
+      btn.disabled = false; btn.style.opacity = '1';
+    },
+    error: err => { prev.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`; }
+  });
+}
+
+async function quadroConfirmUpload() {
+  const btn = document.getElementById('quadro-upl-btn');
+  const msg = document.getElementById('quadro-upl-msg');
+  if (!p1QuadroParsed.length) return;
+  btn.disabled = true; btn.style.opacity = '.5';
+  msg.innerHTML = '<span style="color:var(--tx3)">Enviando...</span>';
+  try {
+    const res = await authFetch(`${API}/p1/quadro/upload`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ records: p1QuadroParsed })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
+    msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.inserted || p1QuadroParsed.length} registros importados.</span>`;
+    await loadP1();
+    setTimeout(closeQuadroUpload, 1500);
+  } catch (err) {
+    msg.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`;
+    btn.disabled = false; btn.style.opacity = '1';
+  }
+}
+
 // ── Vagas (Efetivo Fixado) ───────────────────────────────────────────────────
 
 function openVagasModal() {
@@ -4127,12 +4412,15 @@ function p1ShowPmList(pms, label) {
     </div>`;
   }).join('');
 
+  const quadroHtml = quadroForUnit(label);
+
   det.innerHTML = `<div id="p1-unit-panel" style="margin-top:14px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase">${label} — ${pms.length} militares</div>
       <button onclick="p1CloseUnit()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--tx3);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:11px">✕ Fechar</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px">${cards}</div>
+    ${quadroHtml}
   </div>`;
 
   det.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
