@@ -2725,7 +2725,12 @@ function renderP1() {
   const pmEapPendente  = dataF.filter(r => {
     if (!r.data_eap) return true;
     const d = new Date(r.data_eap);
-    return isNaN(d) || d.getFullYear() !== anoAtual;
+    return isNaN(d) || d.getUTCFullYear() !== anoAtual;
+  });
+  const pmEapFeito = dataF.filter(r => {
+    if (!r.data_eap) return false;
+    const d = new Date(r.data_eap);
+    return !isNaN(d) && d.getUTCFullYear() === anoAtual;
   });
 
   // ── Controle de Férias / LP
@@ -2780,7 +2785,7 @@ function renderP1() {
     kpiCard('Aptos', pmAptos.length, total > 0 ? `${Math.round(pmAptos.length/total*100)}% do efetivo` : '—', '#4bc87a', 'aptos') +
     kpiCard('Afastamentos', pmAfastados.length, tiposSub || '—', pmAfastados.length > 0 ? '#c84b4b' : 'var(--tx3)', 'afastados') +
     kpiCard('Em Restrição', pmComRestricao.length, vencendoRestricao.length > 0 ? `⚠ ${vencendoRestricao.length} vencem em 30 dias` : '—', pmComRestricao.length > 0 ? '#c8a84b' : 'var(--tx3)', 'restricao') +
-    kpiCard('EAP Pendente', pmEapPendente.length, `${anoAtual}`, pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a', 'eap') +
+    kpiCard(`EAP ${anoAtual}`, pmEapPendente.length, `<span style="color:#4bc87a">${pmEapFeito.length} realizaram</span> · <span style="color:#c8a84b">${pmEapPendente.length} pendentes</span>`, pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a', 'eap') +
     kpiCard('Controle de Férias', ferEmGozo.length, `${ferEmGozo.length} em gozo · ${ferEm15Dias.length} em 15d`, ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)', 'ferias');
 
   const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:13px;color:#ffffff;letter-spacing:1px;text-transform:uppercase;text-align:right';
@@ -3394,17 +3399,41 @@ function p1ShowKpiDetail(tipo) {
   }
 
   else if (tipo === 'eap') {
-    const list = dataF.filter(r => { if (!r.data_eap) return true; const d = new Date(r.data_eap); return isNaN(d) || d.getFullYear() !== anoAtual; });
-    const rows = list.map(r => `<tr>
+    const isEapOk = r => { const d = r.data_eap ? new Date(r.data_eap) : null; return d && !isNaN(d) && d.getUTCFullYear() === anoAtual; };
+    const feitos   = dataF.filter(r => isEapOk(r)).sort((a,b) => (a.data_eap||'').localeCompare(b.data_eap||''));
+    const pend     = dataF.filter(r => !isEapOk(r));
+    const p2 = n => String(n).padStart(2,'0');
+    const fmtEap = s => {
+      if (!s) return '—';
+      const d = new Date(s); if (isNaN(d)) return '—';
+      const d3 = new Date(d); d3.setUTCDate(d3.getUTCDate() + 2);
+      return `${p2(d.getUTCDate())} à ${p2(d3.getUTCDate())}/${p2(d3.getUTCMonth()+1)}/${d3.getUTCFullYear()}`;
+    };
+    const rowsFeitos = feitos.map(r => `<tr>
+      <td style="${tdS}">${r.posto||'—'}</td>
       <td style="${tdS}">${r.re}</td>
       <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+      <td style="${tdS}">${r.opm||'—'}</td>
+      <td style="${tdS};color:#4bc87a">${fmtEap(r.data_eap)}</td>
+    </tr>`).join('');
+    const rowsPend = pend.map(r => `<tr>
       <td style="${tdS}">${r.posto||'—'}</td>
+      <td style="${tdS}">${r.re}</td>
+      <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
       <td style="${tdS}">${r.opm||'—'}</td>
     </tr>`).join('');
-    html = wrapDetail(`EAP Pendente ${anoAtual}`, list.length, '#c8a84b', closeBtn,
-      `<table style="width:100%;border-collapse:collapse">
-        <thead><tr><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th></tr></thead>
-        <tbody>${rows}</tbody></table>`);
+    const inner = `
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#4bc87a;text-transform:uppercase;padding:10px 12px 4px">Realizaram — ${feitos.length}</div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+        <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thL}">Período</th></tr></thead>
+        <tbody>${rowsFeitos||`<tr><td colspan="5" style="padding:12px;color:var(--tx3);font-size:12px;text-align:center">Nenhum realizado ainda</td></tr>`}</tbody>
+      </table>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#c8a84b;text-transform:uppercase;padding:4px 12px 4px;border-top:1px solid rgba(255,255,255,.06)">Pendentes — ${pend.length}</div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th></tr></thead>
+        <tbody>${rowsPend||`<tr><td colspan="4" style="padding:12px;color:var(--tx3);font-size:12px;text-align:center">Todos realizaram ✓</td></tr>`}</tbody>
+      </table>`;
+    html = wrapDetail(`EAP ${anoAtual}`, null, '#c8a84b', closeBtn, inner);
   }
 
   else if (tipo === 'ferias') {
