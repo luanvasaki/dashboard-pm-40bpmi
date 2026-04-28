@@ -2790,7 +2790,22 @@ function renderP1() {
     kpiCard('Afastamentos', pmAfastados.length, tiposSub || '—', pmAfastados.length > 0 ? '#c84b4b' : 'var(--tx3)', 'afastados') +
     kpiCard('Em Restrição', pmComRestricao.length, vencendoRestricao.length > 0 ? `⚠ ${vencendoRestricao.length} vencem em 30 dias` : '—', pmComRestricao.length > 0 ? '#c8a84b' : 'var(--tx3)', 'restricao') +
     kpiCard(`EAP ${anoAtual}`, pmEapPendente.length, `<span style="color:#4bc87a">${pmEapFeito.length} realizaram</span> · <span style="color:#c8a84b">${pmEapPendente.length} pendentes</span>`, pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a', 'eap') +
-    kpiCard('Controle de Férias', ferEmGozo.length, `${ferEmGozo.length} em gozo · ${ferEm15Dias.length} em 15d`, ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)', 'ferias');
+    kpiCard('Controle de Férias', ferEmGozo.length, `${ferEmGozo.length} em gozo · ${ferEm15Dias.length} em 15d`, ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)', 'ferias') +
+    (() => {
+      if (!p1Quadro.length) return '';
+      const excl = s => /cfp|uis\s*m[eé]d|uis\s*odonto/i.test(s||'');
+      const qRows = p1Quadro.filter(q => !excl(q.opm));
+      const gtFx = qRows.reduce((a,q) => a + (Number(q.fx_total)||0), 0);
+      const gtEx = qRows.reduce((a,q) => a + (Number(q.ex_total)||0), 0);
+      const gtClaro = gtFx - gtEx;
+      const gtPct = gtFx > 0 ? ((gtClaro/gtFx)*100).toFixed(1)+'%' : '—';
+      const estouradas = qRows.filter(q => (Number(q.fx_total)||0) - (Number(q.ex_total)||0) < 0).length;
+      const cor = gtClaro < 0 ? '#c84b4b' : gtClaro === 0 ? '#c8a84b' : '#4bc87a';
+      const sub = estouradas > 0
+        ? `<span style="color:#c84b4b">⚠ ${estouradas} unid. estouradas</span> · FX ${gtFx} / EX ${gtEx}`
+        : `FX ${gtFx} / EX ${gtEx} · ${gtPct} claro`;
+      return kpiCard('Quadro Fixado', `${gtClaro >= 0 ? '−' : '+'}${Math.abs(gtClaro)}`, sub, cor, 'quadro');
+    })();
 
   const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:13px;color:#ffffff;letter-spacing:1px;text-transform:uppercase;text-align:right';
   const thL = thS.replace('text-align:right','text-align:left');
@@ -3066,10 +3081,7 @@ function renderP1() {
   const feriasSection = '';
   const eapSection = '';
 
-  // ── Quadro Fixado do Efetivo
-  const quadroSection = renderQuadroFixado();
-
-  bodyEl.innerHTML = claroSection + quadroSection + feriasSection + afastSection + alertSection + eapSection + `
+  bodyEl.innerHTML = claroSection + feriasSection + afastSection + alertSection + eapSection + `
     <div style="margin-bottom:6px">
       <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia <span style="font-weight:400">· clique na sub-unidade para ver os PMs</span></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
@@ -3500,6 +3512,119 @@ function p1ShowKpiDetail(tipo) {
     html = wrapDetail('Controle de Férias', null, '#5a9de0', closeBtn, inner);
   }
 
+  else if (tipo === 'quadro') {
+    const excl   = s => /cfp|uis\s*m[eé]d|uis\s*odonto/i.test(s||'');
+    const qRows  = p1Quadro.filter(q => !excl(q.opm));
+    const cColor = c => c < 0 ? '#c84b4b' : c === 0 ? '#c8a84b' : '#4bc87a';
+    const cLabel = c => c < 0 ? `+${Math.abs(c)} estourado` : c === 0 ? '0' : `−${c}`;
+    const cPct   = (c, fx) => fx > 0 ? ((c / fx) * 100).toFixed(1) + '%' : '—';
+
+    const thH = 'padding:7px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);text-align:right;white-space:nowrap';
+    const thHL = thH + ';text-align:left';
+    const tdc  = 'padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:12px;text-align:right;white-space:nowrap';
+    const tdcL = 'padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap';
+
+    const byCia = {};
+    qRows.forEach(q => {
+      const c = (q.cia||'').trim() || 'Sem CIA';
+      if (!byCia[c]) byCia[c] = [];
+      byCia[c].push(q);
+    });
+    const cias = Object.keys(byCia).sort();
+
+    // Ranking de cidades com maior claro (positivo = faltam PMs)
+    const ranking = [...qRows]
+      .map(q => ({ opm: q.opm||'—', mun: q.municipio||'—', cia: (q.cia||'').trim()||'Sem CIA', claro: (Number(q.fx_total)||0)-(Number(q.ex_total)||0), fx: Number(q.fx_total)||0 }))
+      .filter(r => r.claro > 0)
+      .sort((a,b) => b.claro - a.claro)
+      .slice(0, 5);
+
+    let rankHtml = '';
+    if (ranking.length) {
+      rankHtml = `<div style="padding:12px 16px;border-bottom:1px solid var(--bd)">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#c8a84b;text-transform:uppercase;margin-bottom:8px">Cidades que mais precisam de PMs</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          ${ranking.map((r,i) => {
+            const pct = r.fx > 0 ? ((r.claro/r.fx)*100).toFixed(0) : 0;
+            const bar = `<div style="height:4px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:3px"><div style="height:100%;width:${pct}%;background:#c84b4b;border-radius:2px"></div></div>`;
+            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <div>
+                <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">${i+1}. </span>
+                <span style="font-size:12px;font-weight:600;color:var(--tx)">${r.mun}</span>
+                <span style="font-size:10px;color:var(--tx3);margin-left:4px">${r.cia}</span>
+                ${bar}
+              </div>
+              <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:#c84b4b;white-space:nowrap">−${r.claro} (${pct}%)</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }
+
+    let bodyQ = '';
+    let gtFx = 0, gtEx = 0;
+
+    cias.forEach(cia => {
+      const rows = byCia[cia];
+      bodyQ += `<tr><td colspan="7" style="padding:8px 14px 4px;background:rgba(90,157,224,.07);border-top:1px solid rgba(90,157,224,.18);border-bottom:1px solid rgba(90,157,224,.1);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;font-weight:700">${cia}</td></tr>`;
+      let cFxSub=0,cExSub=0,cFxCb=0,cExCb=0,cFx=0,cEx=0;
+      rows.forEach(q => {
+        const fxSub = Number(q.fx_subten_sgt)||0, exSub = Number(q.ex_subten_sgt)||0;
+        const fxCb  = Number(q.fx_cb_sd)||0,      exCb  = Number(q.ex_cb_sd)||0;
+        const fx    = Number(q.fx_total)||0,        ex    = Number(q.ex_total)||0;
+        const cS = fxSub-exSub, cC = fxCb-exCb, cT = fx-ex;
+        cFxSub+=fxSub;cExSub+=exSub;cFxCb+=fxCb;cExCb+=exCb;cFx+=fx;cEx+=ex;
+        bodyQ += `<tr>
+          <td style="${tdcL}">${q.municipio||'—'}</td>
+          <td style="${tdcL};font-weight:400;color:var(--tx3)">${q.opm||'—'}</td>
+          <td style="${tdc};color:var(--tx2)">${fxSub}</td>
+          <td style="${tdc};font-weight:700;color:${cColor(cS)}">${cLabel(cS)}</td>
+          <td style="${tdc};color:var(--tx2)">${fxCb}</td>
+          <td style="${tdc};font-weight:700;color:${cColor(cC)}">${cLabel(cC)}</td>
+          <td style="${tdc};font-weight:700;color:${cColor(cT)}">${cPct(cT,fx)}</td>
+        </tr>`;
+      });
+      const cT = cFx-cEx;
+      bodyQ += `<tr style="background:rgba(255,255,255,.025)">
+        <td style="${tdcL};color:var(--tx3);font-size:11px" colspan="2">Subtotal ${cia} — FX ${cFx} / EX ${cEx}</td>
+        <td style="${tdc};color:#fff">${cFxSub}</td>
+        <td style="${tdc};font-weight:700;color:${cColor(cFx-cEx? cFxSub-cExSub:0)}">${cLabel(cFxSub-cExSub)}</td>
+        <td style="${tdc};color:#fff">${cFxCb}</td>
+        <td style="${tdc};font-weight:700;color:${cColor(cFxCb-cExCb)}">${cLabel(cFxCb-cExCb)}</td>
+        <td style="${tdc};font-weight:700;color:${cColor(cT)}">${cPct(cT,cFx)}</td>
+      </tr>`;
+      gtFx+=cFx; gtEx+=cEx;
+    });
+
+    const gtClaro = gtFx-gtEx;
+    const gtCc = cColor(gtClaro);
+    if (qRows.length) {
+      bodyQ += `<tr style="border-top:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05)">
+        <td style="${tdcL};text-transform:uppercase;font-size:10px;letter-spacing:1px;color:var(--tx2)" colspan="2">Total Geral — FX ${gtFx} / EX ${gtEx}</td>
+        <td colspan="4" style="${tdc}"></td>
+        <td style="padding:8px 12px;font-family:'DM Mono',monospace;text-align:right;white-space:nowrap">
+          <span style="font-size:15px;font-weight:800;color:${gtCc}">${cLabel(gtClaro)}</span>
+          <span style="font-size:11px;color:${gtCc};margin-left:5px">${cPct(gtClaro,gtFx)}</span>
+        </td>
+      </tr>`;
+    }
+
+    const tableHeader = `<table style="width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th style="${thHL}">Município</th>
+        <th style="${thHL}">OPM</th>
+        <th style="${thH}">St/Sgt FX</th>
+        <th style="${thH}">Claro</th>
+        <th style="${thH}">Cb/Sd FX</th>
+        <th style="${thH}">Claro</th>
+        <th style="${thH}">Claro %</th>
+      </tr></thead>
+      <tbody>${bodyQ || '<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--tx3);font-size:12px">Nenhum dado. Importe o CSV pelo menu lateral.</td></tr>'}</tbody>
+    </table>`;
+
+    html = wrapDetail('Quadro Fixado do Efetivo', null, '#4bc87a', closeBtn, rankHtml + tableHeader);
+  }
+
   det.innerHTML = html;
 
   // Fecha ao clicar fora dos KPI cards e do painel
@@ -3805,122 +3930,6 @@ async function prontoRemoveFoto() {
     msg.style.color = '#4bc87a'; msg.textContent = 'Foto removida.';
     setTimeout(() => { if (msg) msg.textContent = ''; }, 2500);
   } catch (_) { msg.style.color = '#e06060'; msg.textContent = 'Erro ao remover.'; }
-}
-
-// ── Quadro Fixado do Efetivo ─────────────────────────────────────────────────
-
-function renderQuadroFixado() {
-  const claroColor = c => c > 5 ? '#c84b4b' : c > 0 ? '#c8a84b' : '#4bc87a';
-  const claroLabel = c => c > 0 ? `−${c}` : c === 0 ? '0' : `+${Math.abs(c)}`;
-  const claroP = (fx, ex) => fx > 0 ? (((fx - ex) / fx) * 100).toFixed(1) + '%' : '—';
-
-  const th  = 'padding:7px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;text-align:right';
-  const thL = th + ';text-align:left';
-  const td  = 'padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:12px;color:var(--tx3);text-align:right;white-space:nowrap';
-  const tdL = 'padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap';
-
-  // Agrupa por CIA
-  const byCia = {};
-  p1Quadro.forEach(q => {
-    const cia = (q.cia || '').trim() || 'Sem CIA';
-    if (!byCia[cia]) byCia[cia] = [];
-    byCia[cia].push(q);
-  });
-  const cias = Object.keys(byCia).sort();
-
-  let bodyHtml = '';
-  let gtFxSub = 0, gtExSub = 0, gtFxCb = 0, gtExCb = 0, gtFx = 0, gtEx = 0;
-
-  cias.forEach(cia => {
-    const rows = byCia[cia];
-    // Cabeçalho da CIA
-    bodyHtml += `<tr>
-      <td colspan="7" style="padding:8px 12px 4px;background:rgba(90,157,224,.08);border-top:1px solid rgba(90,157,224,.2);border-bottom:1px solid rgba(90,157,224,.12);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;font-weight:700">${cia}</td>
-    </tr>`;
-
-    let cFxSub = 0, cExSub = 0, cFxCb = 0, cExCb = 0, cFx = 0, cEx = 0;
-
-    rows.forEach(q => {
-      const fxSub = Number(q.fx_subten_sgt) || 0;
-      const exSub = Number(q.ex_subten_sgt) || 0;
-      const fxCb  = Number(q.fx_cb_sd)      || 0;
-      const exCb  = Number(q.ex_cb_sd)      || 0;
-      const fx    = Number(q.fx_total)       || 0;
-      const ex    = Number(q.ex_total)       || 0;
-      const claro = fx - ex;
-      const cc    = claroColor(claro);
-      cFxSub += fxSub; cExSub += exSub;
-      cFxCb  += fxCb;  cExCb  += exCb;
-      cFx    += fx;    cEx    += ex;
-
-      bodyHtml += `<tr>
-        <td style="${tdL}">${q.municipio || '—'}</td>
-        <td style="${tdL}">${q.opm       || '—'}</td>
-        <td style="${td}">${fxSub}</td>
-        <td style="${td};color:#c8a84b">${exSub}</td>
-        <td style="${td}">${fxCb}</td>
-        <td style="${td};color:#c8a84b">${exCb}</td>
-        <td style="${td};font-size:13px;font-weight:700;color:${cc}">${claroLabel(claro)}</td>
-      </tr>`;
-    });
-
-    // Subtotal CIA
-    const cClaro = cFx - cEx;
-    const cCc = claroColor(cClaro);
-    bodyHtml += `<tr style="background:rgba(255,255,255,.03)">
-      <td style="${tdL};color:var(--tx3);font-size:11px" colspan="2">Subtotal ${cia}</td>
-      <td style="${td};font-weight:600;color:#fff">${cFxSub}</td>
-      <td style="${td};font-weight:600;color:#c8a84b">${cExSub}</td>
-      <td style="${td};font-weight:600;color:#fff">${cFxCb}</td>
-      <td style="${td};font-weight:600;color:#c8a84b">${cExCb}</td>
-      <td style="${td};font-size:13px;font-weight:700;color:${cCc}">${claroLabel(cClaro)}</td>
-    </tr>`;
-
-    gtFxSub += cFxSub; gtExSub += cExSub;
-    gtFxCb  += cFxCb;  gtExCb  += cExCb;
-    gtFx    += cFx;    gtEx    += cEx;
-  });
-
-  // Linha de total geral (Total FX, Total EX, Claro, Claro%)
-  if (p1Quadro.length) {
-    const gtClaro = gtFx - gtEx;
-    const gtCc = claroColor(gtClaro);
-    bodyHtml += `<tr style="border-top:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05)">
-      <td style="${tdL};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--tx2)" colspan="2">Total Geral — FX ${gtFx} / EX ${gtEx}</td>
-      <td style="${td};font-weight:700;color:#fff">${gtFxSub}</td>
-      <td style="${td};font-weight:700;color:#c8a84b">${gtExSub}</td>
-      <td style="${td};font-weight:700;color:#fff">${gtFxCb}</td>
-      <td style="${td};font-weight:700;color:#c8a84b">${gtExCb}</td>
-      <td style="padding:8px 12px;font-family:'DM Mono',monospace;text-align:right;white-space:nowrap">
-        <span style="font-size:14px;font-weight:800;color:${gtCc}">${claroLabel(gtClaro)}</span>
-        <span style="font-size:10px;color:${gtCc};margin-left:4px">${claroP(gtFx, gtEx)}</span>
-      </td>
-    </tr>`;
-  }
-
-  const emptyMsg = !p1Quadro.length
-    ? `<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--tx3);font-size:12px">Nenhum dado importado. Use o menu lateral para importar o CSV do Quadro de Claros.</td></tr>`
-    : '';
-
-  return `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin-bottom:14px">
-    <div style="padding:14px 16px 10px;border-bottom:1px solid var(--bd)">
-      <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase">Quadro Fixado do Efetivo</div>
-    </div>
-    <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse">
-        <thead><tr>
-          <th style="${thL}">Município</th>
-          <th style="${thL}">OPM</th>
-          <th style="${th};color:#fff">St/Sgt FX</th>
-          <th style="${th};color:#c8a84b">St/Sgt EX</th>
-          <th style="${th};color:#fff">Cb/Sd FX</th>
-          <th style="${th};color:#c8a84b">Cb/Sd EX</th>
-          <th style="${th}">Claro</th>
-        </tr></thead>
-        <tbody>${emptyMsg}${bodyHtml}</tbody>
-      </table>
-    </div>
-  </div>`;
 }
 
 // Retorna HTML compacto do quadro para uma CIA/sub-unidade específica
