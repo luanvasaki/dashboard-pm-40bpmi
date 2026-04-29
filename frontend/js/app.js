@@ -3081,14 +3081,82 @@ function renderP1() {
   const feriasSection = '';
   const eapSection = '';
 
-  bodyEl.innerHTML = claroSection + feriasSection + afastSection + alertSection + eapSection + `
+  // ── Seção de afastamentos + alertas unificada (vai para o rodapé, abaixo das CIAs)
+  const _esc2 = s => (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  let bottomItems = [];
+
+  // Quem ESTÁ afastado agora
+  if (pmAfastados.length) {
+    pmAfastados.forEach(r => {
+      const ats = afastHoje[r.re] || [];
+      const tipo = ats.map(a => a.tipo_afastamento).join(', ') || 'Afastado';
+      const termino = ats[0]?.termino || '';
+      const diasRest = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : null;
+      const retStr = diasRest !== null ? `retorna em <b style="color:#c84b4b">${diasRest}d</b> · ${fmtDate(termino)}` : fmtDate(termino)||'—';
+      bottomItems.push({ order: 0, html: `<div style="padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        ${badge(tipo.split(',')[0].trim().toUpperCase(), '#c84b4b')}
+        <span style="font-size:11px;color:var(--tx3)">${r.posto||''}</span>
+        <span style="font-size:13px;font-weight:600;color:var(--tx);cursor:pointer" onclick="openProntuario('${_esc2(r.re)}')">${r.nome_guerra||r.nome}</span>
+        <span style="font-size:12px;color:var(--tx3)">${r.opm||''}</span>
+        <span style="font-size:12px;color:var(--tx3);margin-left:auto">${retStr}</span>
+      </div>` });
+    });
+  }
+
+  // Alertas existentes (restrições, retornos, férias/LP em 30d)
+  if (vencendoRestricao.length) {
+    vencendoRestricao.forEach(r => {
+      const dias = Math.ceil((new Date(r.restricao_termino) - new Date(hoje)) / 86400000);
+      bottomItems.push({ order: 1, html: `<div style="padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        ${badge('RESTRIÇÃO', '#c8a84b')}
+        <span style="font-size:13px;font-weight:600;color:var(--tx)">${r.nome_guerra||r.nome}</span>
+        <span style="font-size:12px;color:var(--tx3)">${r.opm||''}</span>
+        <span style="font-size:12px;color:var(--tx3);margin-left:auto">Vence em <b style="color:#c8a84b">${dias}d</b> · ${fmtDate(r.restricao_termino)}</span>
+      </div>` });
+    });
+  }
+  if (retornando.length) {
+    retornando.forEach(a => {
+      const pm = p1Data.find(r => r.re === a.re);
+      const dias = Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000);
+      bottomItems.push({ order: 2, html: `<div style="padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        ${badge('RETORNO EM BREVE', '#4bc87a')}
+        <span style="font-size:13px;font-weight:600;color:var(--tx)">${pm?.nome_guerra||pm?.nome||a.re}</span>
+        <span style="font-size:12px;color:var(--tx3)">${a.tipo_afastamento}</span>
+        <span style="font-size:12px;color:var(--tx3);margin-left:auto">Retorna em <b style="color:#4bc87a">${dias}d</b> · ${fmtDate(a.termino)}</span>
+      </div>` });
+    });
+  }
+  if (ferLpEm30.length) {
+    ferLpEm30.sort((a,b) => (a.inicio||'').localeCompare(b.inicio||'')).forEach(a => {
+      const pm = p1Data.find(r => r.re === a.re);
+      const diasAte = Math.ceil((new Date(a.inicio) - new Date(hoje)) / 86400000);
+      const tipo = isFer(a.tipo_afastamento) ? 'FÉRIAS' : 'LP';
+      const cor  = isFer(a.tipo_afastamento) ? '#5a9de0' : '#9b6de0';
+      bottomItems.push({ order: 3, html: `<div style="padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        ${badge(tipo, cor)}
+        <span style="font-size:11px;color:var(--tx3)">${pm?.posto||''}</span>
+        <span style="font-size:13px;font-weight:600;color:var(--tx)">${pm?.nome_guerra||pm?.nome||a.re}</span>
+        <span style="font-size:12px;color:var(--tx3);margin-left:auto">Inicia em <b style="color:${cor}">${diasAte}d</b> · ${fmtDate(a.inicio)}</span>
+      </div>` });
+    });
+  }
+
+  const bottomSection = bottomItems.length ? `
+    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-top:14px;overflow:hidden">
+      <div style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:2px;color:#c8a84b;padding:12px 16px 8px;text-transform:uppercase;border-bottom:1px solid var(--bd)">Afastamentos e Alertas — ${bottomItems.length}</div>
+      ${bottomItems.sort((a,b)=>a.order-b.order).map(i=>i.html).join('')}
+    </div>` : '';
+
+  bodyEl.innerHTML = claroSection + feriasSection + eapSection + `
     <div style="margin-bottom:6px">
       <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia <span style="font-weight:400">· clique na sub-unidade para ver os PMs</span></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
         ${ciaCards}${unmatchedCards}
       </div>
     </div>
-    <div id="p1-unit-detail"></div>`;
+    <div id="p1-unit-detail"></div>
+    ${bottomSection}`;
 
   // Mostra botão exportar quando há dados
   const btnE = document.getElementById('btn-exportar-p1');
@@ -3554,34 +3622,39 @@ function p1ShowKpiDetail(tipo) {
     });
     const cias = Object.keys(byCia).sort();
 
-    // Ranking: top 5 cidades com maior claro total (mais vagas em aberto)
-    const ranking = [...qRows]
-      .map(q => {
-        const fx = Number(q.fx_total)||0, ex = Number(q.ex_total)||0;
-        return { mun: q.municipio||q.opm||'—', cia: getCia(q), claro: fx-ex, fx };
-      })
-      .filter(r => r.claro > 0)
-      .sort((a,b) => b.claro - a.claro)
-      .slice(0, 5);
+    // Rankings separados por posto — Cb/Sd e Subten/Sgt são independentes
+    const mkRankList = (items, cor) => items.map((r,i) => {
+      const pct = r.fx > 0 ? ((r.claro/r.fx)*100).toFixed(0) : 0;
+      const bar = `<div style="height:4px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:3px"><div style="height:100%;width:${pct}%;background:${cor};border-radius:2px"></div></div>`;
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div style="flex:1;min-width:0">
+          <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3)">${i+1}. </span>
+          <span style="font-size:14px;font-weight:700;color:var(--tx)">${r.mun}</span>
+          <span style="font-size:12px;color:#5a9de0;margin-left:6px">${r.cia}</span>
+          ${bar}
+        </div>
+        <span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:800;color:${cor};white-space:nowrap">−${r.claro} <span style="font-size:12px;font-weight:400">(${pct}%)</span></span>
+      </div>`;
+    }).join('');
+
+    const rankCb = [...qRows]
+      .map(q => { const fx=Number(q.fx_cb_sd)||0, ex=Number(q.ex_cb_sd)||0; return { mun:q.municipio||q.opm||'—', cia:getCia(q), claro:fx-ex, fx }; })
+      .filter(r => r.claro > 0).sort((a,b) => b.claro-a.claro).slice(0,5);
+
+    const rankSub = [...qRows]
+      .map(q => { const fx=Number(q.fx_subten_sgt)||0, ex=Number(q.ex_subten_sgt)||0; return { mun:q.municipio||q.opm||'—', cia:getCia(q), claro:fx-ex, fx }; })
+      .filter(r => r.claro > 0).sort((a,b) => b.claro-a.claro).slice(0,5);
 
     let rankHtml = '';
-    if (ranking.length) {
-      rankHtml = `<div style="padding:14px 18px;border-bottom:1px solid var(--bd)">
-        <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;color:#c8a84b;text-transform:uppercase;margin-bottom:10px">Cidades que mais precisam de PMs</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          ${ranking.map((r,i) => {
-            const pct = r.fx > 0 ? ((r.claro/r.fx)*100).toFixed(0) : 0;
-            const bar = `<div style="height:5px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:4px"><div style="height:100%;width:${pct}%;background:#c84b4b;border-radius:3px"></div></div>`;
-            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-              <div style="flex:1;min-width:0">
-                <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3)">${i+1}. </span>
-                <span style="font-size:14px;font-weight:700;color:var(--tx)">${r.mun}</span>
-                <span style="font-size:12px;color:#5a9de0;margin-left:6px">${r.cia}</span>
-                ${bar}
-              </div>
-              <span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:800;color:#c84b4b;white-space:nowrap">−${r.claro} <span style="font-size:12px;font-weight:400">(${pct}%)</span></span>
-            </div>`;
-          }).join('')}
+    if (rankCb.length || rankSub.length) {
+      rankHtml = `<div style="padding:14px 18px;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:#e0965a;text-transform:uppercase;margin-bottom:10px">Cb / Sd — Vagas em aberto</div>
+          <div style="display:flex;flex-direction:column;gap:8px">${rankCb.length ? mkRankList(rankCb,'#e0965a') : '<span style="font-size:12px;color:var(--tx3)">Sem vagas abertas</span>'}</div>
+        </div>
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:#9b6de0;text-transform:uppercase;margin-bottom:10px">Subten / Sgt — Vagas em aberto</div>
+          <div style="display:flex;flex-direction:column;gap:8px">${rankSub.length ? mkRankList(rankSub,'#9b6de0') : '<span style="font-size:12px;color:var(--tx3)">Sem vagas abertas</span>'}</div>
         </div>
       </div>`;
     }
