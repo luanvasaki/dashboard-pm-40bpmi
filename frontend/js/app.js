@@ -2746,6 +2746,8 @@ function renderP1() {
   const ferEmGozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && a.termino >= hoje);
   const ferEm15Dias  = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio > hoje && a.inicio <= em15s);
   const ferLpEm30    = afastsF.filter(a => (isFer(a.tipo_afastamento) || isLP(a.tipo_afastamento)) && a.inicio > hoje && a.inicio <= em30s);
+  // Todos os tipos de afastamento iniciando nos próximos 30 dias (para planejamento de escala)
+  const afastEm30    = afastsF.filter(a => a.inicio > hoje && a.inicio <= em30s);
   const resFeriasAno = new Set(p1Afasts.filter(a => isFer(a.tipo_afastamento) && (a.inicio||'').startsWith(String(anoAtual))).map(a => a.re));
   const semFeriasAno = dataF.filter(r => !resFeriasAno.has(r.re));
 
@@ -3127,17 +3129,30 @@ function renderP1() {
       </div>` });
     });
   }
-  if (ferLpEm30.length) {
-    ferLpEm30.sort((a,b) => (a.inicio||'').localeCompare(b.inicio||'')).forEach(a => {
+  if (afastEm30.length) {
+    const TIPO_COR = t => {
+      const tl = (t||'').toLowerCase();
+      if (/f[eé]rias/.test(tl))          return ['FÉRIAS',     '#5a9de0'];
+      if (/\blp\b|premio/.test(tl))       return ['LP',         '#9b6de0'];
+      if (/\blts\b|trat/.test(tl))        return ['LTS',        '#c84b4b'];
+      if (/\blsv\b|sem.venc/.test(tl))    return ['LSV',        '#c8a84b'];
+      if (/n[uú]pcia/.test(tl))           return ['NÚPCIAS',    '#f1c40f'];
+      if (/maternidade/.test(tl))         return ['MATERNIDADE','#e91e63'];
+      if (/paternidade/.test(tl))         return ['PATERNIDADE','#2196f3'];
+      if (/luto/.test(tl))                return ['LUTO',       '#95a5a6'];
+      if (/conval/.test(tl))              return ['CONVAL',     '#e67e22'];
+      return [(t||'AFASTAMENTO').toUpperCase().slice(0,12), '#607090'];
+    };
+    afastEm30.sort((a,b) => (a.inicio||'').localeCompare(b.inicio||'')).forEach(a => {
       const pm = p1Data.find(r => r.re === a.re);
       const diasAte = Math.ceil((new Date(a.inicio) - new Date(hoje)) / 86400000);
-      const tipo = isFer(a.tipo_afastamento) ? 'FÉRIAS' : 'LP';
-      const cor  = isFer(a.tipo_afastamento) ? '#5a9de0' : '#9b6de0';
+      const [label, cor] = TIPO_COR(a.tipo_afastamento);
       bottomItems.push({ order: 3, html: `<div style="padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-        ${badge(tipo, cor)}
+        ${badge(label, cor)}
         <span style="font-size:11px;color:var(--tx3)">${pm?.posto||''}</span>
         <span style="font-size:13px;font-weight:600;color:var(--tx)">${pm?.nome_guerra||pm?.nome||a.re}</span>
-        <span style="font-size:12px;color:var(--tx3);margin-left:auto">Inicia em <b style="color:${cor}">${diasAte}d</b> · ${fmtDate(a.inicio)}</span>
+        <span style="font-size:12px;color:var(--tx3)">${pm?.opm||''}</span>
+        <span style="font-size:12px;color:var(--tx3);margin-left:auto">Inicia em <b style="color:${cor}">${diasAte}d</b> · ${fmtDate(a.inicio)} → ${fmtDate(a.termino)}</span>
       </div>` });
     });
   }
