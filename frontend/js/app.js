@@ -3117,18 +3117,6 @@ function renderP1() {
       </div>` });
     });
   }
-  if (retornando.length) {
-    retornando.forEach(a => {
-      const pm = p1Data.find(r => r.re === a.re);
-      const dias = Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000);
-      bottomItems.push({ order: 2, html: `<div style="padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-        ${badge('RETORNO EM BREVE', '#4bc87a')}
-        <span style="font-size:13px;font-weight:600;color:var(--tx)">${pm?.nome_guerra||pm?.nome||a.re}</span>
-        <span style="font-size:12px;color:var(--tx3)">${a.tipo_afastamento}</span>
-        <span style="font-size:12px;color:var(--tx3);margin-left:auto">Retorna em <b style="color:#4bc87a">${dias}d</b> · ${fmtDate(a.termino)}</span>
-      </div>` });
-    });
-  }
   if (afastEm30.length) {
     const TIPO_COR = t => {
       const tl = (t||'').toLowerCase();
