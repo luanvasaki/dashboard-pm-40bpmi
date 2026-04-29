@@ -4562,7 +4562,9 @@ function renderHome() {
   const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const data = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
   const saudacao = (() => { const h = new Date().getHours(); return h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'; })();
-  const nome = (u.nome || '').split(' ')[0];
+  // Prefere nome de guerra do efetivo (cruza pelo RE do cadastro)
+  const pmRec = p1Data && u.re ? p1Data.find(r => String(r.re).trim() === String(u.re).trim()) : null;
+  const nome = pmRec?.nome_guerra || pmRec?.nome || (u.nome || '').split(' ')[0];
 
   // ── Resumo P1 ─────────────────────────────────────────────────────────────
   let p1Preview = '';
