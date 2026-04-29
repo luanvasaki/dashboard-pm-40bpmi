@@ -3145,11 +3145,18 @@ function renderP1() {
     });
   }
 
-  const bottomSection = bottomItems.length ? `
+  const nowItems  = bottomItems.filter(i => i.order <= 1); // afastados agora + restrições
+  const nextItems = bottomItems.filter(i => i.order >= 3); // próximos afastamentos
+
+  const mkBlock = (titulo, cor, items) => !items.length ? '' : `
     <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-top:14px;overflow:hidden">
-      <div style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:2px;color:#c8a84b;padding:12px 16px 8px;text-transform:uppercase;border-bottom:1px solid var(--bd)">Afastamentos e Alertas — ${bottomItems.length}</div>
-      ${bottomItems.sort((a,b)=>a.order-b.order).map(i=>i.html).join('')}
-    </div>` : '';
+      <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;color:${cor};padding:10px 16px 8px;text-transform:uppercase;border-bottom:1px solid var(--bd)">${titulo} — ${items.length}</div>
+      ${items.sort((a,b)=>a.order-b.order).map(i=>i.html).join('')}
+    </div>`;
+
+  const bottomSection =
+    mkBlock('Em Afastamento', '#c84b4b', nowItems) +
+    mkBlock('Próximos Afastamentos — 30 dias', '#5a9de0', nextItems);
 
   bodyEl.innerHTML = claroSection + feriasSection + eapSection + `
     <div style="margin-bottom:6px">
