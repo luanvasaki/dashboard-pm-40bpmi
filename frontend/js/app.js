@@ -3587,52 +3587,53 @@ function p1ShowKpiDetail(tipo) {
     }
 
     let bodyQ = '';
-    let gtFx = 0, gtEx = 0;
+    // Acumula totais por posto separadamente — nunca misturar St/Sgt com Cb/Sd
+    let gtFxSub=0, gtCSub=0, gtFxCb=0, gtCCb=0;
 
     cias.forEach(cia => {
       const rows = byCia[cia];
       bodyQ += `<tr><td colspan="8" style="padding:9px 16px 5px;background:rgba(90,157,224,.07);border-top:1px solid rgba(90,157,224,.2);border-bottom:1px solid rgba(90,157,224,.12);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;font-weight:700">${cia}</td></tr>`;
-      let cFxSub=0, cCSub=0, cFxCb=0, cCCb=0, cFx=0, cEx=0;
+      let cFxSub=0, cCSub=0, cFxCb=0, cCCb=0;
       rows.forEach(q => {
         const fxSub = Number(q.fx_subten_sgt)||0, exSub = Number(q.ex_subten_sgt)||0;
         const fxCb  = Number(q.fx_cb_sd)||0,      exCb  = Number(q.ex_cb_sd)||0;
-        const fx    = Number(q.fx_total)||0,        ex    = Number(q.ex_total)||0;
-        const cS = fxSub-exSub, cC = fxCb-exCb, cT = fx-ex;
-        cFxSub+=fxSub; cCSub+=cS; cFxCb+=fxCb; cCCb+=cC; cFx+=fx; cEx+=ex;
+        const cS = fxSub - exSub;   // claro St/Sgt desta cidade (independente)
+        const cC = fxCb  - exCb;    // claro Cb/Sd desta cidade (independente)
+        cFxSub+=fxSub; cCSub+=cS; cFxCb+=fxCb; cCCb+=cC;
         bodyQ += `<tr>
           <td style="${tdcL}">${q.municipio||'—'}</td>
           <td style="${tdcL};font-weight:400;font-size:12px;color:var(--tx3)">${q.opm||'—'}</td>
           <td style="${tdc};color:var(--tx2)">${fxSub}</td>
           <td style="${tdc};font-size:14px;font-weight:800;color:${cColor(cS)}">${cVal(cS)}</td>
-          <td style="${tdc};font-size:11px;color:${cColor(cS)}">${cPct(cS,fxSub)}</td>
+          <td style="${tdc};font-size:12px;color:${cColor(cS)}">${cPct(cS,fxSub)}</td>
           <td style="${tdc};color:var(--tx2)">${fxCb}</td>
           <td style="${tdc};font-size:14px;font-weight:800;color:${cColor(cC)}">${cVal(cC)}</td>
-          <td style="${tdc};font-size:11px;color:${cColor(cC)}">${cPct(cC,fxCb)}</td>
+          <td style="${tdc};font-size:12px;color:${cColor(cC)}">${cPct(cC,fxCb)}</td>
         </tr>`;
       });
-      const cT = cFx-cEx;
+      // Subtotal CIA — St/Sgt e Cb/Sd continuam independentes
       bodyQ += `<tr style="background:rgba(255,255,255,.03);border-top:1px solid rgba(255,255,255,.07)">
-        <td style="${tdcL};color:var(--tx3);font-size:11px;letter-spacing:.5px" colspan="2">Subtotal ${cia} — FX ${cFx} / EX ${cEx}</td>
-        <td style="${tdc};color:#fff;font-weight:600">${cFxSub}</td>
+        <td style="${tdcL};color:var(--tx3);font-size:11px;letter-spacing:.5px" colspan="2">Subtotal ${cia}</td>
+        <td style="${tdc};color:#fff;font-weight:700">${cFxSub}</td>
         <td style="${tdc};font-size:14px;font-weight:800;color:${cColor(cCSub)}">${cVal(cCSub)}</td>
-        <td style="${tdc};font-size:11px;color:${cColor(cCSub)}">${cPct(cCSub,cFxSub)}</td>
-        <td style="${tdc};color:#fff;font-weight:600">${cFxCb}</td>
+        <td style="${tdc};font-size:12px;color:${cColor(cCSub)}">${cPct(cCSub,cFxSub)}</td>
+        <td style="${tdc};color:#fff;font-weight:700">${cFxCb}</td>
         <td style="${tdc};font-size:14px;font-weight:800;color:${cColor(cCCb)}">${cVal(cCCb)}</td>
-        <td style="${tdc};font-size:11px;color:${cColor(cCCb)}">${cPct(cCCb,cFxCb)}</td>
+        <td style="${tdc};font-size:12px;color:${cColor(cCCb)}">${cPct(cCCb,cFxCb)}</td>
       </tr>`;
-      gtFx+=cFx; gtEx+=cEx;
+      gtFxSub+=cFxSub; gtCSub+=cCSub; gtFxCb+=cFxCb; gtCCb+=cCCb;
     });
 
-    const gtClaro = gtFx-gtEx;
-    const gtCc = cColor(gtClaro);
+    // Total geral — St/Sgt e Cb/Sd totalmente separados, sem somar entre si
     if (qRows.length) {
       bodyQ += `<tr style="border-top:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05)">
-        <td style="${tdcL};text-transform:uppercase;font-size:11px;letter-spacing:1px;color:var(--tx2)" colspan="2">Total Geral — FX ${gtFx} / EX ${gtEx}</td>
-        <td colspan="5" style="${tdc}"></td>
-        <td style="padding:10px 14px;font-family:'DM Mono',monospace;text-align:right;white-space:nowrap">
-          <span style="font-size:16px;font-weight:900;color:${gtCc}">${cVal(gtClaro)}</span>
-          <span style="font-size:12px;color:${gtCc};margin-left:6px">${cPct(gtClaro,gtFx)}</span>
-        </td>
+        <td style="${tdcL};text-transform:uppercase;font-size:11px;letter-spacing:1px;color:var(--tx2)" colspan="2">Total Geral</td>
+        <td style="${tdc};color:#fff;font-weight:700;font-size:13px">${gtFxSub}</td>
+        <td style="${tdc};font-size:15px;font-weight:900;color:${cColor(gtCSub)}">${cVal(gtCSub)}</td>
+        <td style="${tdc};font-size:12px;color:${cColor(gtCSub)}">${cPct(gtCSub,gtFxSub)}</td>
+        <td style="${tdc};color:#fff;font-weight:700;font-size:13px">${gtFxCb}</td>
+        <td style="${tdc};font-size:15px;font-weight:900;color:${cColor(gtCCb)}">${cVal(gtCCb)}</td>
+        <td style="${tdc};font-size:12px;color:${cColor(gtCCb)}">${cPct(gtCCb,gtFxCb)}</td>
       </tr>`;
     }
 
