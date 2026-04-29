@@ -3349,22 +3349,34 @@ async function afConfirmUpload() {
 // ── KPI Detail ───────────────────────────────────────────────────────────────
 
 function wrapDetail(title, count, color, closeBtn, inner) {
-  return `<div style="background:var(--s2);border:1px solid ${color}55;border-radius:8px;overflow:hidden;margin-bottom:14px">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--bd)">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:${color};text-transform:uppercase">${title}${count !== null ? ' — ' + count : ''}</div>
-      ${closeBtn}
-    </div>
-    <div style="overflow-x:auto;max-height:420px;overflow-y:auto">${inner}</div>
-  </div>`;
+  return `<div style="overflow-x:auto">${inner}</div>`;
+}
+
+function closeP1Detail() {
+  const mo = document.getElementById('p1-detail-mo');
+  if (mo) { mo.classList.remove('on'); document.body.style.overflow = ''; }
+}
+
+function p1DetailClickOut(e) {
+  if (e.target === document.getElementById('p1-detail-mo')) closeP1Detail();
 }
 
 function p1ShowKpiDetail(tipo) {
-  const det = document.getElementById('p1-kpi-detail');
-  if (!det) return;
-  if (det.dataset.active === tipo && det.innerHTML) {
-    det.innerHTML = ''; det.dataset.active = ''; return;
-  }
-  det.dataset.active = tipo;
+  const mo = document.getElementById('p1-detail-mo');
+  if (!mo) return;
+
+  const KPI_META = {
+    total:    { title: 'TODO O EFETIVO',       color: 'var(--gold)' },
+    aptos:    { title: 'APTOS',                color: '#4bc87a' },
+    afastados:{ title: 'AFASTAMENTOS',         color: '#c84b4b' },
+    restricao:{ title: 'EM RESTRIÇÃO',         color: '#c8a84b' },
+    eap:      { title: `EAP ${new Date().getFullYear()}`, color: '#c8a84b' },
+    ferias:   { title: 'CONTROLE DE FÉRIAS',   color: '#5a9de0' },
+    quadro:   { title: 'QUADRO FIXADO DO EFETIVO', color: '#4bc87a' },
+  };
+  const meta = KPI_META[tipo] || { title: tipo.toUpperCase(), color: 'var(--tx)' };
+  document.getElementById('p1d-accent').style.background = meta.color;
+  document.getElementById('p1d-title').textContent = meta.title;
 
   const hoje     = new Date().toISOString().split('T')[0];
   const anoAtual = new Date().getFullYear();
@@ -3389,8 +3401,7 @@ function p1ShowKpiDetail(tipo) {
     return 'Outros';
   };
 
-  const closeBtn = `<button onclick="document.getElementById('p1-kpi-detail').innerHTML='';document.getElementById('p1-kpi-detail').dataset.active=''"
-    style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--tx3);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:11px">✕ Fechar</button>`;
+  const closeBtn = ''; // botão ✕ fica no header do modal
 
   const thL = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:left';
   const thR = thL.replace('text-align:left','text-align:right');
@@ -3730,22 +3741,9 @@ function p1ShowKpiDetail(tipo) {
     html = wrapDetail('Quadro Fixado do Efetivo', null, '#4bc87a', closeBtn, rankHtml + tableHdr);
   }
 
-  det.innerHTML = html;
-
-  // Fecha ao clicar fora dos KPI cards e do painel
-  if (p1KpiClickOut) document.removeEventListener('click', p1KpiClickOut);
-  setTimeout(() => {
-    p1KpiClickOut = e => {
-      if (prontoCurrentRe || p1ClosingPronto) return;
-      const kpisEl = document.getElementById('p1-kpis');
-      if (!det.contains(e.target) && !(kpisEl && kpisEl.contains(e.target))) {
-        det.innerHTML = ''; det.dataset.active = '';
-        document.removeEventListener('click', p1KpiClickOut);
-        p1KpiClickOut = null;
-      }
-    };
-    document.addEventListener('click', p1KpiClickOut);
-  }, 0);
+  document.getElementById('p1d-body').innerHTML = html;
+  mo.classList.add('on');
+  document.body.style.overflow = 'hidden';
 }
 
 // ── Filtro OPM e Busca P1 ────────────────────────────────────────────────────
