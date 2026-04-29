@@ -4562,9 +4562,9 @@ function renderHome() {
   const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const data = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
   const saudacao = (() => { const h = new Date().getHours(); return h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'; })();
-  // Prefere nome de guerra do efetivo (cruza pelo RE, ignorando dígito após o traço)
+  // Prefere nome de guerra do efetivo (cruza matricula do login com RE do efetivo, ignorando dígito)
   const normRe = re => String(re||'').trim().split('-')[0].trim();
-  const pmRec = p1Data && u.re ? p1Data.find(r => normRe(r.re) === normRe(u.re)) : null;
+  const pmRec = p1Data && u.matricula ? p1Data.find(r => normRe(r.re) === normRe(u.matricula)) : null;
   const nome = pmRec?.nome_guerra || pmRec?.nome || (u.nome || '').split(' ')[0];
 
   // ── Resumo P1 ─────────────────────────────────────────────────────────────
