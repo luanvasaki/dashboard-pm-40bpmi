@@ -47,6 +47,9 @@ function normCia(s) {
 const _MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 function normMes(s) {
   const v = (s||'').trim();
+  if (!v) return '';
+  const n = parseInt(v);
+  if (!isNaN(n) && n >= 1 && n <= 12) return _MESES_PT[n - 1];
   const found = _MESES_PT.find(m => m.toLowerCase().startsWith(v.slice(0,3).toLowerCase()));
   return found || (v.charAt(0).toUpperCase() + v.slice(1).toLowerCase());
 }
@@ -466,7 +469,7 @@ app.post('/api/upload', requireAuth, async (req, res) => {
     // Mapeia os campos do CSV para as colunas exatas da tabela no Supabase
     const rows = records.map(r => ({
       'Ano':       overrideAno ? parseInt(overrideAno) : (parseInt(gf(r,'ano')) || 0),
-      'Mes':       (gf(r,'mes')        || '').trim(),
+      'Mes':       normMes(gf(r,'mes')  || ''),
       'Cia':       (gf(r,'cia')        || '').trim(),
       'Municipio': (gf(r,'municipio')  || '').trim(),
       'Crime':     (() => { const _n = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); const raw = (gf(r,'crime')||'').trim(); return CRIMES_ORD.find(c => _n(c) === _n(raw)) || raw; })(),
@@ -982,34 +985,49 @@ const PROD_TABS = {
 };
 
 function mapProdRow(tipo, r) {
-  const cia = normCia(r['CIA'] || r['Cia'] || '');
-  const ano = parseInt(r['Ano de Data']) || 0;
-  const mes = normMes(r['Mês de Data'] || r['Mes de Data'] || '');
+  // Case-insensitive, accent-insensitive key lookup
+  const _nk = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+  const _idx = {};
+  Object.entries(r).forEach(([k, v]) => { _idx[_nk(k)] = v; });
+  const get = (...keys) => {
+    for (const k of keys) { const v = _idx[_nk(k)]; if (v !== undefined && v !== null) return (v||'').trim(); }
+    return '';
+  };
+  const getPartial = (...frags) => {
+    const normFrags = frags.map(_nk);
+    const key = Object.keys(_idx).find(k => normFrags.every(f => k.includes(f)));
+    return key ? (_idx[key]||'').trim() : '';
+  };
+
+  const cia = normCia(get('CIA', 'Cia'));
+  const ano = parseInt(get('Ano de Data', 'Ano')) || 0;
+  const mes = normMes(get('Mês de Data', 'Mes de Data', 'Mês', 'Mes') || getPartial('mes', 'data'));
+
   if (tipo === 'ocorrencias') return {
-    grupo_natureza:    (r['Grupo de Natureza'] || '').trim(),
-    natureza:          (r['Natureza da Ocorrência'] || r['Natureza da Ocorrencia'] || '').trim(),
-    numero_ocorrencia: (r['Número da Ocorrência'] || r['Numero da Ocorrencia'] || '').trim(),
-    us: (r['US'] || '').trim(), cia, ano, mes,
-    contagem: parseInt(r['Contagem de Ocorrências'] || r['Contagem de Ocorrencias']) || 0
+    grupo_natureza:    get('Grupo de Natureza'),
+    natureza:          get('Natureza da Ocorrência', 'Natureza da Ocorrencia'),
+    numero_ocorrencia: get('Número da Ocorrência', 'Numero da Ocorrencia'),
+    us: get('US'), cia, ano, mes,
+    contagem: parseInt(get('Contagem de Ocorrências', 'Contagem de Ocorrencias')) || 0
   };
   if (tipo === 'presos') return {
-    situacao:  (r['Situação da Pessoa'] || r['Situacao da Pessoa'] || '').trim(),
-    ano, mes, cia, quantidade: parseInt(r['Quantidade de Pessoas']) || 0
+    situacao:  get('Situação da Pessoa', 'Situacao da Pessoa'),
+    ano, mes, cia, quantidade: parseInt(get('Quantidade de Pessoas')) || 0
   };
   if (tipo === 'armas') return {
-    tipo_arma: (r['Tipo da Arma'] || '').trim(),
-    calibre:   (r['Calibre'] || '').trim(),
-    ano, mes, cia, quantidade: parseInt(r['Quantidade de Armas']) || 0
+    tipo_arma: get('Tipo da Arma'),
+    calibre:   get('Calibre'),
+    ano, mes, cia, quantidade: parseInt(get('Quantidade de Armas')) || 0
   };
   if (tipo === 'veiculos') return {
-    situacao:  (r['Situacao do Veículo'] || r['Situação do Veículo'] || r['Situacao do Veiculo'] || '').trim(),
+    situacao:  get('Situacao do Veículo', 'Situação do Veículo', 'Situacao do Veiculo'),
     ano, mes, cia,
-    quantidade: parseInt(r['Contagem Quantidade de Veículos'] || r['Contagem Quantidade de Veiculos'] || r['Contagem de Veículos']) || 0
+    quantidade: parseInt(get('Contagem Quantidade de Veículos', 'Contagem Quantidade de Veiculos', 'Contagem de Veículos')) || 0
   };
   if (tipo === 'entorpecentes') return {
-    unidade_medida: (r['Unidade de Medida (Consulta do SQL personalizado)'] || r['Unidade de Medida'] || '').trim(),
-    entorpecente:   (r['Entorpecente'] || '').trim(),
-    ano, mes, cia, quantidade: parseFloat(r['Quantidade de Entorpecentes']) || 0
+    unidade_medida: get('Unidade de Medida (Consulta do SQL personalizado)', 'Unidade de Medida'),
+    entorpecente:   get('Entorpecente'),
+    ano, mes, cia, quantidade: parseFloat(get('Quantidade de Entorpecentes')) || 0
   };
   if (tipo === 'visita-solidaria') {
     // Normaliza chaves para busca insensível a acento e maiúscula
