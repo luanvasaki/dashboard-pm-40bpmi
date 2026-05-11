@@ -823,7 +823,11 @@ function buildSbMes() {
   ANOS.forEach(a => h += `<option value="${a}" ${a === selAno ? 'selected' : ''}>${a}</option>`);
   h += `</select></div>`;
   h += `<button class="pf-btn mes-btn-all" onclick="sbAll(this)">Todos</button>`;
-  MESES.forEach(m => h += `<button class="pf-btn mes-btn-vis" onclick="sbTog('${m}',this)">${m}</button>`);
+  const _mComDados = new Set(MESES);
+  MES_ORD.forEach(m => {
+    const ok = _mComDados.has(m);
+    h += `<button class="pf-btn mes-btn-vis" onclick="sbTog('${m}',this)"${ok ? '' : ' style="opacity:.35" title="Sem dados"'}>${m}</button>`;
+  });
 
   // Espaço separador
   h += `<div style="flex:1"></div>`;
@@ -860,8 +864,12 @@ function sbSetScope(type, val) {
 }
 
 function buildHmFilter() {
+  const _mComDados = new Set(MESES);
   let h = `<button class="hm-mbtn on" onclick="hmAll(this)">Todos</button>`;
-  MESES.forEach(m => h += `<button class="hm-mbtn" onclick="hmTog('${m}',this)">${m}</button>`);
+  MES_ORD.forEach(m => {
+    const ok = _mComDados.has(m);
+    h += `<button class="hm-mbtn" onclick="hmTog('${m}',this)"${ok ? '' : ' style="opacity:.35" title="Sem dados"'}>${m}</button>`;
+  });
   document.getElementById('hm-filter-btns').innerHTML = h;
 }
 
@@ -894,7 +902,7 @@ function sbTog(mes) {
       if (selMeses.length === 0) selMeses = [...MESES]; // não deixa vazio
     } else {
       selMeses.push(mes);
-      selMeses.sort((a, b) => MESES.indexOf(a) - MESES.indexOf(b));
+      selMeses.sort((a, b) => MES_ORD.indexOf(a) - MES_ORD.indexOf(b));
     }
   }
   syncSidebarMes();
@@ -910,8 +918,9 @@ function hmAll(btn) {
 
 function hmTog(mes, btn) {
   hmMeses = [mes];
-  const btns = document.querySelectorAll('#hm-filter-btns .hm-mbtn');
-  btns.forEach((b, i) => b.classList.toggle('on', i === 0 ? false : MESES[i - 1] === mes));
+  document.querySelectorAll('#hm-filter-btns .hm-mbtn').forEach(b => {
+    b.classList.toggle('on', b.textContent.trim() !== 'Todos' && b.textContent.trim() === mes);
+  });
   renderHeatmap();
 }
 
@@ -5105,7 +5114,11 @@ function prodBuildFilter() {
   // Meses
   h += `<div class="pf-field"><span class="pf-label">MÊS</span><div style="display:flex;gap:4px;flex-wrap:wrap">`;
   h += `<button onclick="prodSetAllMeses()" class="pf-btn${allSel?' on':''}">Todos</button>`;
-  mesesDisp.forEach(m => h += `<button onclick="prodTogMes('${m}')" class="pf-btn${prodSelMeses.includes(m)?' on':''}">${m.slice(0,3)}</button>`);
+  const _pmComDados = new Set(mesesDisp);
+  MES_ORD.forEach(m => {
+    const ok = _pmComDados.has(m);
+    h += `<button onclick="prodTogMes('${m}')" class="pf-btn${prodSelMeses.includes(m)?' on':''}"${ok ? '' : ' style="opacity:.35" title="Sem dados"'}>${m.slice(0,3)}</button>`;
+  });
   h += `</div></div>`;
   // CIA
   h += `<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" onchange="prodSetCia(this.value)">`;
@@ -5736,7 +5749,11 @@ function buildPdFilter() {
 
   h += '<span class="pf-label">Meses</span>';
   h += `<button class="pf-btn ${pdMeses.length === mesesDisp.length ? 'on' : ''}" onclick="pdSetAllMes()">Todos</button>`;
-  mesesDisp.forEach(m => h += `<button class="pf-btn ${pdMeses.includes(m) ? 'on' : ''}" onclick="pdTogMes('${m}')">${m.slice(0,3)}</button>`);
+  const _pdComDados = new Set(mesesDisp);
+  MES_ORD.forEach(m => {
+    const ok = _pdComDados.has(m);
+    h += `<button class="pf-btn ${pdMeses.includes(m) ? 'on' : ''}" onclick="pdTogMes('${m}')"${ok ? '' : ' style="opacity:.35" title="Sem dados"'}>${m.slice(0,3)}</button>`;
+  });
   if (cias.length) {
     h += '<span class="pf-sep"></span>';
     h += '<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" onchange="pdSetCia(this.value)"><option value="">Todas</option>';
