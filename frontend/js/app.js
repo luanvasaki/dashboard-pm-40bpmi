@@ -1601,7 +1601,11 @@ function moScopeMuns() {
 function buildMoFilter() {
   let h = '<span class="pf-label">Período</span>';
   h += `<button class="pf-btn ${moMeses.length === MESES.length ? 'on' : ''}" onclick="moSetAllMes()">${selAno || new Date().getFullYear()}</button>`;
-  MESES.forEach(m => h += `<button class="pf-btn ${moMeses.includes(m) ? 'on' : ''}" onclick="moTogMes('${m}')">${m}</button>`);
+  const _moComDados = new Set(MESES);
+  MES_ORD.forEach(m => {
+    const ok = _moComDados.has(m);
+    h += `<button class="pf-btn ${moMeses.includes(m) ? 'on' : ''}" onclick="moTogMes('${m}')"${ok ? '' : ' style="opacity:.35" title="Sem dados"'}>${m}</button>`;
+  });
   h += '<span class="pf-sep"></span>';
   h += `<button class="pf-btn ${moScopeType === 'btl' ? 'on' : ''}" onclick="moSetScope('btl',null)">Batalhão</button>`;
   h += '<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" style="min-width:90px" onchange="moSetScope(\'cia\',this.value)"><option value="">—</option>';
@@ -2105,7 +2109,8 @@ async function confirmUpload() {
     showUplMsg(`✓ ${json.uploaded} registros importados. Total na base: ${json.total}.`, 'ok');
     btn.classList.remove('on');
 
-    // Recarrega o dashboard com os novos dados
+    // Força re-sincronização do cache do servidor antes de recarregar
+    await authFetch(`${API}/sync`).catch(() => {});
     await loadData();
     selAno   = ANOS[0] || new Date().getFullYear();
     MESES    = getMesForAno(selAno);

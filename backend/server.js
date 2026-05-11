@@ -480,6 +480,10 @@ app.post('/api/upload', requireAuth, async (req, res) => {
       'Variação':  (gf(r,'variação') || gf(r,'variacao') || '').trim()
     })).filter(r => r['Mes'] && r['Crime'] && r['Ano'] > 0);
 
+    // Diagnóstico: mostra estrutura do primeiro registro e meses encontrados
+    if (records.length) console.log('[upload RAC] 1º registro recebido:', JSON.stringify(records[0]));
+    console.log(`[upload RAC] ${rows.length}/${records.length} válidos. Meses:`, [...new Set(rows.map(r => r['Mes']))]);
+
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
 
     // Apaga todos os registros dos anos presentes no arquivo antes de inserir
