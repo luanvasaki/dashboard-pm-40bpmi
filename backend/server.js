@@ -186,11 +186,21 @@ async function syncFromSupabase() {
   if (!supabase) return false;
   try {
     console.log('↻ Sincronizando com Supabase...');
-    const { data, error } = await supabase.from(TABLE_NAME).select('*').limit(100000);
-    if (error) throw new Error(error.message);
-    if (!data?.length) throw new Error('Nenhum registro encontrado no Supabase');
+    // Pagina em lotes de 1000 — Supabase limita 1000 linhas por query no server-side
+    const PAGE = 1000;
+    let allData = [];
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabase.from(TABLE_NAME).select('*').range(from, from + PAGE - 1);
+      if (error) throw new Error(error.message);
+      if (!data?.length) break;
+      allData = allData.concat(data);
+      if (data.length < PAGE) break;
+      from += PAGE;
+    }
+    if (!allData.length) throw new Error('Nenhum registro encontrado no Supabase');
 
-    cache.data     = data.map(fromSupabase);
+    cache.data     = allData.map(fromSupabase);
     cache.lastSync = new Date().toISOString();
     cache.source   = 'supabase';
     cache.error    = null;
