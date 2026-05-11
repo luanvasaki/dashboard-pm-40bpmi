@@ -186,7 +186,7 @@ async function syncFromSupabase() {
   if (!supabase) return false;
   try {
     console.log('↻ Sincronizando com Supabase...');
-    const { data, error } = await supabase.from(TABLE_NAME).select('*');
+    const { data, error } = await supabase.from(TABLE_NAME).select('*').limit(100000);
     if (error) throw new Error(error.message);
     if (!data?.length) throw new Error('Nenhum registro encontrado no Supabase');
 
