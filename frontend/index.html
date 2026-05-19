@@ -165,6 +165,10 @@
           <div class="mo-ct">Bairros mais Afetados — Top 10</div>
           <div style="position:relative"><canvas id="mo-bairros"></canvas></div>
         </div>
+        <div class="mo-card" style="margin-top:12px">
+          <div class="mo-ct">Distribuição por Rubrica</div>
+          <div style="position:relative"><canvas id="mo-rubrica"></canvas></div>
+        </div>
       </div>
     </div>
   </div>
@@ -649,6 +653,10 @@
         <span id="lbl-fonte" style="font-size:14px;font-weight:600;color:var(--tx2)">Banco de Dados RAC</span>
         <button id="btn-edit-fonte" onclick="toggleEditFonte()" style="display:none;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace">✎ Editar</button>
       </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1px">SYNC</span>
+        <span id="sync-time" style="font-size:12px;color:var(--tx3)">—</span>
+      </div>
     </div>
   </div>
   <div id="vis-mes-bar" class="pf" style="margin-bottom:12px"></div>
@@ -674,6 +682,10 @@
   </div>
   <div class="kpi-row" id="kpi-row"></div>
   <div class="card" style="margin-bottom:14px">
+    <div class="card-head"><div class="card-title">Análise Automática de Inteligência</div></div>
+    <div class="ins-grid" id="ins-grid"></div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
     <div class="card-head"><div class="card-title" style="display:flex;align-items:center;flex-wrap:wrap;gap:12px;font-size:17px">
       Meta vs Avaliado
       <span style="display:inline-flex;align-items:center;gap:16px;font-size:14px;font-weight:400;color:var(--tx)">
@@ -696,6 +708,15 @@
       <span class="sw" style="background:rgba(191,122,61,.85)"></span><span>Acima da meta, melhor que mês anterior</span>
       <span class="sw" style="background:rgba(200,75,75,.80)"></span><span>Acima da meta</span>
     </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-head">
+      <div class="card-title" style="display:flex;align-items:center;gap:12px">
+        Evolução por Município
+        <select id="evol-mun-crime" onchange="renderEvolMuns()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-size:13px;cursor:pointer"></select>
+      </div>
+    </div>
+    <canvas id="c-evol-muns" style="height:400px;max-height:400px"></canvas>
   </div>
 
 </div>

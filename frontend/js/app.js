@@ -1025,6 +1025,7 @@ function renderVisao() {
   }
   renderEvolMuns();
   renderVisaoHeatmap();
+  renderInsights();
 
   // Desvio vs Meta: ((avaliado - meta) / meta) * 100
   // Verde  → avaliado ≤ meta  |  Laranja → acima mas melhorando  |  Vermelho → acima e piorando
