@@ -15,6 +15,15 @@ function escHtml(s) {
 }
 
 // ---------------------------------------------------------------------------
+// Helpers globais reutilizáveis
+// ---------------------------------------------------------------------------
+function currentRole() {
+  try { return JSON.parse(localStorage.getItem('auth_user') || '{}').role || ''; } catch { return ''; }
+}
+const isFer      = t => /f[eé]rias/i.test(t || '');
+const fmtDateBR  = s => { if (!s) return '—'; const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
+
+// ---------------------------------------------------------------------------
 // Autenticação — helpers
 // ---------------------------------------------------------------------------
 function authFetch(url, options = {}) {
@@ -2422,7 +2431,7 @@ function renderOcorrTable(data) {
     return;
   }
   const th = s => `<th style="padding:7px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:11px;color:#ffffff;letter-spacing:1px;text-align:left;white-space:nowrap">${s}</th>`;
-  const td = (s, mono) => `<td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.05);color:#ffffff;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis${mono?';font-family:\'DM Mono\',monospace;font-size:13px':';font-size:13px'}" title="${(s||'').replace(/"/g,'&quot;')}">${s||'—'}</td>`;
+  const td = (s, mono) => `<td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.05);color:#ffffff;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis${mono?';font-family:\'DM Mono\',monospace;font-size:13px':';font-size:13px'}" title="${escHtml(s||'')}">${escHtml(s)||'—'}</td>`;
   let h = `<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr>
     ${th('DATA')}${th('HORA')}${th('PERÍODO')}${th('DIA')}${th('FLAGRANTE')}${th('CONDUTA')}${th('BAIRRO')}${th('TIPO LOCAL')}${th('MUNICÍPIO')}${th('CIA')}
   </tr></thead><tbody>`;
@@ -2761,7 +2770,6 @@ function renderP1() {
   });
 
   // ── Controle de Férias / LP
-  const isFer = t => /f[eé]rias/i.test(t || '');
   const isLP  = t => /^lp$/i.test((t || '').trim());
   const em15s = (() => { const d = new Date(); d.setDate(d.getDate() + 15); return d.toISOString().split('T')[0]; })();
   const em30s = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split('T')[0]; })();
@@ -3057,7 +3065,7 @@ function renderP1() {
 
   // ── Claro Operacional (visível e editável apenas por p1/ti)
   let claroSection = '';
-  const _claroRole = JSON.parse(localStorage.getItem('auth_user') || '{}').role || '';
+  const _claroRole = currentRole();
   if (['p1','ti'].includes(_claroRole) && p1Vagas.length) {
     const vagasMap = {};
     p1Vagas.forEach(v => { vagasMap[v.opm] = Number(v.vagas); });
@@ -3102,9 +3110,6 @@ function renderP1() {
       </div>`;
     }
   }
-
-  const feriasSection = '';
-  const eapSection = '';
 
   // ── Seção de afastamentos + alertas unificada (vai para o rodapé, abaixo das CIAs)
   const _esc2 = s => (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -3181,7 +3186,7 @@ function renderP1() {
     mkBlock('Em Afastamento', '#c84b4b', nowItems) +
     mkBlock('Próximos Afastamentos — 30 dias', '#5a9de0', nextItems);
 
-  bodyEl.innerHTML = claroSection + feriasSection + eapSection + `
+  bodyEl.innerHTML = claroSection + `
     <div style="margin-bottom:6px">
       <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia <span style="font-weight:400">· clique na sub-unidade para ver os PMs</span></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
@@ -3378,7 +3383,7 @@ async function afConfirmUpload() {
 
 // ── KPI Detail ───────────────────────────────────────────────────────────────
 
-function wrapDetail(title, count, color, closeBtn, inner) {
+function wrapDetail(_title, _count, _color, _closeBtn, inner) {
   return `<div style="overflow-x:auto">${inner}</div>`;
 }
 
@@ -3574,7 +3579,6 @@ function p1ShowKpiDetail(tipo) {
   }
 
   else if (tipo === 'ferias') {
-    const isFer   = t => /f[eé]rias/i.test(t||'');
     const afastsF = p1FiltroOpm ? p1Afasts.filter(a => reSetF.has(a.re)) : p1Afasts;
     const em15s   = (() => { const d = new Date(); d.setDate(d.getDate()+15); return d.toISOString().split('T')[0]; })();
     const gozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && a.termino >= hoje);
@@ -4620,7 +4624,6 @@ function renderHome() {
     }).length;
 
     // Férias
-    const isFer  = t => /f[eé]rias/i.test(t || '');
     const em15s  = (() => { const d = new Date(); d.setDate(d.getDate() + 15); return d.toISOString().split('T')[0]; })();
     const ferGozo = (p1Afasts||[]).filter(a => isFer(a.tipo_afastamento) && a.inicio <= today && (!a.termino || a.termino >= today)).length;
     const fer15   = (p1Afasts||[]).filter(a => isFer(a.tipo_afastamento) && a.inicio > today && a.inicio <= em15s).length;
@@ -4927,7 +4930,7 @@ function renderHome() {
 function updateSidebarImports(section) {
   const el = document.getElementById('sidebar-imports');
   if (!el) return;
-  const role = (() => { try { return JSON.parse(localStorage.getItem('auth_user') || '{}').role || ''; } catch { return ''; } })();
+  const role = currentRole();
   const isP3 = ['admin', 'p3', 'ti'].includes(role);
   const isP1 = ['admin', 'p1', 'ti'].includes(role);
   if (section === 'p1') {
@@ -5003,8 +5006,7 @@ function goSection(id, btn) {
   updateSidebarImports(id);
   if (id === 'p1') {
     p1FiltroOpm = '';
-    const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
-loadP1();
+    loadP1();
   }
   setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
 }
@@ -5067,8 +5069,7 @@ const PROD_BREAK = {
   entorpecentes: 'entorpecente'
 };
 
-// Normaliza CIA para exibição: "1Cia", "1CIA", "1ªCIA" → "1ª CIA"
-const normCiaDisp = s => { const m = (s||'').trim().match(/(\d+)/); return m ? m[1] + 'ª CIA' : (s||'').trim(); };
+const normCiaDisp = normCiaDisplay;
 
 function prodFilter(arr) {
   return arr.filter(r => {
@@ -6850,7 +6851,7 @@ function renderDDSection() {
 
   const el = document.getElementById('dd-detail-body');
   if (!el) return;
-  const _role   = JSON.parse(localStorage.getItem('auth_user') || '{}').role || '';
+  const _role   = currentRole();
   const canEdit = ['admin','p3','ti'].includes(_role);
   const canDel  = ['admin','p3'].includes(_role);
 
@@ -7406,7 +7407,7 @@ async function ddUplConfirm() {
 // ---------------------------------------------------------------------------
 
 function initInspector() {
-  const role = (() => { try { return JSON.parse(localStorage.getItem('auth_user') || '{}').role || ''; } catch { return ''; } })();
+  const role = currentRole();
   if (!['admin', 'ti'].includes(role)) return;
 
   let active = false;
