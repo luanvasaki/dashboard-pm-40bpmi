@@ -107,7 +107,7 @@ let supabase = null;
 }
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || null;
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
   credentials: true,
   origin: ALLOWED_ORIGIN ? ALLOWED_ORIGIN : (origin, cb) => cb(null, true)
