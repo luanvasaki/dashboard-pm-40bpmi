@@ -1,6 +1,6 @@
-/**
+﻿/**
  * app.js — Frontend do Dashboard 40 BPM/I
- * Busca os dados via API REST (backend Node.js + SQLite).
+ * Busca os dados via API REST (backend Node.js + Supabase).
  */
 
 const API = `${window.location.origin}/api`;
@@ -877,7 +877,7 @@ function sbSetScope(type, val) {
   }
   buildSbMes();
   renderKPIs();
-  renderVisaoAndInsights();
+  renderVisao();
 }
 
 function buildHmFilter() {
@@ -956,14 +956,10 @@ function renderAll() {
   if (lblP3Per && lblP3Per.textContent === '—') lblP3Per.textContent = p;
   document.getElementById('metas-badge').textContent = p;
   renderKPIs();
-  renderVisaoAndInsights();
+  renderVisao();
   renderMetas();
   renderHeatmap();
   renderEvolucao();
-}
-
-function renderVisaoAndInsights() {
-  renderVisao();
 }
 
 // ---------------------------------------------------------------------------
@@ -1190,7 +1186,6 @@ function renderEvolMuns() {
     .sort((a, b) => munCia(a.m).localeCompare(munCia(b.m)) || b.total - a.total);
 
   const ciaStyleIdx2 = {};
-  const dashes2 = [[],[],[]];
   mk('c-evol-muns', {
     type: 'line',
     data: {
@@ -2473,6 +2468,7 @@ function renderMoIntel(data) {
   renderOcorrHeatmap(data);
   renderTipoLocal(data);
   renderBairros(data);
+  renderRubrica(data);
 }
 
 function renderOcorrHeatmap(data) {
@@ -3100,15 +3096,13 @@ function renderP1() {
       </div>`;
     }
   } else if (['p1','ti'].includes(_claroRole)) {
-    if (true) {
-      claroSection = `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
-        <div>
-          <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;margin-bottom:4px">Claro Operacional</div>
-          <div style="font-size:12px;color:var(--tx3)">Configure o efetivo fixado (vagas) para calcular o claro operacional por unidade.</div>
-        </div>
-        <button onclick="openVagasModal()" style="padding:7px 16px;background:rgba(90,157,224,.15);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap">⚙ Configurar Vagas</button>
-      </div>`;
-    }
+    claroSection = `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;margin-bottom:4px">Claro Operacional</div>
+        <div style="font-size:12px;color:var(--tx3)">Configure o efetivo fixado (vagas) para calcular o claro operacional por unidade.</div>
+      </div>
+      <button onclick="openVagasModal()" style="padding:7px 16px;background:rgba(90,157,224,.15);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap">⚙ Configurar Vagas</button>
+    </div>`;
   }
 
   // ── Seção de afastamentos + alertas unificada (vai para o rodapé, abaixo das CIAs)
@@ -3877,11 +3871,6 @@ function p1SearchSelect(re) {
 function p1SearchHide() {
   const drop = document.getElementById('p1-search-drop');
   if (drop) drop.style.display = 'none';
-}
-
-function p1DoSearch() {
-  const val = (document.getElementById('p1-search')?.value || '').trim();
-  if (val) p1SearchInput(val);
 }
 
 // ── Prontuário Individual ────────────────────────────────────────────────────
@@ -5362,159 +5351,6 @@ function prodRender() {
       : '');
 
 }
-
-function renderCiaRanking(filt) {
-  const el = document.getElementById('cia-ranking-section');
-  if (!el) return;
-
-  const CIAS_DISPLAY = CIA_STRUCT.map(c => c.label);
-
-  // Agrega prod por CIA
-  const aggCiaProd = (tipo, campo, extraFilt) => {
-    const agg = {};
-    CIAS_DISPLAY.forEach(c => agg[c] = 0);
-    (extraFilt ? filt[tipo].filter(extraFilt) : filt[tipo]).forEach(r => {
-      const c = r.cia ? normCiaDisplay(r.cia) : null;
-      if (c && Object.prototype.hasOwnProperty.call(agg, c)) agg[c] += (Number(r[campo]) || 0);
-    });
-    return agg;
-  };
-
-  // DD filtrado pelo mesmo período do prod
-  const mesesDisp = prodGetMesesDisp(prodSelAno);
-  const allMeses  = prodSelMeses.length === mesesDisp.length;
-  const ddBase = ddData.filter(r => {
-    if (!r.data) return false;
-    const d = new Date(r.data + 'T00:00:00');
-    if (d.getFullYear() !== prodSelAno) return false;
-    if (!allMeses) { const nm = MES_ORD[d.getMonth()]; if (!prodSelMeses.includes(nm)) return false; }
-    return true;
-  });
-
-  // Métricas DD por CIA
-  const ddMetrics = {};
-  CIAS_DISPLAY.forEach(disp => {
-    const ddCia = DD_CIAS.find(c => normCiaDisplay(c) === disp);
-    const dados = ddCia ? ddBase.filter(r => r.cia === ddCia) : [];
-    const total = dados.length;
-    const aver  = dados.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito') || ddStatusMatch(r.status,'Averiguada sem Êxito')).length;
-    const exito = dados.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito')).length;
-    ddMetrics[disp] = { aver, exito };
-  });
-
-  // Entorpecentes unidade principal
-  const entorpAgg = (() => {
-    const agg = {}; CIAS_DISPLAY.forEach(c => agg[c] = 0);
-    if (!prodEntorpUnit) return agg;
-    filt.entorpecentes.filter(r => (r.unidade_medida||'').trim() === prodEntorpUnit).forEach(r => {
-      const c = r.cia ? normCiaDisplay(r.cia) : null;
-      if (c && Object.prototype.hasOwnProperty.call(agg, c)) agg[c] += (Number(r.quantidade) || 0);
-    });
-    return agg;
-  })();
-
-  // Definição das categorias com pontuação unitária direta
-  const cats = [
-    { label: 'Armas Apreendidas',       rate: 15, rateLabel: '15 pts/arma',    cor: '#c84b4b', vals: aggCiaProd('armas',    'quantidade'),                                               calcPts: q => q * 15 },
-    { label: 'Veículos Recuperados',    rate: 10, rateLabel: '10 pts/veículo', cor: '#4bc8a0', vals: aggCiaProd('veiculos', 'quantidade'),                                               calcPts: q => q * 10 },
-    { label: 'DD — Averiguadas c/ Êxito', rate: 10, rateLabel: '10 pts/DD',   cor: '#5ae09a', vals: Object.fromEntries(CIAS_DISPLAY.map(c => [c, ddMetrics[c].exito])),               calcPts: q => q * 10 },
-    { label: 'Pessoas Presas',          rate:  3, rateLabel: '3 pts/preso',    cor: '#e0965a', vals: aggCiaProd('presos',   'quantidade'),                                               calcPts: q => q * 3  },
-    { label: 'DD — Averiguadas',        rate:  3, rateLabel: '3 pts/DD',       cor: '#5ae09a', vals: Object.fromEntries(CIAS_DISPLAY.map(c => [c, ddMetrics[c].aver])),                calcPts: q => q * 3  },
-    { label: prodEntorpUnit ? `Entorpecentes (${prodEntorpUnit})` : 'Entorpecentes', rate: 5, rateLabel: '5 pts/100g', cor: '#9b6de0', vals: entorpAgg, calcPts: q => Math.floor(q / 100) * 5 },
-  ];
-
-  // Calcula pontuação direta por unidade
-  const scores = {};
-  CIAS_DISPLAY.forEach(c => scores[c] = { total: 0, breakdown: {} });
-  cats.forEach(cat => {
-    CIAS_DISPLAY.forEach(cia => {
-      const qty = cat.vals[cia] || 0;
-      const pts = cat.calcPts(qty);
-      scores[cia].total += pts;
-      scores[cia].breakdown[cat.label] = { pts, qty };
-    });
-  });
-
-  const ranking    = [...CIAS_DISPLAY].sort((a, b) => scores[b].total - scores[a].total);
-const ciaColor   = name => CIA_STRUCT.find(c => c.label === name)?.color || '#aaa';
-  const periodoLabel = allMeses ? 'Acumulado ' + prodSelAno : prodSelMeses.join(', ');
-
-  // Pódio (ordem: 2º · 1º · 3º)
-  const podiumOrder   = [ranking[1], ranking[0], ranking[2]];
-  const podiumHeights = ['80px', '110px', '60px'];
-  const podiumPos     = ['2º', '1º', '3º'];
-  const medalCors     = ['#aab0bb', '#c8a84b', '#c87850'];
-
-  const podiumHtml = `
-    <div style="display:flex;align-items:flex-end;justify-content:center;gap:10px;margin-bottom:28px">
-      ${podiumOrder.map((cia, i) => {
-        if (!cia) return '<div style="flex:1;max-width:140px"></div>';
-        const score = scores[cia].total;
-        return `<div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;max-width:140px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;color:${ciaColor(cia)}">${cia}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:14px;color:#fff;font-weight:700">${score.toLocaleString('pt-BR')} pts</div>
-          <div style="width:100%;height:${podiumHeights[i]};background:${medalCors[i]}18;border:2px solid ${medalCors[i]};border-bottom:none;border-radius:6px 6px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:10px">
-            <span style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:${medalCors[i]}">${podiumPos[i]}</span>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`;
-
-  // Tabela de pontuação por categoria
-  const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd);font-family:"DM Mono",monospace;font-size:13px;color:#d0d4dc;text-transform:uppercase;letter-spacing:1px';
-  const tdS = 'padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px';
-
-  const breakdownHtml = `
-    <div style="overflow-x:auto;margin-bottom:18px">
-      <table style="width:100%;border-collapse:collapse;min-width:420px">
-        <thead><tr>
-          <th style="${thS};text-align:left">Categoria</th>
-          <th style="${thS};text-align:center">Pontuação</th>
-          ${ranking.map(cia => `<th style="${thS};text-align:center;color:${ciaColor(cia)}">${cia}</th>`).join('')}
-        </tr></thead>
-        <tbody>
-          ${cats.map(cat => `<tr>
-            <td style="${tdS};color:${cat.cor};font-weight:600">${cat.label}</td>
-            <td style="${tdS};text-align:center;font-family:'DM Mono',monospace;font-size:13px;color:#c0c8d8">${cat.rateLabel}</td>
-            ${ranking.map(cia => {
-              const b = scores[cia].breakdown[cat.label];
-              const qtyStr = cat.label.includes('Entorpecentes') ? `${b.qty.toLocaleString('pt-BR')}g` : b.qty.toLocaleString('pt-BR');
-              return `<td style="${tdS};text-align:center">
-                <div style="font-family:'DM Mono',monospace;color:${b.pts > 0 ? '#fff' : '#444'};font-weight:${b.pts > 0 ? '700' : '400'};font-size:14px">${b.pts.toLocaleString('pt-BR')}</div>
-                <div style="font-size:12px;color:#a8b8cc;margin-top:1px">${b.qty > 0 ? qtyStr : '—'}</div>
-              </td>`;
-            }).join('')}
-          </tr>`).join('')}
-          <tr style="background:rgba(255,255,255,.03)">
-            <td style="${tdS};font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;color:#fff;letter-spacing:1px;text-transform:uppercase">Total</td>
-            <td style="${tdS}"></td>
-            ${ranking.map(cia => `<td style="${tdS};text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${ciaColor(cia)}">${scores[cia].total.toLocaleString('pt-BR')}</td>`).join('')}
-          </tr>
-        </tbody>
-      </table>
-    </div>`;
-
-  // Legenda de como é calculado
-  const legendHtml = `
-    <div style="background:rgba(255,255,255,.03);border:1px solid var(--bd);border-radius:8px;padding:14px">
-      <div style="font-family:'DM Mono',monospace;font-size:12px;color:#d0d4dc;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Como é calculado</div>
-      <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:#d0d4dc">
-        ${cats.map(cat => `<span style="color:${cat.cor};font-weight:600">${cat.label}</span><span style="color:#c0c8d8"> ${cat.rateLabel}</span>`).join(' &nbsp;·&nbsp; ')}
-      </div>
-    </div>`;
-
-  el.innerHTML = `
-    <div class="card">
-      <div class="card-head" style="margin-bottom:20px">
-        <div class="card-title">Ranking Geral das CIAs</div>
-        <span style="font-size:12px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px">${periodoLabel.toUpperCase()}</span>
-      </div>
-      ${podiumHtml}
-      ${breakdownHtml}
-      ${legendHtml}
-    </div>`;
-}
-
 function prodSetAno(ano) {
   prodSelAno = ano;
   prodSelMeses = [...prodGetMesesDisp(ano)];
@@ -6520,8 +6356,6 @@ function renderIndicadoresP3() {
       </div>
     </div>` : '';
 
-  const historicoHtml = '';
-
   el.innerHTML = `
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--bd)">
@@ -6532,8 +6366,7 @@ function renderIndicadoresP3() {
       ${alertFalta}
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px">${kpiCards}</div>
     </div>
-    ${chartsHtml}
-    ${historicoHtml}`;
+    ${chartsHtml}`;
 
   if (temDados) {
     iqDestroyCharts();

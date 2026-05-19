@@ -9,6 +9,7 @@ node_modules/
 
 # Dados locais (não versionar)
 raw_data.json
+backup_legado/
 
 # Sistema
 .DS_Store
@@ -16,3 +17,4 @@ Thumbs.db
 
 # Arquivos temporários
 *.log
+.vercel

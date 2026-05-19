@@ -22,6 +22,8 @@
 require('dotenv').config();
 const express      = require('express');
 const cors         = require('cors');
+const helmet       = require('helmet');
+const rateLimit    = require('express-rate-limit');
 const path         = require('path');
 const fs           = require('fs');
 const jwt          = require('jsonwebtoken');
@@ -104,10 +106,21 @@ let supabase = null;
   console.log('✓ Supabase client inicializado');
 }
 
-app.use(cors({ credentials: true, origin: true }));
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || null;
+app.use(helmet());
+app.use(cors({
+  credentials: true,
+  origin: ALLOWED_ORIGIN ? ALLOWED_ORIGIN : (origin, cb) => cb(null, true)
+}));
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' }
+});
 
 // Ordem canônica
 const MES_ORD    = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -130,37 +143,6 @@ function parseCSVLine(line) {
   }
   result.push(cur);
   return result;
-}
-
-function parseCSV(text) {
-  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
-  if (lines.length < 2) return [];
-
-  const headers = parseCSVLine(lines[0]).map(h => h.trim());
-
-  const col = (row, ...keys) => {
-    for (const k of keys) {
-      const idx = headers.findIndex(h => h.toLowerCase() === k.toLowerCase());
-      if (idx !== -1) return row[idx]?.trim() || '';
-    }
-    return '';
-  };
-
-  return lines.slice(1).map(line => {
-    const row = parseCSVLine(line);
-    return {
-      ano:      parseInt(col(row, 'ano'))                      || 0,
-      mes:      col(row, 'mes'),
-      cia:      col(row, 'cia'),
-      mun:      col(row, 'municipio', 'mun'),
-      crime:    col(row, 'crime'),
-      anterior: parseFloat(col(row, 'anterior'))               || 0,
-      meta:     parseFloat(col(row, 'meta'))                   || 0,
-      avaliado: parseFloat(col(row, 'avaliado'))               || 0,
-      tend:     parseFloat(col(row, 'tendencia', 'tend'))      || 0,
-      variacao: col(row, 'variação', 'variacao', 'variação')
-    };
-  }).filter(r => r.mes && r.crime);
 }
 
 // Mapeia linha do Supabase → formato interno (busca case-insensitive)
@@ -311,7 +293,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // POST /api/auth/login
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { matricula, senha } = req.body;
   if (!matricula || !senha) return res.status(400).json({ error: 'Preencha todos os campos' });
@@ -513,9 +495,7 @@ app.post('/api/upload', requireAuth, async (req, res) => {
       'Variação':  (gf(r,'variação') || gf(r,'variacao') || '').trim()
     })).filter(r => r['Mes'] && r['Crime'] && r['Ano'] > 0);
 
-    // Diagnóstico: mostra estrutura do primeiro registro e meses encontrados
-    if (records.length) console.log('[upload RAC] 1º registro recebido:', JSON.stringify(records[0]));
-    console.log(`[upload RAC] ${rows.length}/${records.length} válidos. Meses:`, [...new Set(rows.map(r => r['Mes']))]);
+    console.log(`[upload RAC] ${rows.length}/${records.length} registros válidos`);
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
 
@@ -585,9 +565,10 @@ app.get('/api/ocorrencias', requireAuth, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   const { rubrica, cia, municipio, limit = 2000 } = req.query;
   try {
+    const safeLimit = Math.min(parseInt(limit) || 2000, 5000);
     let q = supabase.from(OCORRENCIAS_TABLE).select('*')
       .order('data_ocorrencia', { ascending: false })
-      .limit(parseInt(limit));
+      .limit(safeLimit);
     if (rubrica)    q = q.ilike('rubrica', `%${rubrica}%`);
     if (cia)        q = q.eq('cia', cia);
     if (municipio)  q = q.eq('municipio', municipio);
@@ -999,7 +980,7 @@ app.post('/api/p1/quadro/upload', requireAuth, requireRole('admin', 'p1'), async
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique a coluna OPM.' });
 
-    await supabase.from(QUADRO_TABLE).delete().neq('id', 0);
+    await supabase.from(QUADRO_TABLE).delete().gte('id', 1);
     const BATCH = 100;
     for (let i = 0; i < rows.length; i += BATCH) {
       const { error } = await supabase.from(QUADRO_TABLE).insert(rows.slice(i, i + BATCH));
@@ -1280,7 +1261,7 @@ app.get('/api/indicadores-p3/calculado', requireAuth, async (req, res) => {
         furto_veiculo:     sumRac('Furto de Veículos'),
         armas_apreendidas: totalArmas,
         flagrantes_pm:     flagrantes,
-        pessoas_presas:    flagrantes,
+        pessoas_presas:    flagrantes + procurados,
         menores_presos:    menores,
         procurados:        procurados,
       };
