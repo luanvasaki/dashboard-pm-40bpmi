@@ -1,6 +1,12 @@
 # Dependências
 node_modules/
 
+# Credenciais — NUNCA commitar
+.env
+.env.local
+.env.production
+.env.development
+
 # Dados locais (não versionar)
 raw_data.json
 

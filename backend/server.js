@@ -32,9 +32,10 @@ const PORT = 3001;
 
 // ============================================================
 // AUTENTICAÇÃO — JWT
-// Troque JWT_SECRET por uma string longa e aleatória em produção
+// Defina JWT_SECRET como variável de ambiente — nunca hardcode
 // ============================================================
-const JWT_SECRET      = process.env.JWT_SECRET || '40bpmi_painel_intel_2026_chave_secreta';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) { console.error('FATAL: variável JWT_SECRET não definida'); process.exit(1); }
 const USUARIOS_TABLE     = 'usuarios';
 const OCORRENCIAS_TABLE  = 'ocorrencias';
 
@@ -80,19 +81,23 @@ function requireRole(...roles) {
 }
 
 // ============================================================
-// CONFIGURE AQUI: Supabase (fonte primária de dados)
-// Project Settings → API → URL  e  service_role key
+// Supabase — credenciais via variáveis de ambiente OBRIGATÓRIAS
+// Use a service_role key (não a anon/publishable key)
+// Vercel: Settings → Environment Variables
+// Local:  arquivo .env (nunca comitar)
 // ============================================================
-const SUPABASE_URL = 'https://lhdmqqmvpaeanblqiodr.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_1drgCoWkW1rMsr1CagUgEQ_N14K4sPd';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error('FATAL: variáveis SUPABASE_URL e SUPABASE_KEY não definidas');
+  process.exit(1);
+}
 
-
-const CACHE_TTL  = 5 * 60 * 1000; // auto-refresh a cada 5 minutos
+const CACHE_TTL  = 5 * 60 * 1000;
 const TABLE_NAME = 'Base de Dados RAC PM';
 
-// Inicializa cliente Supabase apenas se as credenciais foram preenchidas
 let supabase = null;
-if (SUPABASE_URL !== 'COLE_SUA_URL_AQUI' && SUPABASE_KEY !== 'COLE_SUA_KEY_AQUI') {
+{
   const { createClient } = require('@supabase/supabase-js');
   supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
   console.log('✓ Supabase client inicializado');
