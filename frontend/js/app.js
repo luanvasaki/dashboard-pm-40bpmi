@@ -6,14 +6,21 @@
 const API = `${window.location.origin}/api`;
 
 // ---------------------------------------------------------------------------
+// Segurança — escape HTML para evitar XSS em innerHTML
+// ---------------------------------------------------------------------------
+function escHtml(s) {
+  return (s == null ? '' : String(s))
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// ---------------------------------------------------------------------------
 // Autenticação — helpers
 // ---------------------------------------------------------------------------
 function authFetch(url, options = {}) {
-  const token = localStorage.getItem('auth_token');
-  options.headers = { ...options.headers, ...(token ? { 'Authorization': `Bearer ${token}` } : {}) };
+  options.credentials = 'same-origin';
   return fetch(url, options).then(r => {
     if (r.status === 401) {
-      localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
       window.location.replace('/login.html');
       throw new Error('Sessão expirada');
@@ -22,8 +29,8 @@ function authFetch(url, options = {}) {
   });
 }
 
-function doLogout() {
-  localStorage.removeItem('auth_token');
+async function doLogout() {
+  try { await fetch(`${API}/auth/logout`, { method: 'POST', credentials: 'same-origin' }); } catch (_) {}
   localStorage.removeItem('auth_user');
   window.location.replace('/login.html');
 }
@@ -261,14 +268,15 @@ function buildUserTable(users, me) {
       actions = `<button onclick="admAction('${u.id}','approved')" style="padding:4px 10px;background:rgba(61,191,122,.15);border:1px solid rgba(61,191,122,.3);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px">✓ Aprovar</button>
                  <button onclick="admAction('${u.id}','rejected')" style="padding:4px 10px;background:rgba(200,75,75,.1);border:1px solid rgba(200,75,75,.25);color:#e06060;border-radius:4px;cursor:pointer;font-size:11px">✕ Recusar</button>`;
     } else if (u.status === 'approved') {
-      actions = `<button onclick="admAction('${u.id}','rejected')" style="padding:4px 10px;background:rgba(200,75,75,.08);border:1px solid rgba(200,75,75,.2);color:#e06060;border-radius:4px;cursor:pointer;font-size:11px">Revogar</button>
-                 <button onclick="admResetSenha('${u.id}','${u.nome}')" style="padding:4px 10px;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.25);color:#e8c96a;border-radius:4px;cursor:pointer;font-size:11px;margin-left:4px" title="Senha temporária = matrícula do usuário">🔑 Redefinir Senha</button>`;
+      actions = `<button onclick="admAction('${u.id}','approved')" style="display:none"></button>
+                 <button onclick="admAction('${u.id}','rejected')" style="padding:4px 10px;background:rgba(200,75,75,.08);border:1px solid rgba(200,75,75,.2);color:#e06060;border-radius:4px;cursor:pointer;font-size:11px">Revogar</button>
+                 <button data-uid="${escHtml(u.id)}" data-unome="${escHtml(u.nome)}" onclick="admResetSenha(this.dataset.uid,this.dataset.unome)" style="padding:4px 10px;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.25);color:#e8c96a;border-radius:4px;cursor:pointer;font-size:11px;margin-left:4px" title="Senha temporária = matrícula do usuário">🔑 Redefinir Senha</button>`;
     } else {
       actions = `<button onclick="admAction('${u.id}','approved')" style="padding:4px 10px;background:rgba(61,191,122,.1);border:1px solid rgba(61,191,122,.25);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:11px">Reativar</button>`;
     }
 
     h += `<tr>
-      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:#d8dce8">${u.nome}</td>
+      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:#d8dce8">${escHtml(u.nome)}</td>
       <td style="padding:4px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
         ${canEditPosto
           ? `<select onchange="admChangePosto('${u.id}',this.value)" style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer">
@@ -277,7 +285,7 @@ function buildUserTable(users, me) {
             </select>`
           : `<span style="color:var(--tx3)">${u.posto||'—'}</span>`}
       </td>
-      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-family:'DM Mono',monospace;color:var(--tx3)">${u.matricula}</td>
+      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-family:'DM Mono',monospace;color:var(--tx3)">${escHtml(u.matricula)}</td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
         <select onchange="admChangeSecao('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${secaoOpts}</select>
       </td>
@@ -287,7 +295,7 @@ function buildUserTable(users, me) {
       </td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);white-space:nowrap">
         ${actions}
-        <button onclick="admDelete('${u.id}','${u.nome}')" style="padding:4px 8px;background:transparent;border:1px solid rgba(200,75,75,.2);color:var(--tx3);border-radius:4px;cursor:pointer;font-size:11px;margin-left:4px" title="Excluir usuário">🗑</button>
+        <button data-uid="${escHtml(u.id)}" data-unome="${escHtml(u.nome)}" onclick="admDelete(this.dataset.uid,this.dataset.unome)" style="padding:4px 8px;background:transparent;border:1px solid rgba(200,75,75,.2);color:var(--tx3);border-radius:4px;cursor:pointer;font-size:11px;margin-left:4px" title="Excluir usuário">🗑</button>
       </td>
     </tr>`;
   });

@@ -19,12 +19,13 @@
  *   POST /api/upload      → recebe registros do CSV e faz upsert no Supabase
  */
 
-const express = require('express');
-const cors    = require('cors');
-const path    = require('path');
-const fs      = require('fs');
-const jwt     = require('jsonwebtoken');
-const bcrypt  = require('bcryptjs');
+const express      = require('express');
+const cors         = require('cors');
+const path         = require('path');
+const fs           = require('fs');
+const jwt          = require('jsonwebtoken');
+const bcrypt       = require('bcryptjs');
+const cookieParser = require('cookie-parser');
 
 const app  = express();
 const PORT = 3001;
@@ -33,7 +34,7 @@ const PORT = 3001;
 // AUTENTICAÇÃO — JWT
 // Troque JWT_SECRET por uma string longa e aleatória em produção
 // ============================================================
-const JWT_SECRET      = '40bpmi_painel_intel_2026_chave_secreta';
+const JWT_SECRET      = process.env.JWT_SECRET || '40bpmi_painel_intel_2026_chave_secreta';
 const USUARIOS_TABLE     = 'usuarios';
 const OCORRENCIAS_TABLE  = 'ocorrencias';
 
@@ -58,10 +59,13 @@ function parseDateBR(s){ if(!s)return null; const[d,m,y]=(s||'').split('/'); if(
 function parseHora(s){ if(!s||!s.trim())return null; const p=s.trim().split(':'); return p.length<2?null:`${p[0].padStart(2,'0')}:${p[1].padStart(2,'0')}`; }
 
 function requireAuth(req, res, next) {
-  const auth = req.headers.authorization;
-  if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'Token não fornecido' });
+  const cookieToken  = req.cookies?.auth_token;
+  const auth         = req.headers.authorization;
+  const bearerToken  = auth?.startsWith('Bearer ') ? auth.slice(7) : null;
+  const token        = cookieToken || bearerToken;
+  if (!token) return res.status(401).json({ error: 'Token não fornecido' });
   try {
-    req.user = jwt.verify(auth.slice(7), JWT_SECRET);
+    req.user = jwt.verify(token, JWT_SECRET);
     next();
   } catch {
     res.status(401).json({ error: 'Token inválido ou expirado' });
@@ -94,7 +98,8 @@ if (SUPABASE_URL !== 'COLE_SUA_URL_AQUI' && SUPABASE_KEY !== 'COLE_SUA_KEY_AQUI'
   console.log('✓ Supabase client inicializado');
 }
 
-app.use(cors());
+app.use(cors({ credentials: true, origin: true }));
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
@@ -323,7 +328,13 @@ app.post('/api/auth/login', async (req, res) => {
 
     const payload = { id: data.id, nome: data.nome, matricula: data.matricula, role: data.role, secao: data.secao, resetSenha: data.reset_senha === true };
     const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
-    res.json({ token, user: payload });
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 8 * 60 * 60 * 1000
+    });
+    res.json({ user: payload });
   } catch (err) {
     console.error('✗ Erro no login:', err.message);
     res.status(500).json({ error: err.message });
@@ -333,6 +344,12 @@ app.post('/api/auth/login', async (req, res) => {
 // GET /api/auth/me
 app.get('/api/auth/me', requireAuth, (req, res) => {
   res.json(req.user);
+});
+
+// POST /api/auth/logout
+app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('auth_token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' });
+  res.json({ ok: true });
 });
 
 // POST /api/auth/nova-senha — define nova senha após reset obrigatório

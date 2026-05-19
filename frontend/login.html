@@ -192,12 +192,12 @@ async function doLogin() {
     const res  = await fetch(`${API}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
       body: JSON.stringify({ matricula, senha })
     });
     const data = await res.json();
     if (!res.ok) return showMsg('msg-login', data.error || 'Erro ao entrar.', 'err');
 
-    localStorage.setItem('auth_token', data.token);
     localStorage.setItem('auth_user', JSON.stringify(data.user));
     if (data.user.resetSenha) {
       document.getElementById('tabs-wrap').style.display = 'none';
@@ -223,10 +223,10 @@ async function doNovaSenha() {
   btn.disabled = true; btn.textContent = 'Salvando...';
 
   try {
-    const token = localStorage.getItem('auth_token');
     const res   = await fetch(`${API}/auth/nova-senha`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
       body: JSON.stringify({ senha })
     });
     const data = await res.json();
@@ -282,8 +282,8 @@ async function doRegister() {
 
 // Se já estiver logado, vai direto pro dashboard
 (function(){
-  const token = localStorage.getItem('auth_token');
-  if (token) window.location.replace('/');
+  const user = localStorage.getItem('auth_user');
+  if (user) window.location.replace('/');
 })();
 </script>
 </body>
