@@ -19,6 +19,7 @@
  *   POST /api/upload      → recebe registros do CSV e faz upsert no Supabase
  */
 
+require('dotenv').config();
 const express      = require('express');
 const cors         = require('cors');
 const path         = require('path');
