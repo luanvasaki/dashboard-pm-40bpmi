@@ -1357,12 +1357,12 @@ function renderInsights() {
   const crimeMaisCresceu = [...crimesVar].sort((a, b) => b.varP - a.varP)[0];
   const crimeMaisReduciu = [...crimesVar].sort((a, b) => a.varP - b.varP)[0];
 
-  // Crime mais crítico: maior desvio positivo acima da meta (por município — qualquer município acima da meta já conta)
+  // Crime mais crítico: pior município individual (máximo desvio por município)
   const crimesDesvio = CRIMES.map(c => {
     let maxDesvio = -Infinity, maxA = 0, maxM = 0;
     muns.forEach(mun => {
-      const a  = sf(q({ crime: c, mun, mes: selMeses, ...sc }));
-      const m  = sf(q({ crime: c, mun, mes: selMeses, ...sc }), 'meta');
+      const a = sf(q({ crime: c, mun, mes: selMeses, ...sc }));
+      const m = sf(q({ crime: c, mun, mes: selMeses, ...sc }), 'meta');
       if (m > 0) {
         const d = (a - m) / m * 100;
         if (d > maxDesvio) { maxDesvio = d; maxA = a; maxM = m; }
@@ -1372,15 +1372,23 @@ function renderInsights() {
   });
   const crimeCritico = [...crimesDesvio].sort((a, b) => b.desvio - a.desvio)[0];
 
-  // Crime melhor desempenho: maior desvio negativo (mais abaixo da meta)
-  const crimeMelhor = crimesDesvio
+  // Totais agregados — mesma lógica dos KPI cards (usada para contagens e melhor desempenho)
+  const crimesTotais = CRIMES.map(c => {
+    const a = sf(qsc({ crime: c }));
+    const m = sf(qsc({ crime: c }), 'meta');
+    const desvio = m > 0 ? (a - m) / m * 100 : (a > 0 ? 100 : -Infinity);
+    return { c, a, m, desvio };
+  });
+
+  // Crime melhor desempenho: maior redução sobre a meta (totais agregados)
+  const crimeMelhor = crimesTotais
     .filter(x => x.m > 0 && x.a <= x.m)
     .sort((a, b) => a.desvio - b.desvio)[0];
 
-  // Contagens de meta
-  const acima   = crimesDesvio.filter(x => x.m > 0 && x.a > x.m).length;
-  const ok      = crimesDesvio.filter(x => x.m > 0 && x.a <= x.m).length;
-  const emEvol  = crimesDesvio.filter(x => {
+  // Contagens de meta — totais agregados, coerente com os KPI cards
+  const acima  = crimesTotais.filter(x => x.m > 0 && x.a > x.m).length;
+  const ok     = crimesTotais.filter(x => x.m > 0 && x.a <= x.m).length;
+  const emEvol = crimesTotais.filter(x => {
     if (x.m === 0 || x.desvio <= 0) return false;
     const ant = sf(qsc({ crime: x.c }), 'anterior');
     return x.a < ant;
