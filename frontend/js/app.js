@@ -1341,7 +1341,9 @@ function renderInsights() {
   const pf   = pageFilters.visao;
   const sc   = scope('visao');
   const lbl  = pf.type === 'btl' ? 'Batalhão' : pf.value;
-  const muns = pf.type === 'cia' ? MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === pf.value)) : MUNS;
+  const muns = pf.type === 'cia' ? MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === pf.value))
+             : sc.mun                ? [sc.mun]
+             : MUNS;
   const qsc  = f => q({ ...f, mes: selMeses, ...sc });
 
   // --- Pré-cálculos genéricos ---
