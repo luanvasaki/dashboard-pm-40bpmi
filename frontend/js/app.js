@@ -5040,11 +5040,12 @@ let prodEntorpCatCh = null;
 let pdTipo = null, pdUnidade = null, pdChs = [], pdSelCia = '', pdMeses = [], pdNatFilter = null;
 
 const PROD_CORES = {
-  ocorrencias:   '#5a9de0',
-  presos:        '#e0965a',
-  armas:         '#c84b4b',
-  veiculos:      '#4bc8a0',
-  entorpecentes: '#9b6de0'
+  ocorrencias:      '#5a9de0',
+  presos:           '#e0965a',
+  armas:            '#c84b4b',
+  veiculos:         '#4bc8a0',
+  entorpecentes:    '#9b6de0',
+  'tempo-resposta': '#4bc8e0'
 };
 const PROD_LABELS = {
   ocorrencias:        'Ocorrências Atendidas',
@@ -5240,12 +5241,12 @@ function prodRender() {
       const trGlobal = trWAvg(filtTR);
       const trTotalTaloes = filtTR.reduce((s, r) => s + (r.qtde_taloes || 0), 0);
       const TR_COR = '#4bc8e0';
-      return `<div class="kpi">
+      return `<div class="kpi" onclick="openProdDetail('tempo-resposta')" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top" style="background:${TR_COR}"></div>
         <div class="kpi-lbl">Resp. ≤20min</div>
         <div class="kpi-val" style="color:${TR_COR}">${trGlobal.toFixed(1)}%</div>
         <div class="kpi-sub">Talões HD-HCL no prazo</div>
-        <div class="kpi-hint">${trTotalTaloes.toLocaleString('pt-BR')} talões urgentes</div>
+        <div class="kpi-hint">▸ clique p/ detalhes</div>
       </div>`;
     })();
 
@@ -5369,157 +5370,8 @@ function prodRender() {
     </div>`);
   }
 
-  // ─── Tempo de Resposta — Ocorrências Urgentes ─────────────────────────
-  const TR_COR = '#4bc8e0';
-  const TR_COR_BOM  = '#4bc87a';
-  const TR_COR_MAU  = '#e06060';
-  const filtTR = prodFilter(prodRaw.tempoResposta);
-  let trSection = '';
-
-  if (filtTR.length) {
-    const trWAvg = rows => {
-      const tot = rows.reduce((s, r) => s + (r.qtde_taloes || 0), 0);
-      return tot ? rows.reduce((s, r) => s + (r.pct_hd_hcl_20min || 0) * (r.qtde_taloes || 0), 0) / tot : 0;
-    };
-    const trWAvgBoe = rows => {
-      const tot = rows.reduce((s, r) => s + (r.qtde_taloes || 0), 0);
-      return tot ? rows.reduce((s, r) => s + (r.pct_boe || 0) * (r.qtde_taloes || 0), 0) / tot : 0;
-    };
-
-    // Por Natureza Final
-    const trByNat = {};
-    filtTR.forEach(r => {
-      if (!r.natureza_final) return;
-      if (!trByNat[r.natureza_final]) trByNat[r.natureza_final] = [];
-      trByNat[r.natureza_final].push(r);
-    });
-    const trNatRank = Object.entries(trByNat)
-      .map(([nat, rows]) => ({ nat, pct: trWAvg(rows), taloes: rows.reduce((s, r) => s + (r.qtde_taloes || 0), 0) }))
-      .filter(d => d.taloes > 0)
-      .sort((a, b) => b.pct - a.pct);
-
-    // Por CIA
-    const trByCia = {};
-    filtTR.forEach(r => {
-      const cia = r.cia ? normCiaDisplay(r.cia) : 'Não informado';
-      if (!trByCia[cia]) trByCia[cia] = [];
-      trByCia[cia].push(r);
-    });
-    const trCiaRank = Object.entries(trByCia)
-      .map(([cia, rows]) => ({ cia, pct: trWAvg(rows), pctBoe: trWAvgBoe(rows), taloes: rows.reduce((s, r) => s + (r.qtde_taloes || 0), 0) }))
-      .filter(d => d.taloes > 0)
-      .sort((a, b) => b.pct - a.pct);
-
-    // Card genérico de ranking por % (barra 0-100)
-    const mkTRRank = (cor, label, items) => {
-      if (!items.length) return '';
-      return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:10px;padding:20px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:16px">${label}</div>
-        ${items.map((d, i) => `<div style="margin-bottom:${i < items.length - 1 ? '14' : '0'}px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-            <div style="font-size:14px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:68%" title="${d.name}">${i + 1}. ${d.name}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:14px;color:${cor};font-weight:700">${d.pct.toFixed(1)}%</div>
-          </div>
-          <div style="background:rgba(255,255,255,.06);border-radius:3px;height:5px"><div style="height:100%;width:${Math.round(d.pct)}%;background:${cor};border-radius:3px"></div></div>
-          <div style="font-size:11px;color:var(--tx3);margin-top:2px">${d.taloes.toLocaleString('pt-BR')} talões</div>
-        </div>`).join('')}
-      </div>`;
-    };
-
-    // Card CIA com HD-HCL e BOe
-    const mkTRCiaCard = () => {
-      if (!trCiaRank.length) return '';
-      return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR};border-radius:10px;padding:20px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${TR_COR};margin-bottom:4px">% no Prazo por CIA</div>
-        <div style="font-size:11px;color:var(--tx3);margin-bottom:14px;letter-spacing:.5px">HD-HCL ≤20min · BOe</div>
-        ${trCiaRank.map((d, i) => {
-          const cor = d.pct >= 70 ? TR_COR_BOM : d.pct >= 50 ? TR_COR : TR_COR_MAU;
-          return `<div style="margin-bottom:${i < trCiaRank.length - 1 ? '14' : '0'}px">
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-              <div style="font-size:15px;color:var(--tx);font-weight:${i === 0 ? '700' : '400'}">${i + 1}. ${d.cia}</div>
-              <div style="display:flex;gap:8px;align-items:center">
-                <span style="font-family:'DM Mono',monospace;font-size:14px;color:${cor};font-weight:700">${d.pct.toFixed(1)}%</span>
-                ${d.pctBoe > 0 ? `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${d.pctBoe.toFixed(1)}% BOe</span>` : ''}
-              </div>
-            </div>
-            <div style="background:rgba(255,255,255,.06);border-radius:3px;height:5px"><div style="height:100%;width:${Math.round(d.pct)}%;background:${cor};border-radius:3px"></div></div>
-            <div style="font-size:11px;color:var(--tx3);margin-top:2px">${d.taloes.toLocaleString('pt-BR')} talões</div>
-          </div>`;
-        }).join('')}
-      </div>`;
-    };
-
-    // Card de insights tempo resposta
-    const mkTRInsights = () => {
-      const cards = [];
-      const trGlobal = trWAvg(filtTR);
-      const trTotalTaloes = filtTR.reduce((s, r) => s + (r.qtde_taloes || 0), 0);
-      // Melhor e pior CIA
-      if (trCiaRank.length >= 2) {
-        const melhor = trCiaRank[0];
-        const pior   = trCiaRank[trCiaRank.length - 1];
-        cards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:10px;padding:20px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:12px">CIA em Destaque</div>
-          <div style="margin-bottom:14px">
-            <div style="font-size:11px;color:${TR_COR_BOM};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Mais Rápida</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--tx);line-height:1.1">${melhor.cia}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:13px;color:${TR_COR_BOM};margin-top:2px">${melhor.pct.toFixed(1)}% no prazo · ${melhor.taloes.toLocaleString('pt-BR')} talões</div>
-          </div>
-          <div>
-            <div style="font-size:11px;color:${TR_COR_MAU};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Mais Demorada</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--tx)">${pior.cia}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:13px;color:${TR_COR_MAU};margin-top:2px">${pior.pct.toFixed(1)}% no prazo · ${pior.taloes.toLocaleString('pt-BR')} talões</div>
-          </div>
-        </div>`);
-      }
-      // Melhor e pior Natureza
-      if (trNatRank.length >= 2) {
-        const natBest  = trNatRank[0];
-        const natWorst = trNatRank[trNatRank.length - 1];
-        cards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:10px;padding:20px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:12px">Natureza em Destaque</div>
-          <div style="margin-bottom:14px">
-            <div style="font-size:11px;color:${TR_COR_BOM};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Mais Rápida</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--tx);line-height:1.2">${natBest.nat}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:13px;color:${TR_COR_BOM};margin-top:2px">${natBest.pct.toFixed(1)}% no prazo · ${natBest.taloes.toLocaleString('pt-BR')} talões</div>
-          </div>
-          <div>
-            <div style="font-size:11px;color:${TR_COR_MAU};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Mais Demorada</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--tx);line-height:1.2">${natWorst.nat}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:13px;color:${TR_COR_MAU};margin-top:2px">${natWorst.pct.toFixed(1)}% no prazo · ${natWorst.taloes.toLocaleString('pt-BR')} talões</div>
-          </div>
-        </div>`);
-      }
-      // Resumo geral
-      cards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR};border-radius:10px;padding:20px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${TR_COR};margin-bottom:14px">Resumo Geral</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:800;color:${trGlobal >= 70 ? TR_COR_BOM : trGlobal >= 50 ? TR_COR : TR_COR_MAU};line-height:1">${trGlobal.toFixed(1)}%</div>
-        <div style="font-size:12px;color:var(--tx3);margin-top:4px;margin-bottom:16px">Talões HD-HCL atendidos em ≤20min</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <div style="display:flex;justify-content:space-between"><span style="font-size:14px;color:var(--tx2)">Total de Talões</span><span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx);font-weight:700">${trTotalTaloes.toLocaleString('pt-BR')}</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="font-size:14px;color:var(--tx2)">Naturezas distintas</span><span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx);font-weight:700">${trNatRank.length}</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="font-size:14px;color:var(--tx2)">CIAs avaliadas</span><span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx);font-weight:700">${trCiaRank.length}</span></div>
-        </div>
-      </div>`);
-      return cards.join('');
-    };
-
-    const natTop  = trNatRank.slice(0, 10).map(d => ({ name: d.nat, pct: d.pct, taloes: d.taloes }));
-    const natBot  = [...trNatRank].reverse().slice(0, Math.min(10, trNatRank.length)).map(d => ({ name: d.nat, pct: d.pct, taloes: d.taloes }));
-
-    trSection =
-      sec('1 · Tempo de Resposta — Ocorrências Urgentes') +
-      `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
-        ${mkTRRank(TR_COR_BOM, 'Naturezas Mais Rápidas — % ≤20min', natTop)}
-        ${trNatRank.length > 3 ? mkTRRank(TR_COR_MAU, 'Naturezas Mais Demoradas — % ≤20min', natBot) : ''}
-        ${mkTRCiaCard()}
-        ${mkTRInsights()}
-      </div>`;
-  }
-
   // Monta HTML de todas as seções
   chartsEl.innerHTML =
-    trSection +
     (ciaRankCards
       ? sec('2 · Ranking por CIA') +
         `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">${ciaRankCards}</div>`
@@ -5766,7 +5618,8 @@ function prodDetailClickOut(e) {
 
 function buildPdFilter() {
   const mesesDisp = prodGetMesesDisp(prodSelAno);
-  let baseRows = prodRaw[pdTipo] || [];
+  const _pdRawKey = pdTipo === 'tempo-resposta' ? 'tempoResposta' : pdTipo;
+  let baseRows = prodRaw[_pdRawKey] || [];
   if (prodSelAno) baseRows = baseRows.filter(r => r.ano === prodSelAno);
   if (pdUnidade) baseRows = baseRows.filter(r => (r.unidade_medida||'Sem unidade').trim() === pdUnidade);
   const cias = [...new Set(baseRows.map(r => (r.cia||'').trim()).filter(Boolean))].sort();
@@ -5833,9 +5686,145 @@ function pdTogMes(m) {
 
 function pdSetCia(val) { pdSelCia = val; buildPdFilter(); renderProdDetail(); }
 
+function renderTRModalDetail() {
+  const TR_COR = '#4bc8e0';
+  const TR_COR_BOM = '#4bc87a';
+  const TR_COR_MAU = '#e06060';
+  const mesesDisp = prodGetMesesDisp(prodSelAno);
+  const periodoLbl = pdMeses.length === mesesDisp.length ? 'Acumulado ' + (prodSelAno || '') : pdMeses.join(', ');
+
+  const rows = (prodRaw.tempoResposta || []).filter(r => {
+    if (prodSelAno && r.ano !== prodSelAno) return false;
+    if (pdMeses.length && !pdMeses.some(m => m.toLowerCase() === (r.mes||'').toLowerCase())) return false;
+    if (pdSelCia && normCiaDisp(r.cia) !== normCiaDisp(pdSelCia)) return false;
+    return true;
+  });
+
+  document.getElementById('pd-sub').textContent = (pdSelCia ? pdSelCia + ' — ' : '') + periodoLbl.toUpperCase();
+
+  const wAvg = (rs, field) => {
+    const tot = rs.reduce((s, r) => s + (r.qtde_taloes || 0), 0);
+    return tot ? rs.reduce((s, r) => s + (r[field] || 0) * (r.qtde_taloes || 0), 0) / tot : 0;
+  };
+
+  const trGlobal   = wAvg(rows, 'pct_hd_hcl_20min');
+  const trBoe      = wAvg(rows, 'pct_boe');
+  const trTotalTal = rows.reduce((s, r) => s + (r.qtde_taloes || 0), 0);
+
+  const byNat = {};
+  rows.forEach(r => {
+    if (!r.natureza_final) return;
+    if (!byNat[r.natureza_final]) byNat[r.natureza_final] = [];
+    byNat[r.natureza_final].push(r);
+  });
+  const natRank = Object.entries(byNat)
+    .map(([nat, rs]) => ({ nat, pct: wAvg(rs, 'pct_hd_hcl_20min'), taloes: rs.reduce((s, r) => s + (r.qtde_taloes || 0), 0) }))
+    .filter(d => d.taloes > 0)
+    .sort((a, b) => b.pct - a.pct);
+
+  const byCia = {};
+  rows.forEach(r => {
+    const cia = r.cia ? normCiaDisplay(r.cia) : 'Não informado';
+    if (!byCia[cia]) byCia[cia] = [];
+    byCia[cia].push(r);
+  });
+  const ciaRank = Object.entries(byCia)
+    .map(([cia, rs]) => ({ cia, pct: wAvg(rs, 'pct_hd_hcl_20min'), pctBoe: wAvg(rs, 'pct_boe'), taloes: rs.reduce((s, r) => s + (r.qtde_taloes || 0), 0) }))
+    .sort((a, b) => b.pct - a.pct);
+
+  // Mini KPIs do modal
+  document.getElementById('pd-kpis').innerHTML = `
+    <div class="pd-kpi"><div class="pd-kpi-lbl">HD-HCL ≤20min</div><div class="pd-kpi-val" style="color:${TR_COR}">${trGlobal.toFixed(1)}%</div></div>
+    <div class="pd-kpi"><div class="pd-kpi-lbl">% BOe</div><div class="pd-kpi-val" style="color:${TR_COR}">${trBoe > 0 ? trBoe.toFixed(1) + '%' : '—'}</div></div>
+    <div class="pd-kpi"><div class="pd-kpi-lbl">Total Talões</div><div class="pd-kpi-val" style="color:${TR_COR}">${trTotalTal.toLocaleString('pt-BR')}</div></div>
+    <div class="pd-kpi"><div class="pd-kpi-lbl">Naturezas</div><div class="pd-kpi-val" style="color:${TR_COR}">${natRank.length}</div></div>
+  `;
+
+  const mkRank = (cor, label, items) => {
+    if (!items.length) return '';
+    return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:14px">${label}</div>
+      ${items.map((d, i) => `<div style="margin-bottom:${i < items.length - 1 ? '12' : '0'}px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;gap:8px">
+          <div style="font-size:14px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${d.nat}">${i + 1}. ${d.nat}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:14px;color:${cor};font-weight:700;flex-shrink:0">${d.pct.toFixed(1)}%</div>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:5px"><div style="height:100%;width:${Math.min(100,Math.round(d.pct))}%;background:${cor};border-radius:3px"></div></div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:2px">${d.taloes.toLocaleString('pt-BR')} talões</div>
+      </div>`).join('')}
+    </div>`;
+  };
+
+  const ciaCard = !ciaRank.length ? '' :
+    `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR};border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${TR_COR};margin-bottom:4px">% no Prazo por CIA</div>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:12px;letter-spacing:.5px">HD-HCL ≤20min · BOe</div>
+      ${ciaRank.map((d, i) => {
+        const c = d.pct >= 70 ? TR_COR_BOM : d.pct >= 50 ? TR_COR : TR_COR_MAU;
+        return `<div style="margin-bottom:${i < ciaRank.length - 1 ? '12' : '0'}px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <div style="font-size:14px;color:var(--tx);font-weight:${i === 0 ? '700' : '400'}">${i + 1}. ${d.cia}</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="font-family:'DM Mono',monospace;font-size:14px;color:${c};font-weight:700">${d.pct.toFixed(1)}%</span>
+              ${d.pctBoe > 0 ? `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${d.pctBoe.toFixed(1)}% BOe</span>` : ''}
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,.06);border-radius:3px;height:5px"><div style="height:100%;width:${Math.min(100,Math.round(d.pct))}%;background:${c};border-radius:3px"></div></div>
+          <div style="font-size:11px;color:var(--tx3);margin-top:2px">${d.taloes.toLocaleString('pt-BR')} talões</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  let insightsCard = '';
+  if (ciaRank.length >= 2 || natRank.length >= 2) {
+    let body = '';
+    if (ciaRank.length >= 2) {
+      const melhor = ciaRank[0], pior = ciaRank[ciaRank.length - 1];
+      body += `<div style="margin-bottom:14px">
+        <div style="font-size:11px;color:${TR_COR_BOM};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">CIA Mais Rápida</div>
+        <div style="font-size:18px;font-weight:700;color:var(--tx)">${melhor.cia}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_BOM}">${melhor.pct.toFixed(1)}% no prazo · ${melhor.taloes.toLocaleString('pt-BR')} talões</div>
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;color:${TR_COR_MAU};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">CIA Mais Demorada</div>
+        <div style="font-size:18px;font-weight:700;color:var(--tx)">${pior.cia}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_MAU}">${pior.pct.toFixed(1)}% no prazo · ${pior.taloes.toLocaleString('pt-BR')} talões</div>
+      </div>`;
+    }
+    if (natRank.length >= 2) {
+      const nBest = natRank[0], nWorst = natRank[natRank.length - 1];
+      body += `<div style="margin-bottom:14px">
+        <div style="font-size:11px;color:${TR_COR_BOM};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Natureza Mais Rápida</div>
+        <div style="font-size:16px;font-weight:700;color:var(--tx);line-height:1.2">${nBest.nat}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_BOM}">${nBest.pct.toFixed(1)}% no prazo · ${nBest.taloes.toLocaleString('pt-BR')} talões</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:${TR_COR_MAU};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Natureza Mais Demorada</div>
+        <div style="font-size:16px;font-weight:700;color:var(--tx);line-height:1.2">${nWorst.nat}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_MAU}">${nWorst.pct.toFixed(1)}% no prazo · ${nWorst.taloes.toLocaleString('pt-BR')} talões</div>
+      </div>`;
+    }
+    insightsCard = `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:14px">Destaques</div>
+      ${body}
+    </div>`;
+  }
+
+  const natTop = natRank.slice(0, 10);
+  const natBot = natRank.length > 3 ? [...natRank].reverse().slice(0, Math.min(10, natRank.length)) : [];
+
+  document.getElementById('pd-charts').innerHTML = [
+    mkRank(TR_COR_BOM, 'Naturezas Mais Rápidas — % ≤20min', natTop),
+    natBot.length ? mkRank(TR_COR_MAU, 'Naturezas Mais Demoradas — % ≤20min', natBot) : '',
+    ciaCard,
+    insightsCard,
+  ].join('');
+}
+
 function renderProdDetail() {
   pdDestroy();
   const tipo = pdTipo;
+  if (tipo === 'tempo-resposta') { renderTRModalDetail(); return; }
   const cor = pdNatFilter ? '#e05a8a' : PROD_CORES[tipo];
   const campo = tipo === 'entorpecentes' ? 'quantidade' : PROD_CAMPO[tipo];
   const mesesDisp = prodGetMesesDisp(prodSelAno);
