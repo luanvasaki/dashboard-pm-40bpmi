@@ -999,7 +999,8 @@ const PROD_TABS = {
   armas:              'prod_armas',
   veiculos:           'prod_veiculos',
   entorpecentes:      'prod_entorpecentes',
-  'visita-solidaria': 'prod_visita_solidaria'
+  'visita-solidaria': 'prod_visita_solidaria',
+  'tempo-resposta':   'prod_tempo_resposta'
 };
 
 function mapProdRow(tipo, r) {
@@ -1088,6 +1089,18 @@ function mapProdRow(tipo, r) {
       visita_5:            get('5ª Visita Pessoal','5a Visita Pessoal'),
       visita_6:            get('6ª Visita Pessoal','6a Visita Pessoal'),
       medida_protetiva:    get('Atualmente possui medida protetiva (Sim/Não)','Atualmente possui medida protetiva (Sim/Nao)') || getPartial('medida','protetiva'),
+    };
+  }
+  if (tipo === 'tempo-resposta') {
+    const pctStr = s => parseFloat((s||'').replace(',', '.').replace('%', '').trim()) || 0;
+    return {
+      cia:             normCia(get('CIA', 'Cia')),
+      ano:             parseInt(get('Ano')) || 0,
+      mes:             normMes(get('Mês', 'Mes')),
+      natureza_final:  get('Natureza Final'),
+      qtde_taloes:     parseInt(get('Qtde Talões', 'Qtde Taloes').replace('.','').replace(',','')) || 0,
+      pct_hd_hcl_20min: pctStr(getPartial('hd', 'hcl', '20') || getPartial('taloes', '20')),
+      pct_boe:          pctStr(getPartial('boe')),
     };
   }
   return null;

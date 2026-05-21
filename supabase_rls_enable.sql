@@ -19,6 +19,7 @@ ALTER TABLE prod_armas                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE prod_veiculos             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE prod_entorpecentes        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE prod_visita_solidaria     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE prod_tempo_resposta       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE indicadores_qualidade_p3  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE disque_denuncia_registros ENABLE ROW LEVEL SECURITY;
 ALTER TABLE config_dashboard          ENABLE ROW LEVEL SECURITY;
