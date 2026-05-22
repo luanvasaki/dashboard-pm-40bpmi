@@ -5410,14 +5410,71 @@ function prodRender() {
     </div>`);
   }
 
+  // ─── Tendência: últimos 2 meses com dados ────────────────────────────
+  let tendHtml = '';
+  const mesesComDados = prodGetMesesDisp(prodSelAno);
+  if (mesesComDados.length >= 2) {
+    const mesB = mesesComDados[mesesComDados.length - 1];
+    const mesA = mesesComDados[mesesComDados.length - 2];
+    const sumMes = (tipo, campo, mes) =>
+      prodSum(
+        prodRaw[tipo].filter(r =>
+          r.ano === prodSelAno &&
+          (r.mes||'').toLowerCase() === mes.toLowerCase() &&
+          (!prodSelCia || normCiaDisp(r.cia) === normCiaDisp(prodSelCia))
+        ),
+        campo
+      );
+    const tendMetrics = [
+      { label: 'Ocorrências',        tipo: 'ocorrencias', campo: 'contagem',   cor: PROD_CORES.ocorrencias },
+      { label: 'Pessoas Presas',     tipo: 'presos',      campo: 'quantidade', cor: PROD_CORES.presos      },
+      { label: 'Armas Apreendidas',  tipo: 'armas',       campo: 'quantidade', cor: PROD_CORES.armas       },
+      { label: 'Veículos Recuperados', tipo: 'veiculos',  campo: 'quantidade', cor: PROD_CORES.veiculos    },
+    ];
+    const tendCards = tendMetrics.map(({ label, tipo, campo, cor }) => {
+      const vA = sumMes(tipo, campo, mesA);
+      const vB = sumMes(tipo, campo, mesB);
+      if (vA === 0 && vB === 0) return '';
+      const diff = vB - vA;
+      const pct  = vA > 0 ? Math.round(Math.abs(diff) / vA * 100) : null;
+      const seta = diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
+      const corSeta = diff > 0 ? '#4bc87a' : diff < 0 ? '#c84b4b' : 'var(--tx3)';
+      const diffStr = (diff > 0 ? '+' : '') + diff.toLocaleString('pt-BR');
+      const pctStr  = pct !== null ? ` (${diff >= 0 ? '+' : ''}${pct}%)` : '';
+      return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:10px;padding:18px 20px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:10px">${label}</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px">
+          <span style="font-family:'DM Mono',monospace;font-size:34px;font-weight:700;color:${corSeta};line-height:1">${seta}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:${corSeta}">${diffStr}${pctStr}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;background:rgba(255,255,255,.03);border-radius:6px;padding:8px 10px;text-align:center">
+            <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">${mesA.slice(0,3)}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx2);font-weight:600">${vA.toLocaleString('pt-BR')}</div>
+          </div>
+          <div style="color:var(--tx3);font-size:14px">›</div>
+          <div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:8px 10px;text-align:center;border:1px solid ${cor}44">
+            <div style="font-family:'DM Mono',monospace;font-size:9px;color:${cor};letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">${mesB.slice(0,3)}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx);font-weight:700">${vB.toLocaleString('pt-BR')}</div>
+          </div>
+        </div>
+      </div>`;
+    }).filter(Boolean);
+    if (tendCards.length) {
+      tendHtml = sec('Tendência Recente — ' + mesA.slice(0,3) + ' × ' + mesB.slice(0,3)) +
+        `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px">${tendCards.join('')}</div>`;
+    }
+  }
+
   // Monta HTML de todas as seções
   chartsEl.innerHTML =
+    tendHtml +
     (ciaRankCards
-      ? sec('2 · Ranking por CIA') +
+      ? sec('Ranking por CIA') +
         `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">${ciaRankCards}</div>`
       : '') +
     (insCards.length
-      ? sec('3 · Insights do Período') +
+      ? sec('Insights do Período') +
         `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">${insCards.join('')}</div>`
       : '');
 
