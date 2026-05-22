@@ -4952,7 +4952,7 @@ function updateSidebarImports(section) {
       ['veiculos',         'Veículos Recuperados',      '#4bc8a0'],
       ['entorpecentes',    'Entorpecentes',             '#9b6de0'],
       ['visita-solidaria', 'Visita Solidária (VD)',     '#e05a8a'],
-      ['tempo-resposta',   'Tempo Resposta (Urgentes)', '#4bc8e0'],
+      ['tempo-resposta',   'Tempo Resposta Atend. Ocorrência', '#4bc8e0'],
     ];
     el.innerHTML = itens.map(([t, l, c]) =>
       `<button onclick="openProdUpl('${t}')" style="width:100%;padding:6px;margin-top:4px;background:rgba(0,0,0,.15);border:1px solid ${c}55;color:${c};border-radius:4px;cursor:pointer;font-size:10px;font-weight:600">↑ ${l}</button>`
@@ -5054,7 +5054,7 @@ const PROD_LABELS = {
   veiculos:           'Veículos Recuperados',
   entorpecentes:      'Entorpecentes Apreendidos',
   'visita-solidaria': 'Visita Solidária (VD)',
-  'tempo-resposta':   'Tempo Resposta (Urgentes)'
+  'tempo-resposta':   'Tempo Resposta de Atendimento de Ocorrência'
 };
 const PROD_CAMPO = {
   ocorrencias:   'contagem',
@@ -5243,9 +5243,9 @@ function prodRender() {
       const TR_COR = '#4bc8e0';
       return `<div class="kpi" onclick="openProdDetail('tempo-resposta')" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top" style="background:${TR_COR}"></div>
-        <div class="kpi-lbl">Resp. ≤20min</div>
+        <div class="kpi-lbl" style="font-size:10px;letter-spacing:.5px;line-height:1.4">Tempo Resposta Atend. Ocorrência</div>
         <div class="kpi-val" style="color:${TR_COR}">${trGlobal.toFixed(1)}%</div>
-        <div class="kpi-sub">Talões HD-HCL no prazo</div>
+        <div class="kpi-sub">HD-HCL ≤20min no prazo</div>
         <div class="kpi-hint">▸ clique p/ detalhes</div>
       </div>`;
     })();
@@ -5687,15 +5687,21 @@ function pdTogMes(m) {
 function pdSetCia(val) { pdSelCia = val; buildPdFilter(); renderProdDetail(); }
 
 function renderTRModalDetail() {
-  const TR_COR = '#4bc8e0';
+  const TR_COR     = '#4bc8e0';
   const TR_COR_BOM = '#4bc87a';
   const TR_COR_MAU = '#e06060';
-  const mesesDisp = prodGetMesesDisp(prodSelAno);
+  const mesesDisp  = prodGetMesesDisp(prodSelAno);
   const periodoLbl = pdMeses.length === mesesDisp.length ? 'Acumulado ' + (prodSelAno || '') : pdMeses.join(', ');
 
   const rows = (prodRaw.tempoResposta || []).filter(r => {
     if (prodSelAno && r.ano !== prodSelAno) return false;
     if (pdMeses.length && !pdMeses.some(m => m.toLowerCase() === (r.mes||'').toLowerCase())) return false;
+    if (pdSelCia && normCiaDisp(r.cia) !== normCiaDisp(pdSelCia)) return false;
+    return true;
+  });
+
+  const rowsEvo = (prodRaw.tempoResposta || []).filter(r => {
+    if (prodSelAno && r.ano !== prodSelAno) return false;
     if (pdSelCia && normCiaDisp(r.cia) !== normCiaDisp(pdSelCia)) return false;
     return true;
   });
@@ -5707,9 +5713,10 @@ function renderTRModalDetail() {
     return tot ? rs.reduce((s, r) => s + (r[field] || 0) * (r.qtde_taloes || 0), 0) / tot : 0;
   };
 
-  const trGlobal   = wAvg(rows, 'pct_hd_hcl_20min');
-  const trBoe      = wAvg(rows, 'pct_boe');
-  const trTotalTal = rows.reduce((s, r) => s + (r.qtde_taloes || 0), 0);
+  const trGlobal    = wAvg(rows, 'pct_hd_hcl_20min');
+  const trBoe       = wAvg(rows, 'pct_boe');
+  const trTotalTal  = rows.reduce((s, r) => s + (r.qtde_taloes || 0), 0);
+  const trForaPrazo = Math.round(trTotalTal * (1 - trGlobal / 100));
 
   const byNat = {};
   rows.forEach(r => {
@@ -5718,9 +5725,19 @@ function renderTRModalDetail() {
     byNat[r.natureza_final].push(r);
   });
   const natRank = Object.entries(byNat)
-    .map(([nat, rs]) => ({ nat, pct: wAvg(rs, 'pct_hd_hcl_20min'), taloes: rs.reduce((s, r) => s + (r.qtde_taloes || 0), 0) }))
+    .map(([nat, rs]) => ({
+      nat,
+      pct:    wAvg(rs, 'pct_hd_hcl_20min'),
+      taloes: rs.reduce((s, r) => s + (r.qtde_taloes || 0), 0),
+    }))
     .filter(d => d.taloes > 0)
     .sort((a, b) => b.pct - a.pct);
+
+  const natCriticas = natRank
+    .map(d => ({ ...d, fora_prazo: Math.round(d.taloes * (1 - d.pct / 100)) }))
+    .filter(d => d.fora_prazo > 0)
+    .sort((a, b) => b.fora_prazo - a.fora_prazo)
+    .slice(0, 10);
 
   const byCia = {};
   rows.forEach(r => {
@@ -5729,96 +5746,253 @@ function renderTRModalDetail() {
     byCia[cia].push(r);
   });
   const ciaRank = Object.entries(byCia)
-    .map(([cia, rs]) => ({ cia, pct: wAvg(rs, 'pct_hd_hcl_20min'), pctBoe: wAvg(rs, 'pct_boe'), taloes: rs.reduce((s, r) => s + (r.qtde_taloes || 0), 0) }))
+    .map(([cia, rs]) => ({
+      cia,
+      pct:    wAvg(rs, 'pct_hd_hcl_20min'),
+      pctBoe: wAvg(rs, 'pct_boe'),
+      taloes: rs.reduce((s, r) => s + (r.qtde_taloes || 0), 0),
+    }))
     .sort((a, b) => b.pct - a.pct);
 
-  // Mini KPIs do modal
+  const byMesEvo = {};
+  rowsEvo.forEach(r => {
+    const m = MES_ORD.find(x => x.toLowerCase() === (r.mes||'').toLowerCase());
+    if (!m) return;
+    if (!byMesEvo[m]) byMesEvo[m] = [];
+    byMesEvo[m].push(r);
+  });
+  const evoMeses = MES_ORD.filter(m => byMesEvo[m]);
+  const evoPct   = evoMeses.map(m => parseFloat(wAvg(byMesEvo[m], 'pct_hd_hcl_20min').toFixed(1)));
+  const evoBoe   = evoMeses.map(m => parseFloat(wAvg(byMesEvo[m], 'pct_boe').toFixed(1)));
+  const hasBoe   = evoBoe.some(v => v > 0);
+
+  const kpiCor = trGlobal >= 70 ? TR_COR_BOM : trGlobal >= 50 ? TR_COR : TR_COR_MAU;
   document.getElementById('pd-kpis').innerHTML = `
-    <div class="pd-kpi"><div class="pd-kpi-lbl">HD-HCL ≤20min</div><div class="pd-kpi-val" style="color:${TR_COR}">${trGlobal.toFixed(1)}%</div></div>
+    <div class="pd-kpi"><div class="pd-kpi-lbl">HD-HCL ≤20min</div><div class="pd-kpi-val" style="color:${kpiCor}">${trGlobal.toFixed(1)}%</div></div>
     <div class="pd-kpi"><div class="pd-kpi-lbl">% BOe</div><div class="pd-kpi-val" style="color:${TR_COR}">${trBoe > 0 ? trBoe.toFixed(1) + '%' : '—'}</div></div>
     <div class="pd-kpi"><div class="pd-kpi-lbl">Total Talões</div><div class="pd-kpi-val" style="color:${TR_COR}">${trTotalTal.toLocaleString('pt-BR')}</div></div>
-    <div class="pd-kpi"><div class="pd-kpi-lbl">Naturezas</div><div class="pd-kpi-val" style="color:${TR_COR}">${natRank.length}</div></div>
+    <div class="pd-kpi"><div class="pd-kpi-lbl">Fora do Prazo</div><div class="pd-kpi-val" style="color:${TR_COR_MAU}">~${trForaPrazo.toLocaleString('pt-BR')}</div></div>
   `;
 
-  const mkRank = (cor, label, items) => {
-    if (!items.length) return '';
-    return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:14px">${label}</div>
-      ${items.map((d, i) => `<div style="margin-bottom:${i < items.length - 1 ? '12' : '0'}px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px;gap:8px">
-          <div style="font-size:14px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${d.nat}">${i + 1}. ${d.nat}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:14px;color:${cor};font-weight:700;flex-shrink:0">${d.pct.toFixed(1)}%</div>
-        </div>
-        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:5px"><div style="height:100%;width:${Math.min(100,Math.round(d.pct))}%;background:${cor};border-radius:3px"></div></div>
-        <div style="font-size:11px;color:var(--tx3);margin-top:2px">${d.taloes.toLocaleString('pt-BR')} talões</div>
-      </div>`).join('')}
+  const cardTop = (cor, title, subtitle) =>
+    `<div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:${subtitle ? '2' : '14'}px">${title}</div>
+     ${subtitle ? `<div style="font-size:11px;color:var(--tx3);margin-bottom:12px">${subtitle}</div>` : ''}`;
+
+  const barRow = (name, val, barPct, cor, sub) =>
+    `<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;gap:8px">
+        <div style="font-size:13px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${name}">${name}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:13px;color:${cor};font-weight:700;flex-shrink:0">${val}</div>
+      </div>
+      <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px"><div style="height:100%;width:${Math.min(100,barPct)}%;background:${cor};border-radius:3px"></div></div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:2px">${sub}</div>
     </div>`;
-  };
+
+  const natTop = natRank.slice(0, 10);
+  const natTopCard = !natTop.length ? '' :
+    `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR_BOM};border-radius:10px;padding:16px">
+      ${cardTop(TR_COR_BOM, 'Naturezas Mais Rápidas — % ≤20min')}
+      ${natTop.map(d => barRow(d.nat, d.pct.toFixed(1) + '%', Math.round(d.pct), TR_COR_BOM, d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
+    </div>`;
+
+  const natBot = natRank.length > 3 ? [...natRank].reverse().slice(0, Math.min(10, natRank.length)) : [];
+  const natBotCard = !natBot.length ? '' :
+    `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR_MAU};border-radius:10px;padding:16px">
+      ${cardTop(TR_COR_MAU, 'Naturezas Mais Demoradas — % ≤20min')}
+      ${natBot.map(d => barRow(d.nat, d.pct.toFixed(1) + '%', Math.round(d.pct), TR_COR_MAU, d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
+    </div>`;
+
+  const maxFora = natCriticas[0]?.fora_prazo || 1;
+  const criticasCard = !natCriticas.length ? '' :
+    `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #e0965a;border-radius:10px;padding:16px">
+      ${cardTop('#e0965a', 'Naturezas Críticas — Maior Impacto', 'Estimativa de talões não atendidos no prazo — prioridade operacional')}
+      ${natCriticas.map(d => barRow(
+        d.nat,
+        '~' + d.fora_prazo.toLocaleString('pt-BR') + ' tal.',
+        Math.round(d.fora_prazo / maxFora * 100),
+        '#e0965a',
+        d.pct.toFixed(1) + '% no prazo · ' + d.taloes.toLocaleString('pt-BR') + ' talões totais'
+      )).join('')}
+    </div>`;
 
   const ciaCard = !ciaRank.length ? '' :
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR};border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${TR_COR};margin-bottom:4px">% no Prazo por CIA</div>
-      <div style="font-size:11px;color:var(--tx3);margin-bottom:12px;letter-spacing:.5px">HD-HCL ≤20min · BOe</div>
+      ${cardTop(TR_COR, '% no Prazo por CIA', 'HD-HCL ≤20min · verde ≥70% · amarelo ≥50% · vermelho <50%')}
       ${ciaRank.map((d, i) => {
         const c = d.pct >= 70 ? TR_COR_BOM : d.pct >= 50 ? TR_COR : TR_COR_MAU;
         return `<div style="margin-bottom:${i < ciaRank.length - 1 ? '12' : '0'}px">
           <div style="display:flex;justify-content:space-between;margin-bottom:4px">
             <div style="font-size:14px;color:var(--tx);font-weight:${i === 0 ? '700' : '400'}">${i + 1}. ${d.cia}</div>
             <div style="display:flex;gap:8px;align-items:center">
-              <span style="font-family:'DM Mono',monospace;font-size:14px;color:${c};font-weight:700">${d.pct.toFixed(1)}%</span>
+              <span style="font-family:'DM Mono',monospace;font-size:13px;color:${c};font-weight:700">${d.pct.toFixed(1)}%</span>
               ${d.pctBoe > 0 ? `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${d.pctBoe.toFixed(1)}% BOe</span>` : ''}
             </div>
           </div>
-          <div style="background:rgba(255,255,255,.06);border-radius:3px;height:5px"><div style="height:100%;width:${Math.min(100,Math.round(d.pct))}%;background:${c};border-radius:3px"></div></div>
+          <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px"><div style="height:100%;width:${Math.min(100,Math.round(d.pct))}%;background:${c};border-radius:3px"></div></div>
           <div style="font-size:11px;color:var(--tx3);margin-top:2px">${d.taloes.toLocaleString('pt-BR')} talões</div>
         </div>`;
       }).join('')}
     </div>`;
 
-  let insightsCard = '';
-  if (ciaRank.length >= 2 || natRank.length >= 2) {
-    let body = '';
-    if (ciaRank.length >= 2) {
-      const melhor = ciaRank[0], pior = ciaRank[ciaRank.length - 1];
-      body += `<div style="margin-bottom:14px">
-        <div style="font-size:11px;color:${TR_COR_BOM};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">CIA Mais Rápida</div>
+  let insightsBody = '';
+  if (ciaRank.length >= 2) {
+    const melhor = ciaRank[0], pior = ciaRank[ciaRank.length - 1];
+    insightsBody += `
+      <div style="margin-bottom:14px">
+        <div style="font-size:10px;color:${TR_COR_BOM};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">CIA Mais Rápida</div>
         <div style="font-size:18px;font-weight:700;color:var(--tx)">${melhor.cia}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_BOM}">${melhor.pct.toFixed(1)}% no prazo · ${melhor.taloes.toLocaleString('pt-BR')} talões</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_BOM}">${melhor.pct.toFixed(1)}% · ${melhor.taloes.toLocaleString('pt-BR')} talões</div>
       </div>
       <div style="margin-bottom:14px">
-        <div style="font-size:11px;color:${TR_COR_MAU};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">CIA Mais Demorada</div>
+        <div style="font-size:10px;color:${TR_COR_MAU};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">CIA Mais Demorada</div>
         <div style="font-size:18px;font-weight:700;color:var(--tx)">${pior.cia}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_MAU}">${pior.pct.toFixed(1)}% no prazo · ${pior.taloes.toLocaleString('pt-BR')} talões</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_MAU}">${pior.pct.toFixed(1)}% · ${pior.taloes.toLocaleString('pt-BR')} talões</div>
       </div>`;
-    }
-    if (natRank.length >= 2) {
-      const nBest = natRank[0], nWorst = natRank[natRank.length - 1];
-      body += `<div style="margin-bottom:14px">
-        <div style="font-size:11px;color:${TR_COR_BOM};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Natureza Mais Rápida</div>
-        <div style="font-size:16px;font-weight:700;color:var(--tx);line-height:1.2">${nBest.nat}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_BOM}">${nBest.pct.toFixed(1)}% no prazo · ${nBest.taloes.toLocaleString('pt-BR')} talões</div>
+  }
+  if (natRank.length >= 2) {
+    const nBest = natRank[0], nWorst = natRank[natRank.length - 1];
+    insightsBody += `
+      <div style="margin-bottom:14px">
+        <div style="font-size:10px;color:${TR_COR_BOM};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Natureza Mais Rápida</div>
+        <div style="font-size:15px;font-weight:700;color:var(--tx);line-height:1.2">${nBest.nat}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_BOM}">${nBest.pct.toFixed(1)}% · ${nBest.taloes.toLocaleString('pt-BR')} talões</div>
       </div>
       <div>
-        <div style="font-size:11px;color:${TR_COR_MAU};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Natureza Mais Demorada</div>
-        <div style="font-size:16px;font-weight:700;color:var(--tx);line-height:1.2">${nWorst.nat}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_MAU}">${nWorst.pct.toFixed(1)}% no prazo · ${nWorst.taloes.toLocaleString('pt-BR')} talões</div>
+        <div style="font-size:10px;color:${TR_COR_MAU};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Natureza Mais Crítica</div>
+        <div style="font-size:15px;font-weight:700;color:var(--tx);line-height:1.2">${nWorst.nat}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_MAU}">${nWorst.pct.toFixed(1)}% · ${nWorst.taloes.toLocaleString('pt-BR')} talões</div>
       </div>`;
-    }
-    insightsCard = `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:14px">Destaques</div>
-      ${body}
-    </div>`;
   }
+  const insightsCard = !insightsBody ? '' :
+    `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:14px">Destaques do Período</div>
+      ${insightsBody}
+    </div>`;
 
-  const natTop = natRank.slice(0, 10);
-  const natBot = natRank.length > 3 ? [...natRank].reverse().slice(0, Math.min(10, natRank.length)) : [];
+  const evoShell = evoMeses.length > 1
+    ? `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR};border-radius:10px;padding:16px">
+        ${cardTop(TR_COR, 'Evolução Mensal — % Atendidos no Prazo', hasBoe ? 'HD-HCL ≤20min (linha sólida) · % BOe (tracejado)' : 'HD-HCL ≤20min — média ponderada por talões')}
+        <canvas id="tr-evo-ch" style="max-height:220px"></canvas>
+      </div>` : '';
+
+  const hasCiaComp = ciaRank.length > 1 && ciaRank.some(d => d.pctBoe > 0);
+  const ciaCompShell = hasCiaComp
+    ? `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR};border-radius:10px;padding:16px">
+        ${cardTop(TR_COR, 'CIA — HD-HCL ≤20min vs % BOe', 'Comparação das duas métricas por CIA')}
+        <canvas id="tr-cia-comp-ch"></canvas>
+      </div>` : '';
 
   document.getElementById('pd-charts').innerHTML = [
-    mkRank(TR_COR_BOM, 'Naturezas Mais Rápidas — % ≤20min', natTop),
-    natBot.length ? mkRank(TR_COR_MAU, 'Naturezas Mais Demoradas — % ≤20min', natBot) : '',
+    evoShell,
+    natTopCard,
+    natBotCard,
+    criticasCard,
     ciaCard,
+    ciaCompShell,
     insightsCard,
   ].join('');
+
+  if (evoMeses.length > 1) {
+    const ctx = document.getElementById('tr-evo-ch')?.getContext('2d');
+    if (ctx) {
+      pdChs.push(new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: evoMeses,
+          datasets: [
+            {
+              label: 'HD-HCL ≤20min',
+              data: evoPct,
+              borderColor: TR_COR,
+              backgroundColor: TR_COR + '22',
+              tension: 0.3,
+              fill: true,
+              pointBackgroundColor: TR_COR,
+              pointRadius: 4,
+            },
+            ...(hasBoe ? [{
+              label: '% BOe',
+              data: evoBoe,
+              borderColor: '#9b6de0',
+              backgroundColor: 'transparent',
+              tension: 0.3,
+              fill: false,
+              pointBackgroundColor: '#9b6de0',
+              pointRadius: 4,
+              borderDash: [5, 4],
+            }] : []),
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: 'rgba(255,255,255,.7)', font: { size: 12 } } },
+            tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw}%` } },
+          },
+          scales: {
+            x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 12 } } },
+            y: {
+              grid: GR,
+              min: 0, max: 100,
+              ticks: { color: 'rgba(255,255,255,.55)', font: { size: 12 }, callback: v => v + '%' },
+            },
+          },
+        },
+      }));
+    }
+  }
+
+  if (hasCiaComp) {
+    const ctx = document.getElementById('tr-cia-comp-ch')?.getContext('2d');
+    if (ctx) {
+      const ciasToShow = ciaRank.slice(0, 8);
+      const h = Math.max(240, ciasToShow.length * 42 + 40);
+      ctx.canvas.style.height = h + 'px';
+      ctx.canvas.style.maxHeight = h + 'px';
+      pdChs.push(new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ciasToShow.map(d => d.cia),
+          datasets: [
+            {
+              label: 'HD-HCL ≤20min',
+              data: ciasToShow.map(d => parseFloat(d.pct.toFixed(1))),
+              backgroundColor: TR_COR + 'aa',
+              borderColor: TR_COR,
+              borderWidth: 1,
+              borderRadius: 3,
+            },
+            {
+              label: '% BOe',
+              data: ciasToShow.map(d => parseFloat(d.pctBoe.toFixed(1))),
+              backgroundColor: '#9b6de0aa',
+              borderColor: '#9b6de0',
+              borderWidth: 1,
+              borderRadius: 3,
+            },
+          ],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: 'rgba(255,255,255,.7)', font: { size: 12 } } },
+            tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw}%` } },
+          },
+          scales: {
+            x: {
+              grid: GR,
+              min: 0, max: 100,
+              ticks: { color: 'rgba(255,255,255,.45)', font: { size: 12 }, callback: v => v + '%' },
+            },
+            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 12 } } },
+          },
+        },
+      }));
+    }
+  }
 }
 
 function renderProdDetail() {
