@@ -6045,6 +6045,26 @@ function renderTRModalDetail() {
   }
 }
 
+function tipoCurso(nome) {
+  const nl = (nome||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  if (/^cep\s*[-–]/.test(nl)) return 'CEP';
+  if (/^eep\s*[-–]/.test(nl) || /estagio de especializacao/.test(nl)) return 'EEP';
+  if (/^habilit/.test(nl)) return 'Habilitação';
+  if (/^adapt/.test(nl)) return 'Adaptação';
+  if (/^instruc/.test(nl)) return 'Instrução';
+  return 'Outros';
+}
+
+const TIPO_COR = {
+  'CEP':         '#5a9de0',
+  'EEP':         '#e0965a',
+  'Habilitação': '#9b6de0',
+  'Adaptação':   '#4bc8a0',
+  'Instrução':   '#e05a8a',
+  'Outros':      '#607090'
+};
+const TIPO_ORD = ['CEP','EEP','Habilitação','Adaptação','Instrução','Outros'];
+
 function renderCursosModalDetail() {
   const COR = '#9de05a';
   const mesesDisp = prodGetMesesDisp(prodSelAno);
@@ -6059,11 +6079,18 @@ function renderCursosModalDetail() {
   const cursosMap = new Map();
   rows.forEach(r => {
     const key = (r.data||'') + '||' + (r.nome_curso||'');
-    if (!cursosMap.has(key)) cursosMap.set(key, { data: r.data, nome_curso: r.nome_curso, mes: r.mes, pms: [] });
+    if (!cursosMap.has(key)) cursosMap.set(key, { data: r.data, nome_curso: r.nome_curso, mes: r.mes, tipo: tipoCurso(r.nome_curso), pms: [] });
     if (r.re_pm) cursosMap.get(key).pms.push({ posto: r.posto_pm, re: r.re_pm, nome: r.nome_pm });
   });
   const cursosList = [...cursosMap.values()].sort((a, b) => (b.data||'').localeCompare(a.data||''));
-  const pmsUnicos = new Set(rows.filter(r => r.re_pm).map(r => r.re_pm));
+  const pmsUnicos  = new Set(rows.filter(r => r.re_pm).map(r => r.re_pm));
+
+  // Agregação por tipo (cursos únicos)
+  const tipoAgg = {};
+  cursosList.forEach(c => { tipoAgg[c.tipo] = (tipoAgg[c.tipo] || 0) + 1; });
+  const tipoLabels = TIPO_ORD.filter(t => tipoAgg[t]);
+  const tipoValues = tipoLabels.map(t => tipoAgg[t]);
+  const tipoCores  = tipoLabels.map(t => TIPO_COR[t]);
 
   document.getElementById('pd-sub').textContent = periodoLbl.toUpperCase();
   document.getElementById('pd-kpis').innerHTML = `
@@ -6082,12 +6109,16 @@ function renderCursosModalDetail() {
   const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:left';
 
   const tableRows = cursosList.map(c => {
+    const cor = TIPO_COR[c.tipo] || '#607090';
     const pmHtml = c.pms.map(p =>
       `<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);line-height:1.7">${p.posto||''} ${p.re||''} — ${p.nome||'—'}</div>`
     ).join('');
     return `<tr>
       <td style="${tdS};white-space:nowrap">${fmtD(c.data)}</td>
-      <td style="${tdL}">${c.nome_curso||'—'}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 7px;border-radius:8px;background:${cor}22;color:${cor};display:inline-block;margin-bottom:3px">${c.tipo}</span>
+        <div style="font-size:13px;font-weight:600;color:var(--tx)">${c.nome_curso||'—'}</div>
+      </td>
       <td style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04)">
         <span style="font-family:'DM Mono',monospace;font-size:10px;padding:1px 8px;border-radius:8px;background:${COR}22;color:${COR};display:inline-block;margin-bottom:${c.pms.length?'4':'0'}px">${c.pms.length} PM${c.pms.length !== 1 ? 's' : ''}</span>
         ${pmHtml}
@@ -6095,7 +6126,7 @@ function renderCursosModalDetail() {
     </tr>`;
   }).join('');
 
-  // Evolução mensal (número de cursos por mês)
+  // Evolução mensal (cursos únicos por mês)
   const mesAgg = {};
   rows.forEach(r => {
     const key = (r.data||'') + '||' + (r.nome_curso||'');
@@ -6110,9 +6141,14 @@ function renderCursosModalDetail() {
   const chartsEl = document.getElementById('pd-charts');
   chartsEl.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px">Evolução Mensal — Cursos</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px">Evolução Mensal</div>
       <canvas id="cursos-evo"></canvas>
       <div id="cursos-evo-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px">Distribuição por Tipo</div>
+      <canvas id="cursos-tipo"></canvas>
+      <div id="cursos-tipo-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>
     <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:12px">Lista de Cursos</div>
@@ -6120,7 +6156,7 @@ function renderCursosModalDetail() {
       <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
         <table style="width:100%;border-collapse:collapse">
           <thead><tr>
-            <th style="${thS};width:100px">Data</th>
+            <th style="${thS};width:90px">Data</th>
             <th style="${thS}">Curso</th>
             <th style="${thS}">Participantes</th>
           </tr></thead>
@@ -6129,12 +6165,13 @@ function renderCursosModalDetail() {
       </div>`}
     </div>`;
 
+  // Gráfico evolução
   if (evoLabels.length) {
     const ctx = document.getElementById('cursos-evo')?.getContext('2d');
     if (ctx) {
       pdChs.push(new Chart(ctx, {
         type: 'bar',
-        data: { labels: evoLabels, datasets: [{ label: 'Cursos', data: evoData, backgroundColor: COR + '88', borderColor: COR, borderWidth: 1, borderRadius: 3 }] },
+        data: { labels: evoLabels, datasets: [{ data: evoData, backgroundColor: COR + '88', borderColor: COR, borderWidth: 1, borderRadius: 3 }] },
         options: {
           responsive: true,
           plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw} curso${i.raw !== 1 ? 's' : ''}` } } },
@@ -6146,10 +6183,32 @@ function renderCursosModalDetail() {
       }));
     }
   } else {
-    const emptyEl = document.getElementById('cursos-evo-empty');
-    const canvas  = document.getElementById('cursos-evo');
-    if (emptyEl) emptyEl.style.display = '';
-    if (canvas)  canvas.style.display  = 'none';
+    const e = document.getElementById('cursos-evo-empty'), c = document.getElementById('cursos-evo');
+    if (e) e.style.display = ''; if (c) c.style.display = 'none';
+  }
+
+  // Gráfico distribuição por tipo
+  if (tipoLabels.length) {
+    const ctx2 = document.getElementById('cursos-tipo')?.getContext('2d');
+    if (ctx2) {
+      pdChs.push(new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+          labels: tipoLabels,
+          datasets: [{ data: tipoValues, backgroundColor: tipoCores.map(c => c + 'cc'), borderColor: tipoCores, borderWidth: 2 }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.7)', font: { size: 11 }, padding: 12, boxWidth: 12 } },
+            tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} curso${i.raw !== 1 ? 's' : ''}` } }
+          }
+        }
+      }));
+    }
+  } else {
+    const e = document.getElementById('cursos-tipo-empty'), c = document.getElementById('cursos-tipo');
+    if (e) e.style.display = ''; if (c) c.style.display = 'none';
   }
 }
 
