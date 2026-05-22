@@ -5871,7 +5871,7 @@ function renderTRModalDetail() {
 
   const evoShell = evoMeses.length > 1
     ? `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR};border-radius:10px;padding:16px">
-        ${cardTop(TR_COR, 'Evolução Mensal — % Atendidos no Prazo', hasBoe ? 'Tempo ≤20min (linha sólida) · % BOe (tracejado)' : 'Tempo ≤20min — média ponderada por talões')}
+        ${cardTop(TR_COR, 'Evolução Mensal — % Atendidos no Prazo', hasBoe ? 'Tempo ≤20min · % BOe' : 'Tempo ≤20min — média ponderada por talões')}
         <canvas id="tr-evo-ch" style="max-height:220px"></canvas>
       </div>` : '';
 
@@ -5919,7 +5919,7 @@ function renderTRModalDetail() {
               fill: false,
               pointBackgroundColor: '#9b6de0',
               pointRadius: 4,
-              borderDash: [5, 4],
+              borderDash: [],
             }] : []),
           ],
         },
