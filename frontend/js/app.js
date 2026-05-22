@@ -5358,6 +5358,48 @@ function prodRender() {
     </div>`);
   }
 
+  // Índice de Capacitação (cursos × efetivo)
+  const cursosAno = (prodRaw.cursos||[]).filter(r => r.ano === prodSelAno);
+  const pmsCapacitados = new Set(cursosAno.filter(r => r.re_pm).map(r => r.re_pm));
+  if (pmsCapacitados.size > 0) {
+    const COR_CAP = '#9de05a';
+    const totalEfetivo = p1Data.length;
+    const pct = totalEfetivo > 0 ? Math.round(pmsCapacitados.size / totalEfetivo * 100) : null;
+    const barW = pct !== null ? pct : 0;
+
+    // Breakdown por tipo de curso (cursos únicos no ano)
+    const cursosUnicosAno = new Map();
+    cursosAno.forEach(r => {
+      const key = (r.data||'') + '||' + (r.nome_curso||'');
+      if (!cursosUnicosAno.has(key)) cursosUnicosAno.set(key, tipoCurso(r.nome_curso));
+    });
+    const tipoCount = {};
+    [...cursosUnicosAno.values()].forEach(t => { tipoCount[t] = (tipoCount[t]||0) + 1; });
+    const tipoRows = TIPO_ORD.filter(t => tipoCount[t]).map(t =>
+      `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <span style="font-size:13px;color:var(--tx2)">${t}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${TIPO_COR[t]||'var(--tx)'}">${tipoCount[t]}</span>
+      </div>`
+    ).join('');
+
+    insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR_CAP};border-radius:10px;padding:20px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR_CAP};margin-bottom:10px">Índice de Capacitação</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:800;color:var(--tx);line-height:1;margin-bottom:2px">${pmsCapacitados.size}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:12px;color:${COR_CAP};margin-bottom:${pct !== null ? '10' : '14'}px">PMs capacitados em ${prodSelAno||'—'}</div>
+      ${pct !== null ? `
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">do efetivo (${totalEfetivo} PMs)</span>
+          <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${COR_CAP}">${pct}%</span>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px">
+          <div style="height:100%;width:${barW}%;background:${COR_CAP};border-radius:3px;transition:width .4s"></div>
+        </div>
+      </div>` : ''}
+      <div style="border-top:1px solid rgba(255,255,255,.06);padding-top:10px">${tipoRows}</div>
+    </div>`);
+  }
+
   // Meses mais produtivos
   const mesProd = {};
   ['presos','armas','veiculos'].forEach(t => {
