@@ -3993,6 +3993,25 @@ async function openProntuario(re) {
       }).join('')
     : '<tr><td colspan="7" style="padding:14px 10px;color:var(--tx3);font-size:12px;text-align:center">Nenhum afastamento registrado.</td></tr>';
   document.getElementById('pronto-extrato').innerHTML = extratoHtml;
+
+  // Cursos institucionais
+  const cursosEl = document.getElementById('pronto-cursos');
+  if (cursosEl) {
+    cursosEl.innerHTML = '<tr><td colspan="3" style="padding:10px;color:var(--tx3);font-size:11px;text-align:center">Carregando...</td></tr>';
+    authFetch(`${API}/pm/${encodeURIComponent(re)}/cursos`).then(r => r.json()).then(cursosData => {
+      const fmtDc = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
+      const tdC = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:11px;color:var(--tx3)';
+      cursosEl.innerHTML = Array.isArray(cursosData) && cursosData.length
+        ? cursosData.map(c => `<tr>
+            <td style="${tdC};white-space:nowrap">${fmtDc(c.data)}</td>
+            <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;font-weight:600;color:var(--tx)">${c.nome_curso||'—'}</td>
+            <td style="${tdC}">${c.posto_pm||'—'}</td>
+          </tr>`).join('')
+        : '<tr><td colspan="3" style="padding:12px 10px;color:var(--tx3);font-size:12px;text-align:center">Nenhum curso registrado.</td></tr>';
+    }).catch(() => {
+      cursosEl.innerHTML = '<tr><td colspan="3" style="padding:12px 10px;color:var(--tx3);font-size:12px;text-align:center">—</td></tr>';
+    });
+  }
 }
 
 function closeProntuario() {
@@ -4953,6 +4972,7 @@ function updateSidebarImports(section) {
       ['entorpecentes',    'Entorpecentes',             '#9b6de0'],
       ['visita-solidaria', 'Visita Solidária (VD)',     '#e05a8a'],
       ['tempo-resposta',   'Tempo Resposta Atend. Ocorrência', '#4bc8e0'],
+      ['cursos',           'Cursos Institucionais',            '#9de05a'],
     ];
     el.innerHTML = itens.map(([t, l, c]) =>
       `<button onclick="openProdUpl('${t}')" style="width:100%;padding:6px;margin-top:4px;background:rgba(0,0,0,.15);border:1px solid ${c}55;color:${c};border-radius:4px;cursor:pointer;font-size:10px;font-weight:600">↑ ${l}</button>`
@@ -5028,7 +5048,7 @@ function goPage(id, btn) {
 // ---------------------------------------------------------------------------
 // PRODUTIVIDADE P3
 // ---------------------------------------------------------------------------
-let prodRaw = { ocorrencias: [], presos: [], armas: [], veiculos: [], entorpecentes: [], visitaSolidaria: [], tempoResposta: [], loaded: false };
+let prodRaw = { ocorrencias: [], presos: [], armas: [], veiculos: [], entorpecentes: [], visitaSolidaria: [], tempoResposta: [], cursos: [], loaded: false };
 let prodSelAno    = null;
 let prodSelMeses  = [];
 let prodSelCia    = null;
@@ -5045,7 +5065,8 @@ const PROD_CORES = {
   armas:            '#c84b4b',
   veiculos:         '#4bc8a0',
   entorpecentes:    '#9b6de0',
-  'tempo-resposta': '#4bc8e0'
+  'tempo-resposta': '#4bc8e0',
+  cursos:           '#9de05a'
 };
 const PROD_LABELS = {
   ocorrencias:        'Ocorrências Atendidas',
@@ -5054,7 +5075,8 @@ const PROD_LABELS = {
   veiculos:           'Veículos Recuperados',
   entorpecentes:      'Entorpecentes Apreendidos',
   'visita-solidaria': 'Visita Solidária (VD)',
-  'tempo-resposta':   'Tempo Resposta de Atendimento de Ocorrência'
+  'tempo-resposta':   'Tempo Resposta de Atendimento de Ocorrência',
+  'cursos':           'Cursos Institucionais'
 };
 const PROD_CAMPO = {
   ocorrencias:   'contagem',
@@ -5088,7 +5110,7 @@ function prodSum(arr, field) {
 
 function prodGetAnosDisp() {
   const all = new Set();
-  ['ocorrencias','presos','armas','veiculos','entorpecentes','visitaSolidaria','tempoResposta'].forEach(k => {
+  ['ocorrencias','presos','armas','veiculos','entorpecentes','visitaSolidaria','tempoResposta','cursos'].forEach(k => {
     if (Array.isArray(prodRaw[k])) prodRaw[k].forEach(r => r.ano && all.add(r.ano));
   });
   return [...all].sort((a, b) => b - a);
@@ -5096,7 +5118,7 @@ function prodGetAnosDisp() {
 
 function prodGetMesesDisp(ano) {
   const all = new Set();
-  ['ocorrencias','presos','armas','veiculos','entorpecentes','visitaSolidaria','tempoResposta'].forEach(k => {
+  ['ocorrencias','presos','armas','veiculos','entorpecentes','visitaSolidaria','tempoResposta','cursos'].forEach(k => {
     if (Array.isArray(prodRaw[k]))
       prodRaw[k].filter(r => !ano || r.ano === ano).forEach(r => r.mes && all.add((r.mes||'').toLowerCase()));
   });
@@ -5246,6 +5268,24 @@ function prodRender() {
         <div class="kpi-lbl" style="font-size:10px;letter-spacing:.5px;line-height:1.4">Tempo Resposta Atend. Ocorrência</div>
         <div class="kpi-val" style="color:${TR_COR}">${trGlobal.toFixed(1)}%</div>
         <div class="kpi-sub">% atendidos no prazo</div>
+        <div class="kpi-hint">▸ clique p/ detalhes</div>
+      </div>`;
+    })() +
+    (() => {
+      const cursosData = (prodRaw.cursos||[]).filter(r => {
+        if (prodSelAno && r.ano !== prodSelAno) return false;
+        if (prodSelMeses.length && !prodSelMeses.some(m => m.toLowerCase() === (r.mes||'').toLowerCase())) return false;
+        return true;
+      });
+      if (!cursosData.length) return '';
+      const cursosUnicos = new Set(cursosData.map(r => (r.data||'') + '||' + (r.nome_curso||'')));
+      const pmsUnicos = new Set(cursosData.filter(r => r.re_pm).map(r => r.re_pm));
+      const CUR_COR = '#9de05a';
+      return `<div class="kpi" onclick="openProdDetail('cursos')" title="Clique para detalhes" style="cursor:pointer">
+        <div class="kpi-top" style="background:${CUR_COR}"></div>
+        <div class="kpi-lbl">Cursos Institucionais</div>
+        <div class="kpi-val" style="color:${CUR_COR}">${cursosUnicos.size}</div>
+        <div class="kpi-sub">${pmsUnicos.size} PM${pmsUnicos.size !== 1 ? 's' : ''} capacitados</div>
         <div class="kpi-hint">▸ clique p/ detalhes</div>
       </div>`;
     })();
@@ -5412,7 +5452,7 @@ async function loadProdData(force) {
   if (kpisEl) kpisEl.innerHTML = '<div style="grid-column:1/-1;color:var(--tx3);font-size:13px;padding:20px 0">Carregando dados de produtividade...</div>';
   if (chartsEl) chartsEl.innerHTML = '';
   try {
-    const [ocorr, presos, armas, veiculos, entorp, visitaSol, tempoResp] = await Promise.all([
+    const [ocorr, presos, armas, veiculos, entorp, visitaSol, tempoResp, cursos] = await Promise.all([
       authFetch(`${API}/prod/ocorrencias`).then(r => r.json()),
       authFetch(`${API}/prod/presos`).then(r => r.json()),
       authFetch(`${API}/prod/armas`).then(r => r.json()),
@@ -5420,6 +5460,7 @@ async function loadProdData(force) {
       authFetch(`${API}/prod/entorpecentes`).then(r => r.json()),
       authFetch(`${API}/prod/visita-solidaria`).then(r => r.json()).catch(() => []),
       authFetch(`${API}/prod/tempo-resposta`).then(r => r.json()).catch(() => []),
+      authFetch(`${API}/prod/cursos`).then(r => r.json()).catch(() => []),
     ]);
     prodRaw = {
       ocorrencias:    Array.isArray(ocorr)     ? ocorr     : [],
@@ -5429,6 +5470,7 @@ async function loadProdData(force) {
       entorpecentes:  Array.isArray(entorp)    ? entorp    : [],
       visitaSolidaria: Array.isArray(visitaSol) ? visitaSol : [],
       tempoResposta:  Array.isArray(tempoResp) ? tempoResp : [],
+      cursos:         Array.isArray(cursos)    ? cursos    : [],
       loaded: true
     };
     const anosDisp = prodGetAnosDisp();
@@ -5459,6 +5501,7 @@ function openProdUpl(tipo) {
     'entorpecentes':    'Colunas: Ano · Mês · CIA · Entorpecente · Unidade de Medida · Quantidade de Entorpecentes',
     'visita-solidaria': 'Colunas: Data da ocorrência · Cia PM · Nome da Vitima · Parentesco do Agressor · ...',
     'tempo-resposta':   'Colunas: Ano · Mês · CIA · Natureza Final · Qtde Talões · % Talões HD-HCL até 20min · % BOe',
+    'cursos':           'Colunas: Nº do Ofício · Data · Curso · PM (formato: Posto PM RE Nome; Posto PM RE Nome; ...)',
   };
   const hintEl = document.getElementById('prod-upl-hint');
   if (hintEl) hintEl.textContent = PROD_UPL_HINTS[tipo] || '';
@@ -5484,7 +5527,13 @@ function prodUplFileChange() {
     complete: r => {
       if (!r.data.length) { prev.innerHTML = '<span style="color:#e06060">Arquivo vazio.</span>'; return; }
       const keys = Object.keys(r.data[0]).map(k => k.toLowerCase());
-      if (prodUplTipo === 'visita-solidaria') {
+      if (prodUplTipo === 'cursos') {
+        const hasCurso = keys.some(k => k.includes('curso'));
+        if (!hasCurso) {
+          prev.innerHTML = `<span style="color:#e06060">Coluna "Curso" não encontrada no CSV.</span>`;
+          return;
+        }
+      } else if (prodUplTipo === 'visita-solidaria') {
         const hasData = keys.some(k => k.includes('data') && k.includes('ocorr'));
         if (!hasData) {
           prev.innerHTML = `<span style="color:#e06060">Coluna "Data da ocorrência" não encontrada no CSV.</span>`;
@@ -5513,7 +5562,8 @@ async function prodUplConfirm() {
   btn.disabled = true; btn.style.opacity = '.5';
   msg.innerHTML = '<span style="color:var(--tx3)">Enviando...</span>';
   try {
-    const res = await authFetch(`${API}/upload/prod/${prodUplTipo}`, {
+    const uplEndpoint = prodUplTipo === 'cursos' ? `${API}/upload/cursos` : `${API}/upload/prod/${prodUplTipo}`;
+    const res = await authFetch(uplEndpoint, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ records: prodUplParsed })
     });
@@ -5995,10 +6045,119 @@ function renderTRModalDetail() {
   }
 }
 
+function renderCursosModalDetail() {
+  const COR = '#9de05a';
+  const mesesDisp = prodGetMesesDisp(prodSelAno);
+  const periodoLbl = pdMeses.length === mesesDisp.length ? 'Acumulado ' + (prodSelAno || '') : pdMeses.join(', ');
+
+  const rows = (prodRaw.cursos || []).filter(r => {
+    if (prodSelAno && r.ano !== prodSelAno) return false;
+    if (pdMeses.length && !pdMeses.some(m => m.toLowerCase() === (r.mes||'').toLowerCase())) return false;
+    return true;
+  });
+
+  const cursosMap = new Map();
+  rows.forEach(r => {
+    const key = (r.data||'') + '||' + (r.nome_curso||'');
+    if (!cursosMap.has(key)) cursosMap.set(key, { data: r.data, nome_curso: r.nome_curso, mes: r.mes, pms: [] });
+    if (r.re_pm) cursosMap.get(key).pms.push({ posto: r.posto_pm, re: r.re_pm, nome: r.nome_pm });
+  });
+  const cursosList = [...cursosMap.values()].sort((a, b) => (b.data||'').localeCompare(a.data||''));
+  const pmsUnicos = new Set(rows.filter(r => r.re_pm).map(r => r.re_pm));
+
+  document.getElementById('pd-sub').textContent = periodoLbl.toUpperCase();
+  document.getElementById('pd-kpis').innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:8px;padding:14px 18px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Cursos Realizados</div>
+      <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${COR}">${cursosList.length}</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:8px;padding:14px 18px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">PMs Capacitados</div>
+      <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${COR}">${pmsUnicos.size}</div>
+    </div>`;
+
+  const fmtD = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
+  const tdS = 'padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:11px;color:var(--tx3)';
+  const tdL = 'padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;font-weight:600;color:var(--tx)';
+  const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:left';
+
+  const tableRows = cursosList.map(c => {
+    const pmHtml = c.pms.map(p =>
+      `<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);line-height:1.7">${p.posto||''} ${p.re||''} — ${p.nome||'—'}</div>`
+    ).join('');
+    return `<tr>
+      <td style="${tdS};white-space:nowrap">${fmtD(c.data)}</td>
+      <td style="${tdL}">${c.nome_curso||'—'}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="font-family:'DM Mono',monospace;font-size:10px;padding:1px 8px;border-radius:8px;background:${COR}22;color:${COR};display:inline-block;margin-bottom:${c.pms.length?'4':'0'}px">${c.pms.length} PM${c.pms.length !== 1 ? 's' : ''}</span>
+        ${pmHtml}
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Evolução mensal (número de cursos por mês)
+  const mesAgg = {};
+  rows.forEach(r => {
+    const key = (r.data||'') + '||' + (r.nome_curso||'');
+    const m = (r.mes||'').toLowerCase();
+    if (!m) return;
+    if (!mesAgg[m]) mesAgg[m] = new Set();
+    mesAgg[m].add(key);
+  });
+  const evoLabels = MES_ORD.filter(m => mesAgg[m.toLowerCase()]);
+  const evoData   = evoLabels.map(m => mesAgg[m.toLowerCase()].size);
+
+  const chartsEl = document.getElementById('pd-charts');
+  chartsEl.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px">Evolução Mensal — Cursos</div>
+      <canvas id="cursos-evo"></canvas>
+      <div id="cursos-evo-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
+    </div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:12px">Lista de Cursos</div>
+      ${!cursosList.length ? `<div style="color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>` : `
+      <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            <th style="${thS};width:100px">Data</th>
+            <th style="${thS}">Curso</th>
+            <th style="${thS}">Participantes</th>
+          </tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>`}
+    </div>`;
+
+  if (evoLabels.length) {
+    const ctx = document.getElementById('cursos-evo')?.getContext('2d');
+    if (ctx) {
+      pdChs.push(new Chart(ctx, {
+        type: 'bar',
+        data: { labels: evoLabels, datasets: [{ label: 'Cursos', data: evoData, backgroundColor: COR + '88', borderColor: COR, borderWidth: 1, borderRadius: 3 }] },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw} curso${i.raw !== 1 ? 's' : ''}` } } },
+          scales: {
+            x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 11 } } },
+            y: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 11 }, stepSize: 1 }, beginAtZero: true }
+          }
+        }
+      }));
+    }
+  } else {
+    const emptyEl = document.getElementById('cursos-evo-empty');
+    const canvas  = document.getElementById('cursos-evo');
+    if (emptyEl) emptyEl.style.display = '';
+    if (canvas)  canvas.style.display  = 'none';
+  }
+}
+
 function renderProdDetail() {
   pdDestroy();
   const tipo = pdTipo;
   if (tipo === 'tempo-resposta') { renderTRModalDetail(); return; }
+  if (tipo === 'cursos') { renderCursosModalDetail(); return; }
   const cor = pdNatFilter ? '#e05a8a' : PROD_CORES[tipo];
   const campo = tipo === 'entorpecentes' ? 'quantidade' : PROD_CAMPO[tipo];
   const mesesDisp = prodGetMesesDisp(prodSelAno);

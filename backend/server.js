@@ -62,6 +62,15 @@ function titleCase(s){ return (s||'').toLowerCase().replace(/\b\w/g,c=>c.toUpper
 function parseDateBR(s){ if(!s)return null; const[d,m,y]=(s||'').split('/'); if(!d||!m||!y)return null; return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; }
 function parseHora(s){ if(!s||!s.trim())return null; const p=s.trim().split(':'); return p.length<2?null:`${p[0].padStart(2,'0')}:${p[1].padStart(2,'0')}`; }
 
+function parsePMsField(pmField) {
+  if (!pmField || !pmField.trim()) return [];
+  return pmField.split(';').map(s => s.trim()).filter(Boolean).map(entry => {
+    const m = entry.match(/^(.*?PM)\s+(\d{4,7}-\d)\s+(.+)$/i);
+    if (!m) return null;
+    return { posto_pm: m[1].trim(), re_pm: m[2].trim(), nome_pm: m[3].trim() };
+  }).filter(Boolean);
+}
+
 function requireAuth(req, res, next) {
   const cookieToken  = req.cookies?.auth_token;
   const auth         = req.headers.authorization;
@@ -1000,7 +1009,8 @@ const PROD_TABS = {
   veiculos:           'prod_veiculos',
   entorpecentes:      'prod_entorpecentes',
   'visita-solidaria': 'prod_visita_solidaria',
-  'tempo-resposta':   'prod_tempo_resposta'
+  'tempo-resposta':   'prod_tempo_resposta',
+  'cursos':           'prod_cursos'
 };
 
 function mapProdRow(tipo, r) {
@@ -1427,6 +1437,73 @@ app.post('/api/disque-denuncia/upload', requireAuth, requireRole('admin', 'p3', 
       total += Math.min(BATCH, rows.length - i);
     }
     res.json({ ok: true, total });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ---------------------------------------------------------------------------
+// CURSOS INSTITUCIONAIS
+// ---------------------------------------------------------------------------
+app.post('/api/upload/cursos', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  const { records } = req.body;
+  if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
+  const nk = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+  const gf = (r, ...keys) => {
+    for (const k of keys) {
+      const hit = Object.entries(r).find(([ck]) => nk(ck) === nk(k));
+      if (hit && hit[1] != null) return String(hit[1]).trim();
+    }
+    const frags = keys.map(nk);
+    const hit2 = Object.entries(r).find(([ck]) => frags.some(f => nk(ck).includes(f)));
+    return hit2 ? String(hit2[1]||'').trim() : '';
+  };
+  try {
+    const rows = [];
+    for (const r of records) {
+      const nOficio  = gf(r, 'n do oficio', 'nº do ofício', 'no do oficio', 'n oficio', 'oficio');
+      const dataStr  = gf(r, 'data');
+      const nomeCurso= gf(r, 'curso', 'nome do curso', 'nome_curso');
+      const pmField  = gf(r, 'pm', 'interessados', 'pms');
+      if (!nomeCurso) continue;
+      const parsed = parseDateBR(dataStr) || (dataStr.match(/^\d{4}-\d{2}-\d{2}/) ? dataStr.slice(0,10) : null);
+      let ano = 0, mes = '';
+      if (parsed) {
+        const [y, m] = parsed.split('-');
+        ano = parseInt(y);
+        mes = _MESES_PT[parseInt(m) - 1] || '';
+      }
+      const pms = parsePMsField(pmField);
+      if (!pms.length) {
+        rows.push({ n_oficio: nOficio || null, data: parsed, nome_curso: nomeCurso, ano, mes, re_pm: null, posto_pm: null, nome_pm: null });
+      } else {
+        for (const pm of pms) {
+          rows.push({ n_oficio: nOficio || null, data: parsed, nome_curso: nomeCurso, ano, mes, ...pm });
+        }
+      }
+    }
+    if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
+    const anos = [...new Set(rows.map(r => r.ano).filter(a => a > 0))];
+    for (const ano of anos) {
+      const { error: delErr } = await supabase.from('prod_cursos').delete().eq('ano', ano);
+      if (delErr) throw new Error(delErr.message);
+    }
+    const BATCH = 500;
+    let total = 0;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const { error: insErr } = await supabase.from('prod_cursos').insert(rows.slice(i, i + BATCH));
+      if (insErr) throw new Error(insErr.message);
+      total += Math.min(BATCH, rows.length - i);
+    }
+    res.json({ ok: true, total });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/pm/:re/cursos', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  try {
+    const { data, error } = await supabase.from('prod_cursos').select('*').eq('re_pm', req.params.re).order('data', { ascending: false });
+    if (error) throw new Error(error.message);
+    res.json(data || []);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
