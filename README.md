@@ -1,6 +1,6 @@
-# Dashboard de Inteligência Operacional
+# Dashboard de Inteligência Operacional — 40º BPM/I
 
-> Painel web de suporte à decisão para análise de indicadores criminais e acompanhamento de metas operacionais em segurança pública.
+> Painel web de suporte à decisão para análise de indicadores criminais, gestão de pessoal e acompanhamento de produtividade operacional da Polícia Militar.
 
 <img width="1749" height="914" alt="Dashboard" src="https://github.com/user-attachments/assets/b04e59f9-9162-4d23-8936-c63271ac5c46" />
 
@@ -8,19 +8,139 @@
 
 ## O que é este projeto
 
-Sistema desenvolvido para apoiar o comando de um batalhão de Polícia Militar no acompanhamento dos indicadores criminais do seu território. Os dados — inseridos mensalmente via planilha e importados pelo próprio painel — são transformados em visualizações, rankings e diagnósticos automáticos que orientam onde concentrar os esforços operacionais.
+Sistema desenvolvido para apoiar o comando do 40º Batalhão de Polícia Militar do Interior no acompanhamento integrado de três frentes:
 
-O painel responde perguntas como:
-
-- Quais crimes estão **acima da meta** este mês?
-- Em quais municípios a situação é mais crítica?
-- Algum crime está **crescendo** mesmo estando acima da meta?
-- Qual a **tendência projetada** para fechar o mês?
-- Onde o batalhão está se **destacando positivamente**?
+- **Análise criminal** — indicadores do RAC com comparativo de metas, tendências e diagnósticos automáticos
+- **Gestão de pessoal** — efetivo, afastamentos, restrições médicas, EAP, férias, prontuário individual e cursos
+- **Produtividade operacional** — ocorrências, presos, armas, veículos, entorpecentes, Disque Denúncia, visita solidária, tempo de resposta e cursos institucionais
 
 ---
 
-## Indicadores acompanhados
+## Estrutura de navegação
+
+| Seção | Status | Descrição |
+|---|---|---|
+| **P1 · Pessoal** | Ativo | Gestão de efetivo, afastamentos, prontuário, cursos |
+| **P3 · Operações** | Ativo | Análise criminal RAC + produtividade operacional |
+| P4 · Materiais | Em breve | — |
+| P5 · Comunicação | Em breve | — |
+
+---
+
+## Módulo P1 — Pessoal
+
+### KPIs do Efetivo
+
+Painel com cards interativos (clique abre lista detalhada):
+
+| KPI | Descrição |
+|---|---|
+| Total Efetivo | Todos os PMs com filtro por OPM |
+| Aptos | PMs sem afastamento ativo |
+| Afastamentos | PMs afastados hoje, agrupados por tipo |
+| Em Restrição | PMs com restrição médica ativa |
+| EAP | Status do Estágio de Aperfeiçoamento do ano atual |
+| Controle de Férias | PMs em gozo e com férias nos próximos 15 dias |
+| Quadro Fixado | Diferença entre efetivo fixado e existente por OPM |
+
+### Funcionalidades
+
+- **Filtro por OPM** — todos os KPIs respondem ao filtro
+- **Busca por RE ou nome** — abre diretamente o prontuário
+- **Exportar CSV** — situação completa do efetivo (status, afastamento, restrição, EAP)
+- **Upload de efetivo** via CSV
+- **Upload de afastamentos** via CSV
+- **Upload de quadro fixado** via CSV
+
+### Prontuário Individual
+
+Ao clicar em qualquer PM é aberto um modal completo com:
+
+- Foto (upload/remoção por perfil `p1` ou `admin`)
+- Dados pessoais: posto, RE, OPM, função, gênero, nome de guerra
+- Status atual (apto / afastado / em restrição)
+- Situação EAP do ano
+- Restrição médica com vigência
+- **Extrato cronológico de afastamentos**
+- **Cursos Institucionais realizados** (integrado com dados do P3)
+
+---
+
+## Módulo P3 — Operações
+
+### Aba: Visão Geral (RAC)
+
+Painel principal de análise criminal. Apresenta:
+
+- **KPIs por crime** — total de ocorrências, variação vs mês anterior, município crítico e status vs meta
+- **Gráfico Desvio vs Meta** — barras coloridas por status com projeção de tendência. Clicável por crime.
+- **Insights automáticos** — 6 diagnósticos gerados automaticamente:
+  - Crime com maior crescimento percentual
+  - Crime mais crítico (maior desvio acima da meta)
+  - Crime com melhor desempenho
+  - Resumo de crimes dentro e fora da meta
+  - Município em maior alerta
+  - Município com melhor desempenho
+
+Filtros: CIA, Município, Batalhão, Mês.
+
+### Aba: Metas × Realizado
+
+Tabela comparativa com todos os registros. Colunas: Município, CIA, Crime, Anterior, Meta, Avaliado, Var%, Status.
+
+**Critério de status:**
+- **Ótimo** — avaliado ≤ 80% da meta
+- **Na Meta** — avaliado ≤ meta
+- **Em Evolução** — acima da meta, mas abaixo do anterior
+- **Acima** — acima da meta e do anterior
+
+### Aba: Mapa de Calor
+
+Tabela de intensidade cruzando **município × crime**. Municípios agrupados por CIA, com intensidade visual proporcional ao volume.
+
+### Aba: Evolução Mensal
+
+Gráfico de linhas mês a mês por crime e município. Permite identificar tendências de crescimento ou queda ao longo do ano.
+
+### Aba: Indicadores de Qualidade P3
+
+13 indicadores operacionais com metas, histórico e status automático (Ótimo / Na Meta / Atenção / Crítico). Exemplos: taxa de elucidação, cursos concluídos, tempo de resposta médio.
+
+### Aba: Produtividade
+
+KPIs com modal de detalhe (gráficos + rankings + tabelas) para cada tipo:
+
+| KPI | Fonte de dados |
+|---|---|
+| Ocorrências Gerais | InfoCrim (CSV) |
+| Pessoas Presas | CSV |
+| Armas Apreendidas | CSV |
+| Veículos Recuperados | CSV |
+| Entorpecentes Apreendidos | CSV (por unidade de medida) |
+| Violência Doméstica | Filtro automático sobre ocorrências |
+| Visita Solidária (VD) | CSV |
+| Tempo de Resposta | CSV (% atendidos no prazo) |
+| **Cursos Institucionais** | CSV com participantes por RE |
+| Disque Denúncia | CSV |
+
+#### Cursos Institucionais
+
+Classifica automaticamente cada curso pelo nome:
+
+| Tipo | Padrão no nome |
+|---|---|
+| CEP | `CEP -` |
+| EEP | `EEP -` ou `Estágio de Especialização Profissional` |
+| Habilitação | `Habilitação` |
+| Adaptação | `Adaptação` |
+| Instrução | `Instrução` |
+| Outros | demais |
+
+Modal de detalhe exibe: total de cursos, PMs capacitados, evolução mensal, gráfico de distribuição por tipo (doughnut) e tabela de cursos com participantes. Os cursos de cada PM aparecem também no prontuário individual do P1.
+
+---
+
+## Crimes acompanhados (RAC)
 
 | Crime |
 |---|
@@ -32,186 +152,112 @@ O painel responde perguntas como:
 | Roubo de Veículos |
 | Furto de Veículos |
 
-Cada registro contém: **ano, mês, CIA, município, valor anterior, meta, valor avaliado e tendência projetada**.
-
----
-
-## Estrutura de navegação
-
-O painel é organizado por seções que espelham as seções do batalhão:
-
-| Seção | Status |
-|---|---|
-| P1 · Seção de Pessoal | Em desenvolvimento |
-| P3 · Divisão Operacional | Ativo |
-| P4 · Seção de Materiais | Em desenvolvimento |
-| P5 · Comunicação Social | Em desenvolvimento |
-
-A seção **P3 · Operações** concentra todos os painéis de análise criminal atualmente disponíveis.
-
----
-
-## Painéis disponíveis (P3)
-
-### Visão Geral
-
-Tela principal do sistema. Apresenta:
-
-- **KPIs por crime** — total de ocorrências, variação vs mês anterior, município com maior incidência e status em relação à meta
-- **Gráfico Desvio vs Meta** — barras coloridas por status (verde = dentro da meta, laranja = acima mas melhorando, vermelho = acima e piorando) com **barra de tendência em cinza** mostrando a projeção calculada antes do fechamento do mês. Barras clicáveis — abre a janela de detalhe do crime.
-- **Insights automáticos** — 6 cards gerados a partir dos dados do período selecionado:
-  - Crime com maior crescimento percentual vs período anterior
-  - Crime mais crítico (maior desvio acima da meta)
-  - Crime com melhor desempenho (mais abaixo da meta)
-  - Resumo de quantos crimes estão dentro e fora da meta
-  - Município em maior alerta
-  - Município com melhor desempenho
-
-Todos os elementos respondem ao filtro de **CIA, Município ou Batalhão** e ao filtro de **mês** na barra lateral.
-
----
-
-### Metas × Realizado
-
-Tabela comparativa com todos os registros do período filtrado. Colunas:
-
-| Coluna | Descrição |
-|---|---|
-| Município | Nome do município |
-| CIA | Companhia responsável |
-| Crime | Tipo do indicador |
-| Anterior | Valor do mês anterior |
-| Meta | Meta definida para o período |
-| Avaliado | Valor registrado no período |
-| Var% | Variação percentual do avaliado vs mês anterior |
-| Status | Situação: Ótimo / Na Meta / Em Evolução / Acima |
-
-Filtros disponíveis: CIA, Município, Batalhão e **tipo de crime**.
-
-**Critério de status:**
-- **Ótimo** — avaliado ≤ 80% da meta
-- **Na Meta** — avaliado ≤ meta
-- **Em Evolução** — acima da meta, mas abaixo do anterior (melhorando)
-- **Acima** — acima da meta e do anterior
-
----
-
-### Mapa de Calor
-
-Tabela de intensidade cruzando **município × crime**. Quanto mais escura a célula, maior o volume relativo de ocorrências daquele crime naquele município. Municípios agrupados por CIA com separador visual.
-
-Filtro independente de meses — permite comparar períodos diferentes sem interferir nos outros painéis.
-
----
-
-### Evolução Mensal
-
-Gráfico de linhas mostrando a evolução mês a mês de um crime específico, separado por município. Permite identificar tendências de crescimento ou queda ao longo do ano.
-
----
-
-### Janela de detalhe por crime
-
-Ao clicar em qualquer KPI ou barra do gráfico, abre um modal completo com:
-
-- KPIs consolidados do crime (total, variação, município crítico, status)
-- Gráfico de barras por município
-- Evolução mensal
-- Comparativo meta × avaliado
-- Distribuição por CIA (gráfico rosca)
-- **Tabela de municípios agrupada por CIA** — ordenada da 1ª à 3ª CIA, municípios ordenados por volume dentro de cada grupo
+Cada registro: **ano, mês, CIA, município, anterior, meta, avaliado, tendência**.
 
 ---
 
 ## Controle de acesso
 
-Cadastro com aprovação obrigatória. Nenhum usuário acessa o sistema sem aprovação manual.
+Cadastro com aprovação obrigatória. Nenhum acesso sem aprovação manual.
 
-| Nível | Permissões |
+| Role | Permissões |
 |---|---|
-| Visualizador | Leitura de todos os painéis |
-| Cmt de Cia | Leitura de todos os painéis |
-| Cmt de Batalhão | Leitura de todos os painéis |
-| P3 | Leitura + gerenciamento completo de usuários (aprovar, recusar, alterar nível, excluir) |
-| admin | Nível reservado — não pode ser alterado nem excluído por nenhum usuário |
+| `admin` | Acesso total — não pode ser alterado nem excluído |
+| `p3` | P3 completo + gerenciamento de usuários |
+| `p1` | P1 completo + upload de fotos dos PMs |
+| `ti` | Acesso amplo sem restrição de seção |
+| `viewer` | Somente leitura |
+| `comandante` | Somente leitura |
+| `comandante_cia` | Somente leitura |
+
+Autenticação por JWT em cookie `httpOnly`, sessão de 8 horas.
 
 ---
 
-## Importação de dados
+## Banco de dados (Supabase / PostgreSQL)
 
-Upload de arquivo `.csv` diretamente pelo painel (acesso restrito). O sistema valida as colunas, exibe uma prévia dos registros e realiza upsert no banco de dados.
+| Tabela | Conteúdo |
+|---|---|
+| `Base de Dados RAC PM` | Registros criminais do RAC |
+| `usuarios` | Autenticação própria (JWT + bcrypt) |
+| `ocorrencias` | Dados InfoCrim importados via CSV |
+| `efetivo_pm` | Efetivo P1 com todos os dados do PM |
+| `afastamentos_pm` | Histórico de afastamentos |
+| `fotos_pm` | Fotos dos PMs em base64 |
+| `vagas_pm` | Efetivo fixado por OPM |
+| `p1_quadro_fixado` | Quadro de pessoal fixado/existente por posto e OPM |
+| `prod_ocorrencias` | Produtividade — ocorrências |
+| `prod_pessoas_presas` | Produtividade — presos |
+| `prod_armas` | Produtividade — armas apreendidas |
+| `prod_veiculos` | Produtividade — veículos recuperados |
+| `prod_entorpecentes` | Produtividade — entorpecentes |
+| `prod_visita_solidaria` | Programa Visita Solidária |
+| `prod_tempo_resposta` | Tempo de resposta de ocorrências urgentes |
+| `prod_cursos` | Cursos institucionais (por PM por curso) |
+| `indicadores_qualidade_p3` | Indicadores de qualidade P3 |
+| `disque_denuncia_registros` | Registros Disque Denúncia |
+| `config_dashboard` | Configurações globais (chave/valor) |
 
-**Colunas obrigatórias no CSV:**
-```
-Ano, Mes, Cia, Municipio, Crime, Anterior, Meta, Avaliado, Tendencia
-```
+Todas as tabelas têm RLS habilitado. O backend usa `service_role key` que bypassa o RLS.
 
 ---
 
 ## Como foi construído
 
 ### Frontend
-Tecnologias web puras, sem frameworks:
-- **HTML / CSS / JavaScript** — estrutura, estilo e lógica da aplicação
-- **Chart.js** — renderização de todos os gráficos
-- **PapaParse** — leitura e validação de arquivos CSV no navegador
-- **Lucide Icons** — ícones da interface
+- **HTML / CSS / JavaScript** puro — sem framework
+- **Chart.js** — todos os gráficos (barras, linhas, rosca, radar)
+- **PapaParse** — leitura e validação de CSV no navegador
+- **Lucide Icons** — ícones via CDN
 
 ### Backend
-**Node.js com Express**, responsável por:
-- Servir o frontend e os dados via API REST
-- Autenticar usuários com **JWT** (sessão de 8 horas)
-- Criptografar senhas com **bcryptjs**
-- Sincronizar os dados com o banco via **Supabase**
-- Calcular indicadores analíticos por módulos independentes
-
-### Banco de dados
-**Supabase** (PostgreSQL na nuvem) — armazena registros operacionais e usuários. Em ambientes sem conexão configurada, o sistema carrega automaticamente os dados do arquivo `raw_data.json` como fallback local.
+**Node.js + Express**, responsável por:
+- Servir o frontend via `express.static`
+- API REST com autenticação JWT (`httpOnly` cookie)
+- Sincronização com Supabase a cada 5 min (cache em memória)
+- Módulos analíticos independentes em `backend/analytics/`
 
 ### Deploy
-**Vercel** — hospedagem com publicação automática a cada push no GitHub.
+**Vercel** (região `gru1`) — publicação automática a cada push. Todo tráfego roteia para `backend/server.js`.
 
 ---
 
 ## Como rodar localmente
 
-### Pré-requisitos
-- [Node.js](https://nodejs.org/) v18 ou superior
-- Conta no [Supabase](https://supabase.com) *(opcional — há fallback local)*
+**Pré-requisitos:** Node.js v18+
 
-### Passo a passo
-
-**1. Clone o repositório**
 ```bash
+# 1. Clone o repositório
 git clone https://github.com/luanvasaki/dashboard-pm-40bpmi.git
 cd dashboard-pm-40bpmi
+
+# 2. Instale as dependências
+cd backend && npm install
+
+# 3. Configure as variáveis de ambiente
+cp .env.example backend/.env
+# Edite backend/.env com suas credenciais
 ```
 
-**2. Instale as dependências**
+**Variáveis obrigatórias em `backend/.env`:**
+
+| Variável | Descrição |
+|---|---|
+| `SUPABASE_URL` | URL do projeto Supabase |
+| `SUPABASE_KEY` | service_role key |
+| `JWT_SECRET` | String aleatória ≥ 64 chars |
+| `NODE_ENV` | `production` em produção |
+| `ALLOWED_ORIGIN` | Origem CORS (vazio = libera tudo em dev) |
+
 ```bash
-cd backend
-npm install
-```
-
-**3. Configure as credenciais do Supabase**
-
-Abra `backend/server.js` e preencha:
-```js
-const SUPABASE_URL = 'sua_url_aqui';
-const SUPABASE_KEY = 'sua_chave_aqui';
-```
-
-**4. Inicie o servidor**
-```bash
+# 4. Inicie o servidor
 node server.js
+
+# 5. Acesse no navegador
+# http://localhost:3001
 ```
 
-**5. Acesse no navegador**
-```
-http://localhost:3001
-```
-
-> Sem Supabase configurado, o sistema usa `raw_data.json` automaticamente.
+> Sem Supabase configurado, o sistema usa `raw_data.json` como fallback automático.
 
 ---
 
@@ -220,20 +266,23 @@ http://localhost:3001
 ```
 ├── backend/
 │   ├── analytics/
-│   │   ├── crimePressureIndex.js   ← índice de pressão por crime/área
-│   │   ├── trendAnalysis.js        ← análise de tendência de crescimento
-│   │   ├── priorityScore.js        ← score de prioridade operacional
-│   │   ├── cityRanking.js          ← ranking de municípios por volume
-│   │   ├── targetDeviation.js      ← desvio percentual em relação à meta
-│   │   └── insightGenerator.js     ← geração de diagnósticos automáticos
-│   └── server.js                   ← API REST principal (porta 3001)
+│   │   ├── crimePressureIndex.js
+│   │   ├── trendAnalysis.js
+│   │   ├── priorityScore.js
+│   │   ├── cityRanking.js
+│   │   ├── targetDeviation.js
+│   │   └── insightGenerator.js
+│   └── server.js                  ← API REST + auth + todas as rotas
 ├── frontend/
-│   ├── index.html                  ← dashboard principal (SPA)
-│   ├── login.html                  ← tela de acesso e cadastro
-│   ├── js/app.js                   ← lógica, gráficos e chamadas à API
-│   └── css/style.css               ← estilo visual
-├── raw_data.json                   ← dados de fallback local
-├── vercel.json                     ← configuração de deploy
+│   ├── index.html                 ← SPA principal
+│   ├── login.html                 ← autenticação e cadastro
+│   ├── js/app.js                  ← toda a lógica e gráficos
+│   └── css/style.css
+├── raw_data.json                  ← fallback local
+├── create_prod_cursos.sql         ← script para criar tabela de cursos
+├── create_prod_tempo_resposta.sql ← script para criar tabela de tempo de resposta
+├── supabase_rls_enable.sql        ← script para habilitar RLS
+├── vercel.json                    ← configuração de deploy
 └── README.md
 ```
 
