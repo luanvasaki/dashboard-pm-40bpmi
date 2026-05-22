@@ -5245,7 +5245,7 @@ function prodRender() {
         <div class="kpi-top" style="background:${TR_COR}"></div>
         <div class="kpi-lbl" style="font-size:10px;letter-spacing:.5px;line-height:1.4">Tempo Resposta Atend. Ocorrência</div>
         <div class="kpi-val" style="color:${TR_COR}">${trGlobal.toFixed(1)}%</div>
-        <div class="kpi-sub">HD-HCL ≤20min no prazo</div>
+        <div class="kpi-sub">% atendidos no prazo</div>
         <div class="kpi-hint">▸ clique p/ detalhes</div>
       </div>`;
     })();
@@ -5768,7 +5768,7 @@ function renderTRModalDetail() {
 
   const kpiCor = trGlobal >= 70 ? TR_COR_BOM : trGlobal >= 50 ? TR_COR : TR_COR_MAU;
   document.getElementById('pd-kpis').innerHTML = `
-    <div class="pd-kpi"><div class="pd-kpi-lbl">HD-HCL ≤20min</div><div class="pd-kpi-val" style="color:${kpiCor}">${trGlobal.toFixed(1)}%</div></div>
+    <div class="pd-kpi"><div class="pd-kpi-lbl">Tempo ≤20min</div><div class="pd-kpi-val" style="color:${kpiCor}">${trGlobal.toFixed(1)}%</div></div>
     <div class="pd-kpi"><div class="pd-kpi-lbl">% BOe</div><div class="pd-kpi-val" style="color:${TR_COR}">${trBoe > 0 ? trBoe.toFixed(1) + '%' : '—'}</div></div>
     <div class="pd-kpi"><div class="pd-kpi-lbl">Total Talões</div><div class="pd-kpi-val" style="color:${TR_COR}">${trTotalTal.toLocaleString('pt-BR')}</div></div>
     <div class="pd-kpi"><div class="pd-kpi-lbl">Fora do Prazo</div><div class="pd-kpi-val" style="color:${TR_COR_MAU}">~${trForaPrazo.toLocaleString('pt-BR')}</div></div>
@@ -5817,7 +5817,7 @@ function renderTRModalDetail() {
 
   const ciaCard = !ciaRank.length ? '' :
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR};border-radius:10px;padding:16px">
-      ${cardTop(TR_COR, '% no Prazo por CIA', 'HD-HCL ≤20min · verde ≥70% · amarelo ≥50% · vermelho <50%')}
+      ${cardTop(TR_COR, '% no Prazo por CIA', 'Tempo ≤20min · verde ≥70% · amarelo ≥50% · vermelho <50%')}
       ${ciaRank.map((d, i) => {
         const c = d.pct >= 70 ? TR_COR_BOM : d.pct >= 50 ? TR_COR : TR_COR_MAU;
         return `<div style="margin-bottom:${i < ciaRank.length - 1 ? '12' : '0'}px">
@@ -5871,14 +5871,14 @@ function renderTRModalDetail() {
 
   const evoShell = evoMeses.length > 1
     ? `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR};border-radius:10px;padding:16px">
-        ${cardTop(TR_COR, 'Evolução Mensal — % Atendidos no Prazo', hasBoe ? 'HD-HCL ≤20min (linha sólida) · % BOe (tracejado)' : 'HD-HCL ≤20min — média ponderada por talões')}
+        ${cardTop(TR_COR, 'Evolução Mensal — % Atendidos no Prazo', hasBoe ? 'Tempo ≤20min (linha sólida) · % BOe (tracejado)' : 'Tempo ≤20min — média ponderada por talões')}
         <canvas id="tr-evo-ch" style="max-height:220px"></canvas>
       </div>` : '';
 
   const hasCiaComp = ciaRank.length > 1 && ciaRank.some(d => d.pctBoe > 0);
   const ciaCompShell = hasCiaComp
     ? `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR};border-radius:10px;padding:16px">
-        ${cardTop(TR_COR, 'CIA — HD-HCL ≤20min vs % BOe', 'Comparação das duas métricas por CIA')}
+        ${cardTop(TR_COR, 'CIA — Tempo ≤20min vs % BOe', 'Comparação das duas métricas por CIA')}
         <canvas id="tr-cia-comp-ch"></canvas>
       </div>` : '';
 
@@ -5901,7 +5901,7 @@ function renderTRModalDetail() {
           labels: evoMeses,
           datasets: [
             {
-              label: 'HD-HCL ≤20min',
+              label: 'Tempo ≤20min',
               data: evoPct,
               borderColor: TR_COR,
               backgroundColor: TR_COR + '22',
@@ -5956,7 +5956,7 @@ function renderTRModalDetail() {
           labels: ciasToShow.map(d => d.cia),
           datasets: [
             {
-              label: 'HD-HCL ≤20min',
+              label: 'Tempo ≤20min',
               data: ciasToShow.map(d => parseFloat(d.pct.toFixed(1))),
               backgroundColor: TR_COR + 'aa',
               borderColor: TR_COR,
