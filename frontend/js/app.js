@@ -5839,12 +5839,12 @@ function renderTRModalDetail() {
     const melhor = ciaRank[0], pior = ciaRank[ciaRank.length - 1];
     insightsBody += `
       <div style="margin-bottom:14px">
-        <div style="font-size:10px;color:${TR_COR_BOM};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">CIA Mais Rápida</div>
+        <div style="font-size:10px;color:${TR_COR_BOM};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">CIA com Menor Tempo de Resposta</div>
         <div style="font-size:18px;font-weight:700;color:var(--tx)">${melhor.cia}</div>
         <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_BOM}">${melhor.pct.toFixed(1)}% · ${melhor.taloes.toLocaleString('pt-BR')} talões</div>
       </div>
       <div style="margin-bottom:14px">
-        <div style="font-size:10px;color:${TR_COR_MAU};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">CIA Mais Demorada</div>
+        <div style="font-size:10px;color:${TR_COR_MAU};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">CIA com Maior Tempo de Resposta</div>
         <div style="font-size:18px;font-weight:700;color:var(--tx)">${pior.cia}</div>
         <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_MAU}">${pior.pct.toFixed(1)}% · ${pior.taloes.toLocaleString('pt-BR')} talões</div>
       </div>`;
