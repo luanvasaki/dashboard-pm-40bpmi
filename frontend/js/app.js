@@ -3556,6 +3556,12 @@ function p1ShowKpiDetail(tipo) {
     const isEapOk = r => { const d = r.data_eap ? new Date(r.data_eap) : null; return d && !isNaN(d) && d.getUTCFullYear() === anoAtual; };
     const feitos  = dataF.filter(r => isEapOk(r)).sort((a,b) => (a.data_eap||'').localeCompare(b.data_eap||''));
     const pend    = dataF.filter(r => !isEapOk(r));
+    const taftatVencFn = pm => {
+      if (!pm.data_eap) return false;
+      const d = new Date(pm.data_eap), lim = new Date(d);
+      lim.setFullYear(lim.getFullYear() + 1);
+      return new Date() > lim;
+    };
     const REPROV_D = new Set(['inapto','ruim']);
     const notaCor2 = n => ({ 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#c84b4b','inapto':'#c84b4b' })[(n||'').toLowerCase()] || 'var(--tx3)';
     const notaBadge = n => n ? `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:8px;background:${notaCor2(n)}22;color:${notaCor2(n)}">${n}</span>` : `<span style="color:var(--tx3);font-size:10px">—</span>`;
