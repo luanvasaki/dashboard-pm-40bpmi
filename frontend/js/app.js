@@ -3943,7 +3943,7 @@ async function openProntuario(re) {
     : `<span style="font-size:12px;color:var(--tx3)">—</span>`;
 
   // TAF / TAT
-  const NOTA_COR = { 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#c84b4b' };
+  const NOTA_COR = { 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#c84b4b','inapto':'#c84b4b' };
   const notaCor  = n => NOTA_COR[(n||'').toLowerCase()] || 'var(--tx3)';
   const fmtRange = s => {
     if (!s) return null;
