@@ -3942,6 +3942,18 @@ async function openProntuario(re) {
        <div style="font-size:11px;color:var(--tx3)">${fmtD(pm.restricao_inicio)} → ${fmtD(pm.restricao_termino)}</div>`
     : `<span style="font-size:12px;color:var(--tx3)">—</span>`;
 
+  // TAF / TAT
+  const NOTA_COR = { 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#c84b4b' };
+  const notaCor  = n => NOTA_COR[(n||'').toLowerCase()] || 'var(--tx3)';
+  const renderTeste = (data, nota) => {
+    if (!nota && !data) return `<span style="font-size:12px;color:var(--tx3)">—</span>`;
+    const cor = notaCor(nota);
+    return `${nota ? `<div style="font-size:12px;font-weight:600;color:${cor}">${nota}</div>` : ''}
+            ${data ? `<div style="font-size:11px;color:var(--tx3)">${fmtD(data)}</div>` : ''}`;
+  };
+  document.getElementById('pronto-taf').innerHTML = renderTeste(pm.data_taf, pm.taf);
+  document.getElementById('pronto-tat').innerHTML = renderTeste(pm.data_tat, pm.tat);
+
   // Foto
   const imgEl = document.getElementById('pronto-foto');
   const phEl  = document.getElementById('pronto-foto-ph');

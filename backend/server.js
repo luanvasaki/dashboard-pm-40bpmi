@@ -752,11 +752,15 @@ app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3'), async (
       funcao:            gf(r, 'Funcao', 'funcao', 'Função', 'função'),
       genero:            gf(r, 'Genero', 'genero', 'Gênero', 'gênero'),
       nome_guerra:       gf(r, 'NomeGuerra', 'nomeguerra', 'Nome de Guerra', 'nome de guerra'),
-      data_eap:          gf(r, 'DataEAP', 'dataeap', 'DATA EAP', 'data eap') || null,
+      data_eap:          parseDateBR(gf(r, 'DataEAP', 'dataeap', 'DATA EAP', 'data eap')) || null,
       possui_restricao:  gf(r, 'PossuiRestricao', 'possui_restricao', 'Possui Restrição', 'possui restrição'),
       tipos_restricao:   gf(r, 'TiposRestricao', 'tipos_restricao', 'Tipos de Restrição', 'tipos de restrição'),
-      restricao_inicio:  gf(r, 'RestricaoInicio', 'restricao_inicio', 'Restrição Inicio', 'restrição inicio') || null,
-      restricao_termino: gf(r, 'RestricaoTermino', 'restricao_termino', 'Restrição Término', 'restrição término') || null,
+      restricao_inicio:  parseDateBR(gf(r, 'RestricaoInicio', 'restricao_inicio', 'Restrição Inicio', 'restrição inicio')) || null,
+      restricao_termino: parseDateBR(gf(r, 'RestricaoTermino', 'restricao_termino', 'Restrição Término', 'restrição término')) || null,
+      data_taf:          parseDateBR(gf(r, 'Data TAF', 'data_taf', 'data taf', 'datataf')) || null,
+      taf:               gf(r, 'TAF', 'taf') || null,
+      data_tat:          parseDateBR(gf(r, 'Data TAT', 'data_tat', 'data tat', 'datatat')) || null,
+      tat:               gf(r, 'TAT', 'tat') || null,
     })).filter(r => r.nome && r.posto);
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique as colunas do CSV.' });
