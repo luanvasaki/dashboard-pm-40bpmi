@@ -2774,6 +2774,16 @@ function renderP1() {
     const d = new Date(r.data_eap);
     return !isNaN(d) && d.getUTCFullYear() === anoAtual;
   });
+  const TAFTAT_REPROV = new Set(['inapto','ruim']);
+  const inaptosTaf = dataF.filter(r => TAFTAT_REPROV.has((r.taf||'').toLowerCase().trim()));
+  const inaptosTat = dataF.filter(r => TAFTAT_REPROV.has((r.tat||'').toLowerCase().trim()));
+  const taftatVencFn = pm => {
+    if (!pm.data_eap) return false;
+    const d = new Date(pm.data_eap), lim = new Date(d);
+    lim.setFullYear(lim.getFullYear() + 1);
+    return new Date() > lim;
+  };
+  const taftatVencidos = dataF.filter(taftatVencFn);
 
   // ── Controle de Férias / LP
   const isLP  = t => /^lp$/i.test((t || '').trim());
@@ -2828,7 +2838,12 @@ function renderP1() {
     kpiCard('Aptos', pmAptos.length, total > 0 ? `${Math.round(pmAptos.length/total*100)}% do efetivo` : '—', '#4bc87a', 'aptos') +
     kpiCard('Afastamentos', pmAfastados.length, tiposSub || '—', pmAfastados.length > 0 ? '#c84b4b' : 'var(--tx3)', 'afastados') +
     kpiCard('Em Restrição', pmComRestricao.length, vencendoRestricao.length > 0 ? `⚠ ${vencendoRestricao.length} vencem em 30 dias` : '—', pmComRestricao.length > 0 ? '#c8a84b' : 'var(--tx3)', 'restricao') +
-    kpiCard(`EAP ${anoAtual}`, pmEapPendente.length, `<span style="color:#4bc87a">${pmEapFeito.length} realizaram</span> · <span style="color:#c8a84b">${pmEapPendente.length} pendentes</span>`, pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a', 'eap') +
+    kpiCard(`EAP / TAF / TAT ${anoAtual}`, pmEapFeito.length,
+      `<span style="color:#4bc87a">${pmEapFeito.length} realizaram</span> · <span style="color:#c8a84b">${pmEapPendente.length} pendentes</span>` +
+      (inaptosTaf.length ? ` · <span style="color:#c84b4b">${inaptosTaf.length} inapto${inaptosTaf.length>1?'s':''} TAF</span>` : '') +
+      (inaptosTat.length ? ` · <span style="color:#c84b4b">${inaptosTat.length} inapto${inaptosTat.length>1?'s':''} TAT</span>` : '') +
+      (taftatVencidos.length ? ` · <span style="color:#c84b4b">${taftatVencidos.length} vencidos</span>` : ''),
+      (inaptosTaf.length || inaptosTat.length || taftatVencidos.length) ? '#c84b4b' : pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a', 'eap') +
     kpiCard('Controle de Férias', ferEmGozo.length, `${ferEmGozo.length} em gozo · ${ferEm15Dias.length} em 15d`, ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)', 'ferias') +
     (() => {
       if (!p1Quadro.length) return '';
@@ -3409,7 +3424,7 @@ function p1ShowKpiDetail(tipo) {
     aptos:    { title: 'APTOS',                color: '#4bc87a' },
     afastados:{ title: 'AFASTAMENTOS',         color: '#c84b4b' },
     restricao:{ title: 'EM RESTRIÇÃO',         color: '#c8a84b' },
-    eap:      { title: `EAP ${new Date().getFullYear()}`, color: '#c8a84b' },
+    eap:      { title: `EAP / TAF / TAT ${new Date().getFullYear()}`, color: '#c8a84b' },
     ferias:   { title: 'CONTROLE DE FÉRIAS',   color: '#5a9de0' },
     quadro:   { title: 'QUADRO FIXADO DO EFETIVO', color: '#4bc87a' },
   };
@@ -3539,8 +3554,11 @@ function p1ShowKpiDetail(tipo) {
 
   else if (tipo === 'eap') {
     const isEapOk = r => { const d = r.data_eap ? new Date(r.data_eap) : null; return d && !isNaN(d) && d.getUTCFullYear() === anoAtual; };
-    const feitos   = dataF.filter(r => isEapOk(r)).sort((a,b) => (a.data_eap||'').localeCompare(b.data_eap||''));
-    const pend     = dataF.filter(r => !isEapOk(r));
+    const feitos  = dataF.filter(r => isEapOk(r)).sort((a,b) => (a.data_eap||'').localeCompare(b.data_eap||''));
+    const pend    = dataF.filter(r => !isEapOk(r));
+    const REPROV_D = new Set(['inapto','ruim']);
+    const notaCor2 = n => ({ 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#c84b4b','inapto':'#c84b4b' })[(n||'').toLowerCase()] || 'var(--tx3)';
+    const notaBadge = n => n ? `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:8px;background:${notaCor2(n)}22;color:${notaCor2(n)}">${n}</span>` : `<span style="color:var(--tx3);font-size:10px">—</span>`;
     const p2 = n => String(n).padStart(2,'0');
     const fmtEap = s => {
       if (!s) return '—';
@@ -3548,38 +3566,97 @@ function p1ShowKpiDetail(tipo) {
       const d3 = new Date(d); d3.setUTCDate(d3.getUTCDate() + 2);
       return `${p2(d.getUTCDate())} à ${p2(d3.getUTCDate())}/${p2(d3.getUTCMonth()+1)}/${d3.getUTCFullYear()}`;
     };
-    const cS = 'font-family:"DM Mono",monospace;font-size:12px;color:var(--tx3)';
-    const cL = 'font-size:13px;font-weight:600;color:var(--tx)';
-    const pC = 'padding:8px 6px 8px 4px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    const cS  = 'font-family:"DM Mono",monospace;font-size:12px;color:var(--tx3)';
+    const cL  = 'font-size:13px;font-weight:600;color:var(--tx)';
+    const pC  = 'padding:8px 6px 8px 4px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    const thE = 'padding:8px 6px 8px 4px;border-bottom:1px solid rgba(90,157,224,.25);background:rgba(90,157,224,.06);font-family:"DM Mono",monospace;font-size:11px;color:#5a9de0;letter-spacing:1px;text-transform:uppercase;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+
     const rowsFeitos = feitos.map(r => `<tr>
       <td style="${pC};${cS}">${r.posto||'—'}</td>
       <td style="${pC};${cS}">${r.re}</td>
       <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
       <td style="${pC};${cS}">${r.opm||'—'}</td>
       <td style="${pC};${cS};color:#4bc87a">${fmtEap(r.data_eap)}</td>
+      <td style="${pC};text-align:center">${notaBadge(r.taf)}</td>
+      <td style="${pC};text-align:center">${notaBadge(r.tat)}</td>
     </tr>`).join('');
-    const rowsPend = pend.map(r => `<tr>
+
+    const rowsPend = pend.map(r => {
+      const venc = taftatVencFn(r);
+      const situacao = venc
+        ? `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:8px;background:#c84b4b22;color:#c84b4b">Vencido</span>`
+        : `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:8px;background:#c8a84b22;color:#c8a84b">Não realizado</span>`;
+      return `<tr>
+        <td style="${pC};${cS}">${r.posto||'—'}</td>
+        <td style="${pC};${cS}">${r.re}</td>
+        <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+        <td style="${pC};${cS}">${r.opm||'—'}</td>
+        <td style="${pC}">${situacao}</td>
+        <td style="${pC};text-align:center">${notaBadge(r.taf)}</td>
+        <td style="${pC};text-align:center">${notaBadge(r.tat)}</td>
+      </tr>`;
+    }).join('');
+
+    const inapTAF = dataF.filter(r => REPROV_D.has((r.taf||'').toLowerCase().trim()));
+    const inapTAT = dataF.filter(r => REPROV_D.has((r.tat||'').toLowerCase().trim()));
+    const rowsInapTaf = inapTAF.map(r => `<tr>
       <td style="${pC};${cS}">${r.posto||'—'}</td>
       <td style="${pC};${cS}">${r.re}</td>
       <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
       <td style="${pC};${cS}">${r.opm||'—'}</td>
+      <td style="${pC};text-align:center">${notaBadge(r.taf)}</td>
     </tr>`).join('');
-    const thE = 'padding:8px 6px 8px 4px;border-bottom:1px solid rgba(90,157,224,.25);background:rgba(90,157,224,.06);font-family:"DM Mono",monospace;font-size:11px;color:#5a9de0;letter-spacing:1px;text-transform:uppercase;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-    const tdEf = s => `padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${s||''}`;
+    const rowsInapTat = inapTAT.map(r => `<tr>
+      <td style="${pC};${cS}">${r.posto||'—'}</td>
+      <td style="${pC};${cS}">${r.re}</td>
+      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+      <td style="${pC};${cS}">${r.opm||'—'}</td>
+      <td style="${pC};text-align:center">${notaBadge(r.tat)}</td>
+    </tr>`).join('');
+
+    const secTit = (label, n, cor) =>
+      `<div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;color:${cor};text-transform:uppercase;padding:10px 12px 6px;border-top:1px solid rgba(255,255,255,.06)">${label} — ${n}</div>`;
+
     const inner = `
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;color:#4bc87a;text-transform:uppercase;padding:10px 12px 6px">Realizaram — ${feitos.length}</div>
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:16px">
-        <colgroup><col style="width:20%"><col style="width:13%"><col style="width:27%"><col style="width:20%"><col style="width:20%"></colgroup>
-        <thead><tr><th style="${thE}">Posto</th><th style="${thE}">RE</th><th style="${thE}">Nome</th><th style="${thE}">OPM</th><th style="${thE}">Período EAP</th></tr></thead>
-        <tbody>${rowsFeitos||`<tr><td colspan="5" style="padding:12px;color:var(--tx3);font-size:12px;text-align:center">Nenhum realizado ainda</td></tr>`}</tbody>
+      ${secTit('Realizaram EAP / TAF / TAT em ' + anoAtual, feitos.length, '#4bc87a')}
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:4px">
+        <colgroup><col style="width:17%"><col style="width:11%"><col style="width:24%"><col style="width:18%"><col style="width:16%"><col style="width:7%"><col style="width:7%"></colgroup>
+        <thead><tr>
+          <th style="${thE}">Posto</th><th style="${thE}">RE</th><th style="${thE}">Nome</th>
+          <th style="${thE}">OPM</th><th style="${thE}">Período</th>
+          <th style="${thE};text-align:center">TAF</th><th style="${thE};text-align:center">TAT</th>
+        </tr></thead>
+        <tbody>${rowsFeitos||`<tr><td colspan="7" style="padding:12px;color:var(--tx3);font-size:12px;text-align:center">Nenhum realizado ainda</td></tr>`}</tbody>
       </table>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;color:#c8a84b;text-transform:uppercase;padding:4px 12px 6px;border-top:1px solid rgba(255,255,255,.06)">Pendentes — ${pend.length}</div>
+
+      ${secTit('Pendentes ' + anoAtual, pend.length, '#c8a84b')}
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:4px">
+        <colgroup><col style="width:17%"><col style="width:11%"><col style="width:24%"><col style="width:18%"><col style="width:16%"><col style="width:7%"><col style="width:7%"></colgroup>
+        <thead><tr>
+          <th style="${thE}">Posto</th><th style="${thE}">RE</th><th style="${thE}">Nome</th>
+          <th style="${thE}">OPM</th><th style="${thE}">Situação</th>
+          <th style="${thE};text-align:center">TAF</th><th style="${thE};text-align:center">TAT</th>
+        </tr></thead>
+        <tbody>${rowsPend||`<tr><td colspan="7" style="padding:12px;color:var(--tx3);font-size:12px;text-align:center">Todos realizaram ✓</td></tr>`}</tbody>
+      </table>
+
+      ${inapTAF.length ? `
+      ${secTit('Inaptos TAF', inapTAF.length, '#c84b4b')}
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:4px">
+        <colgroup><col style="width:20%"><col style="width:13%"><col style="width:35%"><col style="width:22%"><col style="width:10%"></colgroup>
+        <thead><tr><th style="${thE}">Posto</th><th style="${thE}">RE</th><th style="${thE}">Nome</th><th style="${thE}">OPM</th><th style="${thE};text-align:center">TAF</th></tr></thead>
+        <tbody>${rowsInapTaf}</tbody>
+      </table>` : ''}
+
+      ${inapTAT.length ? `
+      ${secTit('Inaptos TAT', inapTAT.length, '#c84b4b')}
       <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-        <colgroup><col style="width:20%"><col style="width:13%"><col style="width:40%"><col style="width:27%"></colgroup>
-        <thead><tr><th style="${thE}">Posto</th><th style="${thE}">RE</th><th style="${thE}">Nome</th><th style="${thE}">OPM</th></tr></thead>
-        <tbody>${rowsPend||`<tr><td colspan="4" style="padding:12px;color:var(--tx3);font-size:12px;text-align:center">Todos realizaram ✓</td></tr>`}</tbody>
-      </table>`;
-    html = wrapDetail(`EAP ${anoAtual}`, null, '#c8a84b', closeBtn, inner);
+        <colgroup><col style="width:20%"><col style="width:13%"><col style="width:35%"><col style="width:22%"><col style="width:10%"></colgroup>
+        <thead><tr><th style="${thE}">Posto</th><th style="${thE}">RE</th><th style="${thE}">Nome</th><th style="${thE}">OPM</th><th style="${thE};text-align:center">TAT</th></tr></thead>
+        <tbody>${rowsInapTat}</tbody>
+      </table>` : ''}`;
+
+    html = wrapDetail(`EAP / TAF / TAT ${anoAtual}`, null, '#c8a84b', closeBtn, inner);
   }
 
   else if (tipo === 'ferias') {
