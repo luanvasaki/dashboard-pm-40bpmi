@@ -3411,6 +3411,16 @@ function closeP1Detail() {
   if (mo) { mo.classList.remove('on'); document.body.style.overflow = ''; }
 }
 
+function eapFiltroSet(key) {
+  ['feitos','pend','inaptaf','inatat','venc'].forEach(k => {
+    const el = document.getElementById('eap-tbl-' + k);
+    if (el) el.style.display = k === key ? '' : 'none';
+  });
+  document.querySelectorAll('.eap-flt').forEach(btn => {
+    btn.classList.toggle('on', btn.dataset.eapkey === key);
+  });
+}
+
 function p1DetailClickOut(e) {
   if (e.target === document.getElementById('p1-detail-mo')) closeP1Detail();
 }
@@ -3554,17 +3564,23 @@ function p1ShowKpiDetail(tipo) {
 
   else if (tipo === 'eap') {
     const isEapOk = r => { const d = r.data_eap ? new Date(r.data_eap) : null; return d && !isNaN(d) && d.getUTCFullYear() === anoAtual; };
-    const feitos  = dataF.filter(r => isEapOk(r)).sort((a,b) => (a.data_eap||'').localeCompare(b.data_eap||''));
-    const pend    = dataF.filter(r => !isEapOk(r));
     const taftatVencFn = pm => {
       if (!pm.data_eap) return false;
       const d = new Date(pm.data_eap), lim = new Date(d);
       lim.setFullYear(lim.getFullYear() + 1);
       return new Date() > lim;
     };
+    const feitos   = dataF.filter(r => isEapOk(r)).sort((a,b) => (a.data_eap||'').localeCompare(b.data_eap||''));
+    const pend     = dataF.filter(r => !isEapOk(r));
     const REPROV_D = new Set(['inapto','ruim']);
-    const notaCor2 = n => ({ 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#c84b4b','inapto':'#c84b4b' })[(n||'').toLowerCase()] || 'var(--tx3)';
-    const notaBadge = n => n ? `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:8px;background:${notaCor2(n)}22;color:${notaCor2(n)}">${n}</span>` : `<span style="color:var(--tx3);font-size:10px">—</span>`;
+    const inapTAF  = dataF.filter(r => REPROV_D.has((r.taf||'').toLowerCase().trim()));
+    const inapTAT  = dataF.filter(r => REPROV_D.has((r.tat||'').toLowerCase().trim()));
+    const vencidos = dataF.filter(taftatVencFn);
+
+    const notaCor2  = n => ({ 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#c84b4b','inapto':'#c84b4b' })[(n||'').toLowerCase()] || 'var(--tx3)';
+    const notaBadge = n => n
+      ? `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:8px;background:${notaCor2(n)}22;color:${notaCor2(n)}">${n}</span>`
+      : `<span style="color:var(--tx3);font-size:10px">—</span>`;
     const p2 = n => String(n).padStart(2,'0');
     const fmtEap = s => {
       if (!s) return '—';
@@ -3575,9 +3591,9 @@ function p1ShowKpiDetail(tipo) {
     const cS  = 'font-family:"DM Mono",monospace;font-size:12px;color:var(--tx3)';
     const cL  = 'font-size:13px;font-weight:600;color:var(--tx)';
     const pC  = 'padding:8px 6px 8px 4px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-    const thE = 'padding:8px 6px 8px 4px;border-bottom:1px solid rgba(90,157,224,.25);background:rgba(90,157,224,.06);font-family:"DM Mono",monospace;font-size:11px;color:#5a9de0;letter-spacing:1px;text-transform:uppercase;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    const thE = 'padding:8px 6px 8px 4px;border-bottom:1px solid rgba(200,168,75,.25);background:rgba(200,168,75,.06);font-family:"DM Mono",monospace;font-size:11px;color:#c8a84b;letter-spacing:1px;text-transform:uppercase;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
 
-    const rowsFeitos = feitos.map(r => `<tr>
+    const mkRow7 = r => `<tr>
       <td style="${pC};${cS}">${r.posto||'—'}</td>
       <td style="${pC};${cS}">${r.re}</td>
       <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
@@ -3585,82 +3601,95 @@ function p1ShowKpiDetail(tipo) {
       <td style="${pC};${cS};color:#4bc87a">${fmtEap(r.data_eap)}</td>
       <td style="${pC};text-align:center">${notaBadge(r.taf)}</td>
       <td style="${pC};text-align:center">${notaBadge(r.tat)}</td>
-    </tr>`).join('');
-
-    const rowsPend = pend.map(r => {
-      const venc = taftatVencFn(r);
-      const situacao = venc
-        ? `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:8px;background:#c84b4b22;color:#c84b4b">Vencido</span>`
-        : `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:8px;background:#c8a84b22;color:#c8a84b">Não realizado</span>`;
-      return `<tr>
-        <td style="${pC};${cS}">${r.posto||'—'}</td>
-        <td style="${pC};${cS}">${r.re}</td>
-        <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
-        <td style="${pC};${cS}">${r.opm||'—'}</td>
-        <td style="${pC}">${situacao}</td>
-        <td style="${pC};text-align:center">${notaBadge(r.taf)}</td>
-        <td style="${pC};text-align:center">${notaBadge(r.tat)}</td>
-      </tr>`;
-    }).join('');
-
-    const inapTAF = dataF.filter(r => REPROV_D.has((r.taf||'').toLowerCase().trim()));
-    const inapTAT = dataF.filter(r => REPROV_D.has((r.tat||'').toLowerCase().trim()));
-    const rowsInapTaf = inapTAF.map(r => `<tr>
+    </tr>`;
+    const mkRow5nota = (r, campo, notaFn) => `<tr>
       <td style="${pC};${cS}">${r.posto||'—'}</td>
       <td style="${pC};${cS}">${r.re}</td>
       <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
       <td style="${pC};${cS}">${r.opm||'—'}</td>
-      <td style="${pC};text-align:center">${notaBadge(r.taf)}</td>
-    </tr>`).join('');
-    const rowsInapTat = inapTAT.map(r => `<tr>
-      <td style="${pC};${cS}">${r.posto||'—'}</td>
-      <td style="${pC};${cS}">${r.re}</td>
-      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
-      <td style="${pC};${cS}">${r.opm||'—'}</td>
-      <td style="${pC};text-align:center">${notaBadge(r.tat)}</td>
-    </tr>`).join('');
+      <td style="${pC};text-align:center">${notaBadge(r[campo])}</td>
+    </tr>`;
 
-    const secTit = (label, n, cor) =>
-      `<div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;color:${cor};text-transform:uppercase;padding:10px 12px 6px;border-top:1px solid rgba(255,255,255,.06)">${label} — ${n}</div>`;
+    const thead7 = (cols) => `<thead><tr>${cols.map(c=>`<th style="${thE}${c.center?';text-align:center':''}">${c.l}</th>`).join('')}</tr></thead>`;
+    const colg7  = `<colgroup><col style="width:17%"><col style="width:11%"><col style="width:24%"><col style="width:18%"><col style="width:15%"><col style="width:7%"><col style="width:8%"></colgroup>`;
+    const colg5  = `<colgroup><col style="width:20%"><col style="width:13%"><col style="width:37%"><col style="width:22%"><col style="width:8%"></colgroup>`;
+
+    const tblFeitos = `
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        ${colg7}${thead7([{l:'Posto'},{l:'RE'},{l:'Nome'},{l:'OPM'},{l:'Período'},{l:'TAF',center:true},{l:'TAT',center:true}])}
+        <tbody>${feitos.map(mkRow7).join('')||`<tr><td colspan="7" style="padding:14px;color:var(--tx3);font-size:12px;text-align:center">Nenhum realizado ainda</td></tr>`}</tbody>
+      </table>`;
+
+    const tblPend = `
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        ${colg7}${thead7([{l:'Posto'},{l:'RE'},{l:'Nome'},{l:'OPM'},{l:'Situação'},{l:'TAF',center:true},{l:'TAT',center:true}])}
+        <tbody>${pend.map(r => {
+          const venc = taftatVencFn(r);
+          const sit = venc
+            ? `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:8px;background:#c84b4b22;color:#c84b4b">Vencido</span>`
+            : `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:8px;background:#c8a84b22;color:#c8a84b">Não realizado</span>`;
+          return `<tr>
+            <td style="${pC};${cS}">${r.posto||'—'}</td>
+            <td style="${pC};${cS}">${r.re}</td>
+            <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+            <td style="${pC};${cS}">${r.opm||'—'}</td>
+            <td style="${pC}">${sit}</td>
+            <td style="${pC};text-align:center">${notaBadge(r.taf)}</td>
+            <td style="${pC};text-align:center">${notaBadge(r.tat)}</td>
+          </tr>`;
+        }).join('')||`<tr><td colspan="7" style="padding:14px;color:var(--tx3);font-size:12px;text-align:center">Todos realizaram ✓</td></tr>`}</tbody>
+      </table>`;
+
+    const tblInapTAF = `
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        ${colg5}${thead7([{l:'Posto'},{l:'RE'},{l:'Nome'},{l:'OPM'},{l:'TAF',center:true}])}
+        <tbody>${inapTAF.map(r => mkRow5nota(r,'taf')).join('')||`<tr><td colspan="5" style="padding:14px;color:var(--tx3);font-size:12px;text-align:center">Nenhum inapto no TAF</td></tr>`}</tbody>
+      </table>`;
+
+    const tblInapTAT = `
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        ${colg5}${thead7([{l:'Posto'},{l:'RE'},{l:'Nome'},{l:'OPM'},{l:'TAT',center:true}])}
+        <tbody>${inapTAT.map(r => mkRow5nota(r,'tat')).join('')||`<tr><td colspan="5" style="padding:14px;color:var(--tx3);font-size:12px;text-align:center">Nenhum inapto no TAT</td></tr>`}</tbody>
+      </table>`;
+
+    const tblVenc = `
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        ${colg7}${thead7([{l:'Posto'},{l:'RE'},{l:'Nome'},{l:'OPM'},{l:'Último EAP'},{l:'TAF',center:true},{l:'TAT',center:true}])}
+        <tbody>${vencidos.map(mkRow7).join('')||`<tr><td colspan="7" style="padding:14px;color:var(--tx3);font-size:12px;text-align:center">Nenhum vencido</td></tr>`}</tbody>
+      </table>`;
+
+    // Cartão de resumo clicável
+    const smCard = (key, label, val, cor) =>
+      `<div onclick="eapFiltroSet('${key}')" style="background:var(--bg2);border:1px solid var(--bd2);border-top:3px solid ${cor};border-radius:8px;padding:14px 16px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='${cor}'" onmouseout="this.style.borderTopColor='${cor}';this.style.borderColor='var(--bd2)';this.style.borderTopColor='${cor}'">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">${label}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:${cor};line-height:1">${val}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);margin-top:4px">▸ ver lista</div>
+      </div>`;
+
+    // Pill de filtro
+    const pill = (key, label, active) =>
+      `<button class="pf-btn eap-flt${active?' on':''}" data-eapkey="${key}" onclick="eapFiltroSet('${key}')" style="font-size:11px">${label}</button>`;
 
     const inner = `
-      ${secTit('Realizaram EAP / TAF / TAT em ' + anoAtual, feitos.length, '#4bc87a')}
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:4px">
-        <colgroup><col style="width:17%"><col style="width:11%"><col style="width:24%"><col style="width:18%"><col style="width:16%"><col style="width:7%"><col style="width:7%"></colgroup>
-        <thead><tr>
-          <th style="${thE}">Posto</th><th style="${thE}">RE</th><th style="${thE}">Nome</th>
-          <th style="${thE}">OPM</th><th style="${thE}">Período</th>
-          <th style="${thE};text-align:center">TAF</th><th style="${thE};text-align:center">TAT</th>
-        </tr></thead>
-        <tbody>${rowsFeitos||`<tr><td colspan="7" style="padding:12px;color:var(--tx3);font-size:12px;text-align:center">Nenhum realizado ainda</td></tr>`}</tbody>
-      </table>
-
-      ${secTit('Pendentes ' + anoAtual, pend.length, '#c8a84b')}
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:4px">
-        <colgroup><col style="width:17%"><col style="width:11%"><col style="width:24%"><col style="width:18%"><col style="width:16%"><col style="width:7%"><col style="width:7%"></colgroup>
-        <thead><tr>
-          <th style="${thE}">Posto</th><th style="${thE}">RE</th><th style="${thE}">Nome</th>
-          <th style="${thE}">OPM</th><th style="${thE}">Situação</th>
-          <th style="${thE};text-align:center">TAF</th><th style="${thE};text-align:center">TAT</th>
-        </tr></thead>
-        <tbody>${rowsPend||`<tr><td colspan="7" style="padding:12px;color:var(--tx3);font-size:12px;text-align:center">Todos realizaram ✓</td></tr>`}</tbody>
-      </table>
-
-      ${inapTAF.length ? `
-      ${secTit('Inaptos TAF', inapTAF.length, '#c84b4b')}
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:4px">
-        <colgroup><col style="width:20%"><col style="width:13%"><col style="width:35%"><col style="width:22%"><col style="width:10%"></colgroup>
-        <thead><tr><th style="${thE}">Posto</th><th style="${thE}">RE</th><th style="${thE}">Nome</th><th style="${thE}">OPM</th><th style="${thE};text-align:center">TAF</th></tr></thead>
-        <tbody>${rowsInapTaf}</tbody>
-      </table>` : ''}
-
-      ${inapTAT.length ? `
-      ${secTit('Inaptos TAT', inapTAT.length, '#c84b4b')}
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-        <colgroup><col style="width:20%"><col style="width:13%"><col style="width:35%"><col style="width:22%"><col style="width:10%"></colgroup>
-        <thead><tr><th style="${thE}">Posto</th><th style="${thE}">RE</th><th style="${thE}">Nome</th><th style="${thE}">OPM</th><th style="${thE};text-align:center">TAT</th></tr></thead>
-        <tbody>${rowsInapTat}</tbody>
-      </table>` : ''}`;
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:16px 12px 14px">
+        ${smCard('feitos',   'Realizaram ' + anoAtual, feitos.length,   '#4bc87a')}
+        ${smCard('pend',     'Pendentes',               pend.length,     pend.length   ? '#c8a84b' : 'var(--tx3)')}
+        ${smCard('inaptaf',  'Inaptos TAF',             inapTAF.length,  inapTAF.length? '#c84b4b' : 'var(--tx3)')}
+        ${smCard('inatat',   'Inaptos TAT',             inapTAT.length,  inapTAT.length? '#c84b4b' : 'var(--tx3)')}
+        ${smCard('venc',     'Vencidos',                vencidos.length, vencidos.length?'#c84b4b' : 'var(--tx3)')}
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 14px;border-bottom:1px solid var(--bd2)">
+        ${pill('feitos',  'Realizaram (' + feitos.length + ')',   false)}
+        ${pill('pend',    'Pendentes ('  + pend.length   + ')',   false)}
+        ${pill('inaptaf', 'Inaptos TAF ('+ inapTAF.length+ ')',   false)}
+        ${pill('inatat',  'Inaptos TAT ('+ inapTAT.length+ ')',   false)}
+        ${pill('venc',    'Vencidos ('   + vencidos.length+ ')',  false)}
+      </div>
+      <div id="eap-tbl-feitos"  style="display:none;padding:0 12px 12px">${tblFeitos}</div>
+      <div id="eap-tbl-pend"    style="display:none;padding:0 12px 12px">${tblPend}</div>
+      <div id="eap-tbl-inaptaf" style="display:none;padding:0 12px 12px">${tblInapTAF}</div>
+      <div id="eap-tbl-inatat"  style="display:none;padding:0 12px 12px">${tblInapTAT}</div>
+      <div id="eap-tbl-venc"    style="display:none;padding:0 12px 12px">${tblVenc}</div>`;
 
     html = wrapDetail(`EAP / TAF / TAT ${anoAtual}`, null, '#c8a84b', closeBtn, inner);
   }
