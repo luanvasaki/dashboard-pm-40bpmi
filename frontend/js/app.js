@@ -3943,7 +3943,7 @@ async function openProntuario(re) {
     : `<span style="font-size:12px;color:var(--tx3)">—</span>`;
 
   // TAF / TAT
-  const NOTA_COR = { 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c84b4b','ruim':'#c84b4b','inapto':'#c84b4b' };
+  const NOTA_COR = { 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#c84b4b','inapto':'#c84b4b' };
   const notaCor  = n => NOTA_COR[(n||'').toLowerCase()] || 'var(--tx3)';
   const fmtRange = s => {
     if (!s) return null;
@@ -6400,7 +6400,7 @@ async function renderTafTatModalDetail() {
   };
 
   const APROV  = new Set(['bom','muito bom','excepcional']);
-  const REPROV = new Set(['inapto','ruim','regular']);
+  const REPROV = new Set(['inapto','ruim']);
   const comTaf  = efetivo.filter(pm => pm.taf);
   const comTat  = efetivo.filter(pm => pm.tat);
   const aprovTaf = comTaf.filter(pm => APROV.has((pm.taf||'').toLowerCase())).length;
@@ -6430,7 +6430,7 @@ async function renderTafTatModalDetail() {
   // Distribuição por conceito
   const CONCS_ORD = ['Excepcional','Muito Bom','Bom','Regular','Ruim','Inapto'];
   const CONC_NORM = { 'excepcional':'Excepcional','muito bom':'Muito Bom','bom':'Bom','regular':'Regular','ruim':'Ruim','inapto':'Inapto' };
-  const CONC_COR  = { 'Excepcional':'#4bc87a','Muito Bom':'#9de05a','Bom':'#c8c84b','Regular':'#c84b4b','Ruim':'#c84b4b','Inapto':'#c84b4b','Sem dados':'#404060' };
+  const CONC_COR  = { 'Excepcional':'#4bc87a','Muito Bom':'#9de05a','Bom':'#c8c84b','Regular':'#c8a84b','Ruim':'#c84b4b','Inapto':'#c84b4b','Sem dados':'#404060' };
 
   const contarConceito = campo => {
     const counts = {};
