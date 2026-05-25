@@ -5458,12 +5458,20 @@ function prodRender() {
       }).length;
       const inaptosTafN = comTaf.filter(pm => REPROV.has((pm.taf||'').toLowerCase().trim())).length;
       const vencidos = p1Data.filter(isVenc).length;
+      const metricRow = (label, val, cor) =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px">
+          <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">${label}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:16px;font-weight:700;color:${cor}">${val}</span>
+        </div>`;
       return `<div class="kpi" onclick="openProdDetail('taftat')" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top" style="background:${TF_COR}"></div>
         <div class="kpi-lbl">TAF / TAT</div>
-        <div class="kpi-val" style="color:${TF_COR}">${aptosMB365}</div>
-        <div class="kpi-sub" style="line-height:1.6">Aptos MB+ 365d · ${inaptosTafN} inaptos TAF · ${vencidos} vencidos</div>
-        <div class="kpi-hint">▸ clique p/ detalhes</div>
+        <div style="margin-top:10px">
+          ${metricRow('Aptos MB+', aptosMB365, '#4bc87a')}
+          ${metricRow('Inaptos TAF', inaptosTafN, inaptosTafN > 0 ? '#c84b4b' : 'var(--tx3)')}
+          ${metricRow('Vencidos', vencidos, vencidos > 0 ? '#c84b4b' : 'var(--tx3)')}
+        </div>
+        <div class="kpi-hint" style="margin-top:10px">▸ clique p/ detalhes</div>
       </div>`;
     })();
 
