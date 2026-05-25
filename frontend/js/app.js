@@ -3412,7 +3412,7 @@ function closeP1Detail() {
 }
 
 function eapFiltroSet(key) {
-  ['feitos','pend','inaptaf','inatat','venc'].forEach(k => {
+  ['feitos','aptos365','pend','inaptaf','inatat','venc'].forEach(k => {
     const el = document.getElementById('eap-tbl-' + k);
     if (el) el.style.display = k === key ? '' : 'none';
   });
@@ -3576,6 +3576,10 @@ function p1ShowKpiDetail(tipo) {
     const inapTAF  = dataF.filter(r => REPROV_D.has((r.taf||'').toLowerCase().trim()));
     const inapTAT  = dataF.filter(r => REPROV_D.has((r.tat||'').toLowerCase().trim()));
     const vencidos = dataF.filter(taftatVencFn);
+    const lim365   = (() => { const d = new Date(); d.setDate(d.getDate() - 365); return d; })();
+    const aptos365 = dataF.filter(r =>
+      r.data_eap && new Date(r.data_eap) >= lim365 && !REPROV_D.has((r.taf||'').toLowerCase().trim())
+    );
 
     const notaCor2  = n => ({ 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#c84b4b','inapto':'#c84b4b' })[(n||'').toLowerCase()] || 'var(--tx3)';
     const notaBadge = n => n
@@ -3672,20 +3676,29 @@ function p1ShowKpiDetail(tipo) {
 
     const inner = `
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:16px 12px 14px">
-        ${smCard('feitos',   'Realizaram ' + anoAtual, feitos.length,   '#4bc87a')}
-        ${smCard('pend',     'Pendentes',               pend.length,     pend.length   ? '#c8a84b' : 'var(--tx3)')}
-        ${smCard('inaptaf',  'Inaptos TAF',             inapTAF.length,  inapTAF.length? '#c84b4b' : 'var(--tx3)')}
-        ${smCard('inatat',   'Inaptos TAT',             inapTAT.length,  inapTAT.length? '#c84b4b' : 'var(--tx3)')}
-        ${smCard('venc',     'Vencidos',                vencidos.length, vencidos.length?'#c84b4b' : 'var(--tx3)')}
+        ${smCard('feitos',   'Realizaram ' + anoAtual,  feitos.length,   '#4bc87a')}
+        ${smCard('aptos365', 'Aptos 365 dias',           aptos365.length, aptos365.length ? '#4bc87a' : 'var(--tx3)')}
+        ${smCard('pend',     'Pendentes',                pend.length,     pend.length   ? '#c8a84b' : 'var(--tx3)')}
+        ${smCard('inaptaf',  'Inaptos TAF',              inapTAF.length,  inapTAF.length? '#c84b4b' : 'var(--tx3)')}
+        ${smCard('inatat',   'Inaptos TAT',              inapTAT.length,  inapTAT.length? '#c84b4b' : 'var(--tx3)')}
+        ${smCard('venc',     'Vencidos',                 vencidos.length, vencidos.length?'#c84b4b' : 'var(--tx3)')}
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 14px;border-bottom:1px solid var(--bd2)">
-        ${pill('feitos',  'Realizaram (' + feitos.length + ')',   false)}
-        ${pill('pend',    'Pendentes ('  + pend.length   + ')',   false)}
-        ${pill('inaptaf', 'Inaptos TAF ('+ inapTAF.length+ ')',   false)}
-        ${pill('inatat',  'Inaptos TAT ('+ inapTAT.length+ ')',   false)}
-        ${pill('venc',    'Vencidos ('   + vencidos.length+ ')',  false)}
+        ${pill('feitos',   'Realizaram ('   + feitos.length    + ')', false)}
+        ${pill('aptos365', 'Aptos 365d ('   + aptos365.length  + ')', false)}
+        ${pill('pend',     'Pendentes ('    + pend.length      + ')', false)}
+        ${pill('inaptaf',  'Inaptos TAF ('  + inapTAF.length   + ')', false)}
+        ${pill('inatat',   'Inaptos TAT ('  + inapTAT.length   + ')', false)}
+        ${pill('venc',     'Vencidos ('     + vencidos.length  + ')', false)}
       </div>
-      <div id="eap-tbl-feitos"  style="display:none;padding:0 12px 12px">${tblFeitos}</div>
+      <div id="eap-tbl-feitos"   style="display:none;padding:0 12px 12px">${tblFeitos}</div>
+      <div id="eap-tbl-aptos365" style="display:none;padding:0 12px 12px">
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+          ${`<colgroup><col style="width:17%"><col style="width:11%"><col style="width:24%"><col style="width:18%"><col style="width:15%"><col style="width:7%"><col style="width:8%"></colgroup>`}
+          <thead><tr>${[{l:'Posto'},{l:'RE'},{l:'Nome'},{l:'OPM'},{l:'Período'},{l:'TAF',center:true},{l:'TAT',center:true}].map(c=>`<th style="${thE}${c.center?';text-align:center':''}">${c.l}</th>`).join('')}</tr></thead>
+          <tbody>${aptos365.map(mkRow7).join('')||`<tr><td colspan="7" style="padding:14px;color:var(--tx3);font-size:12px;text-align:center">Nenhum apto nos últimos 365 dias</td></tr>`}</tbody>
+        </table>
+      </div>
       <div id="eap-tbl-pend"    style="display:none;padding:0 12px 12px">${tblPend}</div>
       <div id="eap-tbl-inaptaf" style="display:none;padding:0 12px 12px">${tblInapTAF}</div>
       <div id="eap-tbl-inatat"  style="display:none;padding:0 12px 12px">${tblInapTAT}</div>
