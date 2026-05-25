@@ -3953,15 +3953,28 @@ async function openProntuario(re) {
     const p2 = n => String(n).padStart(2,'0');
     return `${p2(d1.getDate())}/${p2(d1.getMonth()+1)}/${d1.getFullYear()} à ${p2(d3.getDate())}/${p2(d3.getMonth()+1)}/${d3.getFullYear()}`;
   };
+  const tafVencido = (() => {
+    if (!pm.data_eap) return false;
+    const eap = new Date(pm.data_eap);
+    const limite = new Date(eap); limite.setFullYear(limite.getFullYear() + 1);
+    return new Date() > limite;
+  })();
   const renderTeste = (dataTafTat, nota) => {
     if (!nota && !dataTafTat) return `<span style="font-size:12px;color:var(--tx3)">—</span>`;
-    const cor = notaCor(nota);
+    const cor = tafVencido ? '#c84b4b' : notaCor(nota);
     const range = fmtRange(dataTafTat);
     return `${nota ? `<div style="font-size:12px;font-weight:600;color:${cor}">${nota}</div>` : ''}
-            ${range ? `<div style="font-size:11px;color:var(--tx3)">${range}</div>` : ''}`;
+            ${range ? `<div style="font-size:11px;color:var(--tx3)">${range}</div>` : ''}
+            ${tafVencido ? `<div style="font-size:10px;font-weight:600;color:#c84b4b;margin-top:2px">⚠ VENCIDO</div>` : ''}`;
   };
   document.getElementById('pronto-taf').innerHTML = renderTeste(pm.data_eap, pm.taf);
   document.getElementById('pronto-tat').innerHTML = renderTeste(pm.data_eap, pm.tat);
+
+  // Alerta TAF/TAT vencido no status
+  if (tafVencido) {
+    document.getElementById('pronto-status').innerHTML +=
+      ` <span style="padding:3px 10px;border-radius:20px;background:#c84b4b22;color:#c84b4b;font-size:11px;font-family:'DM Mono',monospace">TAF/TAT Vencido</span>`;
+  }
 
   // Foto
   const imgEl = document.getElementById('pronto-foto');
