@@ -5224,7 +5224,7 @@ const PROD_LABELS = {
   'visita-solidaria': 'Visita Solidária (VD)',
   'tempo-resposta':   'Tempo Resposta de Atendimento de Ocorrência',
   'cursos':           'Cursos Institucionais',
-  'taftat':           'Prontidão Física — TAF/TAT'
+  'taftat':           'TAF / TAT'
 };
 const PROD_CAMPO = {
   ocorrencias:   'contagem',
@@ -5449,15 +5449,20 @@ function prodRender() {
         lim.setFullYear(lim.getFullYear() + 1);
         return hoje > lim;
       };
-      const APROV = new Set(['bom','muito bom','excepcional']);
-      const aprovTaf = comTaf.filter(pm => APROV.has((pm.taf||'').toLowerCase())).length;
+      const lim365 = new Date(hoje); lim365.setDate(lim365.getDate() - 365);
+      const APROV_MB = new Set(['muito bom','excepcional']);
+      const REPROV   = new Set(['inapto','ruim']);
+      const aptosMB365 = p1Data.filter(pm => {
+        if (!pm.data_eap) return false;
+        return new Date(pm.data_eap) >= lim365 && APROV_MB.has((pm.taf||'').toLowerCase().trim());
+      }).length;
+      const inaptosTafN = comTaf.filter(pm => REPROV.has((pm.taf||'').toLowerCase().trim())).length;
       const vencidos = p1Data.filter(isVenc).length;
-      const pctTaf = comTaf.length ? Math.round(aprovTaf / comTaf.length * 100) : null;
       return `<div class="kpi" onclick="openProdDetail('taftat')" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top" style="background:${TF_COR}"></div>
-        <div class="kpi-lbl" style="font-size:10px;letter-spacing:.5px;line-height:1.4">Prontidão Física — TAF/TAT</div>
-        <div class="kpi-val" style="color:${TF_COR}">${pctTaf !== null ? pctTaf + '%' : '—'}</div>
-        <div class="kpi-sub">aprovados TAF${vencidos ? ' · ' + vencidos + ' vencidos' : ''}</div>
+        <div class="kpi-lbl">TAF / TAT</div>
+        <div class="kpi-val" style="color:${TF_COR}">${aptosMB365}</div>
+        <div class="kpi-sub" style="line-height:1.6">Aptos MB+ 365d · ${inaptosTafN} inaptos TAF · ${vencidos} vencidos</div>
         <div class="kpi-hint">▸ clique p/ detalhes</div>
       </div>`;
     })();
@@ -6511,33 +6516,37 @@ async function renderTafTatModalDetail() {
     return hoje > lim;
   };
 
-  const APROV  = new Set(['bom','muito bom','excepcional']);
-  const REPROV = new Set(['inapto','ruim']);
-  const comTaf  = efetivo.filter(pm => pm.taf);
-  const comTat  = efetivo.filter(pm => pm.tat);
-  const aprovTaf = comTaf.filter(pm => APROV.has((pm.taf||'').toLowerCase())).length;
-  const aprovTat = comTat.filter(pm => APROV.has((pm.tat||'').toLowerCase())).length;
+  const APROV_MB = new Set(['muito bom','excepcional']);
+  const REPROV   = new Set(['inapto','ruim']);
+  const comTaf   = efetivo.filter(pm => pm.taf);
+  const comTat   = efetivo.filter(pm => pm.tat);
   const inaptoTaf = comTaf.filter(pm => REPROV.has((pm.taf||'').toLowerCase())).length;
   const inaptoTat = comTat.filter(pm => REPROV.has((pm.tat||'').toLowerCase())).length;
   const vencidos  = efetivo.filter(isVenc).length;
-  const pctTaf = comTaf.length ? Math.round(aprovTaf / comTaf.length * 100) : null;
-  const pctTat = comTat.length ? Math.round(aprovTat / comTat.length * 100) : null;
 
-  const kpiMini = (lbl, val, cor) =>
+  const lim365 = new Date(hoje); lim365.setDate(lim365.getDate() - 365);
+  const aptosMB365Taf = efetivo.filter(pm =>
+    pm.data_eap && new Date(pm.data_eap) >= lim365 && APROV_MB.has((pm.taf||'').toLowerCase().trim())
+  ).length;
+  const aptosMB365Tat = efetivo.filter(pm =>
+    pm.data_eap && new Date(pm.data_eap) >= lim365 && APROV_MB.has((pm.tat||'').toLowerCase().trim())
+  ).length;
+
+  const kpiMini = (lbl, val, cor, sub) =>
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:8px;padding:14px 18px">
       <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${lbl}</div>
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${cor}">${val}</div>
+      ${sub ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);margin-top:3px">${sub}</div>` : ''}
     </div>`;
 
   document.getElementById('pd-kpis').innerHTML =
-    kpiMini('Total Efetivo', efetivo.length, COR) +
-    kpiMini('Avaliados TAF', comTaf.length, COR) +
-    kpiMini('Aprovados TAF', pctTaf !== null ? pctTaf + '%' : '—', '#4bc87a') +
-    kpiMini('Inaptos TAF', inaptoTaf, inaptoTaf > 0 ? '#c84b4b' : 'var(--tx3)') +
-    kpiMini('Avaliados TAT', comTat.length, COR) +
-    kpiMini('Aprovados TAT', pctTat !== null ? pctTat + '%' : '—', '#4bc87a') +
-    kpiMini('Inaptos TAT', inaptoTat, inaptoTat > 0 ? '#c84b4b' : 'var(--tx3)') +
-    kpiMini('TAF/TAT Vencidos', vencidos, vencidos > 0 ? '#c84b4b' : 'var(--tx3)');
+    kpiMini('Total Efetivo',      efetivo.length,    COR) +
+    kpiMini('Aptos MB+ TAF 365d', aptosMB365Taf,     '#4bc87a', 'Muito Bom ou Excepcional') +
+    kpiMini('Inaptos TAF',        inaptoTaf,          inaptoTaf  > 0 ? '#c84b4b' : 'var(--tx3)') +
+    kpiMini('TAF Vencido',        vencidos,           vencidos   > 0 ? '#c84b4b' : 'var(--tx3)', '> 1 ano sem fazer') +
+    kpiMini('Avaliados TAT',      comTat.length,      COR) +
+    kpiMini('Aptos MB+ TAT 365d', aptosMB365Tat,     '#4bc87a', 'Muito Bom ou Excepcional') +
+    kpiMini('Inaptos TAT',        inaptoTat,          inaptoTat  > 0 ? '#c84b4b' : 'var(--tx3)');
 
   // Distribuição por conceito
   const CONCS_ORD = ['Excepcional','Muito Bom','Bom','Regular','Ruim','Inapto'];
