@@ -3945,14 +3945,23 @@ async function openProntuario(re) {
   // TAF / TAT
   const NOTA_COR = { 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#c84b4b' };
   const notaCor  = n => NOTA_COR[(n||'').toLowerCase()] || 'var(--tx3)';
-  const renderTeste = (data, nota) => {
-    if (!nota && !data) return `<span style="font-size:12px;color:var(--tx3)">—</span>`;
-    const cor = notaCor(nota);
-    return `${nota ? `<div style="font-size:12px;font-weight:600;color:${cor}">${nota}</div>` : ''}
-            ${data ? `<div style="font-size:11px;color:var(--tx3)">${fmtD(data)}</div>` : ''}`;
+  const fmtRange = s => {
+    if (!s) return null;
+    const [y,m,d] = s.split('-');
+    const d1 = new Date(parseInt(y), parseInt(m)-1, parseInt(d));
+    const d3 = new Date(d1); d3.setDate(d3.getDate() + 2);
+    const p2 = n => String(n).padStart(2,'0');
+    return `${p2(d1.getDate())}/${p2(d1.getMonth()+1)}/${d1.getFullYear()} à ${p2(d3.getDate())}/${p2(d3.getMonth()+1)}/${d3.getFullYear()}`;
   };
-  document.getElementById('pronto-taf').innerHTML = renderTeste(pm.data_taf, pm.taf);
-  document.getElementById('pronto-tat').innerHTML = renderTeste(pm.data_tat, pm.tat);
+  const renderTeste = (dataTafTat, nota) => {
+    if (!nota && !dataTafTat) return `<span style="font-size:12px;color:var(--tx3)">—</span>`;
+    const cor = notaCor(nota);
+    const range = fmtRange(dataTafTat);
+    return `${nota ? `<div style="font-size:12px;font-weight:600;color:${cor}">${nota}</div>` : ''}
+            ${range ? `<div style="font-size:11px;color:var(--tx3)">${range}</div>` : ''}`;
+  };
+  document.getElementById('pronto-taf').innerHTML = renderTeste(pm.data_taf_tat, pm.taf);
+  document.getElementById('pronto-tat').innerHTML = renderTeste(pm.data_taf_tat, pm.tat);
 
   // Foto
   const imgEl = document.getElementById('pronto-foto');
