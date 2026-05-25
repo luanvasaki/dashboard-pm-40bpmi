@@ -3960,8 +3960,8 @@ async function openProntuario(re) {
     return `${nota ? `<div style="font-size:12px;font-weight:600;color:${cor}">${nota}</div>` : ''}
             ${range ? `<div style="font-size:11px;color:var(--tx3)">${range}</div>` : ''}`;
   };
-  document.getElementById('pronto-taf').innerHTML = renderTeste(pm.data_taf_tat, pm.taf);
-  document.getElementById('pronto-tat').innerHTML = renderTeste(pm.data_taf_tat, pm.tat);
+  document.getElementById('pronto-taf').innerHTML = renderTeste(pm.data_eap, pm.taf);
+  document.getElementById('pronto-tat').innerHTML = renderTeste(pm.data_eap, pm.tat);
 
   // Foto
   const imgEl = document.getElementById('pronto-foto');

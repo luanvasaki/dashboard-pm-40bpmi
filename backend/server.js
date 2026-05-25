@@ -757,7 +757,6 @@ app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3'), async (
       tipos_restricao:   gf(r, 'TiposRestricao', 'tipos_restricao', 'Tipos de Restrição', 'tipos de restrição'),
       restricao_inicio:  parseDateBR(gf(r, 'RestricaoInicio', 'restricao_inicio', 'Restrição Inicio', 'restrição inicio')) || null,
       restricao_termino: parseDateBR(gf(r, 'RestricaoTermino', 'restricao_termino', 'Restrição Término', 'restrição término')) || null,
-      data_taf_tat:      parseDateBR(gf(r, 'Data TAF e TAT', 'Data TAF/TAT', 'Data TAF', 'data_taf_tat', 'data taf tat', 'datataftat')) || null,
       taf:               gf(r, 'TAF', 'taf') || null,
       tat:               gf(r, 'TAT', 'tat') || null,
     })).filter(r => r.nome && r.posto);
