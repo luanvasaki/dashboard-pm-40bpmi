@@ -5100,7 +5100,8 @@ const PROD_CORES = {
   veiculos:         '#4bc8a0',
   entorpecentes:    '#9b6de0',
   'tempo-resposta': '#4bc8e0',
-  cursos:           '#9de05a'
+  cursos:           '#9de05a',
+  taftat:           '#7b8cde'
 };
 const PROD_LABELS = {
   ocorrencias:        'Ocorrências Atendidas',
@@ -5110,7 +5111,8 @@ const PROD_LABELS = {
   entorpecentes:      'Entorpecentes Apreendidos',
   'visita-solidaria': 'Visita Solidária (VD)',
   'tempo-resposta':   'Tempo Resposta de Atendimento de Ocorrência',
-  'cursos':           'Cursos Institucionais'
+  'cursos':           'Cursos Institucionais',
+  'taftat':           'Prontidão Física — TAF/TAT'
 };
 const PROD_CAMPO = {
   ocorrencias:   'contagem',
@@ -5320,6 +5322,30 @@ function prodRender() {
         <div class="kpi-lbl">Cursos Institucionais</div>
         <div class="kpi-val" style="color:${CUR_COR}">${cursosUnicos.size}</div>
         <div class="kpi-sub">${pmsUnicos.size} PM${pmsUnicos.size !== 1 ? 's' : ''} capacitados</div>
+        <div class="kpi-hint">▸ clique p/ detalhes</div>
+      </div>`;
+    })() +
+    (() => {
+      const TF_COR = '#7b8cde';
+      const comTaf = p1Data.filter(pm => pm.taf);
+      const comTat = p1Data.filter(pm => pm.tat);
+      if (!comTaf.length && !comTat.length) return '';
+      const hoje = new Date();
+      const isVenc = pm => {
+        if (!pm.data_eap) return false;
+        const d = new Date(pm.data_eap), lim = new Date(d);
+        lim.setFullYear(lim.getFullYear() + 1);
+        return hoje > lim;
+      };
+      const APROV = new Set(['bom','muito bom','excepcional']);
+      const aprovTaf = comTaf.filter(pm => APROV.has((pm.taf||'').toLowerCase())).length;
+      const vencidos = p1Data.filter(isVenc).length;
+      const pctTaf = comTaf.length ? Math.round(aprovTaf / comTaf.length * 100) : null;
+      return `<div class="kpi" onclick="openProdDetail('taftat')" title="Clique para detalhes" style="cursor:pointer">
+        <div class="kpi-top" style="background:${TF_COR}"></div>
+        <div class="kpi-lbl" style="font-size:10px;letter-spacing:.5px;line-height:1.4">Prontidão Física — TAF/TAT</div>
+        <div class="kpi-val" style="color:${TF_COR}">${pctTaf !== null ? pctTaf + '%' : '—'}</div>
+        <div class="kpi-sub">aprovados TAF${vencidos ? ' · ' + vencidos + ' vencidos' : ''}</div>
         <div class="kpi-hint">▸ clique p/ detalhes</div>
       </div>`;
     })();
@@ -5800,6 +5826,7 @@ function prodDetailClickOut(e) {
 }
 
 function buildPdFilter() {
+  if (pdTipo === 'taftat') { document.getElementById('pd-filter-bar').innerHTML = ''; return; }
   const mesesDisp = prodGetMesesDisp(prodSelAno);
   const _pdRawKey = pdTipo === 'tempo-resposta' ? 'tempoResposta' : pdTipo;
   let baseRows = prodRaw[_pdRawKey] || [];
@@ -6345,11 +6372,152 @@ function renderCursosModalDetail() {
   }
 }
 
+async function renderTafTatModalDetail() {
+  const COR = '#7b8cde';
+  document.getElementById('pd-sub').textContent = 'EFETIVO DO BATALHÃO';
+
+  let efetivo = p1Data.length ? p1Data : [];
+  if (!efetivo.length) {
+    document.getElementById('pd-kpis').innerHTML = `<div style="color:var(--tx3);font-size:12px;grid-column:1/-1">Carregando efetivo...</div>`;
+    document.getElementById('pd-charts').innerHTML = '';
+    try {
+      const r = await authFetch(`${API}/efetivo`);
+      efetivo = await r.json();
+    } catch { efetivo = []; }
+  }
+  if (!efetivo.length) {
+    document.getElementById('pd-kpis').innerHTML = `<div style="color:var(--tx3);font-size:12px;grid-column:1/-1">Sem dados de efetivo disponíveis.</div>`;
+    document.getElementById('pd-charts').innerHTML = '';
+    return;
+  }
+
+  const hoje = new Date();
+  const isVenc = pm => {
+    if (!pm.data_eap) return false;
+    const d = new Date(pm.data_eap), lim = new Date(d);
+    lim.setFullYear(lim.getFullYear() + 1);
+    return hoje > lim;
+  };
+
+  const APROV  = new Set(['bom','muito bom','excepcional']);
+  const REPROV = new Set(['inapto','ruim']);
+  const comTaf  = efetivo.filter(pm => pm.taf);
+  const comTat  = efetivo.filter(pm => pm.tat);
+  const aprovTaf = comTaf.filter(pm => APROV.has((pm.taf||'').toLowerCase())).length;
+  const aprovTat = comTat.filter(pm => APROV.has((pm.tat||'').toLowerCase())).length;
+  const inaptoTaf = comTaf.filter(pm => REPROV.has((pm.taf||'').toLowerCase())).length;
+  const inaptoTat = comTat.filter(pm => REPROV.has((pm.tat||'').toLowerCase())).length;
+  const vencidos  = efetivo.filter(isVenc).length;
+  const pctTaf = comTaf.length ? Math.round(aprovTaf / comTaf.length * 100) : null;
+  const pctTat = comTat.length ? Math.round(aprovTat / comTat.length * 100) : null;
+
+  const kpiMini = (lbl, val, cor) =>
+    `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:8px;padding:14px 18px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${lbl}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${cor}">${val}</div>
+    </div>`;
+
+  document.getElementById('pd-kpis').innerHTML =
+    kpiMini('Total Efetivo', efetivo.length, COR) +
+    kpiMini('Avaliados TAF', comTaf.length, COR) +
+    kpiMini('Aprovados TAF', pctTaf !== null ? pctTaf + '%' : '—', '#4bc87a') +
+    kpiMini('Inaptos TAF', inaptoTaf, inaptoTaf > 0 ? '#c84b4b' : 'var(--tx3)') +
+    kpiMini('Avaliados TAT', comTat.length, COR) +
+    kpiMini('Aprovados TAT', pctTat !== null ? pctTat + '%' : '—', '#4bc87a') +
+    kpiMini('Inaptos TAT', inaptoTat, inaptoTat > 0 ? '#c84b4b' : 'var(--tx3)') +
+    kpiMini('TAF/TAT Vencidos', vencidos, vencidos > 0 ? '#c84b4b' : 'var(--tx3)');
+
+  // Distribuição por conceito
+  const CONCS_ORD = ['Excepcional','Muito Bom','Bom','Regular','Ruim','Inapto'];
+  const CONC_NORM = { 'excepcional':'Excepcional','muito bom':'Muito Bom','bom':'Bom','regular':'Regular','ruim':'Ruim','inapto':'Inapto' };
+  const CONC_COR  = { 'Excepcional':'#4bc87a','Muito Bom':'#9de05a','Bom':'#c8c84b','Regular':'#c8a84b','Ruim':'#c84b4b','Inapto':'#c84b4b','Sem dados':'#404060' };
+
+  const contarConceito = campo => {
+    const counts = {};
+    efetivo.forEach(pm => {
+      const n = (pm[campo]||'').toLowerCase().trim();
+      const k = CONC_NORM[n] || (n ? n.charAt(0).toUpperCase() + n.slice(1) : 'Sem dados');
+      counts[k] = (counts[k] || 0) + 1;
+    });
+    return counts;
+  };
+  const tafCts = contarConceito('taf');
+  const tatCts = contarConceito('tat');
+  const tafLbls = [...CONCS_ORD.filter(c => tafCts[c]), ...(tafCts['Sem dados'] ? ['Sem dados'] : [])];
+  const tatLbls = [...CONCS_ORD.filter(c => tatCts[c]), ...(tatCts['Sem dados'] ? ['Sem dados'] : [])];
+
+  const chartsEl = document.getElementById('pd-charts');
+  chartsEl.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px">Distribuição TAF por Conceito</div>
+      <canvas id="taftat-taf-dist"></canvas>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px">Distribuição TAT por Conceito</div>
+      <canvas id="taftat-tat-dist"></canvas>
+    </div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px">TAF × TAT — Comparativo por Conceito</div>
+      <canvas id="taftat-compare"></canvas>
+    </div>`;
+
+  // Doughnut TAF
+  if (tafLbls.some(l => l !== 'Sem dados')) {
+    const ctx = document.getElementById('taftat-taf-dist')?.getContext('2d');
+    if (ctx) pdChs.push(new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels: tafLbls, datasets: [{ data: tafLbls.map(l => tafCts[l]||0), backgroundColor: tafLbls.map(l => (CONC_COR[l]||'#607090')+'cc'), borderColor: tafLbls.map(l => CONC_COR[l]||'#607090'), borderWidth: 2 }] },
+      options: { responsive: true, plugins: {
+        legend: { position:'bottom', labels:{ color:'rgba(255,255,255,.7)', font:{size:11}, padding:12, boxWidth:12 } },
+        tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} PM${i.raw!==1?'s':''}` } }
+      }}
+    }));
+  }
+
+  // Doughnut TAT
+  if (tatLbls.some(l => l !== 'Sem dados')) {
+    const ctx2 = document.getElementById('taftat-tat-dist')?.getContext('2d');
+    if (ctx2) pdChs.push(new Chart(ctx2, {
+      type: 'doughnut',
+      data: { labels: tatLbls, datasets: [{ data: tatLbls.map(l => tatCts[l]||0), backgroundColor: tatLbls.map(l => (CONC_COR[l]||'#607090')+'cc'), borderColor: tatLbls.map(l => CONC_COR[l]||'#607090'), borderWidth: 2 }] },
+      options: { responsive: true, plugins: {
+        legend: { position:'bottom', labels:{ color:'rgba(255,255,255,.7)', font:{size:11}, padding:12, boxWidth:12 } },
+        tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} PM${i.raw!==1?'s':''}` } }
+      }}
+    }));
+  }
+
+  // Bar comparativo TAF × TAT
+  const ctx3 = document.getElementById('taftat-compare')?.getContext('2d');
+  if (ctx3) pdChs.push(new Chart(ctx3, {
+    type: 'bar',
+    data: {
+      labels: CONCS_ORD,
+      datasets: [
+        { label: 'TAF', data: CONCS_ORD.map(c => tafCts[c]||0), backgroundColor: COR+'99', borderColor: COR, borderWidth: 1, borderRadius: 3 },
+        { label: 'TAT', data: CONCS_ORD.map(c => tatCts[c]||0), backgroundColor: '#e0a87b99', borderColor: '#e0a87b', borderWidth: 1, borderRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position:'bottom', labels:{ color:'rgba(255,255,255,.7)', font:{size:11}, padding:12, boxWidth:12 } },
+        tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw} PM${i.raw!==1?'s':''}` } }
+      },
+      scales: {
+        x: { grid: GR, ticks: { color:'rgba(255,255,255,.55)', font:{size:11} } },
+        y: { grid: GR, ticks: { color:'rgba(255,255,255,.55)', font:{size:11}, stepSize:1 }, beginAtZero: true }
+      }
+    }
+  }));
+}
+
 function renderProdDetail() {
   pdDestroy();
   const tipo = pdTipo;
   if (tipo === 'tempo-resposta') { renderTRModalDetail(); return; }
   if (tipo === 'cursos') { renderCursosModalDetail(); return; }
+  if (tipo === 'taftat') { renderTafTatModalDetail(); return; }
   const cor = pdNatFilter ? '#e05a8a' : PROD_CORES[tipo];
   const campo = tipo === 'entorpecentes' ? 'quantidade' : PROD_CAMPO[tipo];
   const mesesDisp = prodGetMesesDisp(prodSelAno);
