@@ -104,17 +104,17 @@ canvas{max-height:240px}
 .hm-mbtn:hover{border-color:var(--gold);color:var(--gold)}
 .hm-mbtn.on{background:rgba(200,168,75,.15);border-color:var(--gold);color:var(--gold);font-weight:600}
 .ig{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
-.ins-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:4px}
-.ins{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:15px;border-left:3px solid var(--gold)}
+.ins-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:4px}
+.ins{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:24px 22px;border-left:4px solid var(--gold)}
 .ins.red{border-left-color:var(--red)}
 .ins.green{border-left-color:var(--green)}
 .ins.blue{border-left-color:var(--blue)}
-.ins-val{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;color:var(--gold);line-height:1;margin-bottom:3px}
+.ins-val{font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:700;color:var(--gold);line-height:1;margin-bottom:6px}
 .ins.red .ins-val{color:var(--red2)}
 .ins.green .ins-val{color:var(--green2)}
 .ins.blue .ins-val{color:var(--blue2)}
-.ins-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
-.ins-body{font-size:14px;color:var(--tx2);line-height:1.6}
+.ins-title{font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.ins-body{font-size:17px;color:var(--tx2);line-height:1.6}
 .mo{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
 .mo.on{opacity:1;pointer-events:all}
 .mo-box{background:var(--s1);border:1px solid var(--bd2);border-radius:12px;width:100%;max-width:1200px;max-height:92vh;overflow-y:auto;transform:translateY(16px);transition:transform .2s}
