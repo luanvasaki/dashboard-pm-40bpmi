@@ -7835,7 +7835,7 @@ function renderDDSection() {
       </div>${arrow}`;
   }).join('');
 
-const mesesComDados = MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.data + 'T00:00:00').getMonth()] === m));
+const mesesComDados = MES_ORD;
   const allMeses = ddMesFiltro.length === 0;
   let filtrosHtml = `<div class="pf" style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">`;
   filtrosHtml += `<div class="pf-field"><span class="pf-label">ANO</span><select class="pf-select" onchange="ddSetFiltro('ano',this.value)">`;
