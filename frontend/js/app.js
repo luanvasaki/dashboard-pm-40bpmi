@@ -6419,7 +6419,7 @@ function renderCursosModalDetail() {
     const cor    = TIPO_COR[c.tipo] || '#607090';
     const pmId   = `cpms-${i}`;
     const pmHtml = c.pms.map(p =>
-      `<div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx2);line-height:1.9">${p.posto||''} ${p.re||''} — ${p.nome||'—'}</div>`
+      `<div style="font-family:'DM Mono',monospace;font-size:12px;color:#f4f6fc;line-height:1.9">${p.posto||''} ${p.re||''} — ${p.nome||'—'}</div>`
     ).join('');
     return `<tr>
       <td style="${tdS};white-space:nowrap">${fmtD(c.data)}</td>
