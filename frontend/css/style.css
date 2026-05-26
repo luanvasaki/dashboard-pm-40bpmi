@@ -104,7 +104,7 @@ canvas{max-height:240px}
 .hm-mbtn:hover{border-color:var(--gold);color:var(--gold)}
 .hm-mbtn.on{background:rgba(200,168,75,.15);border-color:var(--gold);color:var(--gold);font-weight:600}
 .ig{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
-.ins-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:4px}
+.ins-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:4px}
 .ins{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:24px 22px;border-left:4px solid var(--gold)}
 .ins.red{border-left-color:var(--red)}
 .ins.green{border-left-color:var(--green)}
