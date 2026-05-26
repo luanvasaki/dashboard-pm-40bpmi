@@ -6419,24 +6419,26 @@ function renderCursosModalDetail() {
     const cor    = TIPO_COR[c.tipo] || '#607090';
     const pmId   = `cpms-${i}`;
     const pmHtml = c.pms.map(p =>
-      `<div style="font-family:'DM Mono',monospace;font-size:12px;color:#f4f6fc;line-height:1.9">${p.posto||''} ${p.re||''} — ${p.nome||'—'}</div>`
+      `<div style="font-family:'DM Mono',monospace;font-size:12px;color:#f4f6fc;line-height:2">${p.posto||''} ${p.re||''} — ${p.nome||'—'}</div>`
     ).join('');
-    return `<tr>
+    return `<tr onclick="${c.pms.length ? `cursosPmsToggle('${pmId}')` : ''}" style="${c.pms.length ? 'cursor:pointer' : ''}">
       <td style="${tdS};white-space:nowrap">${fmtD(c.data)}</td>
       <td style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04)">
         <span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 7px;border-radius:8px;background:${cor}22;color:${cor};display:inline-block;margin-bottom:3px">${c.tipo}</span>
         <div style="font-size:13px;font-weight:600;color:var(--tx)">${c.nome_curso||'—'}</div>
       </td>
-      <td style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <td style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);text-align:right">
         ${c.pms.length ? `
-        <div onclick="cursosPmsToggle('${pmId}')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
-          <span style="font-family:'DM Mono',monospace;font-size:10px;padding:1px 8px;border-radius:8px;background:${COR}22;color:${COR}">${c.pms.length} PM${c.pms.length !== 1 ? 's' : ''}</span>
-          <span id="arr-${pmId}" style="font-size:9px;color:var(--tx3);display:inline-block;transition:transform .2s">▶</span>
-        </div>
-        <div id="${pmId}" style="display:none;margin-top:6px">${pmHtml}</div>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;padding:1px 8px;border-radius:8px;background:${COR}22;color:${COR}">${c.pms.length} PM${c.pms.length !== 1 ? 's' : ''}</span>
+        <span id="arr-${pmId}" style="font-size:9px;color:var(--tx3);display:inline-block;transition:transform .2s;margin-left:5px">▶</span>
         ` : `<span style="color:var(--tx3);font-size:11px">—</span>`}
       </td>
-    </tr>`;
+    </tr>
+    ${c.pms.length ? `<tr id="${pmId}" style="display:none">
+      <td colspan="3" style="padding:10px 18px 14px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.06)">
+        ${pmHtml}
+      </td>
+    </tr>` : ''}`;
   }).join('');
 
   // Evolução mensal (cursos únicos por mês)
