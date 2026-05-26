@@ -6427,19 +6427,16 @@ function renderCursosModalDetail() {
     ).join('');
     return `<tr onclick="${c.pms.length ? `cursosPmsToggle('${pmId}')` : ''}" style="${c.pms.length ? 'cursor:pointer' : ''}">
       <td style="${tdS};white-space:nowrap">${fmtD(c.data)}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04)">
-        <span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 7px;border-radius:8px;background:${cor}22;color:${cor};display:inline-block;margin-bottom:3px">${c.tipo}</span>
-        <div style="font-size:13px;font-weight:600;color:var(--tx)">${c.nome_curso||'—'}</div>
-      </td>
-      <td style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);text-align:right">
-        ${c.pms.length ? `
-        <span style="font-family:'DM Mono',monospace;font-size:10px;padding:1px 8px;border-radius:8px;background:${COR}22;color:${COR}">${c.pms.length} PM${c.pms.length !== 1 ? 's' : ''}</span>
-        <span id="arr-${pmId}" style="font-size:9px;color:var(--tx3);display:inline-block;transition:transform .2s;margin-left:5px">▶</span>
-        ` : `<span style="color:var(--tx3);font-size:11px">—</span>`}
+      <td style="padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.04);text-align:center">
+        <span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 7px;border-radius:8px;background:${cor}22;color:${cor};display:inline-block;margin-bottom:4px">${c.tipo}</span>
+        <div style="font-size:13px;font-weight:600;color:var(--tx);display:flex;align-items:center;justify-content:center;gap:8px">
+          <span>${c.nome_curso||'—'}</span>
+          ${c.pms.length ? `<span style="font-family:'DM Mono',monospace;font-size:10px;padding:1px 8px;border-radius:8px;background:${COR}22;color:${COR};font-weight:400;white-space:nowrap">${c.pms.length} PM${c.pms.length !== 1 ? 's' : ''}</span><span id="arr-${pmId}" style="font-size:9px;color:var(--tx3);display:inline-block;transition:transform .2s">▶</span>` : ''}
+        </div>
       </td>
     </tr>
     ${c.pms.length ? `<tr id="${pmId}" style="display:none">
-      <td colspan="3" style="padding:10px 18px 14px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.06)">
+      <td colspan="2" style="padding:10px 18px 14px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.06)">
         ${pmHtml}
       </td>
     </tr>` : ''}`;
@@ -6477,7 +6474,7 @@ function renderCursosModalDetail() {
           <thead><tr>
             <th style="${thS};width:90px">Data</th>
             <th style="${thS}">Curso</th>
-            <th style="${thS}">Participantes</th>
+            <th style="${thS}"></th>
           </tr></thead>
           <tbody>${tableRows}</tbody>
         </table>
