@@ -5659,12 +5659,16 @@ function prodRender() {
     </div>`);
   }
 
-  // ─── Tendência: últimos 2 meses com dados ────────────────────────────
+  // ─── Tendência: último mês selecionado vs anterior disponível ───────
   let tendHtml = '';
   const mesesComDados = prodGetMesesDisp(prodSelAno);
-  if (mesesComDados.length >= 2) {
-    const mesB = mesesComDados[mesesComDados.length - 1];
-    const mesA = mesesComDados[mesesComDados.length - 2];
+  // mesB = último dos meses atualmente selecionados (por ordem de MES_ORD)
+  const mesSel = MES_ORD.filter(m => prodSelMeses.some(s => s.toLowerCase() === m.toLowerCase()));
+  const mesB = mesSel.length ? mesSel[mesSel.length - 1] : null;
+  // mesA = mês imediatamente anterior ao mesB no histórico de dados
+  const idxB = mesB ? mesesComDados.findIndex(m => m.toLowerCase() === mesB.toLowerCase()) : -1;
+  const mesA = idxB > 0 ? mesesComDados[idxB - 1] : null;
+  if (mesB && mesA) {
     const sumMes = (tipo, campo, mes) =>
       prodSum(
         prodRaw[tipo].filter(r =>
