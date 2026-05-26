@@ -1094,7 +1094,7 @@ function renderVisao() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { top: 55 } },
+      layout: { padding: { top: 75 } },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -1113,7 +1113,7 @@ function renderVisao() {
         }
       },
       scales: {
-        x: { grid: GR, ticks: { maxRotation: 0, minRotation: 0, autoSkip: false, font: { size: 13 }, color: '#ffffff' } },
+        x: { grid: GR, ticks: { display: false } },
         y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff' }, suggestedMin: -30, suggestedMax: 30 }
       },
       onClick: (evt, elements) => {
@@ -1150,8 +1150,8 @@ function renderVisao() {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
         ctx.fillStyle = 'rgba(255,255,255,.95)';
-        ctx.font = "bold 13px 'DM Sans', sans-serif";
-        const lineH = 15;
+        ctx.font = "bold 18px 'DM Sans', sans-serif";
+        const lineH = 21;
         meta.data.forEach((bar, i) => {
           const raw = vmWrappedLabels[i] ?? vmEntries[i]?.label ?? '';
           const lines = Array.isArray(raw) ? raw : [raw];
