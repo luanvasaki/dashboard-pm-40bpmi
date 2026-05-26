@@ -3411,6 +3411,15 @@ function closeP1Detail() {
   if (mo) { mo.classList.remove('on'); document.body.style.overflow = ''; }
 }
 
+function cursosPmsToggle(id) {
+  const list = document.getElementById(id);
+  const arr  = document.getElementById('arr-' + id);
+  if (!list) return;
+  const open = list.style.display !== 'none';
+  list.style.display = open ? 'none' : '';
+  if (arr) arr.style.transform = open ? '' : 'rotate(90deg)';
+}
+
 function eapFiltroSet(key) {
   ['feitos','aptos365','pend','inaptaf','inatat','venc'].forEach(k => {
     const el = document.getElementById('eap-tbl-' + k);
@@ -6406,10 +6415,11 @@ function renderCursosModalDetail() {
   const tdL = 'padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;font-weight:600;color:var(--tx)';
   const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:left';
 
-  const tableRows = cursosList.map(c => {
-    const cor = TIPO_COR[c.tipo] || '#607090';
+  const tableRows = cursosList.map((c, i) => {
+    const cor    = TIPO_COR[c.tipo] || '#607090';
+    const pmId   = `cpms-${i}`;
     const pmHtml = c.pms.map(p =>
-      `<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);line-height:1.7">${p.posto||''} ${p.re||''} — ${p.nome||'—'}</div>`
+      `<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);line-height:1.8">${p.posto||''} ${p.re||''} — ${p.nome||'—'}</div>`
     ).join('');
     return `<tr>
       <td style="${tdS};white-space:nowrap">${fmtD(c.data)}</td>
@@ -6418,8 +6428,13 @@ function renderCursosModalDetail() {
         <div style="font-size:13px;font-weight:600;color:var(--tx)">${c.nome_curso||'—'}</div>
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04)">
-        <span style="font-family:'DM Mono',monospace;font-size:10px;padding:1px 8px;border-radius:8px;background:${COR}22;color:${COR};display:inline-block;margin-bottom:${c.pms.length?'4':'0'}px">${c.pms.length} PM${c.pms.length !== 1 ? 's' : ''}</span>
-        ${pmHtml}
+        ${c.pms.length ? `
+        <div onclick="cursosPmsToggle('${pmId}')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
+          <span style="font-family:'DM Mono',monospace;font-size:10px;padding:1px 8px;border-radius:8px;background:${COR}22;color:${COR}">${c.pms.length} PM${c.pms.length !== 1 ? 's' : ''}</span>
+          <span id="arr-${pmId}" style="font-size:9px;color:var(--tx3);display:inline-block;transition:transform .2s">▶</span>
+        </div>
+        <div id="${pmId}" style="display:none;margin-top:6px">${pmHtml}</div>
+        ` : `<span style="color:var(--tx3);font-size:11px">—</span>`}
       </td>
     </tr>`;
   }).join('');
