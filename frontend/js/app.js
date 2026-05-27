@@ -5994,6 +5994,7 @@ function buildPdFilter() {
   let baseRows = prodRaw[_pdRawKey] || [];
   if (prodSelAno) baseRows = baseRows.filter(r => r.ano === prodSelAno);
   if (pdUnidade) baseRows = baseRows.filter(r => (r.unidade_medida||'Sem unidade').trim() === pdUnidade);
+  if (pdNatFilter) { const _nfN = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); const _nf = _nfN(pdNatFilter); baseRows = baseRows.filter(r => _nfN(r.natureza||'').includes(_nf)); }
   const cias = [...new Set(baseRows.map(r => (r.cia||'').trim()).filter(Boolean))].sort();
 
   let h = '';
