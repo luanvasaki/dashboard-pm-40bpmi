@@ -521,7 +521,7 @@ const IQ_HISTORICO = {
 const IQ_POP_SEADE = 44539225;
 const IQ_EFETIVO_HIST = 345;
 const IQ_AUTO_CAMPOS = [
-  { key: 'homicidio_doloso',       label: 'Homicídio Doloso',        unit: 'ocorr.', cor: '#c84b4b', melhor: 'menor', auto: true,  fatorInv: IQ_POP_SEADE / 100000 },
+  { key: 'homicidio_doloso',       label: 'Homicídio Doloso',        unit: 'ocorr.', cor: '#e8b840', melhor: 'menor', auto: true,  fatorInv: IQ_POP_SEADE / 100000 },
   { key: 'latrocinio',             label: 'Latrocínio',              unit: 'ocorr.', cor: '#ff8c42', melhor: 'menor', auto: true,  fatorInv: IQ_POP_SEADE / 100000 },
   { key: 'roubo_outros',           label: 'Roubo Outros',            unit: 'ocorr.', cor: '#f7d060', melhor: 'menor', auto: true,  fatorInv: IQ_POP_SEADE / 100000 },
   { key: 'roubo_veiculo',          label: 'Roubo de Veículos',       unit: 'ocorr.', cor: '#9b6de0', melhor: 'menor', auto: true,  fatorInv: IQ_POP_SEADE / 100000 },
@@ -535,7 +535,7 @@ const IQ_AUTO_CAMPOS = [
 ];
 const IQ_CAMPOS = [
   { key: 'cursos_pm',          label: 'PMs em Cursos Institucionais', unit: '',    cor: '#9de05a' },
-  { key: 'atendimento_vitima', label: 'Atend. Vítimas de Roubo',      unit: '',    cor: '#c84b4b' },
+  { key: 'atendimento_vitima', label: 'Atend. Vítimas de Roubo',      unit: '',    cor: '#e8b840' },
   { key: 'conseg_ativo',       label: 'CONSEGs Ativos',               unit: '',    cor: '#e0c05a' },
   { key: 'bairros_pvs',        label: 'Bairros PVS',                  unit: '',    cor: '#5ae09a' },
 ];
@@ -1862,7 +1862,7 @@ function moRender() {
   if (temporal) {
     if (ANOS.length > 1) {
       temporal.style.display = '';
-      const YR_COLORS = ['#5a9de0','#c8a84b','#c84b4b','#4bc87a'];
+      const YR_COLORS = ['#5a9de0','#c8a84b','#e8b840','#4bc87a'];
       const sc = moQScope();
       const crimes = Array.isArray(moCrime) ? moCrime : [moCrime];
 
@@ -1952,7 +1952,7 @@ function moRender() {
       const diffPct1   = totBase1c > 0 ? ((totComp1c - totBase1c) / totBase1c * 100).toFixed(1) : null;
       const hasProjFutura = MES_ORD.some(m => !mesExiste(compAno, m));
       const txt1 = mesesComuns.length > 0
-        ? `Comparando os ${mesesComuns.length} meses disponíveis em ambos os anos: <b>${compAno}</b> registrou <b>${totComp1c}</b> ocorrências contra <b>${totBase1c}</b> em <b>${baseAno}</b> — variação de <b style="color:${diffPct1 > 0 ? '#c84b4b' : '#4bc87a'}">${diffPct1 > 0 ? '+' : ''}${diffPct1}%</b>.${hasProjFutura ? ` A linha tracejada de <b>${compAno}</b> representa a <b>projeção dos meses seguintes</b>: média mensal atual de ${compAno} ajustada pelo padrão histórico de cada mês em ${baseAno} (sazonalidade). Não são dados reais.` : ''}`
+        ? `Comparando os ${mesesComuns.length} meses disponíveis em ambos os anos: <b>${compAno}</b> registrou <b>${totComp1c}</b> ocorrências contra <b>${totBase1c}</b> em <b>${baseAno}</b> — variação de <b style="color:${diffPct1 > 0 ? '#e8b840' : '#4bc87a'}">${diffPct1 > 0 ? '+' : ''}${diffPct1}%</b>.${hasProjFutura ? ` A linha tracejada de <b>${compAno}</b> representa a <b>projeção dos meses seguintes</b>: média mensal atual de ${compAno} ajustada pelo padrão histórico de cada mês em ${baseAno} (sazonalidade). Não são dados reais.` : ''}`
         : 'Selecione um período com dados em ambos os anos para comparação.';
       const el1 = document.getElementById('mo-text-comp');
       if (el1) el1.innerHTML = txt1;
@@ -1978,7 +1978,7 @@ function moRender() {
       const trend = lrTrend(recentVals);
       const slopeDir = trend.length > 1 ? trend[trend.length-1] - trend[0] : 0;
       const trendTxt = slopeDir > 0.5 ? '↑ Tendência de alta em ' + compAno : slopeDir < -0.5 ? '↓ Tendência de queda em ' + compAno : '→ Estável em ' + compAno;
-      const trendCol = slopeDir > 0.5 ? '#c84b4b' : slopeDir < -0.5 ? '#4bc87a' : '#c8a84b';
+      const trendCol = slopeDir > 0.5 ? '#e8b840' : slopeDir < -0.5 ? '#4bc87a' : '#c8a84b';
 
       // Projeção: meses sem dados em compAno → estimativa com base no índice sazonal
       const compTotal = MES_ORD.reduce((s,m) => s + yrVal(compAno,m), 0);
@@ -2003,12 +2003,12 @@ function moRender() {
       const peakBody = `Historicamente, <b>${peakMes[0]}</b> é o mês mais crítico (índice ${peakIdxs[0]}% da média), seguido de <b>${peakMes[1]}</b> (${peakIdxs[1]}%) e <b>${peakMes[2]}</b> (${peakIdxs[2]}%). Use esses períodos para antecipar reforços operacionais.`;
       const lowBody  = `Os meses de menor incidência são <b>${lowMes[0]}</b> (${lowIdxs[0]}%), <b>${lowMes[1]}</b> (${lowIdxs[1]}%) e <b>${lowMes[2]}</b> (${lowIdxs[2]}%). São janelas para reorganização e capacitação.`;
       const projBody = projTotal
-        ? `Com ${mesesComDados} meses registrados (${compTotal} ocorrências), a projeção linear aponta para <b style="font-size:18px">${projTotal}</b> ocorrências ao fim de ${compAno}. Em ${baseAno} foram <b>${baseTotal}</b> no total — diferença estimada de <b style="color:${projTotal > baseTotal ? '#c84b4b' : '#4bc87a'}">${projTotal > baseTotal ? '+' : ''}${projTotal - baseTotal}</b>.`
+        ? `Com ${mesesComDados} meses registrados (${compTotal} ocorrências), a projeção linear aponta para <b style="font-size:18px">${projTotal}</b> ocorrências ao fim de ${compAno}. Em ${baseAno} foram <b>${baseTotal}</b> no total — diferença estimada de <b style="color:${projTotal > baseTotal ? '#e8b840' : '#4bc87a'}">${projTotal > baseTotal ? '+' : ''}${projTotal - baseTotal}</b>.`
         : null;
 
       document.getElementById('mo-sazon').innerHTML =
         card('Tendência Geral', `${trendTxt}<br><span style="font-size:11px">${trendBody}</span>`, trendCol) +
-        card('Pico Histórico — Sazonalidade', peakBody, '#c84b4b') +
+        card('Pico Histórico — Sazonalidade', peakBody, '#e8b840') +
         card('Período de Menor Incidência', lowBody, '#4bc87a') +
         (projBody ? card('Projeção Anual ' + compAno, projBody, '#5a9de0') : '');
 
@@ -2978,7 +2978,7 @@ function renderP1() {
     const restr_ = pms.filter(r => (r.possui_restricao||'').toLowerCase().startsWith('s')).length;
     const aptos_ = pms.length - afst_;
     const pct_   = pms.length ? Math.round(aptos_ / pms.length * 100) : 0;
-    const color_ = pct_ >= 85 ? '#4bc87a' : pct_ >= 70 ? '#c8a84b' : '#c84b4b';
+    const color_ = pct_ >= 85 ? '#4bc87a' : pct_ >= 70 ? '#c8a84b' : '#e8b840';
     return { afst: afst_, restr: restr_, aptos: aptos_, pct: pct_, color: color_, total: pms.length };
   };
 
@@ -3107,7 +3107,7 @@ function renderP1() {
       const presentes = d.length - afst;
       const pct       = Math.min(100, Math.round(presentes / vagas * 100));
       const claro     = Math.max(0, vagas - presentes);
-      const pctColor  = pct >= 85 ? '#4bc87a' : pct >= 70 ? '#c8a84b' : '#c84b4b';
+      const pctColor  = pct >= 85 ? '#4bc87a' : pct >= 70 ? '#c8a84b' : '#e8b840';
       return { unit, vagas, presentes, afst, pct, pctColor, claro };
     }).filter(Boolean).sort((a, b) => a.pct - b.pct);
 
@@ -4806,7 +4806,7 @@ function renderHome() {
       const total = pms.length, afst = pms.filter(r => afH[r.re]).length;
       const restr = pms.filter(r => (r.possui_restricao||'').toLowerCase().startsWith('s')).length;
       const pct   = total ? Math.round((total - afst) / total * 100) : 0;
-      const color = pct >= 80 ? '#4bc87a' : pct >= 60 ? '#c8a84b' : '#c84b4b';
+      const color = pct >= 80 ? '#4bc87a' : pct >= 60 ? '#c8a84b' : '#e8b840';
       return { total, afst, restr, aptos: total - afst, pct, color };
     };
     const gs = stOf(p1Data);
@@ -4891,7 +4891,7 @@ function renderHome() {
     const totalMes = rawMes.reduce((s, r) => s + (r.avaliado || 0), 0);
     const totalMeta = rawMes.reduce((s, r) => s + (r.meta || 0), 0);
     const pctMeta = totalMeta > 0 ? Math.round(totalMes / totalMeta * 100) : null;
-    const metaColor = pctMeta === null ? 'var(--tx3)' : pctMeta <= 100 ? '#4bc87a' : '#c84b4b';
+    const metaColor = pctMeta === null ? 'var(--tx3)' : pctMeta <= 100 ? '#4bc87a' : '#e8b840';
     // Crime mais fora da meta no mês (maior desvio % acima)
     const porCrimeMeta = {};
     rawMes.forEach(r => {
@@ -4904,7 +4904,7 @@ function renderHome() {
       .sort(([, a], [, b]) => (b.a / b.m) - (a.a / a.m));
     const topCritico = crimesAcima[0];
     const criticoTxt = topCritico
-      ? `Crítico em ${mesR}: <span style="color:#c84b4b">${topCritico[0]}</span> <span style="color:#c84b4b">+${Math.round((topCritico[1].a / topCritico[1].m - 1) * 100)}%</span>`
+      ? `Crítico em ${mesR}: <span style="color:#e8b840">${topCritico[0]}</span> <span style="color:#e8b840">+${Math.round((topCritico[1].a / topCritico[1].m - 1) * 100)}%</span>`
       : `<span style="color:#4bc87a">✓ Em ${mesR}, todos os crimes dentro da meta</span>`;
 
     p3Preview = `
@@ -4942,7 +4942,7 @@ function renderHome() {
       if (crimesSoma.length > 0) {
         const crimesSomaRows = crimesSoma.map((d, i) => {
           const ok = d.aval <= d.meta;
-          const col = ok ? '#4bc87a' : '#c84b4b';
+          const col = ok ? '#4bc87a' : '#e8b840';
           const status = ok ? '✓ Na meta' : '✗ Acima';
           return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0${i<crimesSoma.length-1?';border-bottom:1px solid var(--bd)':''}">
             <div style="flex:1;font-size:14px;color:#ffffff">${d.c}</div>
@@ -4972,7 +4972,7 @@ function renderHome() {
         .slice(0, 6);
       if (munRank.length > 0) {
         const munRows3 = munRank.map((item, i) => {
-          const col = item.fora >= 4 ? '#c84b4b' : item.fora >= 2 ? '#c8a84b' : '#e0d0a0';
+          const col = item.fora >= 4 ? '#e8b840' : item.fora >= 2 ? '#c8a84b' : '#e0d0a0';
           return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0${i<munRank.length-1?';border-bottom:1px solid var(--bd)':''}">
             <div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff;width:18px;flex-shrink:0">${i+1}</div>
             <div style="flex:1;font-size:14px;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.m}</div>
@@ -4999,7 +4999,7 @@ function renderHome() {
         const total = pms.length, afst = pms.filter(r => afH3[r.re]).length;
         const restr = pms.filter(r => (r.possui_restricao||'').toLowerCase().startsWith('s')).length;
         const pct = total ? Math.round((total - afst) / total * 100) : 0;
-        const color = pct >= 80 ? '#4bc87a' : pct >= 60 ? '#c8a84b' : '#c84b4b';
+        const color = pct >= 80 ? '#4bc87a' : pct >= 60 ? '#c8a84b' : '#e8b840';
         return { total, afst, restr, aptos: total - afst, pct, color };
       };
 
@@ -6062,7 +6062,7 @@ function pdSetCia(val) { pdSelCia = val; buildPdFilter(); renderProdDetail(); }
 function renderTRModalDetail() {
   const TR_COR     = '#4bc8e0';
   const TR_COR_BOM = '#4bc87a';
-  const TR_COR_MAU = '#e06060';
+  const TR_COR_MAU = '#e8b840';
   const mesesDisp  = prodGetMesesDisp(prodSelAno);
   const periodoLbl = pdMeses.length === mesesDisp.length ? 'Acumulado ' + (prodSelAno || '') : pdMeses.join(', ');
 
