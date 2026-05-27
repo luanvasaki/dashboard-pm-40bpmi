@@ -415,8 +415,17 @@ const CRIME_GROUPS = [
 ];
 const GR  = { color: 'rgba(255,255,255,.04)' };
 
+// Paleta padrão por CIA — 1ª Rosa · 2ª Verde · 3ª Azul · FT Amarelo · Total Branco
+const CIA_COR = { '1': '#e05a8a', '2': '#4bc87a', '3': '#5a9de0', 'ft': '#c8a84b', 'total': '#f4f6fc' };
+function ciaCorByName(name) {
+  const n = (name||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  if (/\bft\b|forca|tatica/.test(n)) return CIA_COR.ft;
+  const d = n.match(/(\d)/);
+  return d ? (CIA_COR[d[1]] || '#aaaaaa') : '#aaaaaa';
+}
+
 // Cores fixas por CIA (extraída pelo número)
-const CIA_COLORS = { '1': '#c8a84b', '2': '#3d7abf', '3': '#c84b4b' };
+const CIA_COLORS = { '1': '#e05a8a', '2': '#4bc87a', '3': '#5a9de0', 'ft': '#c8a84b' };
 function ciaColor(mun) {
   const key = normCiaKey(munCia(mun));
   return CIA_COLORS[key] || '#808080';
@@ -1224,7 +1233,8 @@ function renderEvolMuns() {
 // ---------------------------------------------------------------------------
 
 function ciaSepRow(cia, cols) {
-  return `<tr><td colspan="${cols}" style="padding:6px 10px;background:rgba(61,122,191,.08);border-top:2px solid rgba(61,122,191,.3);border-bottom:1px solid rgba(61,122,191,.2);font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:#5a9de0;font-weight:700">${cia.toUpperCase()}</td></tr>`;
+  const cor = ciaCorByName(cia);
+  return `<tr><td colspan="${cols}" style="padding:6px 10px;background:${cor}18;border-top:2px solid ${cor}55;border-bottom:1px solid ${cor}33;font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px;color:${cor};font-weight:700">${cia.toUpperCase()}</td></tr>`;
 }
 
 function munCia(mun) {
@@ -5507,13 +5517,14 @@ function prodRender() {
     if (!rows.length) return '';
     const maxV = rows[0][1];
     const items = rows.map(([cia, v], i) => {
+      const barCor = ciaCorByName(cia);
       const pct = maxV > 0 ? Math.round(v / maxV * 100) : 0;
       return `<div style="margin-bottom:${i < rows.length - 1 ? '14' : '0'}px">
         <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-          <div style="font-size:16px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:68%">${i + 1}. ${cia}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:15px;color:${cor};font-weight:700">${v.toLocaleString('pt-BR')}</div>
+          <div style="font-size:16px;color:${barCor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:68%">${i + 1}. ${cia}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:15px;color:${barCor};font-weight:700">${v.toLocaleString('pt-BR')}</div>
         </div>
-        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px"><div style="height:100%;width:${pct}%;background:${cor};border-radius:3px"></div></div>
+        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px"><div style="height:100%;width:${pct}%;background:${barCor};border-radius:3px"></div></div>
       </div>`;
     }).join('');
     return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:10px;padding:20px">
@@ -6750,13 +6761,15 @@ function renderProdDetail() {
     const h = Math.max(300, labels.length * 52 + 40);
     ctx.canvas.style.height = h + 'px';
     ctx.canvas.style.maxHeight = h + 'px';
-    pdChs.push(new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ data:values, backgroundColor:cor+'99', borderColor:cor, borderWidth:1, borderRadius:3 }] }, options: { ...barOpts, maintainAspectRatio: false } }));
+    const bkgs = labels.map(l => ciaCorByName(l) + '99');
+    const brds = labels.map(l => ciaCorByName(l));
+    pdChs.push(new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ data:values, backgroundColor:bkgs, borderColor:brds, borderWidth:1, borderRadius:3 }] }, options: { ...barOpts, maintainAspectRatio: false } }));
   };
 
   // --- Ranking CIA ---
   rdBar('pd-cia', topCias.map(([k])=>k), topCias.map(([,v])=>v));
 
-  // --- Evolução Mensal (ignora filtro de meses, mostra todos do ano com CIA aplicada) ---
+  // --- Evolução Mensal ---
   const rowsParaEvo = baseRows.filter(r => !pdSelCia || normCiaDisp(r.cia) === normCiaDisp(pdSelCia));
   const aggEvo = {};
   mesesDisp.forEach(m => aggEvo[m] = 0);
@@ -6767,7 +6780,39 @@ function renderProdDetail() {
     evoCtx.canvas.style.height = '340px';
     evoCtx.canvas.style.maxHeight = '340px';
     if (!evoVals.some(v => v > 0)) { const e = document.getElementById('pd-evo-empty'); if(e) e.style.display=''; evoCtx.canvas.style.display='none'; }
-    else {
+    else if (tipo === 'armas') {
+      // Multi-linha por CIA com legenda clicável
+      const CIA_LINHAS = [
+        { label: 'Total Batalhão', cor: CIA_COR.total,  key: null },
+        { label: '1ª CIA',         cor: CIA_COR['1'],   key: '1' },
+        { label: '2ª CIA',         cor: CIA_COR['2'],   key: '2' },
+        { label: '3ª CIA',         cor: CIA_COR['3'],   key: '3' },
+        { label: 'FT',             cor: CIA_COR.ft,     key: 'ft' },
+      ];
+      const datasets = CIA_LINHAS.map(({ label, cor: c, key }) => {
+        const vals = mesesDisp.map(m => {
+          return baseRows.filter(r => {
+            const mk = MES_ORD.find(x => x.toLowerCase() === (r.mes||'').toLowerCase()) || r.mes || '';
+            if (mk !== m) return false;
+            if (key === null) return true;
+            return normCiaKey(r.cia) === key || (key === 'ft' && /ft|forca|tatica/.test((r.cia||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')));
+          }).reduce((s, r) => s + (Number(r[campo])||0), 0);
+        });
+        return { label, data: vals, borderColor: c, backgroundColor: c + '18', borderWidth: label === 'Total Batalhão' ? 3 : 2, fill: false, tension: 0.4, pointBackgroundColor: c, pointRadius: 4 };
+      });
+      pdChs.push(new Chart(evoCtx, {
+        type: 'line',
+        data: { labels: mesesDisp.map(m => m.slice(0,3)), datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, position: 'top', labels: { color: '#f4f6fc', font: { size: 13, family: "'DM Sans',sans-serif" }, padding: 18, usePointStyle: true, pointStyleWidth: 10 } },
+            tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw.toLocaleString('pt-BR')}` } }
+          },
+          scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 15 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 15 } } } }
+        }
+      }));
+    } else {
       pdChs.push(new Chart(evoCtx, {
         type: 'line',
         data: { labels: mesesDisp.map(m => m.slice(0,3)), datasets: [{ data: evoVals, borderColor: cor, backgroundColor: cor+'22', borderWidth: 2, fill: true, tension: 0.4, pointBackgroundColor: cor, pointRadius: 4 }] },
@@ -8032,7 +8077,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
     const munLabels = munRows.map(([key]) =>
       Object.entries(munLabel[key]).sort((a, b) => b[1] - a[1])[0][0]
     );
-    const ciaCors = ['#5a9de0','#e08a5a','#f7d060','#c84b9e'];
+    const ciaCors = [CIA_COR['1'], CIA_COR['2'], CIA_COR['3'], CIA_COR.ft];
     const munCiaDatasets = DD_CIAS.map((cia, ci) => ({
       label: cia,
       data: munRows.map(([key]) =>
