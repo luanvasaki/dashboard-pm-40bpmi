@@ -5240,7 +5240,7 @@ let pdTipo = null, pdUnidade = null, pdChs = [], pdSelCia = '', pdMeses = [], pd
 const PROD_CORES = {
   ocorrencias:      '#5a9de0',
   presos:           '#e0965a',
-  armas:            '#c84b4b',
+  armas:            '#e8b840',
   veiculos:         '#4bc8a0',
   entorpecentes:    '#9b6de0',
   'tempo-resposta': '#4bc8e0',
