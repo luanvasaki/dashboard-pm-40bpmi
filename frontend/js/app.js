@@ -7729,16 +7729,6 @@ function renderDDSection() {
     yAxisID: 'y',
   }));
 
-  const evolExitoMes = MESES_LABEL.map((_, i) => evolBase.filter(r => getMes(r) === i && ddStatusMatch(r.status, 'Averiguada com Êxito')).length);
-  const evolTotalMes = MESES_LABEL.map((_, i) => evolBase.filter(r => getMes(r) === i).length);
-  const evolPctExito = evolTotalMes.map((t, i) => t > 0 ? +((evolExitoMes[i] / t) * 100).toFixed(1) : null);
-  evolDatasets.push({
-    type: 'line', label: '% Êxito', data: evolPctExito,
-    borderColor: '#f7d060', backgroundColor: 'transparent', borderWidth: 2,
-    pointRadius: 4, pointBackgroundColor: '#f7d060', tension: 0.3,
-    yAxisID: 'y2', stack: undefined,
-  });
-
   const rankingRows = DD_CIAS.map(cia => {
     const ciaDados = registros.filter(r => r.cia === cia);
     const cTotal   = ciaDados.length;
@@ -7961,12 +7951,20 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       data: { labels: MESES_LABEL, datasets: evolDatasets },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#fff', font: { size: 14 }, boxWidth: 14, padding: 16 } } },
+        plugins: {
+          legend: { labels: { color: '#fff', font: { size: 14 }, boxWidth: 14, padding: 16 } },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+              label: i => ` ${i.dataset.label}: ${i.raw.toLocaleString('pt-BR')}`,
+            },
+          },
+        },
         scales: {
-          x:  { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } } },
-          y:  { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true, position: 'left' },
-          y2: { grid: { display: false }, ticks: { color: '#f7d060', font: { size: 12 }, callback: v => v + '%' }, beginAtZero: true, position: 'right' }
-        }
+          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } } },
+          y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true },
+        },
       }
     });
   }
