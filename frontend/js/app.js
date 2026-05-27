@@ -6733,7 +6733,8 @@ function renderProdDetail() {
       <div id="${id}-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>`;
 
-  let html = cardHtml('pd-cia', 'Ranking por CIA', true) + cardHtml('pd-evo', 'Evolução Mensal', true);
+  const ciaTitleLabel = pdSelCia ? `Detalhamento — ${pdSelCia}` : 'Ranking por CIA';
+  let html = cardHtml('pd-cia', ciaTitleLabel, true) + cardHtml('pd-evo', 'Evolução Mensal', true);
   if (!pdNatFilter) html += cardHtml('pd-cat', 'Detalhamento por Categoria', true);
   if (tipo === 'ocorrencias') {
     html += `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
@@ -6753,21 +6754,30 @@ function renderProdDetail() {
     }
   };
 
-  // Helper renderBar local
-  const rdBar = (id, labels, values) => {
+  // Helper renderBar local — colorFn(label) opcional; sem ela usa ciaCorByName
+  const rdBar = (id, labels, values, colorFn) => {
     const ctx = document.getElementById(id)?.getContext('2d');
     if (!ctx) return;
     if (!labels.length) { const e = document.getElementById(id+'-empty'); if(e) e.style.display=''; ctx.canvas.style.display='none'; return; }
     const h = Math.max(300, labels.length * 52 + 40);
     ctx.canvas.style.height = h + 'px';
     ctx.canvas.style.maxHeight = h + 'px';
-    const bkgs = labels.map(l => ciaCorByName(l) + '99');
-    const brds = labels.map(l => ciaCorByName(l));
+    const fn = colorFn || ciaCorByName;
+    const bkgs = labels.map(l => fn(l) + '99');
+    const brds = labels.map(l => fn(l));
     pdChs.push(new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ data:values, backgroundColor:bkgs, borderColor:brds, borderWidth:1, borderRadius:3 }] }, options: { ...barOpts, maintainAspectRatio: false } }));
   };
 
-  // --- Ranking CIA ---
-  rdBar('pd-cia', topCias.map(([k])=>k), topCias.map(([,v])=>v));
+  // --- Ranking CIA / Detalhamento por categoria quando CIA filtrada ---
+  if (pdSelCia) {
+    const breakField = PROD_BREAK[tipo] || 'natureza';
+    const catAgg = {};
+    rows.forEach(r => { const k = r[breakField] || 'Não informado'; catAgg[k] = (catAgg[k]||0) + (Number(r[campo])||0); });
+    const catEntries = Object.entries(catAgg).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]).slice(0, 15);
+    rdBar('pd-cia', catEntries.map(([k]) => k), catEntries.map(([,v]) => v), () => cor);
+  } else {
+    rdBar('pd-cia', topCias.map(([k])=>k), topCias.map(([,v])=>v));
+  }
 
   // --- Evolução Mensal ---
   const rowsParaEvo = baseRows.filter(r => !pdSelCia || normCiaDisp(r.cia) === normCiaDisp(pdSelCia));
