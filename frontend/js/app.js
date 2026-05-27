@@ -6157,52 +6157,10 @@ function renderTRModalDetail() {
       ${natBot.map(d => barRow(d.nat, d.pct.toFixed(1) + '%', Math.round(d.pct), TR_COR_MAU, d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
     </div>`;
 
-  const maxFora = natCriticas[0]?.fora_prazo || 1;
   const criticasCard = !natCriticas.length ? '' :
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #e0965a;border-radius:10px;padding:16px">
-      ${cardTop('#e0965a', 'Naturezas Críticas — Maior Impacto', 'Estimativa de talões não atendidos no prazo — prioridade operacional')}
-      ${natCriticas.map(d => barRow(
-        d.nat,
-        '~' + d.fora_prazo.toLocaleString('pt-BR') + ' tal.',
-        Math.round(d.fora_prazo / maxFora * 100),
-        '#e0965a',
-        d.pct.toFixed(1) + '% no prazo · ' + d.taloes.toLocaleString('pt-BR') + ' talões totais'
-      )).join('')}
-    </div>`;
-
-  let insightsBody = '';
-  if (ciaRank.length >= 2) {
-    const melhor = ciaRank[0], pior = ciaRank[ciaRank.length - 1];
-    insightsBody += `
-      <div style="margin-bottom:14px">
-        <div style="font-size:10px;color:${TR_COR_BOM};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">CIA com Menor Tempo de Resposta</div>
-        <div style="font-size:18px;font-weight:700;color:var(--tx)">${melhor.cia}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_BOM}">${melhor.pct.toFixed(1)}% · ${melhor.taloes.toLocaleString('pt-BR')} talões</div>
-      </div>
-      <div style="margin-bottom:14px">
-        <div style="font-size:10px;color:${TR_COR_MAU};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">CIA com Maior Tempo de Resposta</div>
-        <div style="font-size:18px;font-weight:700;color:var(--tx)">${pior.cia}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_MAU}">${pior.pct.toFixed(1)}% · ${pior.taloes.toLocaleString('pt-BR')} talões</div>
-      </div>`;
-  }
-  if (natRank.length >= 2) {
-    const nBest = natRank[0], nWorst = natRank[natRank.length - 1];
-    insightsBody += `
-      <div style="margin-bottom:14px">
-        <div style="font-size:10px;color:${TR_COR_BOM};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Natureza Mais Rápida</div>
-        <div style="font-size:15px;font-weight:700;color:var(--tx);line-height:1.2">${nBest.nat}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_BOM}">${nBest.pct.toFixed(1)}% · ${nBest.taloes.toLocaleString('pt-BR')} talões</div>
-      </div>
-      <div>
-        <div style="font-size:10px;color:${TR_COR_MAU};text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Natureza Mais Crítica</div>
-        <div style="font-size:15px;font-weight:700;color:var(--tx);line-height:1.2">${nWorst.nat}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:12px;color:${TR_COR_MAU}">${nWorst.pct.toFixed(1)}% · ${nWorst.taloes.toLocaleString('pt-BR')} talões</div>
-      </div>`;
-  }
-  const insightsCard = !insightsBody ? '' :
-    `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:14px">Destaques do Período</div>
-      ${insightsBody}
+      ${cardTop('#e0965a', 'Naturezas Críticas — Maior Impacto')}
+      ${natCriticas.map(d => barRow(d.nat, d.pct.toFixed(1) + '%', Math.round(d.pct), '#e0965a', d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
     </div>`;
 
   const topTitle = pdSelCia ? `Detalhamento — ${pdSelCia}` : 'Ranking por CIA — Precisão e % BOe';
@@ -6216,7 +6174,6 @@ function renderTRModalDetail() {
     natTopCard,
     natBotCard,
     criticasCard,
-    insightsCard,
   ].join('');
 
   const topCtx = document.getElementById('tr-rank-ch')?.getContext('2d');
