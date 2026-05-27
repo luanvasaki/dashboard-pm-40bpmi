@@ -6780,7 +6780,7 @@ function renderProdDetail() {
     evoCtx.canvas.style.height = '340px';
     evoCtx.canvas.style.maxHeight = '340px';
     if (!evoVals.some(v => v > 0)) { const e = document.getElementById('pd-evo-empty'); if(e) e.style.display=''; evoCtx.canvas.style.display='none'; }
-    else if (tipo === 'armas') {
+    else {
       // Multi-linha por CIA com legenda clicável
       const CIA_LINHAS = [
         { label: 'Total Batalhão', cor: CIA_COR.total,  key: null },
@@ -6811,12 +6811,6 @@ function renderProdDetail() {
           },
           scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 15 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 15 } } } }
         }
-      }));
-    } else {
-      pdChs.push(new Chart(evoCtx, {
-        type: 'line',
-        data: { labels: mesesDisp.map(m => m.slice(0,3)), datasets: [{ data: evoVals, borderColor: cor, backgroundColor: cor+'22', borderWidth: 2, fill: true, tension: 0.4, pointBackgroundColor: cor, pointRadius: 4 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 15 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 15 } } } } }
       }));
     }
   }
