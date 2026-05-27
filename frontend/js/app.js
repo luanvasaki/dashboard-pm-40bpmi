@@ -6073,12 +6073,6 @@ function renderTRModalDetail() {
     return true;
   });
 
-  const rowsEvo = (prodRaw.tempoResposta || []).filter(r => {
-    if (prodSelAno && r.ano !== prodSelAno) return false;
-    if (pdSelCia && normCiaDisp(r.cia) !== normCiaDisp(pdSelCia)) return false;
-    return true;
-  });
-
   document.getElementById('pd-sub').textContent = (pdSelCia ? pdSelCia + ' — ' : '') + periodoLbl.toUpperCase();
 
   const wAvg = (rs, field) => {
@@ -6126,18 +6120,6 @@ function renderTRModalDetail() {
       taloes: rs.reduce((s, r) => s + (r.qtde_taloes || 0), 0),
     }))
     .sort((a, b) => b.pct - a.pct);
-
-  const byMesEvo = {};
-  rowsEvo.forEach(r => {
-    const m = MES_ORD.find(x => x.toLowerCase() === (r.mes||'').toLowerCase());
-    if (!m) return;
-    if (!byMesEvo[m]) byMesEvo[m] = [];
-    byMesEvo[m].push(r);
-  });
-  const evoMeses = MES_ORD.filter(m => byMesEvo[m]);
-  const evoPct   = evoMeses.map(m => parseFloat(wAvg(byMesEvo[m], 'pct_hd_hcl_20min').toFixed(1)));
-  const evoBoe   = evoMeses.map(m => parseFloat(wAvg(byMesEvo[m], 'pct_boe').toFixed(1)));
-  const hasBoe   = evoBoe.some(v => v > 0);
 
   const kpiCor = trGlobal >= 70 ? TR_COR_BOM : trGlobal >= 50 ? TR_COR : TR_COR_MAU;
   document.getElementById('pd-kpis').innerHTML = `
@@ -6188,25 +6170,6 @@ function renderTRModalDetail() {
       )).join('')}
     </div>`;
 
-  const ciaCard = !ciaRank.length ? '' :
-    `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR};border-radius:10px;padding:16px">
-      ${cardTop(TR_COR, '% no Prazo por CIA', 'Tempo ≤20min · verde ≥70% · amarelo ≥50% · vermelho <50%')}
-      ${ciaRank.map((d, i) => {
-        const c = d.pct >= 70 ? TR_COR_BOM : d.pct >= 50 ? TR_COR : TR_COR_MAU;
-        return `<div style="margin-bottom:${i < ciaRank.length - 1 ? '12' : '0'}px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-            <div style="font-size:14px;color:var(--tx);font-weight:${i === 0 ? '700' : '400'}">${i + 1}. ${d.cia}</div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <span style="font-family:'DM Mono',monospace;font-size:13px;color:${c};font-weight:700">${d.pct.toFixed(1)}%</span>
-              ${d.pctBoe > 0 ? `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${d.pctBoe.toFixed(1)}% BOe</span>` : ''}
-            </div>
-          </div>
-          <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px"><div style="height:100%;width:${Math.min(100,Math.round(d.pct))}%;background:${c};border-radius:3px"></div></div>
-          <div style="font-size:11px;color:var(--tx3);margin-top:2px">${d.taloes.toLocaleString('pt-BR')} talões</div>
-        </div>`;
-      }).join('')}
-    </div>`;
-
   let insightsBody = '';
   if (ciaRank.length >= 2) {
     const melhor = ciaRank[0], pior = ciaRank[ciaRank.length - 1];
@@ -6242,88 +6205,67 @@ function renderTRModalDetail() {
       ${insightsBody}
     </div>`;
 
-  const evoShell = evoMeses.length > 1
-    ? `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR};border-radius:10px;padding:16px">
-        ${cardTop(TR_COR, 'Evolução Mensal — % Atendidos no Prazo', hasBoe ? 'Tempo ≤20min · % BOe' : 'Tempo ≤20min — média ponderada por talões')}
-        <canvas id="tr-evo-ch" style="max-height:220px"></canvas>
-      </div>` : '';
-
-  const hasCiaComp = ciaRank.length > 1 && ciaRank.some(d => d.pctBoe > 0);
-  const ciaCompShell = hasCiaComp
-    ? `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR};border-radius:10px;padding:16px">
-        ${cardTop(TR_COR, 'CIA — Tempo ≤20min vs % BOe', 'Comparação das duas métricas por CIA')}
-        <canvas id="tr-cia-comp-ch"></canvas>
-      </div>` : '';
+  const topTitle = pdSelCia ? `Detalhamento — ${pdSelCia}` : 'Ranking por CIA — Precisão e % BOe';
+  const topShell = `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR};border-radius:10px;padding:16px">
+      ${cardTop(TR_COR, topTitle)}
+      <canvas id="tr-rank-ch"></canvas>
+    </div>`;
 
   document.getElementById('pd-charts').innerHTML = [
-    evoShell,
+    topShell,
     natTopCard,
     natBotCard,
     criticasCard,
-    ciaCard,
-    ciaCompShell,
     insightsCard,
   ].join('');
 
-  if (evoMeses.length > 1) {
-    const ctx = document.getElementById('tr-evo-ch')?.getContext('2d');
-    if (ctx) {
-      pdChs.push(new Chart(ctx, {
-        type: 'line',
+  const topCtx = document.getElementById('tr-rank-ch')?.getContext('2d');
+  if (topCtx) {
+    if (pdSelCia) {
+      const natShow = natRank.slice(0, 15);
+      const h = Math.max(300, natShow.length * 44 + 60);
+      topCtx.canvas.style.height = h + 'px';
+      topCtx.canvas.style.maxHeight = h + 'px';
+      const cor = ciaCorByName(pdSelCia);
+      pdChs.push(new Chart(topCtx, {
+        type: 'bar',
         data: {
-          labels: evoMeses,
-          datasets: [
-            {
-              label: 'Tempo ≤20min',
-              data: evoPct,
-              borderColor: TR_COR,
-              backgroundColor: TR_COR + '22',
-              tension: 0.3,
-              fill: true,
-              pointBackgroundColor: TR_COR,
-              pointRadius: 4,
-            },
-            ...(hasBoe ? [{
-              label: '% BOe',
-              data: evoBoe,
-              borderColor: '#9b6de0',
-              backgroundColor: 'transparent',
-              tension: 0.3,
-              fill: false,
-              pointBackgroundColor: '#9b6de0',
-              pointRadius: 4,
-              borderDash: [],
-            }] : []),
-          ],
+          labels: natShow.map(d => d.nat),
+          datasets: [{
+            label: 'Tempo ≤20min',
+            data: natShow.map(d => parseFloat(d.pct.toFixed(1))),
+            backgroundColor: cor + '99',
+            borderColor: cor,
+            borderWidth: 1,
+            borderRadius: 3,
+          }],
         },
         options: {
+          indexAxis: 'y',
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { labels: { color: 'rgba(255,255,255,.7)', font: { size: 12 } } },
-            tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw}%` } },
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: i => ` ${i.raw.toFixed(1)}% no prazo`,
+                afterLabel: i => ` ${natShow[i.dataIndex].taloes.toLocaleString('pt-BR')} talões`,
+              },
+            },
           },
           scales: {
-            x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 12 } } },
-            y: {
-              grid: GR,
-              min: 0, max: 100,
-              ticks: { color: 'rgba(255,255,255,.55)', font: { size: 12 }, callback: v => v + '%' },
-            },
+            x: { grid: GR, min: 0, max: 100, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 13 }, callback: v => v + '%' } },
+            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 13 } } },
           },
         },
       }));
-    }
-  }
-
-  if (hasCiaComp) {
-    const ctx = document.getElementById('tr-cia-comp-ch')?.getContext('2d');
-    if (ctx) {
+    } else {
       const ciasToShow = ciaRank.slice(0, 8);
-      const h = Math.max(240, ciasToShow.length * 42 + 40);
-      ctx.canvas.style.height = h + 'px';
-      ctx.canvas.style.maxHeight = h + 'px';
-      pdChs.push(new Chart(ctx, {
+      const h = Math.max(280, ciasToShow.length * 56 + 60);
+      topCtx.canvas.style.height = h + 'px';
+      topCtx.canvas.style.maxHeight = h + 'px';
+      const hasBoeData = ciasToShow.some(d => d.pctBoe > 0);
+      pdChs.push(new Chart(topCtx, {
         type: 'bar',
         data: {
           labels: ciasToShow.map(d => d.cia),
@@ -6331,19 +6273,19 @@ function renderTRModalDetail() {
             {
               label: 'Tempo ≤20min',
               data: ciasToShow.map(d => parseFloat(d.pct.toFixed(1))),
-              backgroundColor: TR_COR + 'aa',
-              borderColor: TR_COR,
+              backgroundColor: ciasToShow.map(d => ciaCorByName(d.cia) + '99'),
+              borderColor: ciasToShow.map(d => ciaCorByName(d.cia)),
               borderWidth: 1,
               borderRadius: 3,
             },
-            {
+            ...(hasBoeData ? [{
               label: '% BOe',
               data: ciasToShow.map(d => parseFloat(d.pctBoe.toFixed(1))),
-              backgroundColor: '#9b6de0aa',
+              backgroundColor: '#9b6de055',
               borderColor: '#9b6de0',
               borderWidth: 1,
               borderRadius: 3,
-            },
+            }] : []),
           ],
         },
         options: {
@@ -6351,16 +6293,26 @@ function renderTRModalDetail() {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { labels: { color: 'rgba(255,255,255,.7)', font: { size: 12 } } },
-            tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw}%` } },
+            legend: {
+              display: hasBoeData,
+              position: 'top',
+              labels: { color: '#f4f6fc', font: { size: 13, family: "'DM Sans',sans-serif" }, padding: 16, usePointStyle: true },
+            },
+            tooltip: {
+              callbacks: {
+                label: i => {
+                  if (i.datasetIndex === 0) {
+                    const d = ciasToShow[i.dataIndex];
+                    return [` Tempo ≤20min: ${i.raw}%`, ` ${d.taloes.toLocaleString('pt-BR')} talões`];
+                  }
+                  return ` % BOe: ${i.raw}%`;
+                },
+              },
+            },
           },
           scales: {
-            x: {
-              grid: GR,
-              min: 0, max: 100,
-              ticks: { color: 'rgba(255,255,255,.45)', font: { size: 12 }, callback: v => v + '%' },
-            },
-            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 12 } } },
+            x: { grid: GR, min: 0, max: 100, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 13 }, callback: v => v + '%' } },
+            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 13 } } },
           },
         },
       }));
