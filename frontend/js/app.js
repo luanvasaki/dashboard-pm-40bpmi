@@ -6722,7 +6722,7 @@ function renderProdDetail() {
       <div id="${id}-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>`;
 
-  let html = cardHtml('pd-cia', 'Ranking por CIA') + cardHtml('pd-evo', 'Evolução Mensal');
+  let html = cardHtml('pd-cia', 'Ranking por CIA', true) + cardHtml('pd-evo', 'Evolução Mensal', true);
   if (!pdNatFilter) html += cardHtml('pd-cat', 'Detalhamento por Categoria', true);
   if (tipo === 'ocorrencias') {
     html += `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
@@ -6737,8 +6737,8 @@ function renderProdDetail() {
     indexAxis: 'y', responsive: true,
     plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
     scales: {
-      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 13 } } },
-      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.80)', font: { size: 13 } } }
+      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 15 } } },
+      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.80)', font: { size: 15 } } }
     }
   };
 
@@ -6747,7 +6747,7 @@ function renderProdDetail() {
     const ctx = document.getElementById(id)?.getContext('2d');
     if (!ctx) return;
     if (!labels.length) { const e = document.getElementById(id+'-empty'); if(e) e.style.display=''; ctx.canvas.style.display='none'; return; }
-    const h = Math.max(260, labels.length * 34 + 40);
+    const h = Math.max(300, labels.length * 52 + 40);
     ctx.canvas.style.height = h + 'px';
     ctx.canvas.style.maxHeight = h + 'px';
     pdChs.push(new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ data:values, backgroundColor:cor+'99', borderColor:cor, borderWidth:1, borderRadius:3 }] }, options: { ...barOpts, maintainAspectRatio: false } }));
@@ -6764,12 +6764,14 @@ function renderProdDetail() {
   const evoVals = mesesDisp.map(m => aggEvo[m]||0);
   const evoCtx = document.getElementById('pd-evo')?.getContext('2d');
   if (evoCtx) {
+    evoCtx.canvas.style.height = '340px';
+    evoCtx.canvas.style.maxHeight = '340px';
     if (!evoVals.some(v => v > 0)) { const e = document.getElementById('pd-evo-empty'); if(e) e.style.display=''; evoCtx.canvas.style.display='none'; }
     else {
       pdChs.push(new Chart(evoCtx, {
         type: 'line',
         data: { labels: mesesDisp.map(m => m.slice(0,3)), datasets: [{ data: evoVals, borderColor: cor, backgroundColor: cor+'22', borderWidth: 2, fill: true, tension: 0.4, pointBackgroundColor: cor, pointRadius: 4 }] },
-        options: { responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 11 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 11 } } } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 15 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 15 } } } } }
       }));
     }
   }
