@@ -855,9 +855,6 @@ function buildSbMes() {
     h += `<button class="pf-btn mes-btn-vis" onclick="sbTog('${m}',this)"${ok ? '' : ' style="opacity:.35" title="Sem dados"'}>${m}</button>`;
   });
 
-  // Espaço separador
-  h += `<div style="flex:1"></div>`;
-
   // Select CIA
   h += `<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" id="sb-cia-sel" onchange="sbSetScope('cia',this.value)">`;
   h += `<option value="">Todas</option>`;
