@@ -3421,14 +3421,6 @@ function closeP1Detail() {
   if (mo) { mo.classList.remove('on'); document.body.style.overflow = ''; }
 }
 
-function cursosPmsToggle(id) {
-  const list = document.getElementById(id);
-  const arr  = document.getElementById('arr-' + id);
-  if (!list) return;
-  const open = list.style.display !== 'none';
-  list.style.display = open ? 'none' : '';
-  if (arr) arr.style.transform = open ? '' : 'rotate(90deg)';
-}
 
 function eapFiltroSet(key) {
   ['feitos','aptos365','pend','inaptaf','inatat','venc'].forEach(k => {
@@ -6340,27 +6332,18 @@ function renderCursosModalDetail() {
   const tdL = 'padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;font-weight:600;color:var(--tx)';
   const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:left';
 
-  const tableRows = cursosList.map((c, i) => {
-    const cor    = TIPO_COR[c.tipo] || '#607090';
-    const pmId   = `cpms-${i}`;
-    const pmHtml = c.pms.map(p =>
-      `<div style="font-family:'DM Mono',monospace;font-size:12px;color:#f4f6fc;line-height:2">${p.posto||''} ${p.re||''} — ${p.nome||'—'}</div>`
-    ).join('');
-    return `<tr onclick="${c.pms.length ? `cursosPmsToggle('${pmId}')` : ''}" style="${c.pms.length ? 'cursor:pointer' : ''}">
+  const tableRows = cursosList.map(c => {
+    const cor = TIPO_COR[c.tipo] || '#607090';
+    return `<tr>
       <td style="${tdS};white-space:nowrap">${fmtD(c.data)}</td>
       <td style="padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.04);text-align:center">
         <span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 7px;border-radius:8px;background:${cor}22;color:${cor};display:inline-block;margin-bottom:4px">${c.tipo}</span>
         <div style="font-size:13px;font-weight:600;color:var(--tx);display:flex;align-items:center;justify-content:center;gap:8px">
           <span>${c.nome_curso||'—'}</span>
-          ${c.pms.length ? `<span style="font-family:'DM Mono',monospace;font-size:10px;padding:1px 8px;border-radius:8px;background:${COR}22;color:${COR};font-weight:400;white-space:nowrap">${c.pms.length} PM${c.pms.length !== 1 ? 's' : ''}</span><span id="arr-${pmId}" style="font-size:9px;color:var(--tx3);display:inline-block;transition:transform .2s">▶</span>` : ''}
+          ${c.pms.length ? `<span style="font-family:'DM Mono',monospace;font-size:10px;padding:1px 8px;border-radius:8px;background:${COR}22;color:${COR};font-weight:400;white-space:nowrap">${c.pms.length} PM${c.pms.length !== 1 ? 's' : ''}</span>` : ''}
         </div>
       </td>
-    </tr>
-    ${c.pms.length ? `<tr id="${pmId}" style="display:none">
-      <td colspan="2" style="padding:10px 18px 14px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.06)">
-        ${pmHtml}
-      </td>
-    </tr>` : ''}`;
+    </tr>`;
   }).join('');
 
   // Evolução mensal (cursos únicos por mês)
@@ -6379,12 +6362,12 @@ function renderCursosModalDetail() {
   chartsEl.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px">Evolução Mensal</div>
-      <canvas id="cursos-evo"></canvas>
+      <canvas id="cursos-evo" style="height:420px;max-height:420px"></canvas>
       <div id="cursos-evo-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>
     <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px">Distribuição por Tipo</div>
-      <canvas id="cursos-tipo"></canvas>
+      <canvas id="cursos-tipo" style="height:420px;max-height:420px"></canvas>
       <div id="cursos-tipo-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>
     <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
@@ -6411,10 +6394,11 @@ function renderCursosModalDetail() {
         data: { labels: evoLabels, datasets: [{ data: evoData, backgroundColor: COR + '88', borderColor: COR, borderWidth: 1, borderRadius: 3 }] },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw} curso${i.raw !== 1 ? 's' : ''}` } } },
           scales: {
-            x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 11 } } },
-            y: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 11 }, stepSize: 1 }, beginAtZero: true }
+            x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 13 } } },
+            y: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 13 }, stepSize: 1 }, beginAtZero: true }
           }
         }
       }));
@@ -6436,8 +6420,9 @@ function renderCursosModalDetail() {
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           plugins: {
-            legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.7)', font: { size: 11 }, padding: 12, boxWidth: 12 } },
+            legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.7)', font: { size: 14 }, padding: 16, boxWidth: 14 } },
             tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} curso${i.raw !== 1 ? 's' : ''}` } }
           }
         }
