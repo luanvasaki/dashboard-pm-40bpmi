@@ -5445,7 +5445,7 @@ function prodRender() {
       const TR_COR = '#4bc8e0';
       return `<div class="kpi" onclick="openProdDetail('tempo-resposta')" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top" style="background:${TR_COR}"></div>
-        <div class="kpi-lbl" style="font-size:10px;letter-spacing:.5px;line-height:1.4">Tempo Resposta Atend. Ocorrência</div>
+        <div class="kpi-lbl" style="font-size:12px;letter-spacing:.5px;line-height:1.4">Tempo Resposta Atend. Ocorrência</div>
         <div class="kpi-val" style="color:${TR_COR}">${trGlobal.toFixed(1)}%</div>
         <div class="kpi-sub">% atendidos no prazo</div>
         <div class="kpi-hint">▸ clique p/ detalhes</div>
@@ -5492,7 +5492,7 @@ function prodRender() {
       const vencidos = p1Data.filter(isVenc).length;
       const metricRow = (label, val, cor) =>
         `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px">
-          <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">${label}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:12px;color:#f4f6fc">${label}</span>
           <span style="font-family:'DM Mono',monospace;font-size:16px;font-weight:700;color:${cor}">${val}</span>
         </div>`;
       return `<div class="kpi" onclick="openProdDetail('taftat')" title="Clique para detalhes" style="cursor:pointer">
