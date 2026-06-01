@@ -7733,10 +7733,10 @@ function renderDDSection() {
     const ciaDados = registros.filter(r => r.cia === cia);
     const cTotal   = ciaDados.length;
     const cAver    = ciaDados.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito') || ddStatusMatch(r.status,'Averiguada sem Êxito')).length;
-    const cFlag    = ciaDados.filter(r => r.flagrante).length;
+    const cExito   = ciaDados.filter(r => ddStatusMatch(r.status, 'Averiguada com Êxito')).length;
     const cPresos  = ciaDados.reduce((s, r) => s + (Number(r.quant_presos) || 0), 0);
     const cPct     = cTotal > 0 ? ((cAver / cTotal) * 100).toFixed(0) + '%' : '—';
-    return { cia, cTotal, cAver, cFlag, cPresos, cPct };
+    return { cia, cTotal, cAver, cExito, cPresos, cPct };
   }).sort((a, b) => b.cTotal - a.cTotal);
 
   const thR = 'padding:9px 14px;border-bottom:1px solid var(--bd);font-family:"DM Mono",monospace;font-size:15px;color:#ccc;text-transform:uppercase;letter-spacing:1px';
@@ -7748,7 +7748,7 @@ function renderDDSection() {
         <th style="${thR};text-align:center">Total</th>
         <th style="${thR};text-align:center">Averiguadas</th>
         <th style="${thR};text-align:center">% Aver.</th>
-        <th style="${thR};text-align:center">Flagrantes</th>
+        <th style="${thR};text-align:center">Av. c/ Êxito</th>
         <th style="${thR};text-align:center">Presos</th>
       </tr></thead>
       <tbody>${rankingRows.map(r => `<tr>
@@ -7756,7 +7756,7 @@ function renderDDSection() {
         <td style="${tdR};text-align:center">${r.cTotal}</td>
         <td style="${tdR};text-align:center">${r.cAver}</td>
         <td style="${tdR};text-align:center;color:#c8a84b">${r.cPct}</td>
-        <td style="${tdR};text-align:center;color:#9b6de0">${r.cFlag}</td>
+        <td style="${tdR};text-align:center;color:#5ae09a">${r.cExito}</td>
         <td style="${tdR};text-align:center;color:#c84b4b">${r.cPresos}</td>
       </tr>`).join('')}</tbody>
     </table>` : `<div style="color:#aaa;font-size:13px;padding:12px">Sem dados para o filtro selecionado.</div>`;
@@ -7867,7 +7867,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
 
   const c6 = document.getElementById('dd-chart-donut');
   if (c6) {
-    const donutCors   = ['#5a9de0','#e08a5a','#f7d060','#c84b9e'];
+    const donutCors   = [CIA_COR['1'], CIA_COR['2'], CIA_COR['3'], CIA_COR.ft];
     const exitoCor    = '#5ae09a';
     const donutTotais = DD_CIAS.map(cia => registros.filter(r => r.cia === cia).length);
     const donutExito  = DD_CIAS.map(cia => registros.filter(r => r.cia === cia && ddStatusMatch(r.status, 'Averiguada com Êxito')).length);
@@ -7984,7 +7984,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       munMap[key].total++;
       if (ddStatusMatch(r.status, 'Averiguada com Êxito')) munMap[key].exito++;
     });
-    const munRows = Object.entries(munMap).sort((a, b) => b[1].total - a[1].total).slice(0, 10);
+    const munRows = Object.entries(munMap).sort((a, b) => b[1].exito - a[1].exito).slice(0, 10);
     // exibe a variante mais frequente de cada município
     const munLabels = munRows.map(([key]) =>
       Object.entries(munLabel[key]).sort((a, b) => b[1] - a[1])[0][0]
@@ -8027,7 +8027,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       const dias = recs.map(r => Math.max(0, (new Date(r.data_atendimento) - new Date(r.data)) / 86400000));
       return +(dias.reduce((a, b) => a + b, 0) / dias.length).toFixed(1);
     });
-    const donutCors2 = ['#5a9de0','#e08a5a','#f7d060','#c84b9e'];
+    const donutCors2 = [CIA_COR['1'], CIA_COR['2'], CIA_COR['3'], CIA_COR.ft];
     ddChart3 = new Chart(cTempo.getContext('2d'), {
       type: 'bar',
       data: {
