@@ -447,8 +447,10 @@ function ciaSepPlugin(muns) {
       const { ctx, chartArea } = chart;
       const n = muns.length;
       const w = (chartArea.right - chartArea.left) / n;
-      seps.forEach(({ idx, name }) => {
+      seps.forEach(({ idx, name }, si) => {
         const x = chartArea.left + w * idx;
+        const nextIdx = si + 1 < seps.length ? seps[si + 1].idx : n;
+        const xCenter = chartArea.left + w * (idx + nextIdx) / 2;
         ctx.save();
         // Linha pontilhada (não desenha na posição 0 — borda já existe)
         if (idx > 0) {
@@ -462,9 +464,9 @@ function ciaSepPlugin(muns) {
           ctx.setLineDash([]);
         }
         ctx.fillStyle = '#ffffff';
-        ctx.font = '700 13px "DM Mono", monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText(name.toUpperCase(), x + 4, chartArea.top + 16);
+        ctx.font = '700 14px "DM Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(name.toUpperCase(), xCenter, chartArea.top + 16);
         ctx.restore();
       });
     }
@@ -1765,7 +1767,7 @@ function moRender() {
         plugins: {
           legend: {
             labels: {
-              boxWidth: 16, font: { size: 14 }, color: '#ffffff',
+              boxWidth: 16, font: { size: 19 }, color: '#ffffff',
               generateLabels: () => [
                 { text: 'Dentro da meta',                         fillStyle: 'rgba(61,191,122,.75)',  strokeStyle: 'rgba(61,191,122,.75)',  lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff' },
                 { text: 'Acima da meta, melhor que mês anterior', fillStyle: 'rgba(191,122,61,.85)', strokeStyle: 'rgba(191,122,61,.85)', lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff' },
@@ -1794,8 +1796,8 @@ function moRender() {
           }
         },
         scales: {
-          x: { grid: GR, ticks: { color: '#ffffff', font: { size: 14 } } },
-          y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff', font: { size: 14 } }, suggestedMin: -20, suggestedMax: 20 }
+          x: { grid: GR, ticks: { color: '#ffffff', font: { size: 17 } } },
+          y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff', font: { size: 17 } }, suggestedMin: -20, suggestedMax: 20 }
         }
       }
     }));

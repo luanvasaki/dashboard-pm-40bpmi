@@ -136,7 +136,7 @@ canvas{max-height:240px}
 .mk-sub{font-size:17px;color:#ffffff;font-family:'DM Mono',monospace;margin-top:4px}
 .mo-g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .mo-card{background:var(--s2);border:1px solid var(--bd);border-radius:7px;padding:14px}
-.mo-ct{font-family:'DM Mono',monospace;font-size:17px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px}
+.mo-ct{font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px}
 .mo-card canvas{max-height:420px}
 .ctbl{width:100%;border-collapse:collapse}
 .ctbl th{font-family:'DM Mono',monospace;font-size:15px;letter-spacing:1px;color:var(--tx3);text-transform:uppercase;padding:9px 10px;border-bottom:1px solid var(--bd);text-align:left}
