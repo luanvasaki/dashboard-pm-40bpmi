@@ -7618,9 +7618,6 @@ function renderDDKpi() {
     return prodSelMeses.includes(MES_ORD[d.getMonth()]);
   });
   const total = base.length;
-  const aver  = base.filter(r => ddStatusMatch(r.status,'Averiguada com Êxito') || ddStatusMatch(r.status,'Averiguada sem Êxito')).length;
-  const pct   = total > 0 ? ((aver / total) * 100).toFixed(0) + '%' : '—';
-  const flags = base.filter(r => r.flagrante).length;
   const periodoLbl = allMesesSel
     ? 'Acumulado ' + ddAnoFiltro
     : prodSelMeses.map(m => m.slice(0,3)).join(', ') + ' ' + ddAnoFiltro;
@@ -7629,7 +7626,6 @@ function renderDDKpi() {
     <div class="kpi-lbl">Disque Denúncia</div>
     <div class="kpi-val" style="color:#5a9de0">${total.toLocaleString('pt-BR')}</div>
     <div class="kpi-sub">${periodoLbl}</div>
-    <div class="kpi-sub">${aver} averiguadas · ${flags} flagrantes · <span style="color:#c8a84b">${pct}</span></div>
     <div class="kpi-hint">▸ clique p/ detalhes</div>
   </div>`;
 }
