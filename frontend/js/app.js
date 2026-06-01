@@ -1239,7 +1239,7 @@ function renderEvolMuns() {
 
 function ciaSepRow(cia, cols) {
   const cor = ciaCorByName(cia);
-  return `<tr><td colspan="${cols}" style="padding:6px 10px;background:${cor}18;border-top:2px solid ${cor}55;border-bottom:1px solid ${cor}33;font-family:'DM Mono',monospace;font-size:15px;letter-spacing:2px;color:${cor};font-weight:700">${cia.toUpperCase()}</td></tr>`;
+  return `<tr><td colspan="${cols}" style="padding:6px 10px;background:${cor}18;border-top:2px solid ${cor}55;border-bottom:1px solid ${cor}33;font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:${cor};font-weight:700">${cia.toUpperCase()}</td></tr>`;
 }
 
 function munCia(mun) {
