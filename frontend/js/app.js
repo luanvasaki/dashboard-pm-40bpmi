@@ -7662,6 +7662,8 @@ function closeDDDetail() {
   if (_ddDrillChart) { try { _ddDrillChart.destroy(); } catch(e){} _ddDrillChart = null; }
   _ddDrillCiaIdx = null;
   ddDonutHidden = new Set();
+  const extTt = document.getElementById('dd-donut-ext-tt');
+  if (extTt) extTt.remove();
 }
 
 function ddDetailClickOut(e) {
@@ -7913,6 +7915,42 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       return { data, bg, border };
     };
 
+    const ddExtTooltip = ctx => {
+      const { chart, tooltip } = ctx;
+      const TT_ID = 'dd-donut-ext-tt';
+      let el = document.getElementById(TT_ID);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = TT_ID;
+        el.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;background:rgba(17,21,34,.97);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:12px 16px;font-family:"DM Mono",monospace;font-size:12px;color:#ccc;min-width:210px;box-shadow:0 6px 24px rgba(0,0,0,.65);display:none';
+        document.body.appendChild(el);
+      }
+      if (tooltip.opacity === 0 || !tooltip.dataPoints?.length) { el.style.display = 'none'; return; }
+      const dIdx = tooltip.dataPoints[0].dataIndex;
+      const i    = Math.floor(dIdx / 3);
+      if (donutTotais[i] === 0 || ddDonutHidden.has(DD_CIAS[i])) { el.style.display = 'none'; return; }
+      const t   = donutTotais[i];
+      const cor = donutCors[i];
+      const pct = (v, base) => base > 0 ? `<span style="color:#777"> (${((v / base) * 100).toFixed(1)}%)</span>` : '';
+      el.innerHTML = `
+        <div style="font-size:13px;font-weight:700;color:${cor};letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid ${cor}44">${DD_CIAS[i]}</div>
+        <div style="display:grid;grid-template-columns:auto auto;gap:4px 14px;align-items:baseline">
+          <span style="color:#888">Total DDs</span><span style="color:#fff;font-weight:700">${t}${pct(t, total)}</span>
+          <span style="color:#888">c/ Êxito</span><span style="color:#5ae09a;font-weight:700">${donutExito[i]}${pct(donutExito[i], t)}</span>
+          <span style="color:#888">s/ Êxito</span><span style="color:#e08a5a;font-weight:700">${donutSemEx[i]}${pct(donutSemEx[i], t)}</span>
+          <span style="color:#888">Andamento</span><span style="color:#f7d060;font-weight:700">${donutAndamt[i]}${pct(donutAndamt[i], t)}</span>
+          <span style="color:#888">Sem Aver.</span><span style="color:#e06060;font-weight:700">${donutSemAv[i]}${pct(donutSemAv[i], t)}</span>
+        </div>`;
+      el.style.display = 'block';
+      const rect = chart.canvas.getBoundingClientRect();
+      let x = rect.left + tooltip.caretX + 18;
+      let y = rect.top  + tooltip.caretY - 16;
+      if (x + 230 > window.innerWidth - 12) x = rect.left + tooltip.caretX - 228;
+      if (y + el.offsetHeight > window.innerHeight - 12) y = window.innerHeight - el.offsetHeight - 12;
+      el.style.left = Math.max(8, x) + 'px';
+      el.style.top  = Math.max(8, y) + 'px';
+    };
+
     const initSlices = buildDonutSlices();
     ddChart6 = new Chart(c6.getContext('2d'), {
       type: 'doughnut',
@@ -7931,25 +7969,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
         cutout: '54%',
         plugins: {
           legend: { display: false },
-          tooltip: {
-            filter: item => donutTotais[Math.floor(item.dataIndex / 3)] > 0 && !ddDonutHidden.has(DD_CIAS[Math.floor(item.dataIndex / 3)]),
-            callbacks: {
-              title: ctx => DD_CIAS[Math.floor(ctx[0].dataIndex / 3)],
-              label:  () => null,
-              afterBody: ctx => {
-                const i = Math.floor(ctx[0].dataIndex / 3);
-                const t = donutTotais[i];
-                const p = v => t > 0 ? ` (${((v / t) * 100).toFixed(1)}%)` : '';
-                return [
-                  `Total DDs:    ${t}  —  ${total > 0 ? ((t / total) * 100).toFixed(1) : 0}% do total`,
-                  `Av. c/ Êxito: ${donutExito[i]}${p(donutExito[i])}`,
-                  `Av. s/ Êxito: ${donutSemEx[i]}${p(donutSemEx[i])}`,
-                  `Andamento:    ${donutAndamt[i]}${p(donutAndamt[i])}`,
-                  `Sem Aver.:    ${donutSemAv[i]}${p(donutSemAv[i])}`,
-                ];
-              }
-            }
-          }
+          tooltip: { enabled: false, external: ddExtTooltip }
         },
         onClick: (evt, elements) => {
           if (!elements.length) return;
@@ -7996,6 +8016,8 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       const statData   = [donutExito[ciaIdx], donutSemEx[ciaIdx], donutAndamt[ciaIdx], donutSemAv[ciaIdx]];
       const statLabels = ['Av. c/ Êxito', 'Av. s/ Êxito', 'Andamento', 'Sem Averiguação'];
       const statCors   = ['#5ae09a', '#e08a5a', '#f7d060', '#e06060'];
+      const extTt = document.getElementById('dd-donut-ext-tt');
+      if (extTt) extTt.style.display = 'none';
       const mainEl  = document.getElementById('dd-donut-main');
       const drillEl = document.getElementById('dd-donut-drill');
       if (mainEl)  mainEl.style.display  = 'none';
