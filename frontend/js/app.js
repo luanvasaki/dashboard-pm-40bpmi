@@ -1303,7 +1303,7 @@ function renderVisaoHeatmap() {
   const muns = sc.cia ? MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === sc.cia)) :
                sc.mun ? [sc.mun] : MUNS;
   const hmCols = crimes.length + 2;
-  const hmLblV = c => cl(c).replace('Vítimas de Letalidade Violenta', 'Vit. Let.<br>Violenta');
+  const hmLblV = c => cl(c).replace('Vítimas de Letalidade Violenta', 'Vit. Let.<br>Violenta').replace('Estupro de Vuln.', 'Estupro de<br>Vuln.');
   let h = '<thead><tr><th>Município</th>' + crimes.map(c => `<th>${hmLblV(c)}</th>`).join('') + '<th>Total</th></tr></thead><tbody>';
   let lastCia = null;
   muns.forEach(mun => {
@@ -1329,7 +1329,7 @@ function renderHeatmap() {
   document.getElementById('lbl-p4').textContent  = p;
   document.getElementById('hm-badge').textContent = p;
   const hmCols = CRIMES.length + 2;
-  const hmLbl = c => cl(c).replace('Vítimas de Letalidade Violenta', 'Vit. Let.<br>Violenta');
+  const hmLbl = c => cl(c).replace('Vítimas de Letalidade Violenta', 'Vit. Let.<br>Violenta').replace('Estupro de Vuln.', 'Estupro de<br>Vuln.');
   let h = '<thead><tr><th>Município</th>' + CRIMES.map(c => `<th>${hmLbl(c)}</th>`).join('') + '<th>Total</th></tr></thead><tbody>';
   let lastHmCia = null;
   MUNS.forEach(mun => {
