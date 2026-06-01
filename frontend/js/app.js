@@ -7857,8 +7857,11 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
               <span id="dd-drill-title" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#fff"></span>
             </div>
             <div style="display:flex;align-items:flex-start;gap:32px;flex-wrap:wrap;justify-content:center">
-              <div style="width:240px;height:240px;flex-shrink:0">
-                <canvas id="dd-chart-drill"></canvas>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0">
+                <div style="width:240px;height:240px">
+                  <canvas id="dd-chart-drill"></canvas>
+                </div>
+                <div style="font-size:11px;color:rgba(255,255,255,.3);font-family:'DM Mono',monospace">clique no gráfico para voltar</div>
               </div>
               <div id="dd-drill-legend" style="display:flex;flex-direction:column;gap:4px;min-width:220px;padding-top:8px"></div>
             </div>
@@ -8001,31 +8004,38 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       if (titleEl) titleEl.textContent = cia.toUpperCase();
       if (_ddDrillChart) { try { _ddDrillChart.destroy(); } catch(e){} _ddDrillChart = null; }
       const cDrill = document.getElementById('dd-chart-drill');
-      if (cDrill && statData.some(v => v > 0)) {
-        _ddDrillChart = new Chart(cDrill.getContext('2d'), {
-          type: 'pie',
-          data: {
-            labels: statLabels,
-            datasets: [{
-              data: statData,
-              backgroundColor: statCors.map(c => c + 'cc'),
-              borderColor: statCors,
-              borderWidth: 2,
-              hoverOffset: 8
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: true,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: ctx => ` ${ctx.label}: ${ctx.raw}${t > 0 ? ' (' + ((ctx.raw / t) * 100).toFixed(1) + '%)' : ''}`
+      if (cDrill) {
+        cDrill.style.cursor = 'pointer';
+        cDrill.title = 'Clique para voltar';
+        if (statData.some(v => v > 0)) {
+          setTimeout(() => {
+            _ddDrillChart = new Chart(cDrill.getContext('2d'), {
+              type: 'pie',
+              data: {
+                labels: statLabels,
+                datasets: [{
+                  data: statData,
+                  backgroundColor: statCors.map(sc => sc + 'cc'),
+                  borderColor: statCors,
+                  borderWidth: 2,
+                  hoverOffset: 8
+                }]
+              },
+              options: {
+                responsive: true, maintainAspectRatio: true,
+                onClick: () => ddCloseDrill(),
+                plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                    callbacks: {
+                      label: ctx => ` ${ctx.label}: ${ctx.raw}${t > 0 ? ' (' + ((ctx.raw / t) * 100).toFixed(1) + '%)' : ''}`
+                    }
+                  }
                 }
               }
-            }
-          }
-        });
+            });
+          }, 0);
+        }
       }
       const legEl = document.getElementById('dd-drill-legend');
       if (legEl) {
