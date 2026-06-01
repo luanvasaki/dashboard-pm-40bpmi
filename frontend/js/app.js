@@ -1303,7 +1303,8 @@ function renderVisaoHeatmap() {
   const muns = sc.cia ? MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === sc.cia)) :
                sc.mun ? [sc.mun] : MUNS;
   const hmCols = crimes.length + 2;
-  let h = '<thead><tr><th>Município</th>' + crimes.map(c => `<th>${cl(c)}</th>`).join('') + '<th>Total</th></tr></thead><tbody>';
+  const hmLblV = c => cl(c).replace('Vítimas de Letalidade Violenta', 'Vit. Let.<br>Violenta');
+  let h = '<thead><tr><th>Município</th>' + crimes.map(c => `<th>${hmLblV(c)}</th>`).join('') + '<th>Total</th></tr></thead><tbody>';
   let lastCia = null;
   muns.forEach(mun => {
     const cia = munCia(mun);
