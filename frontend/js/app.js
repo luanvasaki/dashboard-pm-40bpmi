@@ -7605,6 +7605,8 @@ let ddChart3 = null;
 let ddChart4 = null;
 let ddChart5 = null;
 let ddChart6 = null;
+let ddDonutHidden = new Set();
+let _ddDrillChart = null;
 
 async function loadDDData() {
   try {
@@ -7656,6 +7658,8 @@ function closeDDDetail() {
   document.getElementById('dd-detail-mo').classList.remove('on');
   [ddChart, ddChart2, ddChart3, ddChart4, ddChart5, ddChart6].forEach(ch => { if (ch) { try { ch.destroy(); } catch(e){} } });
   ddChart = ddChart2 = ddChart3 = ddChart4 = ddChart5 = ddChart6 = null;
+  if (_ddDrillChart) { try { _ddDrillChart.destroy(); } catch(e){} _ddDrillChart = null; }
+  ddDonutHidden = new Set();
 }
 
 function ddDetailClickOut(e) {
@@ -7821,10 +7825,10 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:16px">
         <div style="${cardBox}">
           ${secTitle('Participação por CIA — Total de DDs Recebidas e Averiguadas c/ Êxito')}
-          <div style="display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap">
+          <div id="dd-donut-main" style="display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap">
             <div style="display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0">
               <div style="position:relative;width:240px;height:240px">
-                <canvas id="dd-chart-donut"></canvas>
+                <canvas id="dd-chart-donut" style="cursor:pointer" title="Clique na fatia para ver detalhes da CIA"></canvas>
                 <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
                   <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#fff;line-height:1">${total}</div>
                   <div style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;letter-spacing:1px;margin-top:2px">TOTAL DDs</div>
@@ -7837,11 +7841,24 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
               <div style="display:grid;grid-template-columns:auto 110px 110px;gap:8px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.08)">
-                <span></span>
+                <span style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;letter-spacing:1px">CIA</span>
                 <span style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;letter-spacing:1px;text-align:right">TOTAL DDs</span>
                 <span style="font-size:11px;color:#5ae09a;font-family:'DM Mono',monospace;letter-spacing:1px;text-align:right">c/ ÊXITO</span>
               </div>
               <div id="dd-donut-legend" style="display:flex;flex-direction:column;gap:10px"></div>
+              <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:6px;font-family:'DM Mono',monospace">clique na legenda para ocultar/exibir</div>
+            </div>
+          </div>
+          <div id="dd-donut-drill" style="display:none;flex-direction:column;align-items:center;gap:16px;padding-top:8px">
+            <div style="display:flex;align-items:center;gap:12px;width:100%;flex-wrap:wrap">
+              <button onclick="ddCloseDrill()" style="padding:5px 14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:6px;cursor:pointer;font-size:13px;font-family:'DM Mono',monospace">← Voltar</button>
+              <span id="dd-drill-title" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#fff"></span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:32px;flex-wrap:wrap;justify-content:center">
+              <div style="width:240px;height:240px;flex-shrink:0">
+                <canvas id="dd-chart-drill"></canvas>
+              </div>
+              <div id="dd-drill-legend" style="display:flex;flex-direction:column;gap:4px;min-width:220px;padding-top:8px"></div>
             </div>
           </div>
         </div>
@@ -7867,35 +7884,41 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
 
   const c6 = document.getElementById('dd-chart-donut');
   if (c6) {
-    const donutCors   = [CIA_COR['1'], CIA_COR['2'], CIA_COR['3'], CIA_COR.ft];
-    const exitoCor    = '#5ae09a';
+    if (_ddDrillChart) { try { _ddDrillChart.destroy(); } catch(e){} _ddDrillChart = null; }
+    const donutCors  = [CIA_COR['1'], CIA_COR['2'], CIA_COR['3'], CIA_COR.ft];
+    const exitoCor   = '#5ae09a';
     const donutTotais = DD_CIAS.map(cia => registros.filter(r => r.cia === cia).length);
     const donutExito  = DD_CIAS.map(cia => registros.filter(r => r.cia === cia && ddStatusMatch(r.status, 'Averiguada com Êxito')).length);
+    const donutSemEx  = DD_CIAS.map(cia => registros.filter(r => r.cia === cia && ddStatusMatch(r.status, 'Averiguada sem Êxito')).length);
+    const donutAndamt = DD_CIAS.map(cia => registros.filter(r => r.cia === cia && ddStatusMatch(r.status, 'Andamento')).length);
+    const donutSemAv  = DD_CIAS.map(cia => registros.filter(r => r.cia === cia && ddStatusMatch(r.status, 'Sem Averiguação')).length);
     const donutResto  = DD_CIAS.map((_, i) => donutTotais[i] - donutExito[i]);
 
-    // Anel único: [CIA1_esq, CIA1_verde, CIA1_dir, CIA2_esq, CIA2_verde, CIA2_dir, ...]
-    // verde centrado dentro do arco de cada CIA, longe das bordas entre CIAs
-    const sliceData   = [];
-    const sliceBg     = [];
-    const sliceBorder = [];
-    DD_CIAS.forEach((_, i) => {
-      const esq = Math.floor(donutResto[i] / 2);
-      const dir = donutResto[i] - esq;
-      sliceData.push(esq);          sliceBg.push(donutCors[i]);   sliceBorder.push('#131720');
-      sliceData.push(donutExito[i]); sliceBg.push(exitoCor);       sliceBorder.push('#131720');
-      sliceData.push(dir);          sliceBg.push(donutCors[i]);   sliceBorder.push('#131720');
-    });
+    const buildDonutSlices = () => {
+      const data = [], bg = [], border = [];
+      DD_CIAS.forEach((cia, i) => {
+        const hidden = ddDonutHidden.has(cia);
+        const esq    = hidden ? 0 : Math.floor(donutResto[i] / 2);
+        const exito  = hidden ? 0 : donutExito[i];
+        const dir    = hidden ? 0 : (donutResto[i] - Math.floor(donutResto[i] / 2));
+        data.push(esq, exito, dir);
+        bg.push(donutCors[i], exitoCor, donutCors[i]);
+        border.push('#131720', '#131720', '#131720');
+      });
+      return { data, bg, border };
+    };
 
+    const initSlices = buildDonutSlices();
     ddChart6 = new Chart(c6.getContext('2d'), {
       type: 'doughnut',
       data: {
         labels: [],
         datasets: [{
-          data: sliceData,
-          backgroundColor: sliceBg,
-          borderColor: sliceBorder,
+          data: initSlices.data,
+          backgroundColor: initSlices.bg,
+          borderColor: initSlices.border,
           borderWidth: 1,
-          hoverOffset: 6
+          hoverOffset: 8
         }]
       },
       options: {
@@ -7904,44 +7927,122 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
         plugins: {
           legend: { display: false },
           tooltip: {
-            filter: item => item.dataIndex % 3 !== 0 || sliceData[item.dataIndex] > 0,
+            filter: item => donutTotais[Math.floor(item.dataIndex / 3)] > 0 && !ddDonutHidden.has(DD_CIAS[Math.floor(item.dataIndex / 3)]),
             callbacks: {
-              label: ctx => {
-                const ciaIdx = Math.floor(ctx.dataIndex / 3);
-                const pos    = ctx.dataIndex % 3;
-                const t      = donutTotais[ciaIdx];
-                if (pos === 1) return ` ${DD_CIAS[ciaIdx]} c/ Êxito: ${ctx.raw} (${t > 0 ? ((ctx.raw / t) * 100).toFixed(1) : 0}% da CIA)`;
-                return ` ${DD_CIAS[ciaIdx]}: ${t} DDs (${total > 0 ? ((t / total) * 100).toFixed(1) : 0}%)`;
+              title: ctx => DD_CIAS[Math.floor(ctx[0].dataIndex / 3)],
+              label:  () => null,
+              afterBody: ctx => {
+                const i = Math.floor(ctx[0].dataIndex / 3);
+                const t = donutTotais[i];
+                const p = v => t > 0 ? ` (${((v / t) * 100).toFixed(1)}%)` : '';
+                return [
+                  `Total DDs:    ${t}  —  ${total > 0 ? ((t / total) * 100).toFixed(1) : 0}% do total`,
+                  `Av. c/ Êxito: ${donutExito[i]}${p(donutExito[i])}`,
+                  `Av. s/ Êxito: ${donutSemEx[i]}${p(donutSemEx[i])}`,
+                  `Andamento:    ${donutAndamt[i]}${p(donutAndamt[i])}`,
+                  `Sem Aver.:    ${donutSemAv[i]}${p(donutSemAv[i])}`,
+                ];
               }
             }
           }
+        },
+        onClick: (evt, elements) => {
+          if (!elements.length) return;
+          const ciaIdx = Math.floor(elements[0].index / 3);
+          if (ddDonutHidden.has(DD_CIAS[ciaIdx])) return;
+          ddChart6._ddData.openDrill(ciaIdx);
         }
       }
     });
+
     const legendEl = document.getElementById('dd-donut-legend');
-    if (legendEl) {
+    const renderLegend = () => {
+      if (!legendEl) return;
       legendEl.innerHTML = DD_CIAS.map((cia, i) => {
         const val     = donutTotais[i];
         const exit    = donutExito[i];
         const pct     = total > 0 ? ((val / total) * 100).toFixed(1) : '0.0';
         const exitPct = val > 0 ? ((exit / val) * 100).toFixed(1) : '0.0';
-        return `<div style="display:grid;grid-template-columns:auto 110px 110px;gap:8px;align-items:center">
+        const hidden  = ddDonutHidden.has(cia);
+        return `<div onclick="ddToggleDonut('${cia.replace(/'/g, "\\'")}')" title="${hidden ? 'Mostrar' : 'Ocultar'} ${cia} no gráfico" style="display:grid;grid-template-columns:auto 110px 110px;gap:8px;align-items:center;cursor:pointer;opacity:${hidden ? 0.38 : 1}">
           <div style="display:flex;align-items:center;gap:6px">
-            <div style="width:10px;height:10px;border-radius:2px;background:${donutCors[i]};flex-shrink:0"></div>
-            <div style="width:10px;height:10px;border-radius:2px;background:${exitoCor};flex-shrink:0"></div>
-            <span style="font-size:14px;color:#fff;font-family:'DM Mono',monospace;font-weight:600">${cia}</span>
+            <div style="width:10px;height:10px;border-radius:2px;background:${hidden ? '#444' : donutCors[i]};flex-shrink:0"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:${hidden ? '#444' : exitoCor};flex-shrink:0"></div>
+            <span style="font-size:14px;color:${hidden ? '#666' : '#fff'};font-family:'DM Mono',monospace;font-weight:600">${cia}</span>
           </div>
           <div style="text-align:right">
-            <span style="font-size:14px;color:#fff;font-family:'DM Mono',monospace">${val}</span>
-            <span style="font-size:12px;color:${donutCors[i]};margin-left:5px;font-weight:700">${pct}%</span>
+            <span style="font-size:14px;color:${hidden ? '#666' : '#fff'};font-family:'DM Mono',monospace">${val}</span>
+            <span style="font-size:12px;color:${hidden ? '#444' : donutCors[i]};margin-left:5px;font-weight:700">${pct}%</span>
           </div>
           <div style="text-align:right">
-            <span style="font-size:14px;color:${exitoCor};font-family:'DM Mono',monospace">${exit}</span>
-            <span style="font-size:12px;color:${exitoCor}88;margin-left:5px">${exitPct}%</span>
+            <span style="font-size:14px;color:${hidden ? '#666' : exitoCor};font-family:'DM Mono',monospace">${exit}</span>
+            <span style="font-size:12px;color:${hidden ? '#444' : exitoCor + '88'};margin-left:5px">${exitPct}%</span>
           </div>
         </div>`;
       }).join('');
-    }
+    };
+    renderLegend();
+
+    const openDrill = ciaIdx => {
+      const cia        = DD_CIAS[ciaIdx];
+      const t          = donutTotais[ciaIdx];
+      const statData   = [donutExito[ciaIdx], donutSemEx[ciaIdx], donutAndamt[ciaIdx], donutSemAv[ciaIdx]];
+      const statLabels = ['Av. c/ Êxito', 'Av. s/ Êxito', 'Andamento', 'Sem Averiguação'];
+      const statCors   = ['#5ae09a', '#e08a5a', '#f7d060', '#e06060'];
+      const mainEl  = document.getElementById('dd-donut-main');
+      const drillEl = document.getElementById('dd-donut-drill');
+      if (mainEl)  mainEl.style.display  = 'none';
+      if (drillEl) drillEl.style.display = 'flex';
+      const titleEl = document.getElementById('dd-drill-title');
+      if (titleEl) titleEl.textContent = cia.toUpperCase();
+      if (_ddDrillChart) { try { _ddDrillChart.destroy(); } catch(e){} _ddDrillChart = null; }
+      const cDrill = document.getElementById('dd-chart-drill');
+      if (cDrill && statData.some(v => v > 0)) {
+        _ddDrillChart = new Chart(cDrill.getContext('2d'), {
+          type: 'pie',
+          data: {
+            labels: statLabels,
+            datasets: [{
+              data: statData,
+              backgroundColor: statCors.map(c => c + 'cc'),
+              borderColor: statCors,
+              borderWidth: 2,
+              hoverOffset: 8
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: true,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: ctx => ` ${ctx.label}: ${ctx.raw}${t > 0 ? ' (' + ((ctx.raw / t) * 100).toFixed(1) + '%)' : ''}`
+                }
+              }
+            }
+          }
+        });
+      }
+      const legEl = document.getElementById('dd-drill-legend');
+      if (legEl) {
+        legEl.innerHTML = statLabels.map((lbl, i) => {
+          const v   = statData[i];
+          const pct = t > 0 ? ((v / t) * 100).toFixed(1) : '0.0';
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:10px;height:10px;border-radius:50%;background:${statCors[i]};flex-shrink:0"></div>
+              <span style="font-size:14px;color:#fff;font-family:'DM Mono',monospace">${lbl}</span>
+            </div>
+            <div>
+              <span style="font-size:16px;color:${statCors[i]};font-family:'DM Mono',monospace;font-weight:700">${v}</span>
+              <span style="font-size:12px;color:#aaa;margin-left:8px">${pct}%</span>
+            </div>
+          </div>`;
+        }).join('');
+      }
+    };
+
+    ddChart6._ddData = { buildDonutSlices, renderLegend, openDrill };
   }
 
   const c1 = document.getElementById('dd-chart-evolucao');
@@ -8058,6 +8159,24 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
 
 }
 
+
+function ddToggleDonut(cia) {
+  if (ddDonutHidden.has(cia)) ddDonutHidden.delete(cia);
+  else ddDonutHidden.add(cia);
+  if (!ddChart6?._ddData) return;
+  const s = ddChart6._ddData.buildDonutSlices();
+  ddChart6.data.datasets[0].data = s.data;
+  ddChart6.update();
+  ddChart6._ddData.renderLegend();
+}
+
+function ddCloseDrill() {
+  if (_ddDrillChart) { try { _ddDrillChart.destroy(); } catch(e){} _ddDrillChart = null; }
+  const mainEl  = document.getElementById('dd-donut-main');
+  const drillEl = document.getElementById('dd-donut-drill');
+  if (mainEl)  mainEl.style.display  = 'flex';
+  if (drillEl) drillEl.style.display = 'none';
+}
 
 function ddSetFiltro(campo, valor) {
   if (campo === 'ano') { ddAnoFiltro = Number(valor); ddMesFiltro = []; loadDDData().then(() => renderDDSection()); }
