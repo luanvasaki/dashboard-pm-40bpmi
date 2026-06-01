@@ -1609,7 +1609,7 @@ function moOpen(crime, color, displayLabel) {
   moFemData = [];
   const femSec = document.getElementById('mo-fem-section');
   if (femSec) femSec.style.display = 'none';
-  const label = displayLabel || (Array.isArray(crime) ? crime.join(' + ') : crime);
+  const label = displayLabel || (Array.isArray(crime) ? crime.join(' + ') : crime === 'Homicídio' ? 'Vítimas de Letalidade Violenta' : crime);
   document.getElementById('mo-crime').textContent      = label.toUpperCase();
   document.getElementById('mo-accent').style.background = color;
   buildMoFilter();
