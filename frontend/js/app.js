@@ -1764,7 +1764,7 @@ function moRender() {
         plugins: {
           legend: {
             labels: {
-              boxWidth: 14, font: { size: 12 }, color: '#ffffff',
+              boxWidth: 16, font: { size: 14 }, color: '#ffffff',
               generateLabels: () => [
                 { text: 'Dentro da meta',                         fillStyle: 'rgba(61,191,122,.75)',  strokeStyle: 'rgba(61,191,122,.75)',  lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff' },
                 { text: 'Acima da meta, melhor que mês anterior', fillStyle: 'rgba(191,122,61,.85)', strokeStyle: 'rgba(191,122,61,.85)', lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff' },
@@ -1793,8 +1793,8 @@ function moRender() {
           }
         },
         scales: {
-          x: { grid: GR, ticks: { color: '#ffffff', font: { size: 12 } } },
-          y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff' }, suggestedMin: -20, suggestedMax: 20 }
+          x: { grid: GR, ticks: { color: '#ffffff', font: { size: 14 } } },
+          y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff', font: { size: 14 } }, suggestedMin: -20, suggestedMax: 20 }
         }
       }
     }));
