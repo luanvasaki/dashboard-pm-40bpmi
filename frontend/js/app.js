@@ -1328,7 +1328,7 @@ function renderHeatmap() {
   document.getElementById('lbl-p4').textContent  = p;
   document.getElementById('hm-badge').textContent = p;
   const hmCols = CRIMES.length + 2;
-  const hmLbl = c => cl(c).replace('Vítimas de Letalidade Violenta', 'Vit. Let. Violenta');
+  const hmLbl = c => cl(c).replace('Vítimas de Letalidade Violenta', 'Vit. Let.<br>Violenta');
   let h = '<thead><tr><th>Município</th>' + CRIMES.map(c => `<th>${hmLbl(c)}</th>`).join('') + '<th>Total</th></tr></thead><tbody>';
   let lastHmCia = null;
   MUNS.forEach(mun => {
