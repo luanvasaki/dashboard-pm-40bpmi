@@ -854,10 +854,11 @@ function buildSbMes() {
   ANOS.forEach(a => row1 += `<option value="${a}" ${a === selAno ? 'selected' : ''}>${a}</option>`);
   row1 += `</select></div>`;
   row1 += `<button class="pf-btn mes-btn-all" onclick="sbAll(this)">Todos</button>`;
+  const MES_ABREV = { Janeiro:'JAN', Fevereiro:'FEV', Março:'MAR', Abril:'ABR', Maio:'MAI', Junho:'JUN', Julho:'JUL', Agosto:'AGO', Setembro:'SET', Outubro:'OUT', Novembro:'NOV', Dezembro:'DEZ' };
   const _mComDados = new Set(MESES);
   MES_ORD.forEach(m => {
     const ok = _mComDados.has(m);
-    row1 += `<button class="pf-btn mes-btn-vis" onclick="sbTog('${m}',this)"${ok ? '' : ' style="opacity:.35" title="Sem dados"'}>${m}</button>`;
+    row1 += `<button class="pf-btn mes-btn-vis" onclick="sbTog('${m}',this)"${ok ? '' : ' style="opacity:.35" title="Sem dados"'}>${MES_ABREV[m] || m}</button>`;
   });
   row1 += `</div>`;
 
