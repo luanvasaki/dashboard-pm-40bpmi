@@ -698,12 +698,15 @@ function buildPageFilter(containerId, key, renderFn, opts = {}) {
   const sep = document.createElement('span');
   sep.className = 'pf-sep';
 
-  el.appendChild(btnBtl);
-  el.appendChild(wMes);
-  el.appendChild(sep);
-  el.appendChild(wCia);
-  el.appendChild(wMun);
-  if (sCrime) el.appendChild(sCrime.parentElement);
+  const row = document.createElement('div');
+  row.className = 'pf-row';
+  row.appendChild(btnBtl);
+  row.appendChild(wMes);
+  row.appendChild(sep);
+  row.appendChild(wCia);
+  row.appendChild(wMun);
+  if (sCrime) row.appendChild(sCrime.parentElement);
+  el.appendChild(row);
 }
 
 function buildPageFilters() {
