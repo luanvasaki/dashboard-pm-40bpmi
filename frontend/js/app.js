@@ -5145,8 +5145,8 @@ function updateSidebarImports(section) {
       ['cursos',           'Cursos Institucionais',            '#9de05a'],
     ];
     el.innerHTML = itens.map(([t, l, c]) =>
-      `<button onclick="openProdUpl('${t}')" style="width:100%;padding:6px;margin-top:4px;background:rgba(0,0,0,.15);border:1px solid ${c}55;color:${c};border-radius:4px;cursor:pointer;font-size:10px;font-weight:600">↑ ${l}</button>`
-    ).join('') + `<button onclick="openDDUpl()" style="width:100%;padding:6px;margin-top:4px;background:rgba(0,0,0,.15);border:1px solid #5a9de055;color:#5a9de0;border-radius:4px;cursor:pointer;font-size:10px;font-weight:600">↑ Disque Denúncia</button>`;
+      `<button onclick="openProdUpl('${t}')" style="width:100%;padding:6px;margin-top:4px;background:rgba(0,0,0,.15);border:1px solid ${c}55;color:${c};border-radius:4px;cursor:pointer;font-size:12px;font-weight:600">↑ ${l}</button>`
+    ).join('') + `<button onclick="openDDUpl()" style="width:100%;padding:6px;margin-top:4px;background:rgba(0,0,0,.15);border:1px solid #5a9de055;color:#5a9de0;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600">↑ Disque Denúncia</button>`;
   } else {
     el.innerHTML = '';
   }
@@ -5406,7 +5406,7 @@ function prodRender() {
       </div>`;
       const totAtivo = prodSum(filt.entorpecentes.filter(r => (r.unidade_medida||'Sem unidade').trim() === prodEntorpUnit), 'quantidade');
       const pills = unidadesEntorp.map(u =>
-        `<button class="pf-btn${u===prodEntorpUnit?' on':''}" data-eunit="${u.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();switchEntorpUnit('${u.replace(/'/g,"\\'")}','kpi')" style="font-size:10px;padding:2px 7px;line-height:1.4">${u}</button>`
+        `<button class="pf-btn${u===prodEntorpUnit?' on':''}" data-eunit="${u.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();switchEntorpUnit('${u.replace(/'/g,"\\'")}','kpi')" style="font-size:12px;padding:2px 7px;line-height:1.4">${u}</button>`
       ).join('');
       return `<div class="kpi" onclick="openProdDetail('entorpecentes',prodEntorpUnit)" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top" style="background:${PROD_CORES.entorpecentes}"></div>
@@ -5599,7 +5599,7 @@ function prodRender() {
       ${pct !== null ? `
       <div style="margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">do efetivo (${totalEfetivo} PMs)</span>
+          <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3)">do efetivo (${totalEfetivo} PMs)</span>
           <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${COR_CAP}">${pct}%</span>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px">
@@ -5705,12 +5705,12 @@ function prodRender() {
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           <div style="flex:1;background:rgba(255,255,255,.03);border-radius:6px;padding:8px 10px;text-align:center">
-            <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">${mesA.slice(0,3)}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">${mesA.slice(0,3)}</div>
             <div style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx2);font-weight:600">${vA.toLocaleString('pt-BR')}</div>
           </div>
           <div style="color:var(--tx3);font-size:14px">›</div>
           <div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:8px 10px;text-align:center;border:1px solid ${cor}44">
-            <div style="font-family:'DM Mono',monospace;font-size:9px;color:${cor};letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">${mesB.slice(0,3)}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;color:${cor};letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">${mesB.slice(0,3)}</div>
             <div style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx);font-weight:700">${vB.toLocaleString('pt-BR')}</div>
           </div>
         </div>
@@ -5935,8 +5935,8 @@ function switchEntorpUnit(u, origem) {
     indexAxis: 'y', responsive: true,
     plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
     scales: {
-      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 11 } } },
-      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 11 } } }
+      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 13 } } },
+      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 13 } } }
     }
   });
   renderEntorpCatChart(u, filt, PROD_CORES.entorpecentes, barOpts);
@@ -6319,28 +6319,28 @@ function renderCursosModalDetail() {
   document.getElementById('pd-sub').textContent = periodoLbl.toUpperCase();
   document.getElementById('pd-kpis').innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:8px;padding:14px 18px">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Cursos Realizados</div>
+      <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Cursos Realizados</div>
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${COR}">${cursosList.length}</div>
     </div>
     <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:8px;padding:14px 18px">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">PMs Capacitados</div>
+      <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">PMs Capacitados</div>
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${COR}">${pmsUnicos.size}</div>
     </div>`;
 
   const fmtD = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
-  const tdS = 'padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:11px;color:var(--tx3)';
+  const tdS = 'padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:13px;color:var(--tx3)';
   const tdL = 'padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;font-weight:600;color:var(--tx)';
-  const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:left';
+  const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:12px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:left';
 
   const tableRows = cursosList.map(c => {
     const cor = TIPO_COR[c.tipo] || '#607090';
     return `<tr>
       <td style="${tdS};white-space:nowrap">${fmtD(c.data)}</td>
       <td style="padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.04);text-align:center">
-        <span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 7px;border-radius:8px;background:${cor}22;color:${cor};display:inline-block;margin-bottom:4px">${c.tipo}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:12px;padding:1px 7px;border-radius:8px;background:${cor}22;color:${cor};display:inline-block;margin-bottom:4px">${c.tipo}</span>
         <div style="font-size:13px;font-weight:600;color:var(--tx);display:flex;align-items:center;justify-content:center;gap:8px">
           <span>${c.nome_curso||'—'}</span>
-          ${c.pms.length ? `<span style="font-family:'DM Mono',monospace;font-size:10px;padding:1px 8px;border-radius:8px;background:${COR}22;color:${COR};font-weight:400;white-space:nowrap">${c.pms.length} PM${c.pms.length !== 1 ? 's' : ''}</span>` : ''}
+          ${c.pms.length ? `<span style="font-family:'DM Mono',monospace;font-size:12px;padding:1px 8px;border-radius:8px;background:${COR}22;color:${COR};font-weight:400;white-space:nowrap">${c.pms.length} PM${c.pms.length !== 1 ? 's' : ''}</span>` : ''}
         </div>
       </td>
     </tr>`;
@@ -6479,9 +6479,9 @@ async function renderTafTatModalDetail() {
 
   const kpiMini = (lbl, val, cor, sub) =>
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:8px;padding:14px 18px">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${lbl}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${lbl}</div>
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${cor}">${val}</div>
-      ${sub ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);margin-top:3px">${sub}</div>` : ''}
+      ${sub ? `<div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);margin-top:3px">${sub}</div>` : ''}
     </div>`;
 
   document.getElementById('pd-kpis').innerHTML =
@@ -7441,7 +7441,7 @@ function renderIqRadar(dados, mesAtual) {
         r: {
           grid: { color: 'rgba(255,255,255,.10)' },
           angleLines: { color: 'rgba(255,255,255,.10)' },
-          pointLabels: { color: '#ffffff', font: { size: 11 } },
+          pointLabels: { color: '#ffffff', font: { size: 13 } },
           ticks: { display: false, beginAtZero: true, max: 100 }
         }
       }
