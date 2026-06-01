@@ -7606,7 +7606,8 @@ let ddChart4 = null;
 let ddChart5 = null;
 let ddChart6 = null;
 let ddDonutHidden = new Set();
-let _ddDrillChart = null;
+let _ddDrillChart  = null;
+let _ddDrillCiaIdx = null;
 
 async function loadDDData() {
   try {
@@ -7659,6 +7660,7 @@ function closeDDDetail() {
   [ddChart, ddChart2, ddChart3, ddChart4, ddChart5, ddChart6].forEach(ch => { if (ch) { try { ch.destroy(); } catch(e){} } });
   ddChart = ddChart2 = ddChart3 = ddChart4 = ddChart5 = ddChart6 = null;
   if (_ddDrillChart) { try { _ddDrillChart.destroy(); } catch(e){} _ddDrillChart = null; }
+  _ddDrillCiaIdx = null;
   ddDonutHidden = new Set();
 }
 
@@ -7950,6 +7952,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
           if (!elements.length) return;
           const ciaIdx = Math.floor(elements[0].index / 3);
           if (ddDonutHidden.has(DD_CIAS[ciaIdx])) return;
+          if (_ddDrillCiaIdx === ciaIdx) { ddCloseDrill(); return; }
           ddChart6._ddData.openDrill(ciaIdx);
         }
       }
@@ -7984,7 +7987,8 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
     renderLegend();
 
     const openDrill = ciaIdx => {
-      const cia        = DD_CIAS[ciaIdx];
+      _ddDrillCiaIdx = ciaIdx;
+      const cia      = DD_CIAS[ciaIdx];
       const t          = donutTotais[ciaIdx];
       const statData   = [donutExito[ciaIdx], donutSemEx[ciaIdx], donutAndamt[ciaIdx], donutSemAv[ciaIdx]];
       const statLabels = ['Av. c/ Êxito', 'Av. s/ Êxito', 'Andamento', 'Sem Averiguação'];
@@ -8171,6 +8175,7 @@ function ddToggleDonut(cia) {
 }
 
 function ddCloseDrill() {
+  _ddDrillCiaIdx = null;
   if (_ddDrillChart) { try { _ddDrillChart.destroy(); } catch(e){} _ddDrillChart = null; }
   const mainEl  = document.getElementById('dd-donut-main');
   const drillEl = document.getElementById('dd-donut-drill');
