@@ -842,35 +842,39 @@ async function init() {
 // ---------------------------------------------------------------------------
 
 function buildSbMes() {
-  const pf  = pageFilters.visao;
-  let h = `<span class="pf-label">Período</span>`;
-  h += `<div class="pf-field"><span class="pf-label">ANO</span><select class="pf-select pf-ano-sel" onchange="sbSetAno(this.value ? parseInt(this.value) : null)">`;
-  h += `<option value="" ${!selAno ? 'selected' : ''}>Todos</option>`;
-  ANOS.forEach(a => h += `<option value="${a}" ${a === selAno ? 'selected' : ''}>${a}</option>`);
-  h += `</select></div>`;
-  h += `<button class="pf-btn mes-btn-all" onclick="sbAll(this)">Todos</button>`;
+  const pf = pageFilters.visao;
+
+  // Linha 1: Período + ANO + meses
+  let row1 = `<div class="pf-row">`;
+  row1 += `<span class="pf-label">Período</span>`;
+  row1 += `<div class="pf-field"><span class="pf-label">ANO</span><select class="pf-select pf-ano-sel" onchange="sbSetAno(this.value ? parseInt(this.value) : null)">`;
+  row1 += `<option value="" ${!selAno ? 'selected' : ''}>Todos</option>`;
+  ANOS.forEach(a => row1 += `<option value="${a}" ${a === selAno ? 'selected' : ''}>${a}</option>`);
+  row1 += `</select></div>`;
+  row1 += `<button class="pf-btn mes-btn-all" onclick="sbAll(this)">Todos</button>`;
   const _mComDados = new Set(MESES);
   MES_ORD.forEach(m => {
     const ok = _mComDados.has(m);
-    h += `<button class="pf-btn mes-btn-vis" onclick="sbTog('${m}',this)"${ok ? '' : ' style="opacity:.35" title="Sem dados"'}>${m}</button>`;
+    row1 += `<button class="pf-btn mes-btn-vis" onclick="sbTog('${m}',this)"${ok ? '' : ' style="opacity:.35" title="Sem dados"'}>${m}</button>`;
   });
+  row1 += `</div>`;
 
-  // Select CIA
-  h += `<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" id="sb-cia-sel" onchange="sbSetScope('cia',this.value)">`;
-  h += `<option value="">Todas</option>`;
-  CIAS.forEach(c => h += `<option value="${c}" ${pf.type==='cia'&&pf.value===c?'selected':''}>${c}</option>`);
-  h += `</select></div>`;
-
-  // Select Cidade
+  // Linha 2: CIA + Cidade
   const munList = pf.type === 'cia' && pf.value ? MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === pf.value)) : MUNS;
-  h += `<div class="pf-field"><span class="pf-label">Cidade</span><select class="pf-select" id="sb-mun-sel" onchange="sbSetScope('mun',this.value)">`;
-  h += `<option value="">Todas</option>`;
-  munList.forEach(m => h += `<option value="${m}" ${pf.type==='mun'&&pf.value===m?'selected':''}>${m}</option>`);
-  h += `</select></div>`;
+  let row2 = `<div class="pf-row">`;
+  row2 += `<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" id="sb-cia-sel" onchange="sbSetScope('cia',this.value)">`;
+  row2 += `<option value="">Todas</option>`;
+  CIAS.forEach(c => row2 += `<option value="${c}" ${pf.type==='cia'&&pf.value===c?'selected':''}>${c}</option>`);
+  row2 += `</select></div>`;
+  row2 += `<div class="pf-field"><span class="pf-label">Cidade</span><select class="pf-select" id="sb-mun-sel" onchange="sbSetScope('mun',this.value)">`;
+  row2 += `<option value="">Todas</option>`;
+  munList.forEach(m => row2 += `<option value="${m}" ${pf.type==='mun'&&pf.value===m?'selected':''}>${m}</option>`);
+  row2 += `</select></div>`;
+  row2 += `</div>`;
 
   ['vis-mes-bar', 'vis-mes-bar-2'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.innerHTML = h;
+    if (el) el.innerHTML = row1 + row2;
   });
   syncSidebarMes();
 }
