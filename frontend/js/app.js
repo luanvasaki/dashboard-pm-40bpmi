@@ -2219,9 +2219,9 @@ function updateFemKpi() {
   });
 
   document.getElementById('mo-fem-legend').innerHTML =
-    `<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:rgba(200,75,75,.75);margin-right:6px"></span>Homicídio — <b>${demais}</b></div>` +
-    `<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:rgba(200,75,155,.85);margin-right:6px"></span>Feminicídio — <b>${femCount}</b></div>` +
-    `<div style="margin-top:4px;font-size:11px;color:var(--tx3)">Total: ${totalAval} • ${Math.round(femCount/totalAval*100)}% feminicídio</div>`;
+    `<div style="font-size:15px"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:rgba(200,75,75,.75);margin-right:8px"></span>Homicídio — <b>${demais}</b></div>` +
+    `<div style="font-size:15px"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:rgba(200,75,155,.85);margin-right:8px"></span>Feminicídio — <b>${femCount}</b></div>` +
+    `<div style="margin-top:6px;font-size:13px;color:var(--tx3)">Total: ${totalAval} • ${Math.round(femCount/totalAval*100)}% feminicídio</div>`;
 }
 
 function openOcorrModal() {
