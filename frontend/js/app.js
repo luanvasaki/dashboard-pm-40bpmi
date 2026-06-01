@@ -476,6 +476,7 @@ function ciaSepPlugin(muns) {
 // Ordem canônica dos meses
 const MES_ORD = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MES_ABREV = { Janeiro:'JAN', Fevereiro:'FEV', Março:'MAR', Abril:'ABR', Maio:'MAI', Junho:'JUN', Julho:'JUL', Agosto:'AGO', Setembro:'SET', Outubro:'OUT', Novembro:'NOV', Dezembro:'DEZ' };
 
 // Estado global preenchido após o fetch inicial
 let RAW      = [];
@@ -612,8 +613,8 @@ function buildPageFilter(containerId, key, renderFn, opts = {}) {
 
   // Select de mês
   const { wrap: wMes, sel: sMes } = makeField('MÊS:', [
-    ['Todos os meses', '__all__'],
-    ...MESES.map(m => [m, m])
+    ['Todos', '__all__'],
+    ...MESES.map(m => [MES_ABREV[m] || m, m])
   ]);
   sMes.className += ' pf-mes';
   sMes.value = selMeses.length === MESES.length ? '__all__' : selMeses[0];
@@ -857,7 +858,6 @@ function buildSbMes() {
   ANOS.forEach(a => row1 += `<option value="${a}" ${a === selAno ? 'selected' : ''}>${a}</option>`);
   row1 += `</select></div>`;
   row1 += `<button class="pf-btn mes-btn-all" onclick="sbAll(this)">Todos</button>`;
-  const MES_ABREV = { Janeiro:'JAN', Fevereiro:'FEV', Março:'MAR', Abril:'ABR', Maio:'MAI', Junho:'JUN', Julho:'JUL', Agosto:'AGO', Setembro:'SET', Outubro:'OUT', Novembro:'NOV', Dezembro:'DEZ' };
   const _mComDados = new Set(MESES);
   MES_ORD.forEach(m => {
     const ok = _mComDados.has(m);
