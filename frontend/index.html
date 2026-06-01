@@ -125,10 +125,13 @@
       <div id="mo-filter-bar" class="pf" style="margin-bottom:14px"></div>
       <div class="mo-kpis" id="mo-kpis"></div>
       <div id="mo-fem-section" style="display:none;margin-bottom:12px">
-        <div class="mo-card" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
-          <div style="flex:0 0 180px;max-width:200px"><canvas id="mo-fem-chart"></canvas></div>
-          <div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:8px">Composição — Homicídio</div>
+        <div class="mo-card">
+          <div class="mo-ct">Vítimas de Letalidade Violenta</div>
+          <div style="display:flex;align-items:center;gap:32px;flex-wrap:wrap">
+            <div style="flex:0 0 280px;max-width:300px">
+              <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;text-align:center;margin-bottom:8px;text-transform:uppercase">Homicídio × Feminicídio</div>
+              <canvas id="mo-fem-chart"></canvas>
+            </div>
             <div id="mo-fem-legend" style="font-size:13px;line-height:2"></div>
           </div>
         </div>
