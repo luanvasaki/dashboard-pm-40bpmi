@@ -1223,7 +1223,7 @@ function renderEvolMuns() {
     options: {
       responsive: true,
       plugins: {
-        legend: { position: 'bottom', labels: { boxWidth: 15, padding: 12, font: { size: 16 }, usePointStyle: true, color: '#ffffff' } }
+        legend: { position: 'bottom', labels: { boxWidth: 20, padding: 18, font: { size: 20 }, usePointStyle: true, color: '#ffffff' } }
       },
       scales: {
         x: { grid: GR, ticks: { color: '#ffffff' } },
@@ -1536,7 +1536,7 @@ function renderEvolucao() {
     },
     options: {
       responsive: true,
-      plugins: { legend: { labels: { boxWidth: 15, font: { size: 16 }, color: '#ffffff' } } },
+      plugins: { legend: { labels: { boxWidth: 20, padding: 16, font: { size: 20 }, color: '#ffffff' } } },
       scales: { x: { grid: GR, ticks: { color: '#ffffff' } }, y: { grid: GR, beginAtZero: true, ticks: { color: '#ffffff' } } }
     }
   });
