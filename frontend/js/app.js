@@ -4906,7 +4906,7 @@ function renderHome() {
           <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--tx)">${totalMes}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-left:4px">ocorr.</span></div>
           ${pctMeta !== null ? `<div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${metaColor}">${pctMeta}%</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-left:4px">da meta</span></div>` : ''}
         </div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">${criticoTxt}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff">${criticoTxt}</div>
       </div>`;
   }
 
