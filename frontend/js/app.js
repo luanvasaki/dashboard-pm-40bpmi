@@ -1126,7 +1126,7 @@ function renderVisao() {
       },
       scales: {
         x: { grid: GR, ticks: { display: false } },
-        y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff' }, suggestedMin: -30, suggestedMax: 30 }
+        y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff', font: { size: 17 } }, suggestedMin: -30, suggestedMax: 30 }
       },
       onClick: (evt, elements) => {
         if (elements.length) moOpen(CRIMES[elements[0].index], PAL[elements[0].index]);
@@ -1157,21 +1157,23 @@ function renderVisao() {
       id: 'barTopLabels',
       afterDraw(chart) {
         const ctx = chart.ctx;
-        const meta = chart.getDatasetMeta(0);
+        const meta0 = chart.getDatasetMeta(0);
+        const meta1 = chart.getDatasetMeta(1);
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
         ctx.fillStyle = 'rgba(255,255,255,.95)';
-        ctx.font = "bold 18px 'DM Sans', sans-serif";
-        const lineH = 21;
-        meta.data.forEach((bar, i) => {
+        ctx.font = "bold 21px 'DM Sans', sans-serif";
+        const lineH = 24;
+        meta0.data.forEach((bar0, i) => {
+          const bar1 = meta1.data[i];
+          const groupCenterX = bar1 ? (bar0.x + bar1.x) / 2 : bar0.x;
           const raw = vmWrappedLabels[i] ?? vmEntries[i]?.label ?? '';
           const lines = Array.isArray(raw) ? raw : [raw];
-          // topo da barra: mínimo entre bar.y e bar.base (canvas Y cresce para baixo)
-          const barTop = Math.min(bar.y, bar.base);
+          const barTop = Math.min(bar0.y, bar0.base);
           const startY = barTop - 4;
           lines.forEach((line, li) => {
-            ctx.fillText(line, bar.x, startY - (lines.length - 1 - li) * lineH);
+            ctx.fillText(line, groupCenterX, startY - (lines.length - 1 - li) * lineH);
           });
         });
         ctx.restore();
