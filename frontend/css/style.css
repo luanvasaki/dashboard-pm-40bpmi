@@ -98,7 +98,7 @@ canvas{max-height:240px}
 .hm-city{font-size:19px;font-weight:700;white-space:nowrap;padding:7px 10px 7px 4px!important;color:#ffffff}
 .hm-cell{display:flex;align-items:center;justify-content:center;width:72px;height:42px;border-radius:4px;font-family:'DM Mono',monospace;font-size:19px;font-weight:600;margin:0 auto}
 .hm-legend{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
-.hm-legend span{font-family:'DM Mono',monospace;font-size:16px;color:#ffffff;letter-spacing:1px}
+.hm-legend span{font-family:'DM Mono',monospace;font-size:20px;color:#ffffff;letter-spacing:1px}
 .sw{width:16px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle}
 .hm-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .hm-filter span{font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase}
