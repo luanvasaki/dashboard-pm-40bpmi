@@ -6534,19 +6534,19 @@ async function renderTafTatModalDetail() {
     <div style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div style="${cardSt}">
         <div style="${titSt}">Distribuição TAF por Conceito</div>
-        <canvas id="taftat-taf-dist"></canvas>
+        <canvas id="taftat-taf-dist" style="height:460px;max-height:460px"></canvas>
       </div>
       <div style="${cardSt}">
         <div style="${titSt}">Distribuição TAT por Conceito</div>
-        <canvas id="taftat-tat-dist"></canvas>
+        <canvas id="taftat-tat-dist" style="height:460px;max-height:460px"></canvas>
       </div>
     </div>
     <div style="grid-column:1/-1;${cardSt}">
       <div style="${titSt}">TAF × TAT — Comparativo por Conceito</div>
-      <canvas id="taftat-compare" style="height:440px;max-height:440px"></canvas>
+      <canvas id="taftat-compare" style="height:480px;max-height:480px"></canvas>
     </div>`;
 
-  const legendOpts = { position:'bottom', labels:{ color:'rgba(255,255,255,.85)', font:{size:14}, padding:16, boxWidth:14 } };
+  const legendOpts = { position:'bottom', labels:{ color:'rgba(255,255,255,.9)', font:{size:16}, padding:20, boxWidth:16 } };
 
   // Doughnut TAF
   if (tafLbls.some(l => l !== 'Sem dados')) {
@@ -6554,7 +6554,7 @@ async function renderTafTatModalDetail() {
     if (ctx) pdChs.push(new Chart(ctx, {
       type: 'doughnut',
       data: { labels: tafLbls, datasets: [{ data: tafLbls.map(l => tafCts[l]||0), backgroundColor: tafLbls.map(l => (CONC_COR[l]||'#607090')+'cc'), borderColor: tafLbls.map(l => CONC_COR[l]||'#607090'), borderWidth: 2 }] },
-      options: { responsive: true, plugins: { legend: legendOpts, tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} PM${i.raw!==1?'s':''}` } } } }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: legendOpts, tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} PM${i.raw!==1?'s':''}` } } } }
     }));
   }
 
@@ -6564,7 +6564,7 @@ async function renderTafTatModalDetail() {
     if (ctx2) pdChs.push(new Chart(ctx2, {
       type: 'doughnut',
       data: { labels: tatLbls, datasets: [{ data: tatLbls.map(l => tatCts[l]||0), backgroundColor: tatLbls.map(l => (CONC_COR[l]||'#607090')+'cc'), borderColor: tatLbls.map(l => CONC_COR[l]||'#607090'), borderWidth: 2 }] },
-      options: { responsive: true, plugins: { legend: legendOpts, tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} PM${i.raw!==1?'s':''}` } } } }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: legendOpts, tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} PM${i.raw!==1?'s':''}` } } } }
     }));
   }
 
