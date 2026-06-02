@@ -1803,7 +1803,7 @@ function moRender() {
         layout: { padding: { bottom: 40 } },
         scales: {
           x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } },
-          y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff', font: { size: 17 } }, suggestedMin: -20, suggestedMax: 20 }
+          y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff', font: { size: 19 } }, suggestedMin: -20, suggestedMax: 20 }
         }
       }
     }));
