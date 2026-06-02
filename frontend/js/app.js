@@ -1270,7 +1270,7 @@ function renderMetas() {
       if (!rows.length) return;
       const ant = sf(rows, 'anterior'), meta = sf(rows, 'meta'), aval = sf(rows), cia = rows[0].cia;
       const vp = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : (aval === 0 ? '0' : 'inf');
-      const vc = vp === 'inf' ? '#e8b840' : parseFloat(vp) > 0 ? '#e8b840' : parseFloat(vp) < 0 ? 'var(--green2)' : 'var(--tx3)';
+      const vc = vp === 'inf' ? 'var(--red2)' : parseFloat(vp) > 0 ? 'var(--red2)' : parseFloat(vp) < 0 ? 'var(--green2)' : 'var(--tx3)';
       const vt = vp === 'inf' ? '▲∞%' : parseFloat(vp) === 0 ? '0%' : (parseFloat(vp) > 0 ? '▲' : '▼') + Math.abs(vp) + '%';
       let pc, pt;
       if (meta > 0) {
@@ -1578,7 +1578,7 @@ function renderEvolucao() {
       let color;
       if (a <= mt)      color = 'var(--green2)';
       else if (a < ant) color = '#e8965a';
-      else              color = '#e8b840';
+      else              color = 'var(--red2)';
       const hasRec = q({ crime, mun, mes: MESES[i] }).length > 0;
       return `<td style="text-align:center;padding:6px 8px">
         ${hasRec ? `<div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${color}">${a}</div>
@@ -1700,18 +1700,18 @@ function moRender() {
     return { m: m || 'Btl/CIA', v, mt, desvio: mt > 0 ? (v - mt) / mt * 100 : -Infinity };
   });
   const acimaDoMeta = munDesvio.filter(x => x.mt > 0 && x.v > x.mt).sort((a,b) => b.desvio - a.desvio);
-  const vc  = parseFloat(vp) <= 0 ? 'var(--green2)' : '#e8b840';
+  const vc  = parseFloat(vp) <= 0 ? 'var(--green2)' : 'var(--red2)';
   const mok = meta > 0 && aval <= meta;
 
   const munCriticoHtml = acimaDoMeta.length === 0
     ? `<div class="mk-val" style="color:var(--green2);font-size:15px;padding-top:4px">✓ Todos na meta</div><div class="mk-sub">Nenhum município acima</div>`
-    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="font-size:13px;font-weight:600;color:var(--tx)">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:12px;color:#e8b840;margin-left:8px">+${x.desvio.toFixed(0)}%</span></div>`).join('');
+    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="font-size:13px;font-weight:600;color:var(--tx)">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red2);margin-left:8px">+${x.desvio.toFixed(0)}%</span></div>`).join('');
 
   document.getElementById('mo-kpis').innerHTML = `
     <div class="mk"><div class="mk-lbl">Total Avaliado</div><div class="mk-val" style="color:${color}">${aval}</div><div class="mk-sub">${pLbl(moMeses)}</div></div>
     <div class="mk"><div class="mk-lbl">Var vs Anterior</div><div class="mk-val" style="color:${vc}">${parseFloat(vp) <= 0 ? '▼' : '▲'}${Math.abs(vp)}%</div><div class="mk-sub">Ant: ${ant}</div></div>
     <div class="mk" style="grid-column:span 1"><div class="mk-lbl">Municípios Fora da Meta (${acimaDoMeta.length})</div>${munCriticoHtml}</div>
-    <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'#e8b840'};font-size:16px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub">Meta:${meta} | Real:${aval}</div></div>
+    <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:16px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub">Meta:${meta} | Real:${aval}</div></div>
     `;
   if (crime === 'Homicídio') updateFemKpi();
 
@@ -1989,7 +1989,7 @@ function moRender() {
       const trend = lrTrend(recentVals);
       const slopeDir = trend.length > 1 ? trend[trend.length-1] - trend[0] : 0;
       const trendTxt = slopeDir > 0.5 ? '↑ Tendência de alta em ' + compAno : slopeDir < -0.5 ? '↓ Tendência de queda em ' + compAno : '→ Estável em ' + compAno;
-      const trendCol = slopeDir > 0.5 ? '#e8b840' : slopeDir < -0.5 ? '#4bc87a' : '#c8a84b';
+      const trendCol = slopeDir > 0.5 ? 'var(--red2)' : slopeDir < -0.5 ? '#4bc87a' : '#c8a84b';
 
       // Projeção: meses sem dados em compAno → estimativa com base no índice sazonal
       const compTotal = MES_ORD.reduce((s,m) => s + yrVal(compAno,m), 0);
@@ -2014,7 +2014,7 @@ function moRender() {
       const peakBody = `Historicamente, <b>${peakMes[0]}</b> é o mês mais crítico (índice ${peakIdxs[0]}% da média), seguido de <b>${peakMes[1]}</b> (${peakIdxs[1]}%) e <b>${peakMes[2]}</b> (${peakIdxs[2]}%). Use esses períodos para antecipar reforços operacionais.`;
       const lowBody  = `Os meses de menor incidência são <b>${lowMes[0]}</b> (${lowIdxs[0]}%), <b>${lowMes[1]}</b> (${lowIdxs[1]}%) e <b>${lowMes[2]}</b> (${lowIdxs[2]}%). São janelas para reorganização e capacitação.`;
       const projBody = projTotal
-        ? `Com ${mesesComDados} meses registrados (${compTotal} ocorrências), a projeção linear aponta para <b style="font-size:18px">${projTotal}</b> ocorrências ao fim de ${compAno}. Em ${baseAno} foram <b>${baseTotal}</b> no total — diferença estimada de <b style="color:${projTotal > baseTotal ? '#e8b840' : '#4bc87a'}">${projTotal > baseTotal ? '+' : ''}${projTotal - baseTotal}</b>.`
+        ? `Com ${mesesComDados} meses registrados (${compTotal} ocorrências), a projeção linear aponta para <b style="font-size:18px">${projTotal}</b> ocorrências ao fim de ${compAno}. Em ${baseAno} foram <b>${baseTotal}</b> no total — diferença estimada de <b style="color:${projTotal > baseTotal ? 'var(--red2)' : '#4bc87a'}">${projTotal > baseTotal ? '+' : ''}${projTotal - baseTotal}</b>.`
         : null;
 
       document.getElementById('mo-sazon').innerHTML =
