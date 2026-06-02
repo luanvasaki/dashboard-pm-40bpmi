@@ -469,9 +469,9 @@ function ciaSepPlugin(muns) {
         ctx.save();
         // Linha pontilhada (não desenha na posição 0 — borda já existe)
         if (idx > 0) {
-          ctx.setLineDash([4, 4]);
+          ctx.setLineDash([6, 4]);
           ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-          ctx.lineWidth = 1;
+          ctx.lineWidth = 3;
           ctx.beginPath();
           ctx.moveTo(x, chartArea.top);
           ctx.lineTo(x, chartArea.bottom);
@@ -479,9 +479,10 @@ function ciaSepPlugin(muns) {
           ctx.setLineDash([]);
         }
         ctx.fillStyle = '#ffffff';
-        ctx.font = '700 14px "DM Mono", monospace';
+        ctx.font = '600 19px "DM Mono", monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(name.toUpperCase(), xCenter, chartArea.top + 16);
+        // posiciona abaixo dos nomes das cidades (eixo X), na área de padding inferior
+        ctx.fillText(name.toUpperCase(), xCenter, chart.height - 10);
         ctx.restore();
       });
     }
@@ -1758,7 +1759,7 @@ function moRender() {
     };
 
     const cvs = document.getElementById(canvasId);
-    cvs.style.height = '500px';
+    cvs.style.height = '640px';
     moCh.push(new Chart(cvs.getContext('2d'), {
       type: 'bar',
       plugins: [ciaSepPlugin(chartMuns), zeroLinePlugin],
@@ -1799,6 +1800,7 @@ function moRender() {
             }
           }
         },
+        layout: { padding: { bottom: 40 } },
         scales: {
           x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } },
           y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff', font: { size: 17 } }, suggestedMin: -20, suggestedMax: 20 }
