@@ -2674,14 +2674,14 @@ let p1KpiClickOut    = null; // handler de click fora do detalhe de KPI
 // ── Estrutura orgânica do 40º BPM/I ─────────────────────────────────────────
 const CIA_STRUCT = [
   {
-    label: '1ª CIA', sede: 'Votorantim', color: '#c8a84b',
+    label: '1ª CIA', sede: 'Votorantim', color: CIA_COR['1'],
     units: [
       { label: 'Sede · Votorantim', keys: ['1 cia - sede', 'votorantim'] },
       { label: '1º GP · Alumínio',  keys: ['alumin'] },
     ]
   },
   {
-    label: '2ª CIA', sede: 'Ibiúna', color: '#5a9de0',
+    label: '2ª CIA', sede: 'Ibiúna', color: CIA_COR['2'],
     units: [
       { label: 'Sede · Ibiúna',        keys: ['2 cia - sede', 'ibiun'] },
       { label: '1º Pel · Piedade',     keys: ['piedade'] },
@@ -2689,7 +2689,7 @@ const CIA_STRUCT = [
     ]
   },
   {
-    label: '3ª CIA', sede: 'Salto de Pirapora', color: '#c84b4b',
+    label: '3ª CIA', sede: 'Salto de Pirapora', color: CIA_COR['3'],
     units: [
       { label: 'Sede · Salto de Pirapora',    keys: ['3 cia - sede', 'salto de pirapora', 'salto pirapora'] },
       { label: '1º Pel · Araçoiaba da Serra', keys: ['aracoiaba'] },
@@ -2698,7 +2698,7 @@ const CIA_STRUCT = [
     ]
   },
   {
-    label: 'FT', sede: 'Votorantim', color: '#9b5de5',
+    label: 'FT', sede: 'Votorantim', color: CIA_COR.ft,
     units: [
       { label: 'Força Tática', keys: ['^ft$', 'forca tatica', 'f.t.'] },
     ]
