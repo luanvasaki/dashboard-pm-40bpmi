@@ -1578,18 +1578,18 @@ function renderEvolucao() {
       else              color = 'var(--red2)';
       const hasRec = q({ crime, mun, mes: MESES[i] }).length > 0;
       return `<td style="text-align:center;padding:6px 8px">
-        ${hasRec ? `<div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:${color}">${a}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:var(--tx3);margin-top:2px">meta: ${mt}</div>` : '<div style="color:var(--tx3)">—</div>'}
+        ${hasRec ? `<div style="font-family:'DM Mono',monospace;font-size:17px;font-weight:700;color:${color}">${a}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:var(--tx3);margin-top:2px">meta: ${mt}</div>` : '<div style="color:var(--tx3)">—</div>'}
       </td>`;
     }).join('');
 
     h += `<tr style="border-top:1px solid var(--bd)">
       <td style="font-weight:600">${mun}</td>
-      <td style="color:var(--tx3);font-size:15px;font-weight:500">${cia}</td>
+      <td style="color:var(--tx3);font-size:17px;font-weight:500">${cia}</td>
       ${cells}
       <td style="text-align:center;padding:6px 8px">
-        <div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700">${tot}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:var(--tx3);margin-top:2px">meta: ${totMeta}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:17px;font-weight:700">${tot}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:var(--tx3);margin-top:2px">meta: ${totMeta}</div>
       </td>
       <td><span class="pill ${pc}">${pt}</span></td>
     </tr>`;
@@ -1701,14 +1701,14 @@ function moRender() {
   const mok = meta > 0 && aval <= meta;
 
   const munCriticoHtml = acimaDoMeta.length === 0
-    ? `<div class="mk-val" style="color:var(--green2);font-size:19px;padding-top:4px">✓ Todos na meta</div><div class="mk-sub" style="font-size:19px">Nenhum município acima</div>`
-    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="font-size:19px;font-weight:600;color:var(--tx)">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:19px;color:#ffaaaa;margin-left:8px">+${x.desvio.toFixed(0)}%</span></div>`).join('');
+    ? `<div class="mk-val" style="color:var(--green2);font-size:22px;padding-top:4px">✓ Todos na meta</div><div class="mk-sub" style="font-size:22px">Nenhum município acima</div>`
+    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="font-size:22px;font-weight:600;color:var(--tx)">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:22px;color:#ffaaaa;margin-left:8px">+${x.desvio.toFixed(0)}%</span></div>`).join('');
 
   document.getElementById('mo-kpis').innerHTML = `
     <div class="mk"><div class="mk-lbl">Total Avaliado</div><div class="mk-val" style="color:${color}">${aval}</div><div class="mk-sub">${pLbl(moMeses)}</div></div>
     <div class="mk"><div class="mk-lbl">Var vs Anterior</div><div class="mk-val" style="color:${vc}">${parseFloat(vp) <= 0 ? '▼' : '▲'}${Math.abs(vp)}%</div><div class="mk-sub">Ant: ${ant}</div></div>
     <div class="mk" style="grid-column:span 1"><div class="mk-lbl">Municípios Fora da Meta (${acimaDoMeta.length})</div>${munCriticoHtml}</div>
-    <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:19px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub" style="font-size:19px">Meta:${meta} | Real:${aval}</div></div>
+    <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:22px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub" style="font-size:22px">Meta:${meta} | Real:${aval}</div></div>
     `;
   if (crime === 'Homicídio') updateFemKpi();
 
@@ -1861,7 +1861,7 @@ function moRender() {
           }
         }
       },
-      scales: { x: { grid: GR, ticks: { color: '#ffffff' } }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1, color: '#ffffff' } } }
+      scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 16 } } }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1, color: '#ffffff', font: { size: 16 } } } }
     }
   }));
 
@@ -1946,9 +1946,9 @@ function moRender() {
         type: 'line',
         data: { labels: MES_ORD, datasets: yrDatasets },
         options: { responsive: true,
-          plugins: { legend: { labels: { boxWidth: 15, padding: 8, font: { size: 13 }, color: '#ffffff' } },
+          plugins: { legend: { labels: { boxWidth: 15, padding: 8, font: { size: 16 }, color: '#ffffff' } },
             tooltip: { callbacks: { title: items => MES_ORD[items[0].dataIndex] } } },
-          scales: { x: { grid: GR, ticks: { color: '#ffffff' } }, y: { grid: GR, beginAtZero: true, ticks: { color: '#ffffff' } } } }
+          scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 16 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: '#ffffff', font: { size: 16 } } } } }
       }));
 
       // Texto explicativo — Gráfico 1
@@ -2011,11 +2011,11 @@ function moRender() {
       const peakBody = `Historicamente, <b>${peakMes[0]}</b> é o mês mais crítico (índice ${peakIdxs[0]}% da média), seguido de <b>${peakMes[1]}</b> (${peakIdxs[1]}%) e <b>${peakMes[2]}</b> (${peakIdxs[2]}%). Use esses períodos para antecipar reforços operacionais.`;
       const lowBody  = `Os meses de menor incidência são <b>${lowMes[0]}</b> (${lowIdxs[0]}%), <b>${lowMes[1]}</b> (${lowIdxs[1]}%) e <b>${lowMes[2]}</b> (${lowIdxs[2]}%). São janelas para reorganização e capacitação.`;
       const projBody = projTotal
-        ? `Com ${mesesComDados} meses registrados (${compTotal} ocorrências), a projeção linear aponta para <b style="font-size:18px">${projTotal}</b> ocorrências ao fim de ${compAno}. Em ${baseAno} foram <b>${baseTotal}</b> no total — diferença estimada de <b style="color:${projTotal > baseTotal ? 'var(--red2)' : '#4bc87a'}">${projTotal > baseTotal ? '+' : ''}${projTotal - baseTotal}</b>.`
+        ? `Com ${mesesComDados} meses registrados (${compTotal} ocorrências), a projeção linear aponta para <b style="font-size:19px">${projTotal}</b> ocorrências ao fim de ${compAno}. Em ${baseAno} foram <b>${baseTotal}</b> no total — diferença estimada de <b style="color:${projTotal > baseTotal ? 'var(--red2)' : '#4bc87a'}">${projTotal > baseTotal ? '+' : ''}${projTotal - baseTotal}</b>.`
         : null;
 
       document.getElementById('mo-sazon').innerHTML =
-        card('Tendência Geral', `${trendTxt}<br><span style="font-size:15px">${trendBody}</span>`, trendCol) +
+        card('Tendência Geral', `${trendTxt}<br><span style="font-size:16px">${trendBody}</span>`, trendCol) +
         card('Pico Histórico — Sazonalidade', peakBody, '#e8b840') +
         card('Período de Menor Incidência', lowBody, '#4bc87a') +
         (projBody ? card('Projeção Anual ' + compAno, projBody, '#5a9de0') : '');
@@ -2340,7 +2340,7 @@ function normCiaDisplay(s) {
 async function loadMoOcorr() {
   const el = document.getElementById('mo-ocorr-table');
   if (!el) return;
-  el.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:8px 0">Carregando ocorrências...</div>';
+  el.innerHTML = '<div style="color:var(--tx3);font-size:15px;padding:8px 0">Carregando ocorrências...</div>';
   const filtersEl = document.getElementById('mo-ocorr-filters');
   if (filtersEl) filtersEl.innerHTML = '';
 
@@ -2411,7 +2411,7 @@ async function loadMoOcorr() {
     moOcorrAll = Array.isArray(data) ? data : [];
     applyOcorrFilters();
   } catch (err) {
-    if (el) el.innerHTML = `<div style="color:#f07878;font-size:12px;padding:8px 0">Erro ao carregar ocorrências: ${err.message}</div>`;
+    if (el) el.innerHTML = `<div style="color:#f07878;font-size:15px;padding:8px 0">Erro ao carregar ocorrências: ${err.message}</div>`;
   }
 }
 
@@ -2441,7 +2441,7 @@ function renderMoOcorrFilters() {
   if (!el) return;
   let h = '';
   if (moOcorrAll.length) {
-    h += `<span style="font-size:11px;color:var(--tx3)">${moOcorrAll.length} registro(s) total</span>`;
+    h += `<span style="font-size:15px;color:var(--tx3)">${moOcorrAll.length} registro(s) total</span>`;
   }
   el.innerHTML = h;
 }
@@ -2450,12 +2450,12 @@ function renderOcorrTable(data) {
   const el = document.getElementById('mo-ocorr-table');
   if (!el) return;
   if (!data.length) {
-    el.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:8px 0">Nenhuma ocorrência encontrada para os filtros selecionados.</div>';
+    el.innerHTML = '<div style="color:var(--tx3);font-size:15px;padding:8px 0">Nenhuma ocorrência encontrada para os filtros selecionados.</div>';
     return;
   }
-  const th = s => `<th style="padding:7px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:11px;color:#ffffff;letter-spacing:1px;text-align:left;white-space:nowrap">${s}</th>`;
-  const td = (s, mono) => `<td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.05);color:#ffffff;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis${mono?';font-family:\'DM Mono\',monospace;font-size:13px':';font-size:13px'}" title="${escHtml(s||'')}">${escHtml(s)||'—'}</td>`;
-  let h = `<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr>
+  const th = s => `<th style="padding:7px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:15px;color:#ffffff;letter-spacing:1px;text-align:left;white-space:nowrap">${s}</th>`;
+  const td = (s, mono) => `<td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.05);color:#ffffff;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis${mono?';font-family:\'DM Mono\',monospace;font-size:15px':';font-size:15px'}" title="${escHtml(s||'')}">${escHtml(s)||'—'}</td>`;
+  let h = `<table style="width:100%;border-collapse:collapse;font-size:15px"><thead><tr>
     ${th('DATA')}${th('HORA')}${th('PERÍODO')}${th('DIA')}${th('FLAGRANTE')}${th('CONDUTA')}${th('BAIRRO')}${th('TIPO LOCAL')}${th('MUNICÍPIO')}${th('CIA')}
   </tr></thead><tbody>`;
   data.forEach(r => {
@@ -2516,7 +2516,7 @@ function renderOcorrHeatmap(data) {
   // Total para % do pico (apenas registros com horário)
   const totalComHora = data.filter(r => r.dia_semana && r.hora_ocorrencia).length;
   if (totalComHora === 0 && !data.some(r => r.dia_semana)) {
-    el.innerHTML = '<div style="color:var(--tx3);font-size:12px">Sem dados de dia disponíveis.</div>'; return;
+    el.innerHTML = '<div style="color:var(--tx3);font-size:15px">Sem dados de dia disponíveis.</div>'; return;
   }
 
   // Pico absoluto (dia + período) — usa apenas registros com horário
@@ -2542,7 +2542,7 @@ function renderOcorrHeatmap(data) {
       <div>
         <div style="font-size:15px;color:#ffffff;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600">${label}</div>
         <div style="font-size:17px;font-weight:700;color:#ffffff">${value}</div>
-        ${sub ? `<div style="font-size:13px;color:#ffffff;margin-top:3px">${sub}</div>` : ''}
+        ${sub ? `<div style="font-size:15px;color:#ffffff;margin-top:3px">${sub}</div>` : ''}
       </div>
     </div>`;
 

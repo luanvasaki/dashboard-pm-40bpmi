@@ -140,8 +140,8 @@ canvas{max-height:240px}
 .mo-ct{font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px}
 .mo-card canvas{max-height:420px}
 .ctbl{width:100%;border-collapse:collapse}
-.ctbl th{font-family:'DM Mono',monospace;font-size:15px;letter-spacing:1px;color:var(--tx3);text-transform:uppercase;padding:9px 10px;border-bottom:1px solid var(--bd);text-align:left}
-.ctbl td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.03);font-size:16px}
+.ctbl th{font-family:'DM Mono',monospace;font-size:17px;letter-spacing:1px;color:var(--tx3);text-transform:uppercase;padding:9px 10px;border-bottom:1px solid var(--bd);text-align:left}
+.ctbl td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.03);font-size:19px}
 .ctbl tr:last-child td{border-bottom:none}
 .ctbl tr:hover td{background:rgba(255,255,255,.02)}
 /* ── Upload Modal ──────────────────────────────────────────── */
