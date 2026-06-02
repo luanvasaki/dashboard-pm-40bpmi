@@ -1702,7 +1702,7 @@ function moRender() {
 
   const munCriticoHtml = acimaDoMeta.length === 0
     ? `<div class="mk-val" style="color:var(--green2);font-size:19px;padding-top:4px">✓ Todos na meta</div><div class="mk-sub" style="font-size:19px">Nenhum município acima</div>`
-    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="font-size:19px;font-weight:600;color:var(--tx)">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--red2);margin-left:8px">+${x.desvio.toFixed(0)}%</span></div>`).join('');
+    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="font-size:19px;font-weight:600;color:var(--tx)">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:19px;color:#ffaaaa;margin-left:8px">+${x.desvio.toFixed(0)}%</span></div>`).join('');
 
   document.getElementById('mo-kpis').innerHTML = `
     <div class="mk"><div class="mk-lbl">Total Avaliado</div><div class="mk-val" style="color:${color}">${aval}</div><div class="mk-sub">${pLbl(moMeses)}</div></div>
@@ -2229,7 +2229,7 @@ function updateFemKpi() {
   document.getElementById('mo-fem-legend').innerHTML =
     `<div style="font-size:22px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:rgba(230,100,100,.75);margin-right:8px"></span>Homicídio — <b>${demais}</b></div>` +
     `<div style="font-size:22px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:rgba(240,140,200,.90);margin-right:8px"></span>Feminicídio — <b>${femCount}</b></div>` +
-    `<div style="margin-top:6px;font-size:20px;color:var(--tx3)">Total: ${totalAval} • ${Math.round(femCount/totalAval*100)}% feminicídio</div>`;
+    `<div style="margin-top:6px;font-size:20px;color:#f4f6fc">Total: ${totalAval} • ${Math.round(femCount/totalAval*100)}% feminicídio</div>`;
 }
 
 function openOcorrModal() {
