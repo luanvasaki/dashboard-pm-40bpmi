@@ -828,7 +828,7 @@ async function init() {
     Chart.defaults.color       = '#e0ecf8';
     Chart.defaults.borderColor = '#1c2235';
     Chart.defaults.font.family = "'DM Mono', monospace";
-    Chart.defaults.font.size   = 17;
+    Chart.defaults.font.size   = 19;
 
     buildSbMes();
     buildHmFilter();
