@@ -2341,7 +2341,7 @@ function normCiaDisplay(s) {
 async function loadMoOcorr() {
   const el = document.getElementById('mo-ocorr-table');
   if (!el) return;
-  el.innerHTML = '<div style="color:var(--tx3);font-size:15px;padding:8px 0">Carregando ocorrências...</div>';
+  el.innerHTML = '<div style="color:var(--tx3);font-size:19px;padding:8px 0">Carregando ocorrências...</div>';
   const filtersEl = document.getElementById('mo-ocorr-filters');
   if (filtersEl) filtersEl.innerHTML = '';
 
@@ -2412,7 +2412,7 @@ async function loadMoOcorr() {
     moOcorrAll = Array.isArray(data) ? data : [];
     applyOcorrFilters();
   } catch (err) {
-    if (el) el.innerHTML = `<div style="color:#f07878;font-size:15px;padding:8px 0">Erro ao carregar ocorrências: ${err.message}</div>`;
+    if (el) el.innerHTML = `<div style="color:#f07878;font-size:19px;padding:8px 0">Erro ao carregar ocorrências: ${err.message}</div>`;
   }
 }
 
@@ -2442,7 +2442,7 @@ function renderMoOcorrFilters() {
   if (!el) return;
   let h = '';
   if (moOcorrAll.length) {
-    h += `<span style="font-size:15px;color:var(--tx3)">${moOcorrAll.length} registro(s) total</span>`;
+    h += `<span style="font-size:19px;color:var(--tx3)">${moOcorrAll.length} registro(s) total</span>`;
   }
   el.innerHTML = h;
 }
@@ -2451,12 +2451,12 @@ function renderOcorrTable(data) {
   const el = document.getElementById('mo-ocorr-table');
   if (!el) return;
   if (!data.length) {
-    el.innerHTML = '<div style="color:var(--tx3);font-size:15px;padding:8px 0">Nenhuma ocorrência encontrada para os filtros selecionados.</div>';
+    el.innerHTML = '<div style="color:var(--tx3);font-size:19px;padding:8px 0">Nenhuma ocorrência encontrada para os filtros selecionados.</div>';
     return;
   }
-  const th = s => `<th style="padding:7px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:15px;color:#ffffff;letter-spacing:1px;text-align:left;white-space:nowrap">${s}</th>`;
-  const td = (s, mono) => `<td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.05);color:#ffffff;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis${mono?';font-family:\'DM Mono\',monospace;font-size:15px':';font-size:15px'}" title="${escHtml(s||'')}">${escHtml(s)||'—'}</td>`;
-  let h = `<table style="width:100%;border-collapse:collapse;font-size:15px"><thead><tr>
+  const th = s => `<th style="padding:9px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:1px;text-align:left;white-space:nowrap">${s}</th>`;
+  const td = (s, mono) => `<td style="padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.05);color:#ffffff;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis${mono?';font-family:\'DM Mono\',monospace;font-size:19px':';font-size:19px'}" title="${escHtml(s||'')}">${escHtml(s)||'—'}</td>`;
+  let h = `<table style="width:100%;border-collapse:collapse;font-size:19px"><thead><tr>
     ${th('DATA')}${th('HORA')}${th('PERÍODO')}${th('DIA')}${th('FLAGRANTE')}${th('CONDUTA')}${th('BAIRRO')}${th('TIPO LOCAL')}${th('MUNICÍPIO')}${th('CIA')}
   </tr></thead><tbody>`;
   data.forEach(r => {
@@ -2517,7 +2517,7 @@ function renderOcorrHeatmap(data) {
   // Total para % do pico (apenas registros com horário)
   const totalComHora = data.filter(r => r.dia_semana && r.hora_ocorrencia).length;
   if (totalComHora === 0 && !data.some(r => r.dia_semana)) {
-    el.innerHTML = '<div style="color:var(--tx3);font-size:15px">Sem dados de dia disponíveis.</div>'; return;
+    el.innerHTML = '<div style="color:var(--tx3);font-size:19px">Sem dados de dia disponíveis.</div>'; return;
   }
 
   // Pico absoluto (dia + período) — usa apenas registros com horário
@@ -2541,9 +2541,9 @@ function renderOcorrHeatmap(data) {
     <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px">
       <span style="font-size:22px;line-height:1">${icon}</span>
       <div>
-        <div style="font-size:15px;color:#ffffff;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600">${label}</div>
-        <div style="font-size:17px;font-weight:700;color:#ffffff">${value}</div>
-        ${sub ? `<div style="font-size:15px;color:#ffffff;margin-top:3px">${sub}</div>` : ''}
+        <div style="font-size:19px;color:#ffffff;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600">${label}</div>
+        <div style="font-size:19px;font-weight:700;color:#ffffff">${value}</div>
+        ${sub ? `<div style="font-size:19px;color:#ffffff;margin-top:3px">${sub}</div>` : ''}
       </div>
     </div>`;
 
@@ -2582,7 +2582,7 @@ function renderTipoLocal(data) {
   safeChart('mo-tipolocal', {
     type: 'doughnut',
     data: { labels: top.map(([k])=>k), datasets: [{ data: top.map(([,v])=>v), backgroundColor: colors.slice(0,top.length), borderWidth:0 }] },
-    options: { responsive:true, cutout:'60%', plugins:{ legend:{ position:'bottom', labels:{ boxWidth:14, font:{size:14}, padding:12, color:'#ffffff' } } } }
+    options: { responsive:true, cutout:'60%', plugins:{ legend:{ position:'bottom', labels:{ boxWidth:14, font:{size:19}, padding:20, color:'#ffffff' } } } }
   });
 }
 
@@ -2599,7 +2599,7 @@ function renderBairros(data) {
   if (!sorted.length) return;
   const wrapper = document.getElementById('mo-bairros')?.parentElement;
   if (!wrapper) return;
-  const rowH = 85;
+  const rowH = 105;
   wrapper.style.height = (sorted.length * rowH + 70) + 'px';
   safeChart('mo-bairros', {
     type: 'bar',
@@ -2613,8 +2613,8 @@ function renderBairros(data) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: GR, ticks: { stepSize: 1, color: '#ffffff', font: { size: 14 } } },
-        y: { grid: GR, ticks: { color: '#ffffff', font: { size: 18 }, autoSkip: false } }
+        x: { grid: GR, ticks: { stepSize: 1, color: '#ffffff', font: { size: 19 } } },
+        y: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 }, autoSkip: false } }
       }
     }
   });
@@ -2631,7 +2631,7 @@ function renderRubrica(data) {
   moIntelChs.push(new Chart(ctx, {
     type: 'bar',
     data: { labels: sorted.map(([k])=>k), datasets: [{ label:'Ocorrências', data: sorted.map(([,v])=>v), backgroundColor: sorted.map((_,i)=>colors[i%colors.length]), borderRadius:4 }] },
-    options: { indexAxis:'y', responsive:true, plugins:{ legend:{display:false} }, scales:{ x:{ grid:GR, ticks:{stepSize:1} }, y:{ grid:GR } } }
+    options: { indexAxis:'y', responsive:true, plugins:{ legend:{display:false} }, scales:{ x:{ grid:GR, ticks:{stepSize:1, color:'#ffffff', font:{size:19}} }, y:{ grid:GR, ticks:{color:'#ffffff', font:{size:19}, autoSkip:false} } } }
   }));
 }
 
