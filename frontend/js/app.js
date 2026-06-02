@@ -1840,7 +1840,7 @@ function moRender() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { boxWidth: 15, padding: 20, font: { size: 19 }, usePointStyle: true, color: '#ffffff' } },
+        legend: { labels: { boxWidth: 15, padding: 32, font: { size: 19 }, usePointStyle: true, color: '#ffffff' } },
         tooltip: {
           usePointStyle: true,
           callbacks: {
@@ -1946,8 +1946,8 @@ function moRender() {
       moCh.push(new Chart(document.getElementById('mo-year-comp').getContext('2d'), {
         type: 'line',
         data: { labels: MES_ORD, datasets: yrDatasets },
-        options: { responsive: true,
-          plugins: { legend: { labels: { boxWidth: 15, padding: 16, font: { size: 19 }, color: '#ffffff' } },
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { labels: { boxWidth: 15, padding: 28, font: { size: 19 }, color: '#ffffff' } },
             tooltip: { callbacks: { title: items => MES_ORD[items[0].dataIndex] } } },
           scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: '#ffffff', font: { size: 19 } } } } }
       }));
