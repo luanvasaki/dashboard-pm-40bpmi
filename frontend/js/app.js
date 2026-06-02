@@ -5,6 +5,9 @@
 
 const API = `${window.location.origin}/api`;
 
+// flag: indica se fonte_texto foi carregado do banco (impede updateSyncStatus de sobrescrever)
+let _fonteFromConfig = false;
+
 // ---------------------------------------------------------------------------
 // Segurança — escape HTML para evitar XSS em innerHTML
 // ---------------------------------------------------------------------------
@@ -107,6 +110,7 @@ async function loadDashboardConfig() {
       const inp = document.getElementById('inp-fonte');
       if (lbl) lbl.textContent = cfg.fonte_texto;
       if (inp) inp.value = cfg.fonte_texto;
+      _fonteFromConfig = true;
     }
     // P1
     if (cfg.p1_periodo) {
@@ -768,7 +772,7 @@ async function updateSyncStatus() {
       const d = new Date(s.lastSync);
       elTime.textContent = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     }
-    if (elFonte && !localStorage.getItem('fonte_texto')) {
+    if (elFonte && !_fonteFromConfig) {
       const labels = {
         supabase: 'Banco de Dados RAC - Supabase',
         sheets:   'Banco de Dados RAC - Google Sheets',
