@@ -470,7 +470,7 @@ function ciaSepPlugin(muns) {
         // Linha pontilhada (não desenha na posição 0 — borda já existe)
         if (idx > 0) {
           ctx.setLineDash([4, 4]);
-          ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+          ctx.strokeStyle = 'rgba(255,255,255,0.85)';
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(x, chartArea.top);
@@ -1701,12 +1701,12 @@ function moRender() {
 
   const munCriticoHtml = acimaDoMeta.length === 0
     ? `<div class="mk-val" style="color:var(--green2);font-size:22px;padding-top:4px">✓ Todos na meta</div><div class="mk-sub" style="font-size:22px">Nenhum município acima</div>`
-    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="font-size:22px;font-weight:600;color:var(--tx)">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:22px;color:#ffaaaa;margin-left:8px">+${x.desvio.toFixed(0)}%</span></div>`).join('');
+    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="font-size:24px;font-weight:600;color:var(--tx)">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:24px;color:#ffaaaa;margin-left:8px">+${x.desvio.toFixed(0)}%</span></div>`).join('');
 
   document.getElementById('mo-kpis').innerHTML = `
     <div class="mk"><div class="mk-lbl">Total Avaliado</div><div class="mk-val" style="color:${color}">${aval}</div><div class="mk-sub">${pLbl(moMeses)}</div></div>
-    <div class="mk"><div class="mk-lbl">Var vs Anterior</div><div class="mk-val" style="color:${vc}">${parseFloat(vp) <= 0 ? '▼' : '▲'}${Math.abs(vp)}%</div><div class="mk-sub">Ant: ${ant}</div></div>
-    <div class="mk" style="grid-column:span 1"><div class="mk-lbl">Municípios Fora da Meta (${acimaDoMeta.length})</div>${munCriticoHtml}</div>
+    <div class="mk"><div class="mk-lbl">Var vs Anterior</div><div class="mk-val" style="color:${vc}">${parseFloat(vp) <= 0 ? '▼' : '▲'}${Math.abs(vp)}%</div><div class="mk-sub" style="font-size:22px">Ant: ${ant}</div></div>
+    <div class="mk" style="grid-column:span 2"><div class="mk-lbl">Municípios Fora da Meta (${acimaDoMeta.length})</div>${munCriticoHtml}</div>
     <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:22px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub" style="font-size:22px">Meta:${meta} | Real:${aval}</div></div>
     `;
   if (crime === 'Homicídio') updateFemKpi();
@@ -1758,7 +1758,7 @@ function moRender() {
     };
 
     const cvs = document.getElementById(canvasId);
-    cvs.style.height = '400px';
+    cvs.style.height = '500px';
     moCh.push(new Chart(cvs.getContext('2d'), {
       type: 'bar',
       plugins: [ciaSepPlugin(chartMuns), zeroLinePlugin],
@@ -1800,7 +1800,7 @@ function moRender() {
           }
         },
         scales: {
-          x: { grid: GR, ticks: { color: '#ffffff', font: { size: 17 } } },
+          x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } },
           y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff', font: { size: 17 } }, suggestedMin: -20, suggestedMax: 20 }
         }
       }
@@ -1996,8 +1996,8 @@ function moRender() {
 
       const card = (title, body, color='#ffffff') =>
         `<div style="background:var(--s2);border:1px solid var(--bd2);border-radius:8px;padding:12px 14px">
-          <div style="font-size:17px;letter-spacing:1.5px;text-transform:uppercase;color:#ffffff;margin-bottom:6px;font-weight:700">${title}</div>
-          <div style="font-size:17px;color:#ffffff;line-height:1.7">${body}</div>
+          <div style="font-size:19px;letter-spacing:1.5px;text-transform:uppercase;color:#ffffff;margin-bottom:6px;font-weight:700">${title}</div>
+          <div style="font-size:19px;color:#ffffff;line-height:1.7;font-weight:500">${body}</div>
         </div>`;
 
       const peakIdxs = peakMes.map(m => sazonIdx[MES_ORD.indexOf(m)]);
@@ -2227,9 +2227,9 @@ function updateFemKpi() {
   });
 
   document.getElementById('mo-fem-legend').innerHTML =
-    `<div style="font-size:22px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:rgba(230,100,100,.75);margin-right:8px"></span>Homicídio — <b>${demais}</b></div>` +
-    `<div style="font-size:22px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:rgba(240,140,200,.90);margin-right:8px"></span>Feminicídio — <b>${femCount}</b></div>` +
-    `<div style="margin-top:6px;font-size:20px;color:#f4f6fc">Total: ${totalAval} • ${Math.round(femCount/totalAval*100)}% feminicídio</div>`;
+    `<div style="font-size:24px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:rgba(230,100,100,.75);margin-right:8px"></span>Homicídio — <b>${demais}</b></div>` +
+    `<div style="font-size:24px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:rgba(240,140,200,.90);margin-right:8px"></span>Feminicídio — <b>${femCount}</b></div>` +
+    `<div style="margin-top:6px;font-size:24px;color:#f4f6fc">Total: ${totalAval} • ${Math.round(femCount/totalAval*100)}% feminicídio</div>`;
 }
 
 function openOcorrModal() {
