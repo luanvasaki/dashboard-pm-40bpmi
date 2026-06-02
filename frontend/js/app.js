@@ -1838,7 +1838,7 @@ function moRender() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { boxWidth: 15, padding: 10, font: { size: 16 }, usePointStyle: true, color: '#ffffff' } },
+        legend: { labels: { boxWidth: 15, padding: 20, font: { size: 19 }, usePointStyle: true, color: '#ffffff' } },
         tooltip: {
           usePointStyle: true,
           callbacks: {
@@ -1860,7 +1860,7 @@ function moRender() {
           }
         }
       },
-      scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 16 } } }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1, color: '#ffffff', font: { size: 16 } } } }
+      scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1, color: '#ffffff', font: { size: 19 } } } }
     }
   }));
 
@@ -1945,9 +1945,9 @@ function moRender() {
         type: 'line',
         data: { labels: MES_ORD, datasets: yrDatasets },
         options: { responsive: true,
-          plugins: { legend: { labels: { boxWidth: 15, padding: 8, font: { size: 16 }, color: '#ffffff' } },
+          plugins: { legend: { labels: { boxWidth: 15, padding: 16, font: { size: 19 }, color: '#ffffff' } },
             tooltip: { callbacks: { title: items => MES_ORD[items[0].dataIndex] } } },
-          scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 16 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: '#ffffff', font: { size: 16 } } } } }
+          scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: '#ffffff', font: { size: 19 } } } } }
       }));
 
       // Texto explicativo — Gráfico 1
@@ -2014,7 +2014,7 @@ function moRender() {
         : null;
 
       document.getElementById('mo-sazon').innerHTML =
-        card('Tendência Geral', `${trendTxt}<br><span style="font-size:16px">${trendBody}</span>`, trendCol) +
+        card('Tendência Geral', `${trendTxt}<br><span style="font-size:19px">${trendBody}</span>`, trendCol) +
         card('Pico Histórico — Sazonalidade', peakBody, '#e8b840') +
         card('Período de Menor Incidência', lowBody, '#4bc87a') +
         (projBody ? card('Projeção Anual ' + compAno, projBody, '#5a9de0') : '');
