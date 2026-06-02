@@ -1578,18 +1578,18 @@ function renderEvolucao() {
       else              color = 'var(--red2)';
       const hasRec = q({ crime, mun, mes: MESES[i] }).length > 0;
       return `<td style="text-align:center;padding:6px 8px">
-        ${hasRec ? `<div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${color}">${a}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--tx3);margin-top:2px">meta: ${mt}</div>` : '<div style="color:var(--tx3)">—</div>'}
+        ${hasRec ? `<div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:${color}">${a}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:var(--tx3);margin-top:2px">meta: ${mt}</div>` : '<div style="color:var(--tx3)">—</div>'}
       </td>`;
     }).join('');
 
     h += `<tr style="border-top:1px solid var(--bd)">
       <td style="font-weight:600">${mun}</td>
-      <td style="color:var(--tx3);font-size:13px;font-weight:500">${cia}</td>
+      <td style="color:var(--tx3);font-size:15px;font-weight:500">${cia}</td>
       ${cells}
       <td style="text-align:center;padding:6px 8px">
-        <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700">${tot}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--tx3);margin-top:2px">meta: ${totMeta}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700">${tot}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:var(--tx3);margin-top:2px">meta: ${totMeta}</div>
       </td>
       <td><span class="pill ${pc}">${pt}</span></td>
     </tr>`;
@@ -1701,14 +1701,14 @@ function moRender() {
   const mok = meta > 0 && aval <= meta;
 
   const munCriticoHtml = acimaDoMeta.length === 0
-    ? `<div class="mk-val" style="color:var(--green2);font-size:15px;padding-top:4px">✓ Todos na meta</div><div class="mk-sub">Nenhum município acima</div>`
-    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="font-size:17px;font-weight:600;color:var(--tx)">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:17px;color:var(--red2);margin-left:8px">+${x.desvio.toFixed(0)}%</span></div>`).join('');
+    ? `<div class="mk-val" style="color:var(--green2);font-size:19px;padding-top:4px">✓ Todos na meta</div><div class="mk-sub" style="font-size:19px">Nenhum município acima</div>`
+    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="font-size:19px;font-weight:600;color:var(--tx)">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--red2);margin-left:8px">+${x.desvio.toFixed(0)}%</span></div>`).join('');
 
   document.getElementById('mo-kpis').innerHTML = `
     <div class="mk"><div class="mk-lbl">Total Avaliado</div><div class="mk-val" style="color:${color}">${aval}</div><div class="mk-sub">${pLbl(moMeses)}</div></div>
     <div class="mk"><div class="mk-lbl">Var vs Anterior</div><div class="mk-val" style="color:${vc}">${parseFloat(vp) <= 0 ? '▼' : '▲'}${Math.abs(vp)}%</div><div class="mk-sub">Ant: ${ant}</div></div>
     <div class="mk" style="grid-column:span 1"><div class="mk-lbl">Municípios Fora da Meta (${acimaDoMeta.length})</div>${munCriticoHtml}</div>
-    <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:16px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub">Meta:${meta} | Real:${aval}</div></div>
+    <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:19px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub" style="font-size:19px">Meta:${meta} | Real:${aval}</div></div>
     `;
   if (crime === 'Homicídio') updateFemKpi();
 
@@ -1997,8 +1997,8 @@ function moRender() {
 
       const card = (title, body, color='#ffffff') =>
         `<div style="background:var(--s2);border:1px solid var(--bd2);border-radius:8px;padding:12px 14px">
-          <div style="font-size:15px;letter-spacing:1.5px;text-transform:uppercase;color:#ffffff;margin-bottom:6px;font-weight:700">${title}</div>
-          <div style="font-size:15px;color:#ffffff;line-height:1.7">${body}</div>
+          <div style="font-size:17px;letter-spacing:1.5px;text-transform:uppercase;color:#ffffff;margin-bottom:6px;font-weight:700">${title}</div>
+          <div style="font-size:17px;color:#ffffff;line-height:1.7">${body}</div>
         </div>`;
 
       const peakIdxs = peakMes.map(m => sazonIdx[MES_ORD.indexOf(m)]);
@@ -2015,7 +2015,7 @@ function moRender() {
         : null;
 
       document.getElementById('mo-sazon').innerHTML =
-        card('Tendência Geral', `${trendTxt}<br><span style="font-size:11px">${trendBody}</span>`, trendCol) +
+        card('Tendência Geral', `${trendTxt}<br><span style="font-size:15px">${trendBody}</span>`, trendCol) +
         card('Pico Histórico — Sazonalidade', peakBody, '#e8b840') +
         card('Período de Menor Incidência', lowBody, '#4bc87a') +
         (projBody ? card('Projeção Anual ' + compAno, projBody, '#5a9de0') : '');
