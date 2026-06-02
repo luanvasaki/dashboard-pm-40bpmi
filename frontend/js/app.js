@@ -572,7 +572,7 @@ function syncSidebarMes() {
   document.querySelectorAll('.pf-ano-sel').forEach(s => { s.value = selAno || ''; });
   document.querySelectorAll('.mes-btn-all').forEach(b => b.classList.toggle('on', selMeses.length === MESES.length));
   document.querySelectorAll('.mes-btn-vis').forEach(b => {
-    b.classList.toggle('on', selMeses.includes(b.textContent.trim()));
+    b.classList.toggle('on', selMeses.includes(b.dataset.mes || b.textContent.trim()));
   });
   // Sincroniza selects de mês nas barras de filtro
   document.querySelectorAll('.pf-mes').forEach(s => {
@@ -861,7 +861,7 @@ function buildSbMes() {
   const _mComDados = new Set(MESES);
   MES_ORD.forEach(m => {
     const ok = _mComDados.has(m);
-    row1 += `<button class="pf-btn mes-btn-vis" onclick="sbTog('${m}',this)"${ok ? '' : ' style="opacity:.35" title="Sem dados"'}>${MES_ABREV[m] || m}</button>`;
+    row1 += `<button class="pf-btn mes-btn-vis" data-mes="${m}" onclick="sbTog('${m}',this)"${ok ? '' : ' style="opacity:.35" title="Sem dados"'}>${MES_ABREV[m] || m}</button>`;
   });
   row1 += `</div>`;
 
