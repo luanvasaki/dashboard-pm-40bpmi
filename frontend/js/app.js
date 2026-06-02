@@ -1701,12 +1701,12 @@ function moRender() {
 
   const munCriticoHtml = acimaDoMeta.length === 0
     ? `<div class="mk-val" style="color:var(--green2);font-size:22px;padding-top:4px">✓ Todos na meta</div><div class="mk-sub" style="font-size:22px">Nenhum município acima</div>`
-    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="font-size:24px;font-weight:600;color:var(--tx)">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:24px;color:#ffaaaa;margin-left:8px">+${x.desvio.toFixed(0)}%</span></div>`).join('');
+    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span style="font-size:20px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:20px;color:#ffaaaa;margin-left:8px;flex-shrink:0">+${x.desvio.toFixed(0)}%</span></div>`).join('');
 
   document.getElementById('mo-kpis').innerHTML = `
     <div class="mk"><div class="mk-lbl">Total Avaliado</div><div class="mk-val" style="color:${color}">${aval}</div><div class="mk-sub">${pLbl(moMeses)}</div></div>
     <div class="mk"><div class="mk-lbl">Var vs Anterior</div><div class="mk-val" style="color:${vc}">${parseFloat(vp) <= 0 ? '▼' : '▲'}${Math.abs(vp)}%</div><div class="mk-sub" style="font-size:22px">Ant: ${ant}</div></div>
-    <div class="mk" style="grid-column:span 2"><div class="mk-lbl">Municípios Fora da Meta (${acimaDoMeta.length})</div>${munCriticoHtml}</div>
+    <div class="mk"><div class="mk-lbl">Municípios Fora da Meta (${acimaDoMeta.length})</div>${munCriticoHtml}</div>
     <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:22px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub" style="font-size:22px">Meta:${meta} | Real:${aval}</div></div>
     `;
   if (crime === 'Homicídio') updateFemKpi();
