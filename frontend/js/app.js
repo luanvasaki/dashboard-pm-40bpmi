@@ -248,13 +248,13 @@ function buildUserTable(users, me) {
 
   let h = `<table style="width:100%;border-collapse:collapse;font-size:12px">
     <thead><tr>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">NOME</th>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">POSTO/GRAD.</th>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">RE</th>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">FUNÇÃO</th>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">STATUS</th>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid #1c2235;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">NÍVEL</th>
-      <th style="padding:7px 8px;border-bottom:1px solid #1c2235"></th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">NOME</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">POSTO/GRAD.</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">RE</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">FUNÇÃO</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">STATUS</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">NÍVEL</th>
+      <th style="padding:7px 8px;border-bottom:1px solid var(--bd)"></th>
     </tr></thead><tbody>`;
 
   const SECAO_OPTS = ['Comandante de Batalhão','Subcomandante de Batalhão','CoordOp','Comandante de Cia','CFP','Sargentante','P1','P2','P3','P4','P5','P1 de Cia','P3 de Cia','P4 de Cia','P5 de Cia','CGP','1ª Cia Operacional','2ª Cia Operacional','3ª Cia Operacional','Força Tatica Operacional'];
@@ -1270,7 +1270,7 @@ function renderMetas() {
       if (!rows.length) return;
       const ant = sf(rows, 'anterior'), meta = sf(rows, 'meta'), aval = sf(rows), cia = rows[0].cia;
       const vp = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : (aval === 0 ? '0' : 'inf');
-      const vc = vp === 'inf' ? 'var(--red2)' : parseFloat(vp) > 0 ? 'var(--red2)' : parseFloat(vp) < 0 ? 'var(--green2)' : 'var(--tx3)';
+      const vc = vp === 'inf' ? '#e8b840' : parseFloat(vp) > 0 ? '#e8b840' : parseFloat(vp) < 0 ? 'var(--green2)' : 'var(--tx3)';
       const vt = vp === 'inf' ? '▲∞%' : parseFloat(vp) === 0 ? '0%' : (parseFloat(vp) > 0 ? '▲' : '▼') + Math.abs(vp) + '%';
       let pc, pt;
       if (meta > 0) {
@@ -1578,7 +1578,7 @@ function renderEvolucao() {
       let color;
       if (a <= mt)      color = 'var(--green2)';
       else if (a < ant) color = '#e8965a';
-      else              color = 'var(--red2)';
+      else              color = '#e8b840';
       const hasRec = q({ crime, mun, mes: MESES[i] }).length > 0;
       return `<td style="text-align:center;padding:6px 8px">
         ${hasRec ? `<div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${color}">${a}</div>
@@ -1700,18 +1700,18 @@ function moRender() {
     return { m: m || 'Btl/CIA', v, mt, desvio: mt > 0 ? (v - mt) / mt * 100 : -Infinity };
   });
   const acimaDoMeta = munDesvio.filter(x => x.mt > 0 && x.v > x.mt).sort((a,b) => b.desvio - a.desvio);
-  const vc  = parseFloat(vp) <= 0 ? 'var(--green2)' : 'var(--red2)';
+  const vc  = parseFloat(vp) <= 0 ? 'var(--green2)' : '#e8b840';
   const mok = meta > 0 && aval <= meta;
 
   const munCriticoHtml = acimaDoMeta.length === 0
     ? `<div class="mk-val" style="color:var(--green2);font-size:15px;padding-top:4px">✓ Todos na meta</div><div class="mk-sub">Nenhum município acima</div>`
-    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="font-size:13px;font-weight:600;color:var(--tx)">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red2);margin-left:8px">+${x.desvio.toFixed(0)}%</span></div>`).join('');
+    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span style="font-size:13px;font-weight:600;color:var(--tx)">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:12px;color:#e8b840;margin-left:8px">+${x.desvio.toFixed(0)}%</span></div>`).join('');
 
   document.getElementById('mo-kpis').innerHTML = `
     <div class="mk"><div class="mk-lbl">Total Avaliado</div><div class="mk-val" style="color:${color}">${aval}</div><div class="mk-sub">${pLbl(moMeses)}</div></div>
     <div class="mk"><div class="mk-lbl">Var vs Anterior</div><div class="mk-val" style="color:${vc}">${parseFloat(vp) <= 0 ? '▼' : '▲'}${Math.abs(vp)}%</div><div class="mk-sub">Ant: ${ant}</div></div>
     <div class="mk" style="grid-column:span 1"><div class="mk-lbl">Municípios Fora da Meta (${acimaDoMeta.length})</div>${munCriticoHtml}</div>
-    <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:16px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub">Meta:${meta} | Real:${aval}</div></div>
+    <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'#e8b840'};font-size:16px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub">Meta:${meta} | Real:${aval}</div></div>
     `;
   if (crime === 'Homicídio') updateFemKpi();
 
