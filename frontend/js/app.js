@@ -1418,25 +1418,20 @@ function renderInsights() {
   // Só considera municípios com pelo menos 1 ocorrência real no período
   const munsAtivos = muns.filter(m => CRIMES.some(c => sf(q({ crime: c, mun: m, mes: selMeses, ...sc })) > 0));
 
-  // Município com mais crimes acima da meta
-  const munAlerta = munsAtivos.map(m => ({
-    m,
-    acima: CRIMES.filter(c => {
-      const a = sf(q({ crime: c, mun: m, mes: selMeses, ...sc }));
+  // Score único por município: ok − acima (garante que destaque e alerta nunca são a mesma cidade)
+  const munScores = munsAtivos.map(m => {
+    let acima = 0, ok = 0;
+    CRIMES.forEach(c => {
+      const a  = sf(q({ crime: c, mun: m, mes: selMeses, ...sc }));
       const mt = sf(q({ crime: c, mun: m, mes: selMeses, ...sc }), 'meta');
-      return mt > 0 && a > mt;
-    }).length
-  })).sort((a, b) => b.acima - a.acima)[0] || { m: '—', acima: 0 };
+      if (mt > 0) { if (a > mt) acima++; else ok++; }
+    });
+    return { m, acima, ok, score: ok - acima };
+  }).sort((a, b) => b.score - a.score);
 
-  // Município destaque: mais crimes dentro da meta (só entre municípios com atividade real)
-  const munDestaque = munsAtivos.map(m => ({
-    m,
-    ok: CRIMES.filter(c => {
-      const a = sf(q({ crime: c, mun: m, mes: selMeses, ...sc }));
-      const mt = sf(q({ crime: c, mun: m, mes: selMeses, ...sc }), 'meta');
-      return mt > 0 && a <= mt;
-    }).length
-  })).sort((a, b) => b.ok - a.ok)[0] || { m: '—', ok: 0 };
+  const munAlerta   = munScores.length ? munScores[munScores.length - 1] : { m: '—', acima: 0, score: 0 };
+  const munDestaque = munScores.length >= 2 ? munScores[0]
+    : (munScores.length === 1 && munScores[0].score > 0 ? munScores[0] : { m: '—', ok: 0, score: 0 });
 
   // --- Cards ---
   const ins = [
@@ -1470,12 +1465,14 @@ function renderInsights() {
         ? `${munAlerta.m} possui ${munAlerta.acima} crime(s) acima da meta. Requer atenção prioritária. Escopo: ${lbl}.`
         : `Nenhum município com crimes acima da meta. Escopo: ${lbl}.`
     },
-    // 6. Município destaque
+    // 6. Município destaque (sempre diferente do município em alerta)
     {
-      t: 'green',
+      t: munDestaque.score > 0 ? 'green' : '',
       v: munDestaque.m,
       title: 'Município destaque',
-      body: `${munDestaque.m} tem ${munDestaque.ok} crime(s) dentro ou abaixo da meta no período. Melhor desempenho — Escopo: ${lbl}.`
+      body: munDestaque.m !== '—'
+        ? `${munDestaque.m} tem ${munDestaque.ok} crime(s) dentro ou abaixo da meta no período. Melhor desempenho — Escopo: ${lbl}.`
+        : `Sem município em destaque no período. Escopo: ${lbl}.`
     },
   ];
 
@@ -1686,7 +1683,7 @@ function moRender() {
   const sc  = moQScope();
   const muns = moScopeMuns();
 
-  const dbgTotal = q({ crime, mes: moMeses }).length;
+  const dbgTotal = q({ crime, mes: moMeses, ...sc }).length;
   document.getElementById('mo-sub').textContent = 'ANÁLISE DETALHADA — ' + pLbl(moMeses).toUpperCase() + ` (${dbgTotal} reg. RAC)`;
 
   const aval = sf(q({ crime, mes: moMeses, ...sc }));
@@ -1695,8 +1692,8 @@ function moRender() {
   const vp   = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : 0;
 
   const munDesvio   = muns.map(m => {
-    const v  = sf(q({ crime, mun: m, mes: moMeses }));
-    const mt = sf(q({ crime, mun: m, mes: moMeses }), 'meta');
+    const v  = sf(q({ crime, mun: m, mes: moMeses, ...sc }));
+    const mt = sf(q({ crime, mun: m, mes: moMeses, ...sc }), 'meta');
     return { m: m || 'Btl/CIA', v, mt, desvio: mt > 0 ? (v - mt) / mt * 100 : -Infinity };
   });
   const acimaDoMeta = munDesvio.filter(x => x.mt > 0 && x.v > x.mt).sort((a,b) => b.desvio - a.desvio);
@@ -5580,7 +5577,11 @@ function prodRender() {
   }
 
   // Índice de Capacitação (cursos × efetivo)
-  const cursosAno = (prodRaw.cursos||[]).filter(r => r.ano === prodSelAno);
+  const cursosAno = (prodRaw.cursos||[]).filter(r => {
+    if (prodSelAno && r.ano !== prodSelAno) return false;
+    if (prodSelMeses.length && !prodSelMeses.some(m => m.toLowerCase() === (r.mes||'').toLowerCase())) return false;
+    return true;
+  });
   const pmsCapacitados = new Set(cursosAno.filter(r => r.re_pm).map(r => r.re_pm));
   if (pmsCapacitados.size > 0) {
     const COR_CAP = '#9de05a';
