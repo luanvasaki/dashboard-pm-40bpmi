@@ -218,7 +218,7 @@ async function openAdminModal() {
     if (!Array.isArray(data)) throw new Error(data?.error || 'Resposta inesperada da API.');
     renderAdminUsers(data);
   } catch (err) {
-    document.getElementById('adm-users').innerHTML = `<div style="color:#e06060;font-size:12px">${err.message}</div>`;
+    document.getElementById('adm-users').innerHTML = `<div style="color:#f07878;font-size:12px">${err.message}</div>`;
   }
 }
 
@@ -242,7 +242,7 @@ function buildUserTable(users, me) {
   const STATUS_STYLE = {
     pending:  'background:rgba(200,168,75,.15);color:#e8c96a',
     approved: 'background:rgba(61,191,122,.1);color:#5ae09a',
-    rejected: 'background:rgba(200,75,75,.1);color:#e06060'
+    rejected: 'background:rgba(230,100,100,.1);color:#f07878'
   };
   const STATUS_LABEL = { pending: 'Pendente', approved: 'Aprovado', rejected: 'Recusado' };
 
@@ -275,10 +275,10 @@ function buildUserTable(users, me) {
     let actions = '';
     if (u.status === 'pending') {
       actions = `<button onclick="admAction('${u.id}','approved')" style="padding:4px 10px;background:rgba(61,191,122,.15);border:1px solid rgba(61,191,122,.3);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px">✓ Aprovar</button>
-                 <button onclick="admAction('${u.id}','rejected')" style="padding:4px 10px;background:rgba(200,75,75,.1);border:1px solid rgba(200,75,75,.25);color:#e06060;border-radius:4px;cursor:pointer;font-size:11px">✕ Recusar</button>`;
+                 <button onclick="admAction('${u.id}','rejected')" style="padding:4px 10px;background:rgba(230,100,100,.1);border:1px solid rgba(230,100,100,.25);color:#f07878;border-radius:4px;cursor:pointer;font-size:11px">✕ Recusar</button>`;
     } else if (u.status === 'approved') {
       actions = `<button onclick="admAction('${u.id}','approved')" style="display:none"></button>
-                 <button onclick="admAction('${u.id}','rejected')" style="padding:4px 10px;background:rgba(200,75,75,.08);border:1px solid rgba(200,75,75,.2);color:#e06060;border-radius:4px;cursor:pointer;font-size:11px">Revogar</button>
+                 <button onclick="admAction('${u.id}','rejected')" style="padding:4px 10px;background:rgba(230,100,100,.08);border:1px solid rgba(230,100,100,.2);color:#f07878;border-radius:4px;cursor:pointer;font-size:11px">Revogar</button>
                  <button data-uid="${escHtml(u.id)}" data-unome="${escHtml(u.nome)}" onclick="admResetSenha(this.dataset.uid,this.dataset.unome)" style="padding:4px 10px;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.25);color:#e8c96a;border-radius:4px;cursor:pointer;font-size:11px;margin-left:4px" title="Senha temporária = matrícula do usuário">🔑 Redefinir Senha</button>`;
     } else {
       actions = `<button onclick="admAction('${u.id}','approved')" style="padding:4px 10px;background:rgba(61,191,122,.1);border:1px solid rgba(61,191,122,.25);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:11px">Reativar</button>`;
@@ -304,7 +304,7 @@ function buildUserTable(users, me) {
       </td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);white-space:nowrap">
         ${actions}
-        <button data-uid="${escHtml(u.id)}" data-unome="${escHtml(u.nome)}" onclick="admDelete(this.dataset.uid,this.dataset.unome)" style="padding:4px 8px;background:transparent;border:1px solid rgba(200,75,75,.2);color:var(--tx3);border-radius:4px;cursor:pointer;font-size:11px;margin-left:4px" title="Excluir usuário">🗑</button>
+        <button data-uid="${escHtml(u.id)}" data-unome="${escHtml(u.nome)}" onclick="admDelete(this.dataset.uid,this.dataset.unome)" style="padding:4px 8px;background:transparent;border:1px solid rgba(230,100,100,.2);color:var(--tx3);border-radius:4px;cursor:pointer;font-size:11px;margin-left:4px" title="Excluir usuário">🗑</button>
       </td>
     </tr>`;
   });
@@ -402,12 +402,12 @@ function showAdmMsg(text, type) {
   el.textContent = text;
   el.style.cssText = type === 'ok'
     ? 'display:block;padding:10px 14px;border-radius:6px;font-size:13px;background:rgba(61,191,122,.1);border:1px solid rgba(61,191,122,.25);color:#5ae09a;margin-top:14px'
-    : 'display:block;padding:10px 14px;border-radius:6px;font-size:13px;background:rgba(200,75,75,.1);border:1px solid rgba(200,75,75,.25);color:#e06060;margin-top:14px';
+    : 'display:block;padding:10px 14px;border-radius:6px;font-size:13px;background:rgba(230,100,100,.1);border:1px solid rgba(230,100,100,.25);color:#f07878;margin-top:14px';
   setTimeout(() => { el.style.display = 'none'; }, 4000);
 }
 
 // Paleta de cores por crime (mesma ordem da API)
-const PAL = ['#c84b4b','#bf7a3d','#c8a84b','#3d7abf','#e8c96a','#3dbf7a','#7a4bbf'];
+const PAL = ['#e05555','#bf7a3d','#c8a84b','#3d7abf','#e8c96a','#3dbf7a','#7a4bbf'];
 
 // Crimes agrupados num único card na visão geral
 const CRIME_GROUPS = [
@@ -724,10 +724,10 @@ const sf   = (arr, field = 'avaliado') => arr.reduce((s, r) => s + (r[field] || 
 const pLbl = m => m.length === MESES.length ? 'Todos os meses' : m.join(' + ');
 const hcol = (aval, meta, ant) => {
   if (aval === 0) return 'rgba(74,158,232,.10)';
-  if (meta === 0) return aval <= ant ? 'rgba(191,122,61,.85)' : 'rgba(200,75,75,.80)';
+  if (meta === 0) return aval <= ant ? 'rgba(191,122,61,.85)' : 'rgba(230,100,100,.80)';
   if (aval <= meta) return 'rgba(61,191,122,.70)';   // verde: dentro da meta
   if (aval <= ant)  return 'rgba(191,122,61,.85)';   // laranja: acima da meta, melhor que anterior
-  return 'rgba(200,75,75,.80)';                       // vermelho: acima da meta
+  return 'rgba(230,100,100,.80)';                       // vermelho: acima da meta
 };
 const mk  = (id, cfg) => { if (charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), cfg); };
 const cl  = c => c === 'Homicídio' ? 'Vítimas de Letalidade Violenta' : c.replace(' Vulnerável', ' Vuln.').replace(' Veículos', ' Veíc.');
@@ -1091,7 +1091,7 @@ function renderVisao() {
           backgroundColor: vmDetails.map(d =>
             d.aval <= d.meta  ? 'rgba(61,191,122,.80)' :
             d.aval <= d.ant   ? 'rgba(191,122,61,.85)' :
-                                'rgba(200,75,75,.80)'
+                                'rgba(230,100,100,.80)'
           ),
           borderRadius: 4,
           order: 1
@@ -1776,7 +1776,7 @@ function moRender() {
               generateLabels: () => [
                 { text: 'Dentro da meta',                         fillStyle: 'rgba(61,191,122,.75)',  strokeStyle: 'rgba(61,191,122,.75)',  lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff' },
                 { text: 'Acima da meta, melhor que mês anterior', fillStyle: 'rgba(191,122,61,.85)', strokeStyle: 'rgba(191,122,61,.85)', lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff' },
-                { text: 'Acima da meta',                          fillStyle: 'rgba(200,75,75,.80)',  strokeStyle: 'rgba(200,75,75,.80)',  lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff' }
+                { text: 'Acima da meta',                          fillStyle: 'rgba(230,100,100,.80)',  strokeStyle: 'rgba(230,100,100,.80)',  lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff' }
               ]
             }
           },
@@ -2215,7 +2215,7 @@ function updateFemKpi() {
     type: 'doughnut',
     data: {
       labels: ['Homicídio', 'Feminicídio'],
-      datasets: [{ data: [demais, femCount], backgroundColor: ['rgba(200,75,75,.75)', 'rgba(240,140,200,.90)'], borderWidth: 0 }]
+      datasets: [{ data: [demais, femCount], backgroundColor: ['rgba(230,100,100,.75)', 'rgba(240,140,200,.90)'], borderWidth: 0 }]
     },
     options: {
       responsive: true, cutout: '65%',
@@ -2227,7 +2227,7 @@ function updateFemKpi() {
   });
 
   document.getElementById('mo-fem-legend').innerHTML =
-    `<div style="font-size:18px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:rgba(200,75,75,.75);margin-right:8px"></span>Homicídio — <b>${demais}</b></div>` +
+    `<div style="font-size:18px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:rgba(230,100,100,.75);margin-right:8px"></span>Homicídio — <b>${demais}</b></div>` +
     `<div style="font-size:18px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:rgba(240,140,200,.90);margin-right:8px"></span>Feminicídio — <b>${femCount}</b></div>` +
     `<div style="margin-top:6px;font-size:16px;color:var(--tx3)">Total: ${totalAval} • ${Math.round(femCount/totalAval*100)}% feminicídio</div>`;
 }
@@ -2256,7 +2256,7 @@ function showOcorrMsg(txt, type) {
   const el = document.getElementById('ocorr-msg');
   el.textContent = txt;
   el.style.display = txt ? 'block' : 'none';
-  el.style.color = type === 'err' ? '#e06060' : type === 'ok' ? '#5ae09a' : '#5a9de0';
+  el.style.color = type === 'err' ? '#f07878' : type === 'ok' ? '#5ae09a' : '#5a9de0';
 }
 
 function handleOcorrFile(input) {
@@ -2411,7 +2411,7 @@ async function loadMoOcorr() {
     moOcorrAll = Array.isArray(data) ? data : [];
     applyOcorrFilters();
   } catch (err) {
-    if (el) el.innerHTML = `<div style="color:#e06060;font-size:12px;padding:8px 0">Erro ao carregar ocorrências: ${err.message}</div>`;
+    if (el) el.innerHTML = `<div style="color:#f07878;font-size:12px;padding:8px 0">Erro ao carregar ocorrências: ${err.message}</div>`;
   }
 }
 
@@ -2577,7 +2577,7 @@ function renderTipoLocal(data) {
     else top.push(['Outros', outros]);
   }
   if (!top.length) return;
-  const colors = ['#c8a84b','#3d7abf','#c84b4b','#3dbf7a','#bf7a3d','#7a4bbf','#4bbfbf','#808080'];
+  const colors = ['#c8a84b','#3d7abf','#e05555','#3dbf7a','#bf7a3d','#7a4bbf','#4bbfbf','#808080'];
   safeChart('mo-tipolocal', {
     type: 'doughnut',
     data: { labels: top.map(([k])=>k), datasets: [{ data: top.map(([,v])=>v), backgroundColor: colors.slice(0,top.length), borderWidth:0 }] },
@@ -2626,7 +2626,7 @@ function renderRubrica(data) {
   if (!sorted.length) return;
   const ctx = document.getElementById('mo-rubrica')?.getContext('2d');
   if (!ctx) return;
-  const colors = ['#c84b4b','#bf7a3d','#c8a84b','#3d7abf','#3dbf7a','#7a4bbf','#4bbfbf','#e06060','#5ae09a'];
+  const colors = ['#e05555','#bf7a3d','#c8a84b','#3d7abf','#3dbf7a','#7a4bbf','#4bbfbf','#f07878','#5ae09a'];
   moIntelChs.push(new Chart(ctx, {
     type: 'bar',
     data: { labels: sorted.map(([k])=>k), datasets: [{ label:'Ocorrências', data: sorted.map(([,v])=>v), backgroundColor: sorted.map((_,i)=>colors[i%colors.length]), borderRadius:4 }] },
@@ -2741,7 +2741,7 @@ async function loadP1() {
     if (renderingP1) renderP1();
     renderHome();
   } catch (err) {
-    if (kpis) kpis.innerHTML = `<div style="color:#e06060;font-size:12px">${err.message}</div>`;
+    if (kpis) kpis.innerHTML = `<div style="color:#f07878;font-size:12px">${err.message}</div>`;
   }
 }
 
@@ -2830,7 +2830,7 @@ function renderP1() {
   );
 
   const CATS = { cbsd: 'Cb / Sd', sgt: 'Sargentos', sub: 'Subtenentes', of: 'Oficiais' };
-  const CATS_COLOR = { cbsd: '#4bc87a', sgt: '#c84b4b', sub: '#5a9de0', of: '#c8a84b' };
+  const CATS_COLOR = { cbsd: '#4bc87a', sgt: '#e05555', sub: '#5a9de0', of: '#c8a84b' };
   const count = (arr, cat) => arr.filter(r => p1Cat(r.posto) === cat).length;
   const total = dataF.length;
 
@@ -2854,14 +2854,14 @@ function renderP1() {
   kpisEl.innerHTML =
     kpiCard('Total Efetivo', total, Object.keys(CATS).filter(k=>count(dataF,k)>0).map(k=>`<span style="color:${CATS_COLOR[k]}">${count(dataF,k)} ${CATS[k]}</span>`).join('<span style="color:var(--bd2);margin:0 4px">·</span>'), 'var(--tx)', 'total') +
     kpiCard('Aptos', pmAptos.length, total > 0 ? `${Math.round(pmAptos.length/total*100)}% do efetivo` : '—', '#4bc87a', 'aptos') +
-    kpiCard('Afastamentos', pmAfastados.length, tiposSub || '—', pmAfastados.length > 0 ? '#c84b4b' : 'var(--tx3)', 'afastados') +
+    kpiCard('Afastamentos', pmAfastados.length, tiposSub || '—', pmAfastados.length > 0 ? '#e05555' : 'var(--tx3)', 'afastados') +
     kpiCard('Em Restrição', pmComRestricao.length, vencendoRestricao.length > 0 ? `⚠ ${vencendoRestricao.length} vencem em 30 dias` : '—', pmComRestricao.length > 0 ? '#c8a84b' : 'var(--tx3)', 'restricao') +
     kpiCard(`EAP / TAF / TAT ${anoAtual}`, pmEapFeito.length,
       `<span style="color:#4bc87a">${pmEapFeito.length} realizaram</span> · <span style="color:#c8a84b">${pmEapPendente.length} pendentes</span>` +
-      (inaptosTaf.length ? ` · <span style="color:#c84b4b">${inaptosTaf.length} inapto${inaptosTaf.length>1?'s':''} TAF</span>` : '') +
-      (inaptosTat.length ? ` · <span style="color:#c84b4b">${inaptosTat.length} inapto${inaptosTat.length>1?'s':''} TAT</span>` : '') +
-      (taftatVencidos.length ? ` · <span style="color:#c84b4b">${taftatVencidos.length} vencidos</span>` : ''),
-      (inaptosTaf.length || inaptosTat.length || taftatVencidos.length) ? '#c84b4b' : pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a', 'eap') +
+      (inaptosTaf.length ? ` · <span style="color:#e05555">${inaptosTaf.length} inapto${inaptosTaf.length>1?'s':''} TAF</span>` : '') +
+      (inaptosTat.length ? ` · <span style="color:#e05555">${inaptosTat.length} inapto${inaptosTat.length>1?'s':''} TAT</span>` : '') +
+      (taftatVencidos.length ? ` · <span style="color:#e05555">${taftatVencidos.length} vencidos</span>` : ''),
+      (inaptosTaf.length || inaptosTat.length || taftatVencidos.length) ? '#e05555' : pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a', 'eap') +
     kpiCard('Controle de Férias', ferEmGozo.length, `${ferEmGozo.length} em gozo · ${ferEm15Dias.length} em 15d`, ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)', 'ferias') +
     (() => {
       if (!p1Quadro.length) return '';
@@ -2872,9 +2872,9 @@ function renderP1() {
       const gtClaro = gtFx - gtEx;
       const gtPct = gtFx > 0 ? ((gtClaro/gtFx)*100).toFixed(1)+'%' : '—';
       const estouradas = qRows.filter(q => (Number(q.fx_total)||0) - (Number(q.ex_total)||0) < 0).length;
-      const cor = gtClaro < 0 ? '#c84b4b' : gtClaro === 0 ? '#c8a84b' : '#4bc87a';
+      const cor = gtClaro < 0 ? '#e05555' : gtClaro === 0 ? '#c8a84b' : '#4bc87a';
       const sub = estouradas > 0
-        ? `<span style="color:#c84b4b">⚠ ${estouradas} unid. estouradas</span> · FX ${gtFx} / EX ${gtEx}`
+        ? `<span style="color:#e05555">⚠ ${estouradas} unid. estouradas</span> · FX ${gtFx} / EX ${gtEx}`
         : `FX ${gtFx} / EX ${gtEx} · ${gtPct} claro`;
       return kpiCard('Quadro Fixado', `${gtClaro >= 0 ? '−' : '+'}${Math.abs(gtClaro)}`, sub, cor, 'quadro');
     })();

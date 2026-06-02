@@ -2,8 +2,8 @@
   --bg:#07090f;--s1:#0d1018;--s2:#121620;--s3:#181d28;
   --bd:#1c2235;--bd2:#252d40;
   --gold:#c8a84b;--gold2:#e8c96a;
-  --blue:#3d7abf;--red:#c84b4b;--green:#3dbf7a;--orange:#bf7a3d;--purple:#7a4bbf;
-  --red2:#e06060;--green2:#5ae09a;--blue2:#5a9de0;
+  --blue:#3d7abf;--red:#e05555;--green:#3dbf7a;--orange:#bf7a3d;--purple:#7a4bbf;
+  --red2:#f07878;--green2:#5ae09a;--blue2:#5a9de0;
   --tx:#f4f6fc;--tx2:#deeaf8;--tx3:#b8ccdf;
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -50,7 +50,7 @@ main{flex:1;overflow-y:auto;padding:26px 26px 60px;min-width:0}
 .kpi-sub{font-size:17px;font-weight:500;color:#ffffff;font-family:'DM Sans',sans-serif}
 .tag{font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;padding:4px 10px;border-radius:20px}
 .tok{background:rgba(61,191,122,.15);color:var(--green2)}
-.tbad{background:rgba(224,96,96,.12);color:var(--red2)}
+.tbad{background:rgba(240,120,120,.12);color:var(--red2)}
 .twarn{background:rgba(200,168,75,.15);color:var(--gold2)}
 .kpi-hint{font-family:'DM Sans',sans-serif;font-size:17px;font-weight:500;color:#ffffff;margin-top:6px;letter-spacing:.5px;text-align:center}
 .g1{margin-bottom:14px}
@@ -82,7 +82,7 @@ canvas{max-height:240px}
 .pill{display:inline-flex;padding:4px 12px;border-radius:20px;font-family:'DM Mono',monospace;font-size:14px}
 .p-ok{background:rgba(61,191,122,.12);color:var(--green2)}
 .p-warn{background:rgba(200,168,75,.12);color:var(--gold2)}
-.p-bad{background:rgba(224,96,96,.12);color:var(--red2)}
+.p-bad{background:rgba(240,120,120,.12);color:var(--red2)}
 .p-evol{background:rgba(191,122,61,.15);color:#e8965a}
 .ri{display:flex;align-items:center;gap:9px;margin-bottom:9px}
 .ri-n{font-family:'Barlow Condensed',sans-serif;font-size:18px;color:var(--tx3);width:20px;text-align:center;flex-shrink:0}
@@ -166,7 +166,7 @@ canvas{max-height:240px}
 .upl-msg{font-size:12px;padding:10px 14px;border-radius:6px;display:none;font-family:'DM Mono',monospace}
 .upl-msg.on{display:block}
 .upl-msg.ok{background:rgba(61,191,122,.1);color:var(--green2);border:1px solid rgba(61,191,122,.2)}
-.upl-msg.err{background:rgba(200,75,75,.1);color:var(--red2);border:1px solid rgba(200,75,75,.2)}
+.upl-msg.err{background:rgba(230,100,100,.1);color:var(--red2);border:1px solid rgba(230,100,100,.2)}
 .upl-msg.info{background:rgba(200,168,75,.08);color:var(--gold2);border:1px solid rgba(200,168,75,.18)}
 .upl-actions{display:flex;gap:10px;justify-content:flex-end}
 .upl-btn{padding:8px 22px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:.06em;border:1px solid transparent;font-family:'DM Sans',sans-serif;transition:all .15s}
