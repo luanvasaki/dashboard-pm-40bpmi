@@ -68,18 +68,18 @@
     </button>
   </nav>
   <div class="sidebar-foot">
-    <button onclick="forceSync()" id="sync-btn" style="width:100%;padding:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:4px;cursor:pointer;font-size:13px">↻ Sincronizar</button>
+    <button onclick="forceSync()" id="sync-btn" style="width:100%;padding:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:4px;cursor:pointer;font-size:19px">↻ Sincronizar</button>
     <div id="sidebar-imports" style="margin-top:6px"></div>
     <!-- Bloco de usuário (preenchido por JS) -->
     <div id="user-block" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)">
-      <div style="font-size:12px;color:var(--tx3);margin-bottom:4px">USUÁRIO</div>
-      <div id="user-nome" style="color:var(--tx);font-size:14px;font-weight:600;line-height:1.4">—</div>
-      <div id="user-info" style="color:var(--tx3);font-size:12px;margin-bottom:8px">—</div>
-      <button id="btn-admin" onclick="openAdminModal()" style="display:none;width:100%;padding:6px;background:rgba(61,122,191,.12);border:1px solid rgba(61,122,191,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;margin-bottom:4px;position:relative">
+      <div style="font-size:19px;color:var(--tx3);margin-bottom:4px">USUÁRIO</div>
+      <div id="user-nome" style="color:var(--tx);font-size:19px;font-weight:600;line-height:1.4">—</div>
+      <div id="user-info" style="color:var(--tx3);font-size:19px;margin-bottom:8px">—</div>
+      <button id="btn-admin" onclick="openAdminModal()" style="display:none;width:100%;padding:6px;background:rgba(61,122,191,.12);border:1px solid rgba(61,122,191,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600;margin-bottom:4px;position:relative">
         ⚙ Gerenciar Usuários
-        <span id="pending-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#e05555;color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;padding:0 4px;line-height:18px;text-align:center"></span>
+        <span id="pending-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#e05555;color:#fff;font-size:14px;font-weight:700;min-width:18px;height:18px;border-radius:9px;padding:0 4px;line-height:18px;text-align:center"></span>
       </button>
-      <button onclick="doLogout()" style="width:100%;padding:6px;background:rgba(230,100,100,.08);border:1px solid rgba(230,100,100,.2);color:#f07878;border-radius:4px;cursor:pointer;font-size:13px">✕ Sair</button>
+      <button onclick="doLogout()" style="width:100%;padding:6px;background:rgba(230,100,100,.08);border:1px solid rgba(230,100,100,.2);color:#f07878;border-radius:4px;cursor:pointer;font-size:19px">✕ Sair</button>
     </div>
   </div>
 </aside>
@@ -89,22 +89,22 @@
   <div id="adm-box" style="max-width:1100px;margin:0 auto;background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:28px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid var(--bd)">
       <div>
-        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">ADMINISTRAÇÃO</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">ADMINISTRAÇÃO</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:2px">GERENCIAR <span style="color:#c8a84b">USUÁRIOS</span></div>
       </div>
-      <button onclick="closeAdminModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:6px 14px;cursor:pointer;font-size:13px">✕</button>
+      <button onclick="closeAdminModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:6px 14px;cursor:pointer;font-size:19px">✕</button>
     </div>
     <div id="adm-pending-section" style="margin-bottom:20px;display:none">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:#e8c96a;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+      <div style="font-family:'DM Mono',monospace;font-size:14px;color:#e8c96a;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px">
         <span style="display:inline-block;width:8px;height:8px;background:#c8a84b;border-radius:50%"></span>PENDENTES DE APROVAÇÃO
       </div>
       <div id="adm-pending" style="overflow-x:auto"></div>
     </div>
     <div>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">TODOS OS USUÁRIOS</div>
+      <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">TODOS OS USUÁRIOS</div>
       <div id="adm-users" style="overflow-x:auto"></div>
     </div>
-    <div id="adm-msg" style="margin-top:14px;padding:10px 14px;border-radius:6px;font-size:13px;display:none"></div>
+    <div id="adm-msg" style="margin-top:14px;padding:10px 14px;border-radius:6px;font-size:19px;display:none"></div>
   </div>
 </div>
 
@@ -191,10 +191,10 @@
       <div class="upl-drop-sub">Colunas esperadas: Ano · Mes · Cia · Municipio · Crime · Anterior · Meta · Avaliado</div>
     </label>
     <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(61,122,191,.08);border:1px solid rgba(61,122,191,.2);border-radius:8px">
-      <span style="font-size:11px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;white-space:nowrap">ANO DOS DADOS</span>
+      <span style="font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;white-space:nowrap">ANO DOS DADOS</span>
       <input type="number" id="upl-ano" min="2020" max="2035" placeholder="ex: 2025"
-        style="width:90px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:6px 10px;color:var(--tx);font-family:'DM Mono',monospace;font-size:13px;outline:none">
-      <span style="font-size:11px;color:var(--tx3);line-height:1.4">Opcional — preencha só se o CSV tiver o<br>ano errado. Deixe em branco para usar a<br>coluna Ano do próprio arquivo.</span>
+        style="width:90px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:6px 10px;color:var(--tx);font-family:'DM Mono',monospace;font-size:19px;outline:none">
+      <span style="font-size:14px;color:var(--tx3);line-height:1.4">Opcional — preencha só se o CSV tiver o<br>ano errado. Deixe em branco para usar a<br>coluna Ano do próprio arquivo.</span>
     </div>
     <div class="upl-preview" id="upl-preview">
       <div class="upl-prev-row">
@@ -216,26 +216,26 @@
   <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:12px;width:min(540px,95vw);padding:28px;display:flex;flex-direction:column;gap:18px">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">IMPORTAÇÃO</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">IMPORTAÇÃO</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800">OCORRÊNCIAS <span style="color:#5a9de0">INFOCRIM</span></div>
       </div>
-      <button onclick="closeOcorrModal()" style="background:var(--s3);border:1px solid var(--bd);color:var(--tx2);border-radius:4px;padding:6px 14px;cursor:pointer;font-size:13px">✕</button>
+      <button onclick="closeOcorrModal()" style="background:var(--s3);border:1px solid var(--bd);color:var(--tx2);border-radius:4px;padding:6px 14px;cursor:pointer;font-size:19px">✕</button>
     </div>
     <label style="border:2px dashed var(--bd2);border-radius:8px;padding:24px;text-align:center;cursor:pointer;display:block" onclick="document.getElementById('ocorr-file').click()">
       <input type="file" id="ocorr-file" accept=".csv" style="display:none" onchange="handleOcorrFile(this)">
       <div style="font-size:28px;margin-bottom:8px">📂</div>
       <div style="font-weight:600;color:var(--tx);margin-bottom:4px">Selecione o CSV exportado do InfoCrim</div>
-      <div style="font-size:12px;color:var(--tx3)">Colunas: DataOcorrencia · HoraOcorrencia · PeriodoEstimado · DiaSemana · Flagrante · Rubrica · Conduta · BatalhaoCircunscricao · CompanhiaCircunscricao · MunicipioCircunscricao · Bairro · TipoLocal</div>
-      <div style="margin-top:8px;font-size:11px;color:#c8a84b">⚠ O upload substitui todas as ocorrências anteriores.</div>
+      <div style="font-size:14px;color:var(--tx3)">Colunas: DataOcorrencia · HoraOcorrencia · PeriodoEstimado · DiaSemana · Flagrante · Rubrica · Conduta · BatalhaoCircunscricao · CompanhiaCircunscricao · MunicipioCircunscricao · Bairro · TipoLocal</div>
+      <div style="margin-top:8px;font-size:14px;color:#c8a84b">⚠ O upload substitui todas as ocorrências anteriores.</div>
     </label>
-    <div id="ocorr-preview" style="display:none;background:var(--s2);border-radius:6px;padding:12px;font-size:13px">
+    <div id="ocorr-preview" style="display:none;background:var(--s2);border-radius:6px;padding:12px;font-size:19px">
       <b id="ocorr-fn" style="color:var(--tx)">—</b><br>
       <span style="color:var(--tx3)">Registros válidos: </span><b id="ocorr-rows" style="color:var(--gold)">—</b>
     </div>
-    <div id="ocorr-msg" style="font-size:13px;display:none"></div>
+    <div id="ocorr-msg" style="font-size:19px;display:none"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button onclick="closeOcorrModal()" style="padding:9px 20px;border-radius:6px;border:1px solid var(--bd2);background:none;color:var(--tx2);cursor:pointer;font-size:14px">Cancelar</button>
-      <button id="ocorr-confirm" onclick="confirmOcorrUpload()" disabled style="padding:9px 20px;border-radius:6px;border:none;background:#3d7abf;color:#fff;cursor:pointer;font-size:14px;font-weight:600">Importar</button>
+      <button onclick="closeOcorrModal()" style="padding:9px 20px;border-radius:6px;border:1px solid var(--bd2);background:none;color:var(--tx2);cursor:pointer;font-size:19px">Cancelar</button>
+      <button id="ocorr-confirm" onclick="confirmOcorrUpload()" disabled style="padding:9px 20px;border-radius:6px;border:none;background:#3d7abf;color:#fff;cursor:pointer;font-size:19px;font-weight:600">Importar</button>
     </div>
   </div>
 </div>
@@ -250,12 +250,12 @@
   <div class="ph" style="position:relative">
     <!-- Última Atualização — canto superior direito, visível a todos -->
     <div style="position:absolute;top:0;right:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px">
-      <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1.5px">ÚLTIMA ATUALIZAÇÃO</span>
+      <span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1.5px">ÚLTIMA ATUALIZAÇÃO</span>
       <div style="display:flex;align-items:center;gap:6px">
         <input id="inp-p1-periodo" type="text" placeholder="Ex: Mar 2026"
-          style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:160px;display:none">
-        <span id="lbl-p1-periodo" style="font-weight:700;font-size:13px;color:var(--tx)">—</span>
-        <button id="btn-p1-edit-periodo" onclick="toggleEditP1Periodo()" style="display:none;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace">✎ Editar</button>
+          style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:19px;outline:none;width:160px;display:none">
+        <span id="lbl-p1-periodo" style="font-weight:700;font-size:19px;color:var(--tx)">—</span>
+        <button id="btn-p1-edit-periodo" onclick="toggleEditP1Periodo()" style="display:none;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:14px;font-family:'DM Mono',monospace">✎ Editar</button>
       </div>
     </div>
     <!-- Título + Buscar + Vagas -->
@@ -270,7 +270,7 @@
         onkeydown="p1SearchKey(event)"
         onfocus="p1SearchInput(this.value)"
         onblur="setTimeout(()=>p1SearchHide(),180)"
-        style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:6px;padding:6px 12px;font-size:12px;width:220px;outline:none">
+        style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:6px;padding:6px 12px;font-size:19px;width:220px;outline:none">
       <div id="p1-search-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;width:320px;background:var(--s1);border:1px solid var(--bd);border-radius:7px;z-index:3000;max-height:260px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.6)"></div>
     </div>
   </div>
@@ -283,18 +283,18 @@
 <div id="p1-upl-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;align-items:center;justify-content:center;padding:20px" onclick="p1UplClickOut(event)">
   <div id="p1-upl-box" style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:28px;width:100%;max-width:520px">
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px;margin-bottom:6px">IMPORTAR <span style="color:#c8a84b">EFETIVO</span></div>
-    <div style="font-size:12px;color:var(--tx3);margin-bottom:16px;line-height:1.7">
+    <div style="font-size:19px;color:var(--tx3);margin-bottom:16px;line-height:1.7">
       Colunas obrigatórias: <b style="color:var(--tx)">OPM · Posto / Grad · RE · Nome Completo</b><br>
       Opcionais: Função, Genero, Nome de Guerra, DATA EAP, Possui Restrição, Tipos de Restrição, Restrição Inicio, Restrição Término.<br>
       <span style="color:#e8c96a">⚠ O upload substitui todo o efetivo anterior.</span>
     </div>
-    <input type="file" id="p1-upl-file" accept=".csv" onchange="p1FileChange()" style="display:block;margin-bottom:14px;color:var(--tx);font-size:13px;width:100%">
-    <div id="p1-upl-preview" style="font-size:12px;color:var(--tx3);margin-bottom:14px;min-height:18px"></div>
+    <input type="file" id="p1-upl-file" accept=".csv" onchange="p1FileChange()" style="display:block;margin-bottom:14px;color:var(--tx);font-size:19px;width:100%">
+    <div id="p1-upl-preview" style="font-size:19px;color:var(--tx3);margin-bottom:14px;min-height:18px"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button onclick="closeP1Upload()" style="padding:7px 18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:4px;cursor:pointer;font-size:13px">Cancelar</button>
-      <button id="p1-upl-btn" onclick="p1ConfirmUpload()" disabled style="padding:7px 18px;background:rgba(200,168,75,.2);border:1px solid rgba(200,168,75,.4);color:var(--gold);border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;opacity:.5">Importar</button>
+      <button onclick="closeP1Upload()" style="padding:7px 18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:4px;cursor:pointer;font-size:19px">Cancelar</button>
+      <button id="p1-upl-btn" onclick="p1ConfirmUpload()" disabled style="padding:7px 18px;background:rgba(200,168,75,.2);border:1px solid rgba(200,168,75,.4);color:var(--gold);border-radius:4px;cursor:pointer;font-size:19px;font-weight:600;opacity:.5">Importar</button>
     </div>
-    <div id="p1-upl-msg" style="margin-top:12px;font-size:12px;min-height:18px"></div>
+    <div id="p1-upl-msg" style="margin-top:12px;font-size:19px;min-height:18px"></div>
   </div>
 </div>
 
@@ -302,19 +302,19 @@
 <div id="af-upl-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;align-items:center;justify-content:center;padding:20px" onclick="afUplClickOut(event)">
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:28px;width:100%;max-width:520px">
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px;margin-bottom:6px">IMPORTAR <span style="color:#5a9de0">AFASTAMENTOS</span></div>
-    <div style="font-size:12px;color:var(--tx3);margin-bottom:16px;line-height:1.7">
+    <div style="font-size:19px;color:var(--tx3);margin-bottom:16px;line-height:1.7">
       Colunas obrigatórias: <b style="color:var(--tx)">RE · Tipo de Afastamento · Início · Término</b><br>
       Opcionais: OPM, Nome, N° de dias, NBI, Bol G, SIPA, SGP, PAF, Obs.<br>
       Datas no formato <b style="color:var(--tx)">DD/MM/AAAA</b>.<br>
       <span style="color:#e8c96a">⚠ O upload substitui todos os afastamentos anteriores.</span>
     </div>
-    <input type="file" id="af-upl-file" accept=".csv" onchange="afFileChange()" style="display:block;margin-bottom:14px;color:var(--tx);font-size:13px;width:100%">
-    <div id="af-upl-preview" style="font-size:12px;color:var(--tx3);margin-bottom:14px;min-height:18px"></div>
+    <input type="file" id="af-upl-file" accept=".csv" onchange="afFileChange()" style="display:block;margin-bottom:14px;color:var(--tx);font-size:19px;width:100%">
+    <div id="af-upl-preview" style="font-size:19px;color:var(--tx3);margin-bottom:14px;min-height:18px"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button onclick="closeAfUpload()" style="padding:7px 18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:4px;cursor:pointer;font-size:13px">Cancelar</button>
-      <button id="af-upl-btn" onclick="afConfirmUpload()" disabled style="padding:7px 18px;background:rgba(90,157,224,.2);border:1px solid rgba(90,157,224,.4);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;opacity:.5">Importar</button>
+      <button onclick="closeAfUpload()" style="padding:7px 18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:4px;cursor:pointer;font-size:19px">Cancelar</button>
+      <button id="af-upl-btn" onclick="afConfirmUpload()" disabled style="padding:7px 18px;background:rgba(90,157,224,.2);border:1px solid rgba(90,157,224,.4);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600;opacity:.5">Importar</button>
     </div>
-    <div id="af-upl-msg" style="margin-top:12px;font-size:12px;min-height:18px"></div>
+    <div id="af-upl-msg" style="margin-top:12px;font-size:19px;min-height:18px"></div>
   </div>
 </div>
 
@@ -331,69 +331,69 @@
         <div id="pronto-foto-edit-area" style="display:none;text-align:center">
           <input id="pronto-foto-file" type="file" accept="image/*" style="display:none" onchange="prontoFotoPreview()">
           <div style="display:flex;gap:4px;justify-content:center">
-            <button onclick="document.getElementById('pronto-foto-file').click()" style="padding:3px 8px;font-size:10px;background:rgba(90,157,224,.15);border:1px solid rgba(90,157,224,.35);color:#5a9de0;border-radius:4px;cursor:pointer">Alterar</button>
-            <button onclick="prontoRemoveFoto()" style="padding:3px 8px;font-size:10px;background:rgba(230,100,100,.1);border:1px solid rgba(230,100,100,.3);color:#e05555;border-radius:4px;cursor:pointer">Remover</button>
+            <button onclick="document.getElementById('pronto-foto-file').click()" style="padding:3px 8px;font-size:14px;background:rgba(90,157,224,.15);border:1px solid rgba(90,157,224,.35);color:#5a9de0;border-radius:4px;cursor:pointer">Alterar</button>
+            <button onclick="prontoRemoveFoto()" style="padding:3px 8px;font-size:14px;background:rgba(230,100,100,.1);border:1px solid rgba(230,100,100,.3);color:#e05555;border-radius:4px;cursor:pointer">Remover</button>
           </div>
-          <button id="pronto-btn-salvar" onclick="prontoSaveFoto()" style="display:none;margin-top:4px;width:100%;padding:3px 8px;font-size:10px;background:rgba(75,200,122,.15);border:1px solid rgba(75,200,122,.35);color:#4bc87a;border-radius:4px;cursor:pointer;font-weight:600">Salvar Foto</button>
-          <div id="pronto-foto-msg" style="font-size:10px;color:var(--tx3);margin-top:3px;max-width:82px;word-break:break-word"></div>
+          <button id="pronto-btn-salvar" onclick="prontoSaveFoto()" style="display:none;margin-top:4px;width:100%;padding:3px 8px;font-size:14px;background:rgba(75,200,122,.15);border:1px solid rgba(75,200,122,.35);color:#4bc87a;border-radius:4px;cursor:pointer;font-weight:600">Salvar Foto</button>
+          <div id="pronto-foto-msg" style="font-size:14px;color:var(--tx3);margin-top:3px;max-width:82px;word-break:break-word"></div>
         </div>
       </div>
       <!-- Dados -->
       <div style="flex:1;min-width:0">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px" id="pronto-re">RE —</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px" id="pronto-re">RE —</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:1px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="pronto-nome">—</div>
-        <div style="font-size:12px;color:var(--tx3);margin-bottom:6px" id="pronto-posto">—</div>
+        <div style="font-size:19px;color:var(--tx3);margin-bottom:6px" id="pronto-posto">—</div>
         <div id="pronto-status"></div>
       </div>
-      <button onclick="closeProntuario()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:12px;flex-shrink:0">✕</button>
+      <button onclick="closeProntuario()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:19px;flex-shrink:0">✕</button>
     </div>
     <!-- Detalhe -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:18px;font-size:12px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:18px;font-size:19px">
       <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">OPM</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">OPM</div>
         <div style="color:var(--tx);font-weight:600" id="pronto-opm">—</div>
       </div>
       <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Função</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Função</div>
         <div style="color:var(--tx)" id="pronto-func">—</div>
       </div>
       <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Nome de Guerra</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Nome de Guerra</div>
         <div style="color:var(--tx)" id="pronto-guerra">—</div>
       </div>
       <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Gênero</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Gênero</div>
         <div style="color:var(--tx)" id="pronto-gen">—</div>
       </div>
       <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">EAP</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">EAP</div>
         <div id="pronto-eap">—</div>
       </div>
       <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Restrição Médica</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Restrição Médica</div>
         <div id="pronto-restr">—</div>
       </div>
       <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">TAF</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">TAF</div>
         <div id="pronto-taf">—</div>
       </div>
       <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">TAT</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">TAT</div>
         <div id="pronto-tat">—</div>
       </div>
     </div>
     <!-- Extrato cronológico -->
     <div style="border-top:1px solid var(--bd);padding-top:16px">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px">Extrato de Afastamentos</div>
+      <div style="font-family:'DM Mono',monospace;font-size:14px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px">Extrato de Afastamentos</div>
       <div style="overflow-x:auto;max-height:260px;overflow-y:auto">
         <table style="width:100%;border-collapse:collapse">
           <thead><tr>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">TIPO</th>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">INÍCIO</th>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">TÉRMINO</th>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">DIAS</th>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">NBI</th>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">BOL G</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">TIPO</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">INÍCIO</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">TÉRMINO</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">DIAS</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">NBI</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">BOL G</th>
             <th style="padding:6px 10px;border-bottom:1px solid var(--bd)"></th>
           </tr></thead>
           <tbody id="pronto-extrato"></tbody>
@@ -402,13 +402,13 @@
     </div>
     <!-- Cursos Institucionais -->
     <div style="border-top:1px solid var(--bd);padding-top:16px;margin-top:16px">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px">Cursos Institucionais</div>
+      <div style="font-family:'DM Mono',monospace;font-size:14px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px">Cursos Institucionais</div>
       <div style="overflow-x:auto;max-height:200px;overflow-y:auto">
         <table style="width:100%;border-collapse:collapse">
           <thead><tr>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">DATA</th>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">CURSO</th>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">POSTO</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">DATA</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">CURSO</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">POSTO</th>
           </tr></thead>
           <tbody id="pronto-cursos"></tbody>
         </table>
@@ -422,16 +422,16 @@
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:28px;width:100%;max-width:520px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px">QUADRO <span style="color:#5a9de0">FIXADO</span></div>
-      <button onclick="closeQuadroUpload()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:12px">✕</button>
+      <button onclick="closeQuadroUpload()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:19px">✕</button>
     </div>
-    <div style="font-size:12px;color:var(--tx3);margin-bottom:16px">Importe o CSV com o quadro fixado do efetivo. <span style="color:#e8c96a">⚠ O upload substitui todos os dados anteriores.</span></div>
-    <input type="file" id="quadro-upl-file" accept=".csv" onchange="quadroFileChange()" style="display:block;margin-bottom:14px;color:var(--tx);font-size:13px;width:100%">
-    <div id="quadro-upl-preview" style="font-size:12px;color:var(--tx3);margin-bottom:14px;min-height:18px"></div>
+    <div style="font-size:19px;color:var(--tx3);margin-bottom:16px">Importe o CSV com o quadro fixado do efetivo. <span style="color:#e8c96a">⚠ O upload substitui todos os dados anteriores.</span></div>
+    <input type="file" id="quadro-upl-file" accept=".csv" onchange="quadroFileChange()" style="display:block;margin-bottom:14px;color:var(--tx);font-size:19px;width:100%">
+    <div id="quadro-upl-preview" style="font-size:19px;color:var(--tx3);margin-bottom:14px;min-height:18px"></div>
     <div style="display:flex;gap:8px">
-      <button onclick="closeQuadroUpload()" style="padding:7px 16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--tx3);border-radius:4px;cursor:pointer;font-size:13px">Cancelar</button>
-      <button id="quadro-upl-btn" onclick="quadroConfirmUpload()" disabled style="padding:7px 18px;background:rgba(200,168,75,.2);border:1px solid rgba(200,168,75,.4);color:var(--gold);border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;opacity:.5">Importar</button>
+      <button onclick="closeQuadroUpload()" style="padding:7px 16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--tx3);border-radius:4px;cursor:pointer;font-size:19px">Cancelar</button>
+      <button id="quadro-upl-btn" onclick="quadroConfirmUpload()" disabled style="padding:7px 18px;background:rgba(200,168,75,.2);border:1px solid rgba(200,168,75,.4);color:var(--gold);border-radius:4px;cursor:pointer;font-size:19px;font-weight:600;opacity:.5">Importar</button>
     </div>
-    <div id="quadro-upl-msg" style="margin-top:12px;font-size:12px;min-height:18px"></div>
+    <div id="quadro-upl-msg" style="margin-top:12px;font-size:19px;min-height:18px"></div>
   </div>
 </div>
 
@@ -440,14 +440,14 @@
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:26px;width:100%;max-width:480px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
       <div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">SEÇÃO P1</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">SEÇÃO P1</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px">EFETIVO <span style="color:#5a9de0">FIXADO</span></div>
       </div>
-      <button onclick="closeVagasModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:12px">✕</button>
+      <button onclick="closeVagasModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:19px">✕</button>
     </div>
-    <div style="font-size:11px;color:var(--tx3);margin-bottom:16px">Defina o efetivo autorizado (vagas) por unidade para calcular o claro operacional.</div>
+    <div style="font-size:19px;color:var(--tx3);margin-bottom:16px">Defina o efetivo autorizado (vagas) por unidade para calcular o claro operacional.</div>
     <div id="vagas-tbl" style="max-height:360px;overflow-y:auto"></div>
-    <div id="vagas-msg" style="margin-top:10px;font-size:12px;min-height:16px"></div>
+    <div id="vagas-msg" style="margin-top:10px;font-size:19px;min-height:16px"></div>
   </div>
 </div>
 
@@ -456,11 +456,11 @@
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:26px;width:100%;max-width:360px">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px">
       <div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px" id="foto-mo-re">RE —</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px" id="foto-mo-re">RE —</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px;color:var(--tx)" id="foto-mo-nome">—</div>
-        <div style="font-size:12px;color:var(--tx3)" id="foto-mo-posto">—</div>
+        <div style="font-size:19px;color:var(--tx3)" id="foto-mo-posto">—</div>
       </div>
-      <button onclick="closeFotoModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:12px;flex-shrink:0">✕</button>
+      <button onclick="closeFotoModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:19px;flex-shrink:0">✕</button>
     </div>
     <!-- Foto atual -->
     <div style="display:flex;justify-content:center;margin-bottom:18px">
@@ -470,20 +470,20 @@
       </div>
     </div>
     <!-- Nota para usuários sem permissão de edição -->
-    <div id="foto-readonly-note" style="display:none;font-size:11px;color:var(--tx3);text-align:center;margin-bottom:10px">Foto gerenciada pela <span style="color:var(--gold)">Seção P1</span></div>
+    <div id="foto-readonly-note" style="display:none;font-size:14px;color:var(--tx3);text-align:center;margin-bottom:10px">Foto gerenciada pela <span style="color:var(--gold)">Seção P1</span></div>
     <!-- Área de edição — visível apenas para role 'p1' / 'admin' -->
     <div id="foto-edit-area" style="display:none">
       <div style="border-top:1px solid var(--bd);padding-top:14px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Gerenciar Foto</div>
-        <input type="file" id="foto-file-input" accept="image/*" onchange="fotoPreviewChange()" style="display:block;width:100%;margin-bottom:10px;color:var(--tx);font-size:12px">
+        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Gerenciar Foto</div>
+        <input type="file" id="foto-file-input" accept="image/*" onchange="fotoPreviewChange()" style="display:block;width:100%;margin-bottom:10px;color:var(--tx);font-size:19px">
         <div style="display:flex;gap:8px">
-          <button onclick="p1SaveFoto()" style="flex:1;padding:7px;background:rgba(200,168,75,.2);border:1px solid rgba(200,168,75,.4);color:var(--gold);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600">Salvar</button>
-          <button onclick="p1RemoveFoto()" style="padding:7px 12px;background:rgba(230,100,100,.1);border:1px solid rgba(230,100,100,.2);color:#f07878;border-radius:4px;cursor:pointer;font-size:12px">Remover</button>
+          <button onclick="p1SaveFoto()" style="flex:1;padding:7px;background:rgba(200,168,75,.2);border:1px solid rgba(200,168,75,.4);color:var(--gold);border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">Salvar</button>
+          <button onclick="p1RemoveFoto()" style="padding:7px 12px;background:rgba(230,100,100,.1);border:1px solid rgba(230,100,100,.2);color:#f07878;border-radius:4px;cursor:pointer;font-size:19px">Remover</button>
         </div>
       </div>
     </div>
     <input type="hidden" id="foto-mo-re-data">
-    <div id="foto-mo-msg" style="margin-top:10px;font-size:12px;text-align:center;min-height:16px"></div>
+    <div id="foto-mo-msg" style="margin-top:10px;font-size:19px;text-align:center;min-height:16px"></div>
   </div>
 </div>
 
@@ -491,7 +491,7 @@
 <div id="page-p3prod" class="page">
   <div class="ph">
     <div>
-      <div style="font-size:13px;color:var(--tx3);letter-spacing:2px;font-weight:600;margin-bottom:2px">P3 · DIVISÃO OPERACIONAL</div>
+      <div style="font-size:19px;color:var(--tx3);letter-spacing:2px;font-weight:600;margin-bottom:2px">P3 · DIVISÃO OPERACIONAL</div>
       <div class="ph-tag">PRODUTIVIDADE</div>
       <div class="ph-title">INDICADORES DE <span>PRODUTIVIDADE</span></div>
     </div>
@@ -506,13 +506,13 @@
 <div id="dd-upl-mo" onclick="ddUplClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;align-items:center;justify-content:center">
   <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:10px;padding:24px;width:min(440px,92vw);max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:6px">Importar Disque Denúncia</div>
-    <div style="font-size:12px;color:var(--tx3);margin-bottom:14px;font-family:'DM Mono',monospace">Colunas esperadas: Data · Cia · Nº Disque Denuncia · Data do Atendimento · Status · Flagrante · Quant. Presos</div>
-    <input type="file" accept=".csv" id="dd-upl-file" onchange="ddUplFileChange()" style="width:100%;margin-bottom:10px;color:var(--tx);font-size:12px">
-    <div id="dd-upl-preview" style="font-size:12px;margin-bottom:10px;min-height:20px"></div>
-    <div id="dd-upl-msg" style="font-size:12px;margin-bottom:10px;min-height:16px"></div>
+    <div style="font-size:19px;color:var(--tx3);margin-bottom:14px;font-family:'DM Mono',monospace">Colunas esperadas: Data · Cia · Nº Disque Denuncia · Data do Atendimento · Status · Flagrante · Quant. Presos</div>
+    <input type="file" accept=".csv" id="dd-upl-file" onchange="ddUplFileChange()" style="width:100%;margin-bottom:10px;color:var(--tx);font-size:19px">
+    <div id="dd-upl-preview" style="font-size:19px;margin-bottom:10px;min-height:20px"></div>
+    <div id="dd-upl-msg" style="font-size:19px;margin-bottom:10px;min-height:16px"></div>
     <div style="display:flex;gap:8px">
-      <button id="dd-upl-btn" onclick="ddUplConfirm()" disabled style="flex:1;padding:8px;background:var(--gold);color:#111;border:none;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;opacity:.5">Importar</button>
-      <button onclick="closeDDUpl()" style="padding:8px 16px;background:var(--bg3);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-size:13px;cursor:pointer">Cancelar</button>
+      <button id="dd-upl-btn" onclick="ddUplConfirm()" disabled style="flex:1;padding:8px;background:var(--gold);color:#111;border:none;border-radius:6px;font-weight:700;font-size:19px;cursor:pointer;opacity:.5">Importar</button>
+      <button onclick="closeDDUpl()" style="padding:8px 16px;background:var(--bg3);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-size:19px;cursor:pointer">Cancelar</button>
     </div>
   </div>
 </div>
@@ -522,10 +522,10 @@
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:24px;width:min(500px,95vw);max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
     <div id="dd-mo-title" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:18px">Novo Registro</div>
     <div id="dd-mo-body"></div>
-    <div id="dd-mo-msg" style="margin-top:10px;font-size:13px;min-height:18px;color:#f07878"></div>
+    <div id="dd-mo-msg" style="margin-top:10px;font-size:19px;min-height:18px;color:#f07878"></div>
     <div style="display:flex;gap:10px;margin-top:16px">
-      <button onclick="ddSave()" style="flex:1;padding:9px;background:var(--gold);color:#111;border:none;border-radius:6px;font-weight:700;font-size:14px;cursor:pointer">Salvar</button>
-      <button onclick="closeDDMo()" style="padding:9px 18px;background:transparent;border:1px solid var(--bd2);color:var(--tx3);border-radius:6px;cursor:pointer;font-size:13px">Cancelar</button>
+      <button onclick="ddSave()" style="flex:1;padding:9px;background:var(--gold);color:#111;border:none;border-radius:6px;font-weight:700;font-size:19px;cursor:pointer">Salvar</button>
+      <button onclick="closeDDMo()" style="padding:9px 18px;background:transparent;border:1px solid var(--bd2);color:var(--tx3);border-radius:6px;cursor:pointer;font-size:19px">Cancelar</button>
     </div>
   </div>
 </div>
@@ -535,10 +535,10 @@
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:24px;width:min(540px,95vw);max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
     <div id="iq-mo-title" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:18px">Preencher Indicadores</div>
     <div id="iq-mo-body"></div>
-    <div id="iq-mo-msg" style="margin-top:10px;font-size:13px;min-height:18px"></div>
+    <div id="iq-mo-msg" style="margin-top:10px;font-size:19px;min-height:18px"></div>
     <div style="display:flex;gap:10px;margin-top:16px">
-      <button onclick="iqSave()" style="flex:1;padding:9px;background:var(--gold);color:#111;border:none;border-radius:6px;font-weight:700;font-size:14px;cursor:pointer">Salvar</button>
-      <button onclick="closeIqMo()" style="padding:9px 18px;background:transparent;border:1px solid var(--bd2);color:var(--tx3);border-radius:6px;cursor:pointer;font-size:13px">Cancelar</button>
+      <button onclick="iqSave()" style="flex:1;padding:9px;background:var(--gold);color:#111;border:none;border-radius:6px;font-weight:700;font-size:19px;cursor:pointer">Salvar</button>
+      <button onclick="closeIqMo()" style="padding:9px 18px;background:transparent;border:1px solid var(--bd2);color:var(--tx3);border-radius:6px;cursor:pointer;font-size:19px">Cancelar</button>
     </div>
   </div>
 </div>
@@ -547,13 +547,13 @@
 <div id="prod-upl-mo" onclick="prodUplClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;align-items:center;justify-content:center">
   <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:10px;padding:24px;width:min(420px,92vw);max-height:90vh;overflow-y:auto">
     <div id="prod-upl-title" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:6px">Importar</div>
-    <div id="prod-upl-hint" style="font-size:11px;color:var(--tx3);margin-bottom:12px;font-family:'DM Mono',monospace;line-height:1.5"></div>
-    <input type="file" accept=".csv" id="prod-upl-file" onchange="prodUplFileChange()" style="width:100%;margin-bottom:10px;color:var(--tx);font-size:12px">
-    <div id="prod-upl-preview" style="font-size:12px;margin-bottom:10px;min-height:20px"></div>
-    <div id="prod-upl-msg" style="font-size:12px;margin-bottom:10px;min-height:16px"></div>
+    <div id="prod-upl-hint" style="font-size:14px;color:var(--tx3);margin-bottom:12px;font-family:'DM Mono',monospace;line-height:1.5"></div>
+    <input type="file" accept=".csv" id="prod-upl-file" onchange="prodUplFileChange()" style="width:100%;margin-bottom:10px;color:var(--tx);font-size:19px">
+    <div id="prod-upl-preview" style="font-size:19px;margin-bottom:10px;min-height:20px"></div>
+    <div id="prod-upl-msg" style="font-size:19px;margin-bottom:10px;min-height:16px"></div>
     <div style="display:flex;gap:8px">
-      <button id="prod-upl-btn" onclick="prodUplConfirm()" disabled style="flex:1;padding:8px;background:var(--gold);color:#111;border:none;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;opacity:.5">Importar</button>
-      <button onclick="closeProdUpl()" style="padding:8px 16px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-size:13px;cursor:pointer">Cancelar</button>
+      <button id="prod-upl-btn" onclick="prodUplConfirm()" disabled style="flex:1;padding:8px;background:var(--gold);color:#111;border:none;border-radius:6px;font-weight:700;font-size:19px;cursor:pointer;opacity:.5">Importar</button>
+      <button onclick="closeProdUpl()" style="padding:8px 16px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-size:19px;cursor:pointer">Cancelar</button>
     </div>
   </div>
 </div>
@@ -664,24 +664,24 @@
     </div>
     <div class="ph-meta">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:1px">SSP</span>
+        <span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">SSP</span>
         <input id="inp-p3-periodo" type="text" placeholder="Ex: Jan – Mar 2026"
-          style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:180px;display:none"
+          style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:19px;outline:none;width:180px;display:none"
           oninput="savePeriodo(this.value)">
-        <span id="lbl-p3-periodo" style="font-weight:700;font-size:14px">—</span>
-        <button id="btn-edit-periodo" onclick="toggleEditPeriodo()" style="display:none;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace">✎ Editar</button>
+        <span id="lbl-p3-periodo" style="font-weight:700;font-size:19px">—</span>
+        <button id="btn-edit-periodo" onclick="toggleEditPeriodo()" style="display:none;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:14px;font-family:'DM Mono',monospace">✎ Editar</button>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:1px">INFOCRIM</span>
+        <span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">INFOCRIM</span>
         <input id="inp-fonte" type="text" placeholder="Ex: Banco de Dados RAC"
-          style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:220px;display:none"
+          style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:19px;outline:none;width:220px;display:none"
           oninput="saveFonte(this.value)">
-        <span id="lbl-fonte" style="font-size:14px;font-weight:600;color:var(--tx2)">—</span>
-        <button id="btn-edit-fonte" onclick="toggleEditFonte()" style="display:none;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace">✎ Editar</button>
+        <span id="lbl-fonte" style="font-size:19px;font-weight:600;color:var(--tx2)">—</span>
+        <button id="btn-edit-fonte" onclick="toggleEditFonte()" style="display:none;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:14px;font-family:'DM Mono',monospace">✎ Editar</button>
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
-        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1px">UPLOAD</span>
-        <span id="sync-time" style="font-size:12px;color:var(--tx3)">—</span>
+        <span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">UPLOAD</span>
+        <span id="sync-time" style="font-size:19px;color:var(--tx3)">—</span>
       </div>
     </div>
   </div>
@@ -704,9 +704,9 @@
     <div class="ins-grid" id="ins-grid"></div>
   </div>
   <div class="card" style="margin-bottom:14px">
-    <div class="card-head"><div class="card-title" style="display:flex;align-items:center;flex-wrap:wrap;gap:12px;font-size:17px">
+    <div class="card-head"><div class="card-title" style="display:flex;align-items:center;flex-wrap:wrap;gap:12px;font-size:19px">
       Meta vs Avaliado
-      <span style="display:inline-flex;align-items:center;gap:16px;font-size:14px;font-weight:400;color:var(--tx)">
+      <span style="display:inline-flex;align-items:center;gap:16px;font-size:19px;font-weight:400;color:var(--tx)">
         <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:50%;background:rgba(61,191,122,.85);flex-shrink:0;display:inline-block"></span>Dentro da meta</span>
         <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:50%;background:rgba(191,122,61,.9);flex-shrink:0;display:inline-block"></span>Acima da meta, melhor que mês anterior</span>
         <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:50%;background:rgba(230,100,100,.85);flex-shrink:0;display:inline-block"></span>Acima da meta</span>
@@ -729,7 +729,7 @@
   </div>
   <div class="card" style="margin-top:14px">
     <div class="card-head">
-      <div class="card-title" style="display:flex;align-items:center;gap:12px;font-size:17px;font-weight:700">
+      <div class="card-title" style="display:flex;align-items:center;gap:12px;font-size:19px;font-weight:700">
         Evolução por Município
         <select id="evol-mun-crime" onchange="renderEvolMuns()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-size:20px;font-weight:700;cursor:pointer"></select>
       </div>
@@ -792,6 +792,6 @@
   <div class="card"><div class="card-head"><div class="card-title" id="evol-tbl-title">Tabela — Municípios × Meses</div></div><div style="overflow-x:auto"><table class="tbl" id="tbl-evol"></table></div></div>
 </div>
 </main>
-<script src="js/app.js?v=20260602b"></script>
+<script src="js/app.js?v=20260602c"></script>
 </body>
 </html>
