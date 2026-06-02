@@ -132,7 +132,7 @@
               <div style="font-family:'DM Mono',monospace;font-size:22px;color:#f4f6fc;letter-spacing:1.5px;text-align:center;margin-bottom:8px;text-transform:uppercase">Homicídio × Feminicídio</div>
               <canvas id="mo-fem-chart"></canvas>
             </div>
-            <div id="mo-fem-legend" style="font-size:16px;line-height:2.2"></div>
+            <div id="mo-fem-legend" style="font-size:19px;line-height:2.2"></div>
           </div>
         </div>
       </div>
@@ -148,7 +148,7 @@
           <div class="mo-ct">Ocorrências Registradas — InfoCrim</div>
           <div id="mo-ocorr-filters" style="display:flex;gap:6px;flex-wrap:wrap"></div>
         </div>
-        <div id="mo-ocorr-table" style="overflow-x:auto;max-height:340px;overflow-y:auto;font-size:15px"></div>
+        <div id="mo-ocorr-table" style="overflow-x:auto;max-height:340px;overflow-y:auto;font-size:19px"></div>
       </div>
 
       <!-- INTELIGÊNCIA OPERACIONAL -->
@@ -505,7 +505,7 @@
 <!-- Modal Upload Disque Denúncia -->
 <div id="dd-upl-mo" onclick="ddUplClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;align-items:center;justify-content:center">
   <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:10px;padding:24px;width:min(440px,92vw);max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:6px">Importar Disque Denúncia</div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:6px">Importar Disque Denúncia</div>
     <div style="font-size:12px;color:var(--tx3);margin-bottom:14px;font-family:'DM Mono',monospace">Colunas esperadas: Data · Cia · Nº Disque Denuncia · Data do Atendimento · Status · Flagrante · Quant. Presos</div>
     <input type="file" accept=".csv" id="dd-upl-file" onchange="ddUplFileChange()" style="width:100%;margin-bottom:10px;color:var(--tx);font-size:12px">
     <div id="dd-upl-preview" style="font-size:12px;margin-bottom:10px;min-height:20px"></div>
@@ -520,7 +520,7 @@
 <!-- Modal Disque Denúncia -->
 <div id="dd-mo" onclick="ddMoClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;align-items:center;justify-content:center">
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:24px;width:min(500px,95vw);max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
-    <div id="dd-mo-title" style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:18px">Novo Registro</div>
+    <div id="dd-mo-title" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:18px">Novo Registro</div>
     <div id="dd-mo-body"></div>
     <div id="dd-mo-msg" style="margin-top:10px;font-size:13px;min-height:18px;color:#f07878"></div>
     <div style="display:flex;gap:10px;margin-top:16px">
@@ -533,7 +533,7 @@
 <!-- Modal Indicadores de Qualidade -->
 <div id="iq-mo" onclick="iqMoClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;align-items:center;justify-content:center">
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:24px;width:min(540px,95vw);max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
-    <div id="iq-mo-title" style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:18px">Preencher Indicadores</div>
+    <div id="iq-mo-title" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:18px">Preencher Indicadores</div>
     <div id="iq-mo-body"></div>
     <div id="iq-mo-msg" style="margin-top:10px;font-size:13px;min-height:18px"></div>
     <div style="display:flex;gap:10px;margin-top:16px">
@@ -546,7 +546,7 @@
 <!-- Modal upload Produtividade (genérico) -->
 <div id="prod-upl-mo" onclick="prodUplClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;align-items:center;justify-content:center">
   <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:10px;padding:24px;width:min(420px,92vw);max-height:90vh;overflow-y:auto">
-    <div id="prod-upl-title" style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:6px">Importar</div>
+    <div id="prod-upl-title" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:6px">Importar</div>
     <div id="prod-upl-hint" style="font-size:11px;color:var(--tx3);margin-bottom:12px;font-family:'DM Mono',monospace;line-height:1.5"></div>
     <input type="file" accept=".csv" id="prod-upl-file" onchange="prodUplFileChange()" style="width:100%;margin-bottom:10px;color:var(--tx);font-size:12px">
     <div id="prod-upl-preview" style="font-size:12px;margin-bottom:10px;min-height:20px"></div>

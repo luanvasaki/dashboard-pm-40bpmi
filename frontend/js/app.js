@@ -1579,7 +1579,7 @@ function renderEvolucao() {
       const hasRec = q({ crime, mun, mes: MESES[i] }).length > 0;
       return `<td style="text-align:center;padding:6px 8px">
         ${hasRec ? `<div style="font-family:'DM Mono',monospace;font-size:17px;font-weight:700;color:${color}">${a}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:var(--tx3);margin-top:2px">meta: ${mt}</div>` : '<div style="color:var(--tx3)">—</div>'}
+        <div style="font-family:'DM Mono',monospace;font-size:19px;font-weight:500;color:var(--tx3);margin-top:2px">meta: ${mt}</div>` : '<div style="color:var(--tx3)">—</div>'}
       </td>`;
     }).join('');
 
@@ -1589,7 +1589,7 @@ function renderEvolucao() {
       ${cells}
       <td style="text-align:center;padding:6px 8px">
         <div style="font-family:'DM Mono',monospace;font-size:17px;font-weight:700">${tot}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:var(--tx3);margin-top:2px">meta: ${totMeta}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;font-weight:500;color:var(--tx3);margin-top:2px">meta: ${totMeta}</div>
       </td>
       <td><span class="pill ${pc}">${pt}</span></td>
     </tr>`;
@@ -2841,7 +2841,7 @@ function renderP1() {
   kpisEl.style.gridTemplateColumns = 'repeat(auto-fill,minmax(210px,1fr))';
   const kpiCard = (label, val, sub, color, key) =>
     `<div onclick="p1ShowKpiDetail('${key}')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:22px 24px;cursor:pointer;transition:all .2s;min-height:140px;display:flex;flex-direction:column;justify-content:space-between" onmouseover="this.style.borderColor='${color}';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform=''">
-      <div style="font-family:'DM Mono',monospace;font-size:15px;letter-spacing:2px;color:var(--tx);text-transform:uppercase">${label}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:var(--tx);text-transform:uppercase">${label}</div>
       <div style="font-size:34px;font-weight:800;color:${color};font-family:'Barlow Condensed',sans-serif;line-height:1;margin:8px 0 6px">${val}</div>
       <div>
         ${sub ? `<div style="font-size:13px;color:var(--tx3);margin-bottom:8px;line-height:1.4">${sub}</div>` : ''}
@@ -2882,7 +2882,7 @@ function renderP1() {
       return kpiCard('Quadro Fixado', `${gtClaro >= 0 ? '−' : '+'}${Math.abs(gtClaro)}`, sub, cor, 'quadro');
     })();
 
-  const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:15px;color:#ffffff;letter-spacing:1px;text-transform:uppercase;text-align:right';
+  const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:19px;color:#ffffff;letter-spacing:1px;text-transform:uppercase;text-align:right';
   const thL = thS.replace('text-align:right','text-align:left');
   const tdS = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-family:"DM Mono",monospace;font-size:12px;color:var(--tx3);text-align:right';
   const tdL = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px;font-weight:600;color:var(--tx)';
@@ -2915,7 +2915,7 @@ function renderP1() {
     }).join('');
     afastSection = `
       <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow-x:auto;margin-bottom:14px">
-        <div style="font-family:'DM Mono',monospace;font-size:15px;letter-spacing:2px;color:#e05555;padding:14px 16px 0;text-transform:uppercase">Afastamentos — ${pmAfastados.length}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#e05555;padding:14px 16px 0;text-transform:uppercase">Afastamentos — ${pmAfastados.length}</div>
         <table style="width:100%;border-collapse:collapse;margin-top:8px">
           <thead><tr>
             <th style="${thL};width:44px;padding:8px 4px 8px 8px"></th><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome de Guerra</th><th style="${thL}">OPM</th>
@@ -2968,7 +2968,7 @@ function renderP1() {
   if (alertItems.length) {
     alertSection = `
       <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-bottom:14px">
-        <div style="font-family:'DM Mono',monospace;font-size:15px;letter-spacing:2px;color:#c8a84b;padding:14px 16px 8px;text-transform:uppercase">Alertas</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#c8a84b;padding:14px 16px 8px;text-transform:uppercase">Alertas</div>
         ${alertItems.join('')}
       </div>`;
   }
@@ -3135,7 +3135,7 @@ function renderP1() {
         </div>`).join('');
       claroSection = `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin-bottom:14px">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px">
-          <div style="font-family:'DM Mono',monospace;font-size:15px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase">Claro Operacional — Ranking por Disponibilidade</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase">Claro Operacional — Ranking por Disponibilidade</div>
           <button onclick="openVagasModal()" style="font-size:10px;padding:3px 10px;background:rgba(90,157,224,.1);border:1px solid rgba(90,157,224,.25);color:#5a9de0;border-radius:4px;cursor:pointer">⚙ Editar Vagas</button>
         </div>
         ${rows}
@@ -3144,7 +3144,7 @@ function renderP1() {
   } else if (['p1','ti'].includes(_claroRole)) {
     claroSection = `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
       <div>
-        <div style="font-family:'DM Mono',monospace;font-size:15px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;margin-bottom:4px">Claro Operacional</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;margin-bottom:4px">Claro Operacional</div>
         <div style="font-size:12px;color:var(--tx3)">Configure o efetivo fixado (vagas) para calcular o claro operacional por unidade.</div>
       </div>
       <button onclick="openVagasModal()" style="padding:7px 16px;background:rgba(90,157,224,.15);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap">⚙ Configurar Vagas</button>
@@ -3228,7 +3228,7 @@ function renderP1() {
 
   bodyEl.innerHTML = claroSection + `
     <div style="margin-bottom:6px">
-      <div style="font-family:'DM Mono',monospace;font-size:15px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia <span style="font-weight:400">· clique na sub-unidade para ver os PMs</span></div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia <span style="font-weight:400">· clique na sub-unidade para ver os PMs</span></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
         ${ciaCards}${unmatchedCards}
       </div>
@@ -3834,7 +3834,7 @@ function p1ShowKpiDetail(tipo) {
           <span style="font-size:12px;color:#5a9de0;margin-left:6px">${r.cia}</span>
           ${bar}
         </div>
-        <span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:800;color:${cor};white-space:nowrap">−${r.claro} <span style="font-size:12px;font-weight:400">(${pct}%)</span></span>
+        <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:800;color:${cor};white-space:nowrap">−${r.claro} <span style="font-size:14px;font-weight:400">(${pct}%)</span></span>
       </div>`;
     }).join('');
 
@@ -3903,10 +3903,10 @@ function p1ShowKpiDetail(tipo) {
       bodyQ += `<tr style="border-top:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05)">
         <td style="${tdcL};text-transform:uppercase;font-size:11px;letter-spacing:1px;color:var(--tx2)" colspan="2">Total Geral</td>
         <td style="${tdc};color:#fff;font-weight:700;font-size:13px">${gtFxSub}</td>
-        <td style="${tdc};font-size:15px;font-weight:900;color:${cColor(gtCSub)}">${cVal(gtCSub)}</td>
+        <td style="${tdc};font-size:19px;font-weight:900;color:${cColor(gtCSub)}">${cVal(gtCSub)}</td>
         <td style="${tdc};font-size:12px;color:${cColor(gtCSub)}">${cPct(gtCSub,gtFxSub)}</td>
         <td style="${tdc};color:#fff;font-weight:700;font-size:13px">${gtFxCb}</td>
-        <td style="${tdc};font-size:15px;font-weight:900;color:${cColor(gtCCb)}">${cVal(gtCCb)}</td>
+        <td style="${tdc};font-size:19px;font-weight:900;color:${cColor(gtCCb)}">${cVal(gtCCb)}</td>
         <td style="${tdc};font-size:12px;color:${cColor(gtCCb)}">${cPct(gtCCb,gtFxCb)}</td>
       </tr>`;
     }
@@ -5109,7 +5109,7 @@ function renderHome() {
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:600;color:#ffffff;letter-spacing:.5px">${s.title}</div>
       </div>
       <div style="font-size:14px;color:#ffffff;line-height:1.7">${s.desc}</div>
-      ${s.preview || (!s.soon ? `<div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px;font-family:'DM Mono',monospace;font-size:13px;color:${s.color};display:flex;align-items:center;gap:6px">Acessar <span style="font-size:16px">→</span></div>` : '')}
+      ${s.preview || (!s.soon ? `<div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px;font-family:'DM Mono',monospace;font-size:13px;color:${s.color};display:flex;align-items:center;gap:6px">Acessar <span style="font-size:19px">→</span></div>` : '')}
     </div>`;
   }).join('');
 
@@ -5617,7 +5617,7 @@ function prodRender() {
       ${pct !== null ? `
       <div style="margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <span style="font-family:'DM Mono',monospace;font-size:15px;color:var(--tx3)">do efetivo (${totalEfetivo} PMs)</span>
+          <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">do efetivo (${totalEfetivo} PMs)</span>
           <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:700;color:${COR_CAP}">${pct}%</span>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px">
@@ -5723,12 +5723,12 @@ function prodRender() {
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           <div style="flex:1;background:rgba(255,255,255,.03);border-radius:6px;padding:8px 10px;text-align:center">
-            <div style="font-family:'DM Mono',monospace;font-size:15px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">${MES_ABREV[mesA] || mesA.slice(0,3)}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">${MES_ABREV[mesA] || mesA.slice(0,3)}</div>
             <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx2);font-weight:600">${vA.toLocaleString('pt-BR')}</div>
           </div>
           <div style="color:var(--tx3);font-size:14px">›</div>
           <div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:8px 10px;text-align:center;border:1px solid ${cor}44">
-            <div style="font-family:'DM Mono',monospace;font-size:15px;color:${cor};letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">${MES_ABREV[mesB] || mesB.slice(0,3)}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:19px;color:${cor};letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">${MES_ABREV[mesB] || mesB.slice(0,3)}</div>
             <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx);font-weight:700">${vB.toLocaleString('pt-BR')}</div>
           </div>
         </div>
@@ -6141,7 +6141,7 @@ function renderTRModalDetail() {
   `;
 
   const cardTop = (cor, title, subtitle) =>
-    `<div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:${subtitle ? '2' : '14'}px">${title}</div>
+    `<div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:${subtitle ? '2' : '14'}px">${title}</div>
      ${subtitle ? `<div style="font-size:13px;color:var(--tx3);margin-bottom:12px">${subtitle}</div>` : ''}`;
 
   const barRow = (name, val, barPct, cor, sub) =>
@@ -6380,17 +6380,17 @@ function renderCursosModalDetail() {
   const chartsEl = document.getElementById('pd-charts');
   chartsEl.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px">Evolução Mensal</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px">Evolução Mensal</div>
       <canvas id="cursos-evo" style="height:420px;max-height:420px"></canvas>
       <div id="cursos-evo-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>
     <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px">Distribuição por Tipo</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px">Distribuição por Tipo</div>
       <canvas id="cursos-tipo" style="height:420px;max-height:420px"></canvas>
       <div id="cursos-tipo-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>
     <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:12px">Lista de Cursos</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:12px">Lista de Cursos</div>
       ${!cursosList.length ? `<div style="color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>` : `
       <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
         <table style="width:100%;border-collapse:collapse">
@@ -6533,7 +6533,7 @@ async function renderTafTatModalDetail() {
 
   const chartsEl = document.getElementById('pd-charts');
   const cardSt = 'background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px';
-  const titSt  = `font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px`;
+  const titSt  = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px`;
   chartsEl.innerHTML = `
     <div style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div style="${cardSt}">
@@ -6550,7 +6550,7 @@ async function renderTafTatModalDetail() {
       <canvas id="taftat-compare" style="height:480px;max-height:480px"></canvas>
     </div>`;
 
-  const legendOpts = { position:'bottom', labels:{ color:'rgba(255,255,255,.9)', font:{size:16}, padding:20, boxWidth:16 } };
+  const legendOpts = { position:'bottom', labels:{ color:'rgba(255,255,255,.9)', font:{size:19}, padding:20, boxWidth:16 } };
 
   // Doughnut TAF
   if (tafLbls.some(l => l !== 'Sem dados')) {
@@ -6642,7 +6642,7 @@ function renderProdDetail() {
   const chartsEl = document.getElementById('pd-charts');
   const cardHtml = (id, label, full) =>
     `<div style="${full ? 'grid-column:1/-1;' : ''}background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:10px">${label}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:10px">${label}</div>
       <canvas id="${id}"></canvas>
       <div id="${id}-empty" style="display:none;color:var(--tx3);font-size:12px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>`;
@@ -6652,7 +6652,7 @@ function renderProdDetail() {
   if (!pdNatFilter) html += cardHtml('pd-cat', 'Detalhamento por Categoria', true);
   if (tipo === 'ocorrencias') {
     html += `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:12px">Natureza × Mês</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:12px">Natureza × Mês</div>
       <div id="pd-matriz" style="overflow-x:auto;font-size:14px"></div>
     </div>`;
   }
@@ -6663,8 +6663,8 @@ function renderProdDetail() {
     indexAxis: 'y', responsive: true,
     plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
     scales: {
-      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 15 } } },
-      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.80)', font: { size: 15 } } }
+      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } } },
+      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.80)', font: { size: 19 } } }
     }
   };
 
@@ -6733,7 +6733,7 @@ function renderProdDetail() {
             legend: { display: true, position: 'top', labels: { color: '#f4f6fc', font: { size: 13, family: "'DM Sans',sans-serif" }, padding: 18, usePointStyle: true, pointStyleWidth: 10 } },
             tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw.toLocaleString('pt-BR')}` } }
           },
-          scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 15 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 15 } } } }
+          scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 19 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } } } }
         }
       }));
     }
@@ -6919,7 +6919,7 @@ function renderProdDetail() {
     // ── HTML: mini-KPI helper ──
     const mkpi = (lbl, val, sub, c) =>
       `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${c};border-radius:8px;padding:12px 14px;min-width:110px;flex:1">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${c};margin-bottom:5px">${lbl}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${c};margin-bottom:5px">${lbl}</div>
         <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:700;color:#ffffff;line-height:1">${val}</div>
         ${sub?`<div style="font-size:13px;color:#ffffff;margin-top:4px">${sub}</div>`:''}
       </div>`;
@@ -6939,7 +6939,7 @@ function renderProdDetail() {
     // ── Reiterações detalhadas ──
     const reiterHtml = (() => {
       if (!reiterantes.length) return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #9b6de0;border-radius:8px;padding:14px 16px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#9b6de0;margin-bottom:8px">Reiterações</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#9b6de0;margin-bottom:8px">Reiterações</div>
         <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:#fff">0</div>
         <div style="font-size:11px;color:var(--tx3);margin-top:4px">nenhuma vítima com mais de 1 ocorrência</div>
       </div>`;
@@ -6986,7 +6986,7 @@ function renderProdDetail() {
       }).join('');
 
       return `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #9b6de0;border-radius:10px;padding:16px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9b6de0;margin-bottom:4px">Reiterações</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9b6de0;margin-bottom:4px">Reiterações</div>
         <div style="font-size:13px;color:#ffffff;margin-bottom:14px">${reiterantes.length} vítima(s) com mais de 1 ocorrência registrada</div>
         ${cards}
       </div>`;
@@ -7017,7 +7017,7 @@ function renderProdDetail() {
 
     const vsHtml = `
       <div style="grid-column:1/-1;border-top:1px solid var(--bd2);margin-top:8px;padding-top:18px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${VD_COR2};margin-bottom:14px">Visita Solidária — Acompanhamento</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${VD_COR2};margin-bottom:14px">Visita Solidária — Acompanhamento</div>
 
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
           ${mkpi('Querem Visita', vsQuer.toLocaleString('pt-BR'), 'aceitaram', '#4bc87a')}
@@ -7025,7 +7025,7 @@ function renderProdDetail() {
           ${mkpi('Acompanhadas', vsAcompanhados.toLocaleString('pt-BR'), `${vsTotalContatos} contatos`, VD_COR2)}
           ${mkpi('Med. Protetiva', vsMedProt.toLocaleString('pt-BR'), 'possuem atualmente', '#f0c040')}
           <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${gaugeColor};border-radius:8px;padding:12px 14px;min-width:110px;flex:1">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${gaugeColor};margin-bottom:5px">% Acompanhamento</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${gaugeColor};margin-bottom:5px">% Acompanhamento</div>
             <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:700;color:${gaugeColor};line-height:1">${vsPctAcomp !== null ? vsPctAcomp+'%' : '—'}</div>
             <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px;margin-top:8px"><div style="height:100%;width:${Math.min(vsPctAcomp||0,100)}%;background:${gaugeColor};border-radius:3px"></div></div>
             <div style="font-size:13px;color:#ffffff;margin-top:4px">${vsAcompanhados} de ${totVDModal} ocorrências VD</div>
@@ -7034,15 +7034,15 @@ function renderProdDetail() {
 
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:16px">
           ${topParent.length ? `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${VD_COR2};border-radius:8px;padding:14px 16px">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${VD_COR2};margin-bottom:10px">Parentesco do Agressor</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${VD_COR2};margin-bottom:10px">Parentesco do Agressor</div>
             ${topParent.map(([p,v])=>mkBar(p,v,maxP,VD_COR2)).join('')}
           </div>` : ''}
           ${topBairros.length ? `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #5a9de0;border-radius:8px;padding:14px 16px">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#5a9de0;margin-bottom:10px">Bairros com Mais Ocorrências</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#5a9de0;margin-bottom:10px">Bairros com Mais Ocorrências</div>
             ${topBairros.map(([b,v])=>mkBar(b,v,maxB,'#5a9de0')).join('')}
           </div>` : ''}
           ${avgIntvs.some(v=>v!==null) ? `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:8px;padding:14px 16px">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#f0c040;margin-bottom:4px">Intervalo Médio entre Contatos</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#f0c040;margin-bottom:4px">Intervalo Médio entre Contatos</div>
             <div style="font-size:12px;color:#ffffff;margin-bottom:10px">dias entre cada etapa da visita solidária</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               ${['1ª→2ª','2ª→3ª','3ª→4ª','4ª→5ª','5ª→6ª'].map((lbl,i)=>avgIntvs[i]!==null?`<div style="text-align:center;flex:1;min-width:52px">
@@ -7057,7 +7057,7 @@ function renderProdDetail() {
         ${reiterHtml}
 
         <div style="margin-top:16px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${VD_COR2};margin-bottom:10px">Evolução Mensal — Visita Solidária</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${VD_COR2};margin-bottom:10px">Evolução Mensal — Visita Solidária</div>
           ${hasEvo ? `<div style="position:relative;height:300px"><canvas id="vs-modal-evo" style="height:300px"></canvas></div>` : `<div style="color:#ffffff;font-size:13px">Sem dados para o período.</div>`}
         </div>
       </div>`;
@@ -7747,8 +7747,8 @@ function renderDDSection() {
     return { cia, cTotal, cAver, cExito, cPresos, cPct };
   }).sort((a, b) => b.cTotal - a.cTotal);
 
-  const thR = 'padding:9px 14px;border-bottom:1px solid var(--bd);font-family:"DM Mono",monospace;font-size:15px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px';
-  const tdR = 'padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:15px;color:var(--tx2)';
+  const thR = 'padding:9px 14px;border-bottom:1px solid var(--bd);font-family:"DM Mono",monospace;font-size:19px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px';
+  const tdR = 'padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;color:var(--tx2)';
   const rankingHtml = rankingRows.length ? `
     <table style="width:100%;border-collapse:collapse">
       <thead><tr>
@@ -7785,7 +7785,7 @@ function renderDDSection() {
     return `
       <div>
         <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-          <span style="font-size:15px;color:#fff;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px">${s.label}</span>
+          <span style="font-size:19px;color:#fff;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px">${s.label}</span>
           <span style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${s.cor};line-height:1">${s.val.toLocaleString('pt-BR')}</span>
         </div>
         <div style="height:18px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden">
@@ -7810,7 +7810,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
   filtrosHtml += `</select></div>`;
   filtrosHtml += `</div></div>`;
 
-  const secTitle = txt => `<div style="font-family:'DM Mono',monospace;font-size:15px;color:#fff;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">${txt}</div>`;
+  const secTitle = txt => `<div style="font-family:'DM Mono',monospace;font-size:19px;color:#fff;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">${txt}</div>`;
   const cardBox  = `background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px`;
 
   el.innerHTML = `
@@ -8070,7 +8070,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
               <span style="font-size:14px;color:#fff;font-family:'DM Mono',monospace">${lbl}</span>
             </div>
             <div>
-              <span style="font-size:16px;color:${statCors[i]};font-family:'DM Mono',monospace;font-weight:700">${v}</span>
+              <span style="font-size:19px;color:${statCors[i]};font-family:'DM Mono',monospace;font-weight:700">${v}</span>
               <span style="font-size:12px;color:var(--tx3);margin-left:8px">${pct}%</span>
             </div>
           </div>`;
