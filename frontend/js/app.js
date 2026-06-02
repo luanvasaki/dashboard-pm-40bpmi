@@ -1645,7 +1645,7 @@ function buildMoFilter() {
   const _moComDados = new Set(MESES);
   MES_ORD.forEach(m => {
     const ok = _moComDados.has(m);
-    h += `<button class="pf-btn ${moMeses.includes(m) ? 'on' : ''}" data-mes="${m}" onclick="moTogMes('${m}')"${ok ? '' : ' style="opacity:.35" title="Sem dados"'}>${MES_ABREV[m] || m}</button>`;
+    h += `<button class="pf-btn ${moMeses.includes(m) ? 'on' : ''}" data-mes="${m}" onclick="moTogMes('${m}')"${ok ? '' : ' style="opacity:.6" title="Sem dados"'}>${MES_ABREV[m] || m}</button>`;
   });
   h += '<span class="pf-sep"></span>';
   h += `<button class="pf-btn ${moScopeType === 'btl' ? 'on' : ''}" onclick="moSetScope('btl',null)">Batalhão</button>`;
