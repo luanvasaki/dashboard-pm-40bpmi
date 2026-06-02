@@ -119,6 +119,10 @@ async function loadDashboardConfig() {
       if (lbl) lbl.textContent = cfg.p1_periodo;
       if (inp) inp.value = cfg.p1_periodo;
     }
+    if (cfg.last_upload) {
+      const el = document.getElementById('sync-time');
+      if (el) el.textContent = new Date(cfg.last_upload).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
   } catch (_) {}
 }
 
@@ -132,6 +136,13 @@ async function saveConfig(chave, valor) {
   } catch (_) {}
 }
 
+async function registraUpload() {
+  const ts = new Date().toISOString();
+  await saveConfig('last_upload', ts);
+  const el = document.getElementById('sync-time');
+  if (el) el.textContent = new Date(ts).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
 function toggleEditPeriodo() {
   const inp  = document.getElementById('inp-p3-periodo');
   const lbl  = document.getElementById('lbl-p3-periodo');
@@ -142,7 +153,7 @@ function toggleEditPeriodo() {
   btn.textContent   = open ? '✔ Salvar' : '✎ Editar';
   if (!open) {
     const val = inp.value.trim();
-    lbl.textContent = val || pLbl(selMeses);
+    lbl.textContent = val || '—';
     saveConfig('periodo_texto', val);
   }
 }
@@ -162,14 +173,14 @@ function toggleEditFonte() {
   btn.textContent   = open ? '✔ Salvar' : '✎ Editar';
   if (!open) {
     const val = inp.value.trim();
-    lbl.textContent = val || 'Banco de Dados RAC';
+    lbl.textContent = val || '—';
     saveConfig('fonte_texto', val);
   }
 }
 
 function saveFonte(val) {
   const lbl = document.getElementById('lbl-fonte');
-  if (lbl) lbl.textContent = val || 'Banco de Dados RAC';
+  if (lbl) lbl.textContent = val || '—';
 }
 
 function toggleEditP1Periodo() {
@@ -764,23 +775,7 @@ function getMesForAno(ano) {
 }
 
 async function updateSyncStatus() {
-  try {
-    const s = await authFetch(`${API}/status`).then(r => r.json());
-    const elTime  = document.getElementById('sync-time');
-    const elFonte = document.getElementById('lbl-fonte');
-    if (elTime && s.lastSync) {
-      const d = new Date(s.lastSync);
-      elTime.textContent = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    }
-    if (elFonte && !_fonteFromConfig) {
-      const labels = {
-        supabase: 'Banco de Dados RAC - Supabase',
-        sheets:   'Banco de Dados RAC - Google Sheets',
-        local:    'Arquivo Local'
-      };
-      elFonte.textContent = labels[s.source] || 'Banco de Dados RAC';
-    }
-  } catch (_) {}
+  // exibição gerenciada por loadDashboardConfig e registraUpload
 }
 
 async function forceSync() {
@@ -2152,6 +2147,7 @@ async function confirmUpload() {
     if (!res.ok || !json.ok) throw new Error(json.error || 'Erro desconhecido');
 
     showUplMsg(`✓ ${json.uploaded} registros importados. Total na base: ${json.total}.`, 'ok');
+    registraUpload();
     btn.classList.remove('on');
 
     // Força re-sincronização do cache do servidor antes de recarregar
@@ -2313,6 +2309,7 @@ async function confirmOcorrUpload() {
     const json = await res.json();
     if (!res.ok || !json.ok) throw new Error(json.error || 'Erro desconhecido');
     showOcorrMsg(`✓ ${json.inserted} registros importados com sucesso.`, 'ok');
+    registraUpload();
     btn.textContent = 'Importar';
   } catch (err) {
     showOcorrMsg('✗ ' + err.message, 'err');
@@ -3338,6 +3335,7 @@ async function p1ConfirmUpload() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
     msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.inserted} registros importados com sucesso.</span>`;
+    registraUpload();
     await loadP1();
     setTimeout(closeP1Upload, 1500);
   } catch (err) {
@@ -3414,6 +3412,7 @@ async function afConfirmUpload() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
     msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.inserted} afastamentos importados.</span>`;
+    registraUpload();
     await loadP1();
     setTimeout(closeAfUpload, 1500);
   } catch (err) {
@@ -4422,6 +4421,7 @@ async function quadroConfirmUpload() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
     msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.inserted || p1QuadroParsed.length} registros importados.</span>`;
+    registraUpload();
     await loadP1();
     setTimeout(closeQuadroUpload, 1500);
   } catch (err) {
@@ -5899,6 +5899,7 @@ async function prodUplConfirm() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
     msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.total} registros importados.</span>`;
+    registraUpload();
     await loadProdData(true);
     setTimeout(closeProdUpl, 1800);
   } catch (err) {
@@ -8373,6 +8374,7 @@ async function ddUplConfirm() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
     msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.total} registros importados.</span>`;
+    registraUpload();
     await loadDDData();
     setTimeout(closeDDUpl, 1800);
   } catch (err) {
