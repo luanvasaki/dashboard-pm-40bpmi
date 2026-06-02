@@ -1759,7 +1759,7 @@ function moRender() {
     };
 
     const cvs = document.getElementById(canvasId);
-    cvs.style.height = '640px';
+    cvs.style.height = '780px';
     moCh.push(new Chart(cvs.getContext('2d'), {
       type: 'bar',
       plugins: [ciaSepPlugin(chartMuns), zeroLinePlugin],
@@ -1772,11 +1772,11 @@ function moRender() {
         plugins: {
           legend: {
             labels: {
-              boxWidth: 16, font: { size: 19 }, color: '#ffffff',
+              boxWidth: 18, padding: 24, font: { size: 19 }, color: '#ffffff',
               generateLabels: () => [
-                { text: 'Dentro da meta',                         fillStyle: 'rgba(61,191,122,.75)',  strokeStyle: 'rgba(61,191,122,.75)',  lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff' },
-                { text: 'Acima da meta, melhor que mês anterior', fillStyle: 'rgba(191,122,61,.85)', strokeStyle: 'rgba(191,122,61,.85)', lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff' },
-                { text: 'Acima da meta',                          fillStyle: 'rgba(230,100,100,.80)',  strokeStyle: 'rgba(230,100,100,.80)',  lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff' }
+                { text: 'Dentro da meta',                         fillStyle: 'rgba(61,191,122,.75)',  strokeStyle: 'rgba(61,191,122,.75)',  lineWidth: 0, hidden: false, color: '#ffffff', font: { size: 19 } },
+                { text: 'Acima da meta, melhor que mês anterior', fillStyle: 'rgba(191,122,61,.85)', strokeStyle: 'rgba(191,122,61,.85)', lineWidth: 0, hidden: false, color: '#ffffff', font: { size: 19 } },
+                { text: 'Acima da meta',                          fillStyle: 'rgba(230,100,100,.80)',  strokeStyle: 'rgba(230,100,100,.80)',  lineWidth: 0, hidden: false, color: '#ffffff', font: { size: 19 } }
               ]
             }
           },
