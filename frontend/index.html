@@ -68,18 +68,18 @@
     </button>
   </nav>
   <div class="sidebar-foot">
-    <button onclick="forceSync()" id="sync-btn" style="width:100%;padding:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:4px;cursor:pointer;font-size:11px">↻ Sincronizar</button>
+    <button onclick="forceSync()" id="sync-btn" style="width:100%;padding:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:4px;cursor:pointer;font-size:13px">↻ Sincronizar</button>
     <div id="sidebar-imports" style="margin-top:6px"></div>
     <!-- Bloco de usuário (preenchido por JS) -->
     <div id="user-block" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)">
-      <div style="font-size:10px;color:var(--tx3);margin-bottom:4px">USUÁRIO</div>
-      <div id="user-nome" style="color:var(--tx);font-size:11px;font-weight:600;line-height:1.4">—</div>
-      <div id="user-info" style="color:var(--tx3);font-size:10px;margin-bottom:8px">—</div>
-      <button id="btn-admin" onclick="openAdminModal()" style="display:none;width:100%;padding:6px;background:rgba(61,122,191,.12);border:1px solid rgba(61,122,191,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;margin-bottom:4px;position:relative">
+      <div style="font-size:12px;color:var(--tx3);margin-bottom:4px">USUÁRIO</div>
+      <div id="user-nome" style="color:var(--tx);font-size:14px;font-weight:600;line-height:1.4">—</div>
+      <div id="user-info" style="color:var(--tx3);font-size:12px;margin-bottom:8px">—</div>
+      <button id="btn-admin" onclick="openAdminModal()" style="display:none;width:100%;padding:6px;background:rgba(61,122,191,.12);border:1px solid rgba(61,122,191,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;margin-bottom:4px;position:relative">
         ⚙ Gerenciar Usuários
         <span id="pending-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#e05555;color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;padding:0 4px;line-height:18px;text-align:center"></span>
       </button>
-      <button onclick="doLogout()" style="width:100%;padding:6px;background:rgba(230,100,100,.08);border:1px solid rgba(230,100,100,.2);color:#f07878;border-radius:4px;cursor:pointer;font-size:11px">✕ Sair</button>
+      <button onclick="doLogout()" style="width:100%;padding:6px;background:rgba(230,100,100,.08);border:1px solid rgba(230,100,100,.2);color:#f07878;border-radius:4px;cursor:pointer;font-size:13px">✕ Sair</button>
     </div>
   </div>
 </aside>
@@ -89,7 +89,7 @@
   <div id="adm-box" style="max-width:1100px;margin:0 auto;background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:28px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid var(--bd)">
       <div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">ADMINISTRAÇÃO</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">ADMINISTRAÇÃO</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:2px">GERENCIAR <span style="color:#c8a84b">USUÁRIOS</span></div>
       </div>
       <button onclick="closeAdminModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:6px 14px;cursor:pointer;font-size:13px">✕</button>
@@ -491,7 +491,7 @@
 <div id="page-p3prod" class="page">
   <div class="ph">
     <div>
-      <div style="font-size:11px;color:var(--tx3);letter-spacing:2px;font-weight:600;margin-bottom:2px">P3 · DIVISÃO OPERACIONAL</div>
+      <div style="font-size:13px;color:var(--tx3);letter-spacing:2px;font-weight:600;margin-bottom:2px">P3 · DIVISÃO OPERACIONAL</div>
       <div class="ph-tag">PRODUTIVIDADE</div>
       <div class="ph-title">INDICADORES DE <span>PRODUTIVIDADE</span></div>
     </div>
@@ -504,7 +504,7 @@
 
 <!-- Modal Upload Disque Denúncia -->
 <div id="dd-upl-mo" onclick="ddUplClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;align-items:center;justify-content:center">
-  <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:24px;width:min(440px,92vw);max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
+  <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:10px;padding:24px;width:min(440px,92vw);max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:6px">Importar Disque Denúncia</div>
     <div style="font-size:12px;color:var(--tx3);margin-bottom:14px;font-family:'DM Mono',monospace">Colunas esperadas: Data · Cia · Nº Disque Denuncia · Data do Atendimento · Status · Flagrante · Quant. Presos</div>
     <input type="file" accept=".csv" id="dd-upl-file" onchange="ddUplFileChange()" style="width:100%;margin-bottom:10px;color:var(--tx);font-size:12px">
@@ -545,7 +545,7 @@
 
 <!-- Modal upload Produtividade (genérico) -->
 <div id="prod-upl-mo" onclick="prodUplClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;align-items:center;justify-content:center">
-  <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:24px;width:min(420px,92vw);max-height:90vh;overflow-y:auto">
+  <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:10px;padding:24px;width:min(420px,92vw);max-height:90vh;overflow-y:auto">
     <div id="prod-upl-title" style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:6px">Importar</div>
     <div id="prod-upl-hint" style="font-size:11px;color:var(--tx3);margin-bottom:12px;font-family:'DM Mono',monospace;line-height:1.5"></div>
     <input type="file" accept=".csv" id="prod-upl-file" onchange="prodUplFileChange()" style="width:100%;margin-bottom:10px;color:var(--tx);font-size:12px">
@@ -553,7 +553,7 @@
     <div id="prod-upl-msg" style="font-size:12px;margin-bottom:10px;min-height:16px"></div>
     <div style="display:flex;gap:8px">
       <button id="prod-upl-btn" onclick="prodUplConfirm()" disabled style="flex:1;padding:8px;background:var(--gold);color:#111;border:none;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;opacity:.5">Importar</button>
-      <button onclick="closeProdUpl()" style="padding:8px 16px;background:var(--bg3);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-size:13px;cursor:pointer">Cancelar</button>
+      <button onclick="closeProdUpl()" style="padding:8px 16px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-size:13px;cursor:pointer">Cancelar</button>
     </div>
   </div>
 </div>
@@ -785,7 +785,7 @@
   <div class="card" style="margin-bottom:14px">
     <div class="card-head">
       <div class="card-title">Evolução por Crime</div>
-      <select id="evol-crime-sel" class="pf-select" style="font-size:10px;min-width:180px" onchange="renderEvolucao()"></select>
+      <select id="evol-crime-sel" class="pf-select" style="min-width:180px" onchange="renderEvolucao()"></select>
     </div>
     <canvas id="c-evol-main" style="max-height:260px"></canvas>
   </div>

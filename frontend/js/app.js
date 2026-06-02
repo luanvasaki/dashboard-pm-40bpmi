@@ -248,12 +248,12 @@ function buildUserTable(users, me) {
 
   let h = `<table style="width:100%;border-collapse:collapse;font-size:12px">
     <thead><tr>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">NOME</th>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">POSTO/GRAD.</th>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">RE</th>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">FUNÇÃO</th>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">STATUS</th>
-      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">NÍVEL</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:1px">NOME</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:1px">POSTO/GRAD.</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:1px">RE</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:1px">FUNÇÃO</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:1px">STATUS</th>
+      <th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:1px">NÍVEL</th>
       <th style="padding:7px 8px;border-bottom:1px solid var(--bd)"></th>
     </tr></thead><tbody>`;
 
@@ -298,7 +298,7 @@ function buildUserTable(users, me) {
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
         <select onchange="admChangeSecao('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${secaoOpts}</select>
       </td>
-      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)"><span style="padding:2px 8px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;${sStyle}">${STATUS_LABEL[u.status]||u.status}</span></td>
+      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)"><span style="padding:2px 8px;border-radius:20px;font-family:'DM Mono',monospace;font-size:12px;${sStyle}">${STATUS_LABEL[u.status]||u.status}</span></td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
         <select onchange="admChangeRole('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${roleOpts}</select>
       </td>
@@ -2904,7 +2904,7 @@ function renderP1() {
         <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${r.re || '—'}</td>
         <td style="${tdL};cursor:pointer" onclick="openProntuario('${_fotoRe}')">${r.nome_guerra || r.nome}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${r.opm || '—'}</td>
-        <td style="${tdS.replace('text-align:right','text-align:left')}">${badge(tipo, '#c84b4b')}</td>
+        <td style="${tdS.replace('text-align:right','text-align:left')}">${badge(tipo, '#e05555')}</td>
         <td style="${tdS}">${fmtDate(ats[0]?.inicio)}</td>
         <td style="${tdS}">${fmtDate(termino)}</td>
         <td style="${tdS};color:${diasRest <= 3 ? '#4bc87a' : 'var(--tx3)'}">${diasRest !== '—' ? diasRest + 'd' : '—'}</td>
@@ -2912,7 +2912,7 @@ function renderP1() {
     }).join('');
     afastSection = `
       <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow-x:auto;margin-bottom:14px">
-        <div style="font-family:'DM Mono',monospace;font-size:15px;letter-spacing:2px;color:#c84b4b;padding:14px 16px 0;text-transform:uppercase">Afastamentos — ${pmAfastados.length}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:15px;letter-spacing:2px;color:#e05555;padding:14px 16px 0;text-transform:uppercase">Afastamentos — ${pmAfastados.length}</div>
         <table style="width:100%;border-collapse:collapse;margin-top:8px">
           <thead><tr>
             <th style="${thL};width:44px;padding:8px 4px 8px 8px"></th><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome de Guerra</th><th style="${thL}">OPM</th>
@@ -3014,7 +3014,7 @@ function renderP1() {
         <div style="font-size:13px;font-weight:600;color:#ffffff;white-space:nowrap">${u.label}</div>
         <div style="font-family:'DM Mono',monospace;font-size:13px;margin-top:3px;display:flex;gap:8px">
           <span style="color:#4bc87a">${us.aptos} aptos</span>
-          ${us.afst > 0 ? `<span style="color:#c84b4b">${us.afst} afst</span>` : ''}
+          ${us.afst > 0 ? `<span style="color:#e05555">${us.afst} afst</span>` : ''}
           ${us.restr > 0 ? `<span style="color:#c8a84b">${us.restr} restr</span>` : ''}
         </div>
       </button>`;
@@ -3038,19 +3038,19 @@ function renderP1() {
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
         <div style="background:rgba(255,255,255,.03);border-radius:5px;padding:7px 4px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.color};line-height:1">${s.pct}%</div>
-          <div style="font-family:'DM Mono',monospace;font-size:7px;color:var(--tx3);margin-top:1px">DISP</div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-top:1px">DISP</div>
         </div>
         <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:7px;color:#4bc87a;margin-top:1px">APTOS</div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:#4bc87a;margin-top:1px">APTOS</div>
         </div>
-        <div style="background:rgba(200,75,75,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.afst>0?'#c84b4b':'var(--tx3)'};line-height:1">${s.afst}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:7px;color:${s.afst>0?'#c84b4b':'var(--tx3)'};margin-top:1px">AFST</div>
+        <div style="background:rgba(230,100,100,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.afst>0?'#e05555':'var(--tx3)'};line-height:1">${s.afst}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:${s.afst>0?'#e05555':'var(--tx3)'};margin-top:1px">AFST</div>
         </div>
         <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:7px 4px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:7px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
         </div>
       </div>
       <div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff;margin-bottom:12px;line-height:1.8">${catLine}</div>
@@ -3083,19 +3083,19 @@ function renderP1() {
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
         <div style="background:rgba(255,255,255,.03);border-radius:5px;padding:7px 4px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.color};line-height:1">${s.pct}%</div>
-          <div style="font-family:'DM Mono',monospace;font-size:7px;color:var(--tx3);margin-top:1px">DISP</div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-top:1px">DISP</div>
         </div>
         <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:7px;color:#4bc87a;margin-top:1px">APTOS</div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:#4bc87a;margin-top:1px">APTOS</div>
         </div>
-        <div style="background:rgba(200,75,75,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.afst>0?'#c84b4b':'var(--tx3)'};line-height:1">${s.afst}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:7px;color:${s.afst>0?'#c84b4b':'var(--tx3)'};margin-top:1px">AFST</div>
+        <div style="background:rgba(230,100,100,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.afst>0?'#e05555':'var(--tx3)'};line-height:1">${s.afst}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:${s.afst>0?'#e05555':'var(--tx3)'};margin-top:1px">AFST</div>
         </div>
         <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:7px 4px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:7px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
         </div>
       </div>
       <div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff;border-top:1px solid rgba(255,255,255,.05);padding-top:10px;line-height:1.8">${catLine || '—'}</div>
@@ -3128,7 +3128,7 @@ function renderP1() {
           </div>
           <div style="width:38px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${r.pctColor}">${r.pct}%</div>
           <div style="width:90px;font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);text-align:right">${r.presentes}/${r.vagas} vagas</div>
-          <div style="width:60px;font-family:'DM Mono',monospace;font-size:10px;text-align:right;color:${r.claro > 0 ? '#c84b4b' : '#4bc87a'}">${r.claro > 0 ? '−' + r.claro + ' claro' : 'completo'}</div>
+          <div style="width:60px;font-family:'DM Mono',monospace;font-size:10px;text-align:right;color:${r.claro > 0 ? '#e05555' : '#4bc87a'}">${r.claro > 0 ? '−' + r.claro + ' claro' : 'completo'}</div>
         </div>`).join('');
       claroSection = `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin-bottom:14px">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px">
@@ -3159,9 +3159,9 @@ function renderP1() {
       const tipo = ats.map(a => a.tipo_afastamento).join(', ') || 'Afastado';
       const termino = ats[0]?.termino || '';
       const diasRest = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : null;
-      const retStr = diasRest !== null ? `retorna em <b style="color:#c84b4b">${diasRest}d</b> · ${fmtDate(termino)}` : fmtDate(termino)||'—';
+      const retStr = diasRest !== null ? `retorna em <b style="color:#e05555">${diasRest}d</b> · ${fmtDate(termino)}` : fmtDate(termino)||'—';
       bottomItems.push({ order: 0, html: `<div style="padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-        ${badge(tipo.split(',')[0].trim().toUpperCase(), '#c84b4b')}
+        ${badge(tipo.split(',')[0].trim().toUpperCase(), '#e05555')}
         <span style="font-size:11px;color:var(--tx3)">${r.posto||''}</span>
         <span style="font-size:13px;font-weight:600;color:var(--tx);cursor:pointer" onclick="openProntuario('${_esc2(r.re)}')">${r.nome_guerra||r.nome}</span>
         <span style="font-size:12px;color:var(--tx3)">${r.opm||''}</span>
@@ -3187,7 +3187,7 @@ function renderP1() {
       const tl = (t||'').toLowerCase();
       if (/f[eé]rias/.test(tl))          return ['FÉRIAS',     '#5a9de0'];
       if (/\blp\b|premio/.test(tl))       return ['LP',         '#9b6de0'];
-      if (/\blts\b|trat/.test(tl))        return ['LTS',        '#c84b4b'];
+      if (/\blts\b|trat/.test(tl))        return ['LTS',        '#e05555'];
       if (/\blsv\b|sem.venc/.test(tl))    return ['LSV',        '#c8a84b'];
       if (/n[uú]pcia/.test(tl))           return ['NÚPCIAS',    '#f1c40f'];
       if (/maternidade/.test(tl))         return ['MATERNIDADE','#e91e63'];
@@ -3220,7 +3220,7 @@ function renderP1() {
     </div>`;
 
   const bottomSection =
-    mkBlock('Em Afastamento', '#c84b4b', nowItems) +
+    mkBlock('Em Afastamento', '#e05555', nowItems) +
     mkBlock('Próximos Afastamentos — 30 dias', '#5a9de0', nextItems);
 
   bodyEl.innerHTML = claroSection + `
@@ -3293,14 +3293,14 @@ function p1FileChange() {
     transformHeader: h => HEADER_MAP[h.trim().toLowerCase()] || h.trim(),
     complete: r => {
       if (!r.data.length) {
-        prev.innerHTML = '<span style="color:#e06060">Arquivo vazio ou sem registros válidos.</span>';
+        prev.innerHTML = '<span style="color:#f07878">Arquivo vazio ou sem registros válidos.</span>';
         return;
       }
       const required = ['OPM', 'Posto', 'RE', 'Nome'];
       const headers  = Object.keys(r.data[0]);
       const missing  = required.filter(c => !headers.includes(c));
       if (missing.length) {
-        prev.innerHTML = `<span style="color:#e06060">Colunas ausentes: <b>${missing.join(', ')}</b>.<br>Colunas esperadas: OPM, Posto / Grad, RE, Nome Completo.</span>`;
+        prev.innerHTML = `<span style="color:#f07878">Colunas ausentes: <b>${missing.join(', ')}</b>.<br>Colunas esperadas: OPM, Posto / Grad, RE, Nome Completo.</span>`;
         return;
       }
       p1Parsed = r.data.map(row => {
@@ -3314,7 +3314,7 @@ function p1FileChange() {
       btn.disabled = false;
       btn.style.opacity = '1';
     },
-    error: err => { prev.innerHTML = `<span style="color:#e06060">Erro ao ler o arquivo: ${err.message}</span>`; }
+    error: err => { prev.innerHTML = `<span style="color:#f07878">Erro ao ler o arquivo: ${err.message}</span>`; }
   });
 }
 
@@ -3337,7 +3337,7 @@ async function p1ConfirmUpload() {
     await loadP1();
     setTimeout(closeP1Upload, 1500);
   } catch (err) {
-    msg.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`;
+    msg.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`;
     btn.disabled = false;
     btn.style.opacity = '1';
   }
@@ -3379,11 +3379,11 @@ function afFileChange() {
     header: true, skipEmptyLines: true,
     transformHeader: h => HEADER_MAP[h.trim().toLowerCase()] || h.trim(),
     complete: r => {
-      if (!r.data.length) { prev.innerHTML = '<span style="color:#e06060">Arquivo vazio.</span>'; return; }
+      if (!r.data.length) { prev.innerHTML = '<span style="color:#f07878">Arquivo vazio.</span>'; return; }
       const required = ['RE', 'Tipo', 'Inicio', 'Termino'];
       const missing  = required.filter(c => !Object.keys(r.data[0]).includes(c));
       if (missing.length) {
-        prev.innerHTML = `<span style="color:#e06060">Colunas ausentes: <b>${missing.join(', ')}</b>.<br>Esperadas: RE, Tipo de Afastamento, Início, Término.</span>`;
+        prev.innerHTML = `<span style="color:#f07878">Colunas ausentes: <b>${missing.join(', ')}</b>.<br>Esperadas: RE, Tipo de Afastamento, Início, Término.</span>`;
         return;
       }
       p1AfParsed = r.data.map(row => { const n = {}; Object.entries(row).forEach(([k,v]) => { n[k] = (v||'').trim(); }); return n; })
@@ -3392,7 +3392,7 @@ function afFileChange() {
       prev.innerHTML = `<span style="color:#4bc87a">✓ <b>${p1AfParsed.length}</b> registros lidos — tipos: ${tipos.join(', ')}.</span>`;
       btn.disabled = false; btn.style.opacity = '1';
     },
-    error: err => { prev.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`; }
+    error: err => { prev.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`; }
   });
 }
 
@@ -3413,7 +3413,7 @@ async function afConfirmUpload() {
     await loadP1();
     setTimeout(closeAfUpload, 1500);
   } catch (err) {
-    msg.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`;
+    msg.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`;
     btn.disabled = false; btn.style.opacity = '1';
   }
 }
@@ -3451,7 +3451,7 @@ function p1ShowKpiDetail(tipo) {
   const KPI_META = {
     total:    { title: 'TODO O EFETIVO',       color: 'var(--gold)' },
     aptos:    { title: 'APTOS',                color: '#4bc87a' },
-    afastados:{ title: 'AFASTAMENTOS',         color: '#c84b4b' },
+    afastados:{ title: 'AFASTAMENTOS',         color: '#e05555' },
     restricao:{ title: 'EM RESTRIÇÃO',         color: '#c8a84b' },
     eap:      { title: `EAP / TAF / TAT ${new Date().getFullYear()}`, color: '#c8a84b' },
     ferias:   { title: 'CONTROLE DE FÉRIAS',   color: '#5a9de0' },
@@ -3469,7 +3469,7 @@ function p1ShowKpiDetail(tipo) {
   const esc      = s => (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 
   const TIPO_COLOR = { Férias:'#5a9de0', LP:'#9b59b6', LSV:'#e67e22', Conval:'#e74c3c',
-    Núpcias:'#f1c40f', Luto:'#95a5a6', Maternidade:'#e91e63', Paternidade:'#2196f3', LTS:'#c84b4b', Outros:'#607090' };
+    Núpcias:'#f1c40f', Luto:'#95a5a6', Maternidade:'#e91e63', Paternidade:'#2196f3', LTS:'#e05555', Outros:'#607090' };
   const catTipo = t => {
     const tl = (t||'').toLowerCase();
     if (/f[eé]rias/.test(tl)) return 'Férias';
@@ -3497,7 +3497,7 @@ function p1ShowKpiDetail(tipo) {
     const rows = dataF.map(r => {
       const afst = p1AfastHoje[r.re];
       const s = afst
-        ? `<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#c84b4b22;color:#c84b4b;font-family:'DM Mono',monospace">${afst[0]?.tipo_afastamento||'Afastado'}</span>`
+        ? `<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#e0555522;color:#e05555;font-family:'DM Mono',monospace">${afst[0]?.tipo_afastamento||'Afastado'}</span>`
         : `<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#4bc87a22;color:#4bc87a;font-family:'DM Mono',monospace">Apto</span>`;
       return `<tr>
         <td style="${tdS}">${r.posto||'—'}</td>
@@ -3553,7 +3553,7 @@ function p1ShowKpiDetail(tipo) {
         </tr>`;
       });
     });
-    html = wrapDetail('Afastamentos Ativos', ativos.length, '#c84b4b', closeBtn,
+    html = wrapDetail('Afastamentos Ativos', ativos.length, '#e05555', closeBtn,
       `<table style="width:100%;border-collapse:collapse">
         <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Início</th><th style="${thR}">Dias Rest.</th></tr></thead>
         <tbody>${inner}</tbody></table>`);
@@ -3563,7 +3563,7 @@ function p1ShowKpiDetail(tipo) {
     const list = dataF.filter(r => (r.possui_restricao||'').toLowerCase().startsWith('s'));
     const rows = list.map(r => {
       const dias = r.restricao_termino ? Math.ceil((new Date(r.restricao_termino) - new Date(hoje)) / 86400000) : null;
-      const cor  = dias === null ? 'var(--tx3)' : dias <= 0 ? '#c84b4b' : dias <= 30 ? '#c8a84b' : '#4bc87a';
+      const cor  = dias === null ? 'var(--tx3)' : dias <= 0 ? '#e05555' : dias <= 30 ? '#c8a84b' : '#4bc87a';
       return `<tr>
         <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
         <td style="${tdS}">${r.posto||'—'}</td>
@@ -3600,7 +3600,7 @@ function p1ShowKpiDetail(tipo) {
       r.data_eap && new Date(r.data_eap) >= lim365 && !REPROV_D.has((r.taf||'').toLowerCase().trim())
     );
 
-    const notaCor2  = n => ({ 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#c84b4b','inapto':'#c84b4b' })[(n||'').toLowerCase()] || 'var(--tx3)';
+    const notaCor2  = n => ({ 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#e05555','inapto':'#e05555' })[(n||'').toLowerCase()] || 'var(--tx3)';
     const notaBadge = n => n
       ? `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:8px;background:${notaCor2(n)}22;color:${notaCor2(n)}">${n}</span>`
       : `<span style="color:var(--tx3);font-size:10px">—</span>`;
@@ -3649,7 +3649,7 @@ function p1ShowKpiDetail(tipo) {
         <tbody>${pend.map(r => {
           const venc = taftatVencFn(r);
           const sit = venc
-            ? `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:8px;background:#c84b4b22;color:#c84b4b">Vencido</span>`
+            ? `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:8px;background:#e0555522;color:#e05555">Vencido</span>`
             : `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:8px;background:#c8a84b22;color:#c8a84b">Não realizado</span>`;
           return `<tr>
             <td style="${pC};${cS}">${r.posto||'—'}</td>
@@ -3698,9 +3698,9 @@ function p1ShowKpiDetail(tipo) {
         ${smCard('feitos',   'Realizaram ' + anoAtual,  feitos.length,   '#4bc87a')}
         ${smCard('aptos365', 'Aptos 365 dias',           aptos365.length, aptos365.length ? '#4bc87a' : 'var(--tx3)')}
         ${smCard('pend',     'Pendentes',                pend.length,     pend.length   ? '#c8a84b' : 'var(--tx3)')}
-        ${smCard('inaptaf',  'Inaptos TAF',              inapTAF.length,  inapTAF.length? '#c84b4b' : 'var(--tx3)')}
-        ${smCard('inatat',   'Inaptos TAT',              inapTAT.length,  inapTAT.length? '#c84b4b' : 'var(--tx3)')}
-        ${smCard('venc',     'Vencidos',                 vencidos.length, vencidos.length?'#c84b4b' : 'var(--tx3)')}
+        ${smCard('inaptaf',  'Inaptos TAF',              inapTAF.length,  inapTAF.length? '#e05555' : 'var(--tx3)')}
+        ${smCard('inatat',   'Inaptos TAT',              inapTAT.length,  inapTAT.length? '#e05555' : 'var(--tx3)')}
+        ${smCard('venc',     'Vencidos',                 vencidos.length, vencidos.length?'#e05555' : 'var(--tx3)')}
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 14px;border-bottom:1px solid var(--bd2)">
         ${pill('feitos',   'Realizaram ('   + feitos.length    + ')', false)}
@@ -3768,7 +3768,7 @@ function p1ShowKpiDetail(tipo) {
         <td style="${tdS}">${r.opm||'—'}</td>
       </tr>`).join('');
       inner += `
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:#c84b4b;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Sem Férias em ${anoAtual} — ${semFer.length}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:#e05555;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Sem Férias em ${anoAtual} — ${semFer.length}</div>
         <table style="width:100%;border-collapse:collapse">
           <thead><tr><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th></tr></thead>
           <tbody>${rows}</tbody></table>`;
@@ -3800,7 +3800,7 @@ function p1ShowKpiDetail(tipo) {
     };
 
     // +X (estourado) = RED, -X (vagas) = GREEN, 0 = branco
-    const cColor = c => c < 0 ? '#c84b4b' : c === 0 ? 'var(--tx3)' : '#4bc87a';
+    const cColor = c => c < 0 ? '#e05555' : c === 0 ? 'var(--tx3)' : '#4bc87a';
     const cVal   = c => c < 0 ? `+${Math.abs(c)}` : c === 0 ? '0' : `−${c}`;
     const cPct   = (c, fx) => fx > 0 ? ((c / fx) * 100).toFixed(1) + '%' : '—';
 
@@ -3962,7 +3962,7 @@ function p1SearchInput(val) {
 
   drop.innerHTML = matches.map((r, i) => {
     const afst = p1AfastHoje[r.re];
-    const statusColor = afst ? '#c84b4b' : '#4bc87a';
+    const statusColor = afst ? '#e05555' : '#4bc87a';
     const statusTxt   = afst ? (afst[0]?.tipo_afastamento || 'Afastado') : 'Apto';
     const nomePrinc   = r.nome_guerra || r.nome || '—';
     return `<div data-re="${r.re}" data-i="${i}"
@@ -4055,7 +4055,7 @@ async function openProntuario(re) {
   let statusHtml = '';
   if (afsts.length) {
     statusHtml = afsts.map(a =>
-      `<span style="padding:3px 10px;border-radius:20px;background:#c84b4b22;color:#c84b4b;font-size:11px;font-family:'DM Mono',monospace">${a.tipo_afastamento}</span>`
+      `<span style="padding:3px 10px;border-radius:20px;background:#e0555522;color:#e05555;font-size:11px;font-family:'DM Mono',monospace">${a.tipo_afastamento}</span>`
     ).join(' ');
   } else if (emRestr) {
     statusHtml = `<span style="padding:3px 10px;border-radius:20px;background:#c8a84b22;color:#c8a84b;font-size:11px;font-family:'DM Mono',monospace">Em Restrição</span>`;
@@ -4087,7 +4087,7 @@ async function openProntuario(re) {
     : `<span style="font-size:12px;color:var(--tx3)">—</span>`;
 
   // TAF / TAT
-  const NOTA_COR = { 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#c84b4b','inapto':'#c84b4b' };
+  const NOTA_COR = { 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#e05555','inapto':'#e05555' };
   const notaCor  = n => NOTA_COR[(n||'').toLowerCase()] || 'var(--tx3)';
   const fmtRange = s => {
     if (!s) return null;
@@ -4105,11 +4105,11 @@ async function openProntuario(re) {
   })();
   const renderTeste = (dataTafTat, nota) => {
     if (!nota && !dataTafTat) return `<span style="font-size:12px;color:var(--tx3)">—</span>`;
-    const cor = tafVencido ? '#c84b4b' : notaCor(nota);
+    const cor = tafVencido ? '#e05555' : notaCor(nota);
     const range = fmtRange(dataTafTat);
     return `${nota ? `<div style="font-size:12px;font-weight:600;color:${cor}">${nota}</div>` : ''}
             ${range ? `<div style="font-size:11px;color:var(--tx3)">${range}</div>` : ''}
-            ${tafVencido ? `<div style="font-size:10px;font-weight:600;color:#c84b4b;margin-top:2px">⚠ VENCIDO</div>` : ''}`;
+            ${tafVencido ? `<div style="font-size:10px;font-weight:600;color:#e05555;margin-top:2px">⚠ VENCIDO</div>` : ''}`;
   };
   document.getElementById('pronto-taf').innerHTML = renderTeste(pm.data_eap, pm.taf);
   document.getElementById('pronto-tat').innerHTML = renderTeste(pm.data_eap, pm.tat);
@@ -4117,7 +4117,7 @@ async function openProntuario(re) {
   // Alerta TAF/TAT vencido no status
   if (tafVencido) {
     document.getElementById('pronto-status').innerHTML +=
-      ` <span style="padding:3px 10px;border-radius:20px;background:#c84b4b22;color:#c84b4b;font-size:11px;font-family:'DM Mono',monospace">TAF/TAT Vencido</span>`;
+      ` <span style="padding:3px 10px;border-radius:20px;background:#e0555522;color:#e05555;font-size:11px;font-family:'DM Mono',monospace">TAF/TAT Vencido</span>`;
   }
 
   // Foto
@@ -4166,7 +4166,7 @@ async function openProntuario(re) {
           <td style="${tdE}">${a.n_dias ? a.n_dias + 'd' : '—'}</td>
           <td style="${tdE};color:var(--tx2)">${a.nbi || '—'}</td>
           <td style="${tdE};color:var(--tx2)">${a.bol_g || '—'}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04)">${ativo ? '<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:#c84b4b22;color:#c84b4b;font-family:DM Mono,monospace">ATIVO</span>' : ''}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04)">${ativo ? '<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:#e0555522;color:#e05555;font-family:DM Mono,monospace">ATIVO</span>' : ''}</td>
         </tr>`;
       }).join('')
     : '<tr><td colspan="7" style="padding:14px 10px;color:var(--tx3);font-size:12px;text-align:center">Nenhum afastamento registrado.</td></tr>';
@@ -4206,7 +4206,7 @@ function prontoFotoPreview() {
   const msg  = document.getElementById('pronto-foto-msg');
   if (!file) return;
   if (!file.type.startsWith('image/')) {
-    msg.style.color = '#e06060';
+    msg.style.color = '#f07878';
     msg.textContent = 'Selecione uma imagem.';
     return;
   }
@@ -4228,7 +4228,7 @@ async function prontoSaveFoto() {
   const img = document.getElementById('pronto-foto');
   const msg = document.getElementById('pronto-foto-msg');
   if (!re || !img.src || img.style.display === 'none') {
-    msg.style.color = '#e06060'; msg.textContent = 'Nenhuma imagem selecionada.'; return;
+    msg.style.color = '#f07878'; msg.textContent = 'Nenhuma imagem selecionada.'; return;
   }
   msg.style.color = 'var(--tx3)'; msg.textContent = 'Salvando...';
   try {
@@ -4243,7 +4243,7 @@ async function prontoSaveFoto() {
     document.getElementById('pronto-foto-file').value = '';
     msg.style.color = '#4bc87a'; msg.textContent = 'Foto salva!';
     setTimeout(() => { if (msg) msg.textContent = ''; }, 2500);
-  } catch (_) { msg.style.color = '#e06060'; msg.textContent = 'Erro ao salvar.'; }
+  } catch (_) { msg.style.color = '#f07878'; msg.textContent = 'Erro ao salvar.'; }
 }
 
 async function prontoRemoveFoto() {
@@ -4262,7 +4262,7 @@ async function prontoRemoveFoto() {
     document.querySelectorAll(`[data-foto-re="${re}"]`).forEach(el => renderAvatarEl(el, re, null));
     msg.style.color = '#4bc87a'; msg.textContent = 'Foto removida.';
     setTimeout(() => { if (msg) msg.textContent = ''; }, 2500);
-  } catch (_) { msg.style.color = '#e06060'; msg.textContent = 'Erro ao remover.'; }
+  } catch (_) { msg.style.color = '#f07878'; msg.textContent = 'Erro ao remover.'; }
 }
 
 // Retorna HTML compacto do quadro para uma CIA/sub-unidade específica
@@ -4291,7 +4291,7 @@ function quadroForUnit(opmLabel) {
   const totalFx = Number(q.fx_total)||0;
   const totalEx = Number(q.ex_total)||0;
   const totalClaro = totalFx - totalEx;
-  const claroColor = c => c > 5 ? '#c84b4b' : c > 0 ? '#c8a84b' : '#4bc87a';
+  const claroColor = c => c > 5 ? '#e05555' : c > 0 ? '#c8a84b' : '#4bc87a';
 
   const rows = grupos.map(g => {
     const pres = present(g.cat);
@@ -4385,11 +4385,11 @@ function quadroFileChange() {
       return HEADER_MAP[k] || h.trim();
     },
     complete: r => {
-      if (!r.data.length) { prev.innerHTML = '<span style="color:#e06060">Arquivo vazio.</span>'; return; }
+      if (!r.data.length) { prev.innerHTML = '<span style="color:#f07878">Arquivo vazio.</span>'; return; }
       const required = ['municipio', 'opm'];
       const missing  = required.filter(c => !Object.keys(r.data[0]).includes(c));
       if (missing.length) {
-        prev.innerHTML = `<span style="color:#e06060">Colunas ausentes: <b>${missing.join(', ')}</b>.</span>`;
+        prev.innerHTML = `<span style="color:#f07878">Colunas ausentes: <b>${missing.join(', ')}</b>.</span>`;
         return;
       }
       p1QuadroParsed = r.data.map(row => {
@@ -4400,7 +4400,7 @@ function quadroFileChange() {
       prev.innerHTML = `<span style="color:#4bc87a">✓ <b>${p1QuadroParsed.length}</b> unidades lidas.</span>`;
       btn.disabled = false; btn.style.opacity = '1';
     },
-    error: err => { prev.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`; }
+    error: err => { prev.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`; }
   });
 }
 
@@ -4421,7 +4421,7 @@ async function quadroConfirmUpload() {
     await loadP1();
     setTimeout(closeQuadroUpload, 1500);
   } catch (err) {
-    msg.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`;
+    msg.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`;
     btn.disabled = false; btn.style.opacity = '1';
   }
 }
@@ -4453,9 +4453,9 @@ function renderVagasTable() {
   }
   tbl.innerHTML = `<table style="width:100%;border-collapse:collapse">
     <thead><tr>
-      <th style="text-align:left;padding:7px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">OPM</th>
-      <th style="text-align:right;padding:7px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">Efetivo Atual</th>
-      <th style="text-align:right;padding:7px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);letter-spacing:1px">Vagas Autorizadas</th>
+      <th style="text-align:left;padding:7px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:1px">OPM</th>
+      <th style="text-align:right;padding:7px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:1px">Efetivo Atual</th>
+      <th style="text-align:right;padding:7px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:1px">Vagas Autorizadas</th>
     </tr></thead>
     <tbody>${opms.map(opm => {
       const atual = p1ByUnit[opm]?.length || 0;
@@ -4488,7 +4488,7 @@ async function saveVaga(opm, vagas, inputEl) {
     if (inputEl) { inputEl.style.borderColor = '#4bc87a'; setTimeout(() => { if (inputEl) inputEl.style.borderColor = ''; }, 1500); }
     if (msgEl) { msgEl.style.color = '#4bc87a'; msgEl.textContent = 'Salvo.'; setTimeout(() => { if (msgEl) msgEl.textContent = ''; }, 2000); }
   } catch (err) {
-    if (msgEl) { msgEl.style.color = '#e06060'; msgEl.textContent = err.message; }
+    if (msgEl) { msgEl.style.color = '#f07878'; msgEl.textContent = err.message; }
   }
 }
 
@@ -4528,7 +4528,7 @@ function exportarSituacao() {
 // Gera avatar SVG com iniciais coloridas por posto
 function p1AvatarSVG(nome, posto) {
   const cat = p1Cat(posto);
-  const colors = { cbsd: '#5a9de0', sgt: '#c8a84b', sub: '#4bc87a', of: '#c84b4b' };
+  const colors = { cbsd: '#5a9de0', sgt: '#c8a84b', sub: '#4bc87a', of: '#e05555' };
   const bg = colors[cat] || '#607090';
   const initials = (nome || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join('');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
@@ -4624,7 +4624,7 @@ function fotoPreviewChange() {
   const msg  = document.getElementById('foto-mo-msg');
   if (!file) return;
   if (!file.type.startsWith('image/')) {
-    msg.style.color = '#e06060';
+    msg.style.color = '#f07878';
     msg.textContent = 'Selecione um arquivo de imagem (JPG, PNG, etc).';
     return;
   }
@@ -4645,7 +4645,7 @@ async function p1SaveFoto() {
   const img = document.getElementById('foto-img');
   const msg = document.getElementById('foto-mo-msg');
   if (!img.src || img.style.display === 'none') {
-    msg.style.color = '#e06060';
+    msg.style.color = '#f07878';
     msg.textContent = 'Selecione uma imagem primeiro.';
     return;
   }
@@ -4662,7 +4662,7 @@ async function p1SaveFoto() {
     document.querySelectorAll(`[data-foto-re="${re}"]`).forEach(el => renderAvatarEl(el, re, img.src));
     msg.style.color = '#4bc87a'; msg.textContent = 'Foto salva com sucesso.';
   } catch (err) {
-    msg.style.color = '#e06060'; msg.textContent = err.message;
+    msg.style.color = '#f07878'; msg.textContent = err.message;
   }
 }
 
@@ -4681,7 +4681,7 @@ async function p1RemoveFoto() {
     document.querySelectorAll(`[data-foto-re="${re}"]`).forEach(el => renderAvatarEl(el, re, null));
     msg.style.color = '#4bc87a'; msg.textContent = 'Foto removida.';
   } catch (err) {
-    msg.style.color = '#e06060'; msg.textContent = err.message;
+    msg.style.color = '#f07878'; msg.textContent = err.message;
   }
 }
 
@@ -4736,7 +4736,7 @@ function p1ShowPmList(pms, label) {
 
   const cards = pms.map(r => {
     const afst        = p1AfastHoje[r.re];
-    const statusColor = afst ? '#c84b4b' : '#4bc87a';
+    const statusColor = afst ? '#e05555' : '#4bc87a';
     const statusTxt   = afst ? (afst[0]?.tipo_afastamento || 'AFASTADO') : 'APTO';
     const _re         = escA(r.re || '');
     const fotoCached  = p1Fotos[r.re];
@@ -4857,7 +4857,7 @@ function renderHome() {
         </div>
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:${s.color};width:34px;text-align:right">${s.pct}%</div>
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);width:52px">${s.total} PMs</div>
-        ${s.afst  > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:11px;color:#c84b4b">${s.afst} afst</div>` : ''}
+        ${s.afst  > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:11px;color:#e05555">${s.afst} afst</div>` : ''}
         ${s.restr > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:11px;color:#c8a84b">${s.restr} restr</div>` : ''}
       </div>`;
     };
@@ -4872,7 +4872,7 @@ function renderHome() {
         <div style="display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap">
           <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--tx)">${gs.total}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-left:4px">total</span></div>
           <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:#4bc87a">${gs.aptos}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-left:4px">aptos</span></div>
-          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${gs.afst>0?'#c84b4b':'var(--tx3)'}">${gs.afst}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-left:4px">afst</span></div>
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${gs.afst>0?'#e05555':'var(--tx3)'}">${gs.afst}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-left:4px">afst</span></div>
           <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${gs.restr>0?'#c8a84b':'var(--tx3)'}">${gs.restr}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-left:4px">restr</span></div>
         </div>
         ${ciaRows}
@@ -5035,13 +5035,13 @@ function renderHome() {
           return `<div style="margin-bottom:${i<tipoRank.length-1?'12':'0'}px">
             <div style="display:flex;justify-content:space-between;margin-bottom:5px">
               <div style="font-size:14px;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:76%">${tipo}</div>
-              <div style="font-family:'DM Mono',monospace;font-size:14px;color:#c84b4b;font-weight:700">${cnt}</div>
+              <div style="font-family:'DM Mono',monospace;font-size:14px;color:#e05555;font-weight:700">${cnt}</div>
             </div>
-            <div style="background:rgba(255,255,255,.06);border-radius:3px;height:5px"><div style="height:100%;width:${pct}%;background:#c84b4b;border-radius:3px"></div></div>
+            <div style="background:rgba(255,255,255,.06);border-radius:3px;height:5px"><div style="height:100%;width:${pct}%;background:#e05555;border-radius:3px"></div></div>
           </div>`;
         }).join('');
-        insColsP1.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #c84b4b;border-radius:10px;padding:20px">
-          <div style="font-family:'DM Mono',monospace;font-size:12px;color:#c84b4b;letter-spacing:1.5px;margin-bottom:12px">P1 · RANKING AFASTAMENTOS POR TIPO</div>
+        insColsP1.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #e05555;border-radius:10px;padding:20px">
+          <div style="font-family:'DM Mono',monospace;font-size:12px;color:#e05555;letter-spacing:1.5px;margin-bottom:12px">P1 · RANKING AFASTAMENTOS POR TIPO</div>
           ${tipoRows3}
         </div>`);
       }
@@ -5145,7 +5145,7 @@ function updateSidebarImports(section) {
     const itens = [
       ['ocorrencias',      'Ocorrências Gerais',       '#5a9de0'],
       ['presos',           'Pessoas Presas',            '#e0965a'],
-      ['armas',            'Armas Apreendidas',         '#c84b4b'],
+      ['armas',            'Armas Apreendidas',         '#e05555'],
       ['veiculos',         'Veículos Recuperados',      '#4bc8a0'],
       ['entorpecentes',    'Entorpecentes',             '#9b6de0'],
       ['visita-solidaria', 'Visita Solidária (VD)',     '#e05a8a'],
@@ -5500,8 +5500,8 @@ function prodRender() {
         <div class="kpi-lbl">TAF / TAT</div>
         <div style="margin-top:10px">
           ${metricRow('Aptos MB+', aptosMB365, '#4bc87a')}
-          ${metricRow('Inaptos TAF', inaptosTafN, inaptosTafN > 0 ? '#c84b4b' : 'var(--tx3)')}
-          ${metricRow('Vencidos', vencidos, vencidos > 0 ? '#c84b4b' : 'var(--tx3)')}
+          ${metricRow('Inaptos TAF', inaptosTafN, inaptosTafN > 0 ? '#e05555' : 'var(--tx3)')}
+          ${metricRow('Vencidos', vencidos, vencidos > 0 ? '#e05555' : 'var(--tx3)')}
         </div>
         <div class="kpi-hint" style="margin-top:10px">▸ clique p/ detalhes</div>
       </div>`;
@@ -5706,7 +5706,7 @@ function prodRender() {
       const diff = vB - vA;
       const pct  = vA > 0 ? Math.round(Math.abs(diff) / vA * 100) : null;
       const seta = diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
-      const corSeta = diff > 0 ? '#4bc87a' : diff < 0 ? '#c84b4b' : 'var(--tx3)';
+      const corSeta = diff > 0 ? '#4bc87a' : diff < 0 ? '#e05555' : 'var(--tx3)';
       const diffStr = (diff > 0 ? '+' : '') + diff.toLocaleString('pt-BR');
       const pctStr  = pct !== null ? ` (${diff >= 0 ? '+' : ''}${pct}%)` : '';
       return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:10px;padding:18px 20px">
@@ -5804,7 +5804,7 @@ async function loadProdData(force) {
     prodSelCia   = null;
     prodRender();
   } catch (err) {
-    if (kpisEl) kpisEl.innerHTML = `<div style="grid-column:1/-1;color:#e06060;font-size:13px;padding:20px 0">Erro ao carregar dados: ${err.message}</div>`;
+    if (kpisEl) kpisEl.innerHTML = `<div style="grid-column:1/-1;color:#f07878;font-size:13px;padding:20px 0">Erro ao carregar dados: ${err.message}</div>`;
   }
 }
 
@@ -5850,25 +5850,25 @@ function prodUplFileChange() {
   Papa.parse(file, {
     header: true, skipEmptyLines: true,
     complete: r => {
-      if (!r.data.length) { prev.innerHTML = '<span style="color:#e06060">Arquivo vazio.</span>'; return; }
+      if (!r.data.length) { prev.innerHTML = '<span style="color:#f07878">Arquivo vazio.</span>'; return; }
       const keys = Object.keys(r.data[0]).map(k => k.toLowerCase());
       if (prodUplTipo === 'cursos') {
         const hasCurso = keys.some(k => k.includes('curso'));
         if (!hasCurso) {
-          prev.innerHTML = `<span style="color:#e06060">Coluna "Curso" não encontrada no CSV.</span>`;
+          prev.innerHTML = `<span style="color:#f07878">Coluna "Curso" não encontrada no CSV.</span>`;
           return;
         }
       } else if (prodUplTipo === 'visita-solidaria') {
         const hasData = keys.some(k => k.includes('data') && k.includes('ocorr'));
         if (!hasData) {
-          prev.innerHTML = `<span style="color:#e06060">Coluna "Data da ocorrência" não encontrada no CSV.</span>`;
+          prev.innerHTML = `<span style="color:#f07878">Coluna "Data da ocorrência" não encontrada no CSV.</span>`;
           return;
         }
       } else {
         const hasAno = keys.some(k => k.includes('ano'));
         const hasMes = keys.some(k => k.includes('mês') || k.includes('mes'));
         if (!hasAno || !hasMes) {
-          prev.innerHTML = `<span style="color:#e06060">Colunas "Ano de Data" e "Mês de Data" não encontradas no CSV.</span>`;
+          prev.innerHTML = `<span style="color:#f07878">Colunas "Ano de Data" e "Mês de Data" não encontradas no CSV.</span>`;
           return;
         }
       }
@@ -5876,7 +5876,7 @@ function prodUplFileChange() {
       prev.innerHTML = `<span style="color:#4bc87a">✓ <b>${r.data.length}</b> registros lidos.</span>`;
       btn.disabled = false; btn.style.opacity = '1';
     },
-    error: err => { prev.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`; }
+    error: err => { prev.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`; }
   });
 }
 
@@ -5898,7 +5898,7 @@ async function prodUplConfirm() {
     await loadProdData(true);
     setTimeout(closeProdUpl, 1800);
   } catch (err) {
-    msg.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`;
+    msg.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`;
     btn.disabled = false; btn.style.opacity = '1';
   }
 }
@@ -6499,16 +6499,16 @@ async function renderTafTatModalDetail() {
   document.getElementById('pd-kpis').innerHTML =
     kpiMini('Total Efetivo',      efetivo.length,    COR) +
     kpiMini('Aptos MB+ TAF 365d', aptosMB365Taf,     '#4bc87a', 'Muito Bom ou Excepcional') +
-    kpiMini('Inaptos TAF',        inaptoTaf,          inaptoTaf  > 0 ? '#c84b4b' : 'var(--tx3)') +
-    kpiMini('TAF Vencido',        vencidos,           vencidos   > 0 ? '#c84b4b' : 'var(--tx3)', '> 1 ano sem fazer') +
+    kpiMini('Inaptos TAF',        inaptoTaf,          inaptoTaf  > 0 ? '#e05555' : 'var(--tx3)') +
+    kpiMini('TAF Vencido',        vencidos,           vencidos   > 0 ? '#e05555' : 'var(--tx3)', '> 1 ano sem fazer') +
     kpiMini('Avaliados TAT',      comTat.length,      COR) +
     kpiMini('Aptos MB+ TAT 365d', aptosMB365Tat,     '#4bc87a', 'Muito Bom ou Excepcional') +
-    kpiMini('Inaptos TAT',        inaptoTat,          inaptoTat  > 0 ? '#c84b4b' : 'var(--tx3)');
+    kpiMini('Inaptos TAT',        inaptoTat,          inaptoTat  > 0 ? '#e05555' : 'var(--tx3)');
 
   // Distribuição por conceito
   const CONCS_ORD = ['Excepcional','Muito Bom','Bom','Regular','Ruim','Inapto'];
   const CONC_NORM = { 'excepcional':'Excepcional','muito bom':'Muito Bom','bom':'Bom','regular':'Regular','ruim':'Ruim','inapto':'Inapto' };
-  const CONC_COR  = { 'Excepcional':'#4bc87a','Muito Bom':'#9de05a','Bom':'#c8c84b','Regular':'#c8a84b','Ruim':'#c84b4b','Inapto':'#c84b4b','Sem dados':'#404060' };
+  const CONC_COR  = { 'Excepcional':'#4bc87a','Muito Bom':'#9de05a','Bom':'#c8c84b','Regular':'#c8a84b','Ruim':'#e05555','Inapto':'#e05555','Sem dados':'#404060' };
 
   const contarConceito = campo => {
     const counts = {};
@@ -6848,7 +6848,7 @@ function renderProdDetail() {
     const vsAcompanhados = filtVS.filter(r => vsFields.some(f => r[f] && r[f].trim())).length;
     const vsTotalContatos= filtVS.reduce((s, r) => s + vsFields.filter(f => r[f] && r[f].trim()).length, 0);
     const vsPctAcomp     = totVDModal > 0 ? Math.round(vsAcompanhados / totVDModal * 100) : null;
-    const gaugeColor     = vsPctAcomp === null ? '#888' : vsPctAcomp >= 80 ? '#4bc87a' : vsPctAcomp >= 50 ? '#f0c040' : '#e06060';
+    const gaugeColor     = vsPctAcomp === null ? '#888' : vsPctAcomp >= 80 ? '#4bc87a' : vsPctAcomp >= 50 ? '#f0c040' : '#f07878';
 
     // Helpers
     const parseVSDate = s => {
@@ -6950,7 +6950,7 @@ function renderProdDetail() {
           return `<tr style="background:${i%2?'':'rgba(255,255,255,.02)'}">
             <td style="padding:5px 8px;font-size:12px;color:var(--tx);white-space:nowrap;overflow:hidden">${o.data_ocorrencia||'—'}</td>
             <td style="padding:5px 8px;font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(o.bairro||'').replace(/"/g,'&quot;')}">${(o.bairro||'—')}</td>
-            <td style="padding:5px 8px;font-size:12px;color:${quer==='Sim'?'#4bc87a':quer==='Não'?'#e06060':'var(--tx3)'};text-align:center">${quer}</td>
+            <td style="padding:5px 8px;font-size:12px;color:${quer==='Sim'?'#4bc87a':quer==='Não'?'#f07878':'var(--tx3)'};text-align:center">${quer}</td>
             <td style="padding:5px 8px;font-size:12px;color:${VD_COR2};text-align:center;font-family:'DM Mono',monospace">${nContatos}</td>
           </tr>`;
         }).join('');
@@ -7014,7 +7014,7 @@ function renderProdDetail() {
 
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
           ${mkpi('Querem Visita', vsQuer.toLocaleString('pt-BR'), 'aceitaram', '#4bc87a')}
-          ${mkpi('Não Querem', vsNaoQuer.toLocaleString('pt-BR'), 'recusaram', '#e06060')}
+          ${mkpi('Não Querem', vsNaoQuer.toLocaleString('pt-BR'), 'recusaram', '#f07878')}
           ${mkpi('Acompanhadas', vsAcompanhados.toLocaleString('pt-BR'), `${vsTotalContatos} contatos`, VD_COR2)}
           ${mkpi('Med. Protetiva', vsMedProt.toLocaleString('pt-BR'), 'possuem atualmente', '#f0c040')}
           <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${gaugeColor};border-radius:8px;padding:12px 14px;min-width:110px;flex:1">
@@ -7069,7 +7069,7 @@ function renderProdDetail() {
             labels: evoLabels,
             datasets: [
               { label: 'Querem acomp.', data: evoQuer,  borderColor:'#4bc87a', backgroundColor:'#4bc87a22', borderWidth:2, fill:false, tension:0.4, pointRadius:5, pointBackgroundColor:'#4bc87a' },
-              { label: 'Não querem',    data: evoNao,   borderColor:'#e06060', backgroundColor:'#e0606022', borderWidth:2, fill:false, tension:0.4, pointRadius:5, pointBackgroundColor:'#e06060' },
+              { label: 'Não querem',    data: evoNao,   borderColor:'#f07878', backgroundColor:'#f0787822', borderWidth:2, fill:false, tension:0.4, pointRadius:5, pointBackgroundColor:'#f07878' },
               { label: 'Acompanhadas',  data: evoAcomp, borderColor:VD_COR2,   backgroundColor:VD_COR2+'22', borderWidth:2, fill:false, tension:0.4, pointRadius:5, pointBackgroundColor:VD_COR2 },
             ]
           },
@@ -7164,7 +7164,7 @@ function renderIqHistorico() {
       let trend = '';
       if (prev !== null && v !== prev) {
         const melhorou = c.melhor === 'maior' ? v > prev : v < prev;
-        trend = melhorou ? ' <span style="color:#5ae09a;font-size:10px">▲</span>' : ' <span style="color:#e06060;font-size:10px">▼</span>';
+        trend = melhorou ? ' <span style="color:#5ae09a;font-size:10px">▲</span>' : ' <span style="color:#f07878;font-size:10px">▼</span>';
       }
       return `<td style="padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.03);text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--tx);${bg}">${fmtVal(v, c.unit)}${trend}</td>`;
     }).join('');
@@ -7179,13 +7179,13 @@ function renderIqHistorico() {
   const PROD_ATIVOS = iqProdFiltro ? PROD_CAMPOS.filter(c => c.key === iqProdFiltro) : PROD_CAMPOS;
 
   const crimeFiltroHtml = `<select onchange="toggleIqCrimeFiltro(this.value)"
-    style="background:var(--bg2);color:var(--tx1);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer">
+    style="background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:6px;padding:5px 10px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer">
     <option value="" style="background:#111;color:#fff">Todas as ocorrências</option>
     ${CRIMES_CAMPOS.map(c => `<option value="${c.key}"${iqCrimeFiltro === c.key ? ' selected' : ''} style="background:#111;color:#fff">${c.label}</option>`).join('')}
   </select>`;
 
   const prodFiltroHtml = `<select onchange="toggleIqProdFiltro(this.value)"
-    style="background:var(--bg2);color:var(--tx1);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer">
+    style="background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:6px;padding:5px 10px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer">
     <option value="" style="background:#111;color:#fff">Todas as ocorrências</option>
     ${PROD_CAMPOS.map(c => `<option value="${c.key}"${iqProdFiltro === c.key ? ' selected' : ''} style="background:#111;color:#fff">${c.label}</option>`).join('')}
   </select>`;
@@ -7278,9 +7278,9 @@ function renderIndicadoresP3() {
   let bannerHtml = '';
   if (!regMesAtual) {
     const atrasado = diaAtual > IQ_PRAZO_DIA;
-    const cor = atrasado ? '#c84b4b' : '#e0c05a';
-    const bg  = atrasado ? 'rgba(200,75,75,.10)' : 'rgba(224,192,90,.10)';
-    const bd  = atrasado ? 'rgba(200,75,75,.30)' : 'rgba(224,192,90,.30)';
+    const cor = atrasado ? '#e05555' : '#e0c05a';
+    const bg  = atrasado ? 'rgba(230,100,100,.10)' : 'rgba(224,192,90,.10)';
+    const bd  = atrasado ? 'rgba(230,100,100,.30)' : 'rgba(224,192,90,.30)';
     const icn = atrasado ? '🔴' : '⚠️';
     const txt = atrasado
       ? `Prazo encerrado — indicadores de <strong>${mesAtual} ${anoAtual}</strong> ainda não foram preenchidos. Cobrar a seção P3.`
@@ -7305,7 +7305,7 @@ function renderIndicadoresP3() {
   const mesIdx       = MESES.indexOf(mesAtual);
   const mesesPassados = MESES.slice(0, mesIdx).filter(m => !mesesPreenchidos.has(m));
   const alertFalta   = mesesPassados.length
-    ? `<div style="padding:10px 16px;border-radius:8px;border:1px solid rgba(200,75,75,.2);background:rgba(200,75,75,.06);color:#e06060;font-size:13px;margin-bottom:14px">
+    ? `<div style="padding:10px 16px;border-radius:8px;border:1px solid rgba(230,100,100,.2);background:rgba(230,100,100,.06);color:#f07878;font-size:13px;margin-bottom:14px">
         <strong>Meses sem dados em ${anoAtual}:</strong> ${mesesPassados.join(', ')}
       </div>`
     : '';
@@ -7320,7 +7320,7 @@ function renderIndicadoresP3() {
     if (val != null && valAnt != null && val !== valAnt) {
       const up   = val > valAnt;
       const diff = Math.abs(val - valAnt).toLocaleString('pt-BR');
-      tendHtml   = `<span style="font-size:13px;color:${up ? '#5ae09a' : '#e06060'}">${up ? '▲' : '▼'} ${diff}</span>`;
+      tendHtml   = `<span style="font-size:13px;color:${up ? '#5ae09a' : '#f07878'}">${up ? '▲' : '▼'} ${diff}</span>`;
     }
     const valStr = val != null ? val.toLocaleString('pt-BR') + (c.unit ? ' ' + c.unit : '') : '—';
     return `<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${c.cor};border-radius:8px;padding:14px">
@@ -7561,7 +7561,7 @@ async function iqSave() {
     await loadIndicadoresP3();
     setTimeout(closeIqMo, 800);
   } catch (err) {
-    msgEl.style.color = '#e06060';
+    msgEl.style.color = '#f07878';
     msgEl.textContent = err.message;
   }
 }
@@ -7576,7 +7576,7 @@ const DD_STATUS_COR = {
   'Andamento':              '#f7d060',
   'Averiguada com Êxito':   '#5ae09a',
   'Averiguada sem Êxito':   '#e08a5a',
-  'Sem Averiguação':        '#e06060',
+  'Sem Averiguação':        '#f07878',
 };
 const ddNorm = s => (s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 // classifica o status pelo conteúdo, independente de acento, case ou prefixo
@@ -7703,11 +7703,11 @@ function renderDDSection() {
     { label: 'Total Recebidas',        val: total,       cor: '#5a9de0' },
     { label: 'Averiguada c/ Êxito',    val: exito,       cor: '#5ae09a' },
     { label: 'Averiguada s/ Êxito',    val: semExito,    cor: '#e08a5a' },
-    { label: 'Sem Averiguação',        val: semAver,     cor: '#e06060' },
+    { label: 'Sem Averiguação',        val: semAver,     cor: '#f07878' },
     { label: 'Com Flagrante',          val: flagrantes,  cor: '#9b6de0' },
-    { label: 'Total Presos',           val: presos,      cor: '#c84b4b' },
+    { label: 'Total Presos',           val: presos,      cor: '#e05555' },
   ].map(k => `<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${k.cor};border-radius:8px;padding:14px">
-    <div style="font-size:11px;color:#fff;font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;line-height:1.3">${k.label}</div>
+    <div style="font-size:13px;color:#fff;font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;line-height:1.3">${k.label}</div>
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${k.cor};line-height:1">${k.val}</div>
   </div>`).join('');
 
@@ -7740,7 +7740,7 @@ function renderDDSection() {
     return { cia, cTotal, cAver, cExito, cPresos, cPct };
   }).sort((a, b) => b.cTotal - a.cTotal);
 
-  const thR = 'padding:9px 14px;border-bottom:1px solid var(--bd);font-family:"DM Mono",monospace;font-size:15px;color:#ccc;text-transform:uppercase;letter-spacing:1px';
+  const thR = 'padding:9px 14px;border-bottom:1px solid var(--bd);font-family:"DM Mono",monospace;font-size:15px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px';
   const tdR = 'padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:15px;color:var(--tx2)';
   const rankingHtml = rankingRows.length ? `
     <table style="width:100%;border-collapse:collapse">
@@ -7758,9 +7758,9 @@ function renderDDSection() {
         <td style="${tdR};text-align:center">${r.cAver}</td>
         <td style="${tdR};text-align:center;color:#c8a84b">${r.cPct}</td>
         <td style="${tdR};text-align:center;color:#5ae09a">${r.cExito}</td>
-        <td style="${tdR};text-align:center;color:#c84b4b">${r.cPresos}</td>
+        <td style="${tdR};text-align:center;color:#e05555">${r.cPresos}</td>
       </tr>`).join('')}</tbody>
-    </table>` : `<div style="color:#aaa;font-size:13px;padding:12px">Sem dados para o filtro selecionado.</div>`;
+    </table>` : `<div style="color:var(--tx3);font-size:13px;padding:12px">Sem dados para o filtro selecionado.</div>`;
 
   // Funil de Efetividade
   const funilMax = total || 1;
@@ -7768,12 +7768,12 @@ function renderDDSection() {
     { label: 'Denúncias Recebidas', val: total,       cor: '#5a9de0', sub: '100% do total' },
     { label: 'Averiguadas',          val: averiguadas, cor: '#c8a84b', sub: total > 0 ? ((averiguadas/total)*100).toFixed(0)+'% das recebidas' : '—' },
     { label: 'Com Flagrante',        val: flagrantes,  cor: '#9b6de0', sub: total > 0 ? ((flagrantes/total)*100).toFixed(0)+'% das recebidas' : '—' },
-    { label: 'Pessoas Presas',       val: presos,      cor: '#c84b4b', sub: flagrantes > 0 ? (presos/flagrantes).toFixed(1)+' presos/flagrante' : '—' },
+    { label: 'Pessoas Presas',       val: presos,      cor: '#e05555', sub: flagrantes > 0 ? (presos/flagrantes).toFixed(1)+' presos/flagrante' : '—' },
   ];
   const funilHtml = funilSteps.map((s, i) => {
     const barPct = Math.max(8, (s.val / funilMax) * 100);
     const arrow  = i < funilSteps.length - 1
-      ? `<div style="text-align:center;color:#aaa;font-size:10px;padding:3px 0;letter-spacing:1px">▼ ${funilSteps[i+1].sub}</div>`
+      ? `<div style="text-align:center;color:var(--tx3);font-size:12px;padding:3px 0;letter-spacing:1px">▼ ${funilSteps[i+1].sub}</div>`
       : '';
     return `
       <div>
@@ -7828,22 +7828,22 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
                 <canvas id="dd-chart-donut" style="cursor:pointer" title="Clique na fatia para ver detalhes da CIA"></canvas>
                 <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
                   <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#fff;line-height:1">${total}</div>
-                  <div style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;letter-spacing:1px;margin-top:2px">TOTAL DDs</div>
+                  <div style="font-size:13px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px;margin-top:2px">TOTAL DDs</div>
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:6px;background:rgba(90,224,154,.1);border:1px solid rgba(90,224,154,.3);border-radius:20px;padding:4px 12px">
                 <span style="font-size:13px;color:#5ae09a">▲</span>
-                <span style="font-size:11px;color:#5ae09a;font-family:'DM Mono',monospace;letter-spacing:1px">fatias destacadas = c/ Êxito</span>
+                <span style="font-size:13px;color:#5ae09a;font-family:'DM Mono',monospace;letter-spacing:1px">fatias destacadas = c/ Êxito</span>
               </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
               <div style="display:grid;grid-template-columns:auto 110px 110px;gap:8px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.08)">
-                <span style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;letter-spacing:1px">CIA</span>
-                <span style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;letter-spacing:1px;text-align:right">TOTAL DDs</span>
-                <span style="font-size:11px;color:#5ae09a;font-family:'DM Mono',monospace;letter-spacing:1px;text-align:right">c/ ÊXITO</span>
+                <span style="font-size:13px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px">CIA</span>
+                <span style="font-size:13px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px;text-align:right">TOTAL DDs</span>
+                <span style="font-size:13px;color:#5ae09a;font-family:'DM Mono',monospace;letter-spacing:1px;text-align:right">c/ ÊXITO</span>
               </div>
               <div id="dd-donut-legend" style="display:flex;flex-direction:column;gap:10px"></div>
-              <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:6px;font-family:'DM Mono',monospace">clique na legenda para ocultar/exibir</div>
+              <div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:6px;font-family:'DM Mono',monospace">clique na legenda para ocultar/exibir</div>
             </div>
           </div>
           <div id="dd-donut-drill" style="display:none;flex-direction:column;align-items:center;gap:16px;padding-top:8px">
@@ -7856,7 +7856,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
                 <div style="width:240px;height:240px">
                   <canvas id="dd-chart-drill"></canvas>
                 </div>
-                <div style="font-size:11px;color:rgba(255,255,255,.3);font-family:'DM Mono',monospace">clique no gráfico para voltar</div>
+                <div style="font-size:13px;color:rgba(255,255,255,.6);font-family:'DM Mono',monospace">clique no gráfico para voltar</div>
               </div>
               <div id="dd-drill-legend" style="display:flex;flex-direction:column;gap:4px;min-width:220px;padding-top:8px"></div>
             </div>
@@ -7932,7 +7932,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
           <span style="color:#888">c/ Êxito</span><span style="color:#5ae09a;font-weight:700">${donutExito[i]}${pct(donutExito[i], t)}</span>
           <span style="color:#888">s/ Êxito</span><span style="color:#e08a5a;font-weight:700">${donutSemEx[i]}${pct(donutSemEx[i], t)}</span>
           <span style="color:#888">Andamento</span><span style="color:#f7d060;font-weight:700">${donutAndamt[i]}${pct(donutAndamt[i], t)}</span>
-          <span style="color:#888">Sem Aver.</span><span style="color:#e06060;font-weight:700">${donutSemAv[i]}${pct(donutSemAv[i], t)}</span>
+          <span style="color:#888">Sem Aver.</span><span style="color:#f07878;font-weight:700">${donutSemAv[i]}${pct(donutSemAv[i], t)}</span>
         </div>`;
       el.style.display = 'block';
       const rect = chart.canvas.getBoundingClientRect();
@@ -7985,17 +7985,17 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
         const hidden  = ddDonutHidden.has(cia);
         return `<div onclick="ddToggleDonut('${cia.replace(/'/g, "\\'")}')" title="${hidden ? 'Mostrar' : 'Ocultar'} ${cia} no gráfico" style="display:grid;grid-template-columns:auto 110px 110px;gap:8px;align-items:center;cursor:pointer;opacity:${hidden ? 0.38 : 1}">
           <div style="display:flex;align-items:center;gap:6px">
-            <div style="width:10px;height:10px;border-radius:2px;background:${hidden ? '#444' : donutCors[i]};flex-shrink:0"></div>
-            <div style="width:10px;height:10px;border-radius:2px;background:${hidden ? '#444' : exitoCor};flex-shrink:0"></div>
-            <span style="font-size:14px;color:${hidden ? '#666' : '#fff'};font-family:'DM Mono',monospace;font-weight:600">${cia}</span>
+            <div style="width:10px;height:10px;border-radius:2px;background:${hidden ? 'rgba(255,255,255,.2)' : donutCors[i]};flex-shrink:0"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:${hidden ? 'rgba(255,255,255,.2)' : exitoCor};flex-shrink:0"></div>
+            <span style="font-size:14px;color:${hidden ? 'rgba(255,255,255,.35)' : '#fff'};font-family:'DM Mono',monospace;font-weight:600">${cia}</span>
           </div>
           <div style="text-align:right">
-            <span style="font-size:14px;color:${hidden ? '#666' : '#fff'};font-family:'DM Mono',monospace">${val}</span>
-            <span style="font-size:12px;color:${hidden ? '#444' : donutCors[i]};margin-left:5px;font-weight:700">${pct}%</span>
+            <span style="font-size:14px;color:${hidden ? 'rgba(255,255,255,.35)' : '#fff'};font-family:'DM Mono',monospace">${val}</span>
+            <span style="font-size:12px;color:${hidden ? 'rgba(255,255,255,.2)' : donutCors[i]};margin-left:5px;font-weight:700">${pct}%</span>
           </div>
           <div style="text-align:right">
-            <span style="font-size:14px;color:${hidden ? '#666' : exitoCor};font-family:'DM Mono',monospace">${exit}</span>
-            <span style="font-size:12px;color:${hidden ? '#444' : exitoCor + '88'};margin-left:5px">${exitPct}%</span>
+            <span style="font-size:14px;color:${hidden ? 'rgba(255,255,255,.35)' : exitoCor};font-family:'DM Mono',monospace">${exit}</span>
+            <span style="font-size:12px;color:${hidden ? 'rgba(255,255,255,.2)' : exitoCor + '88'};margin-left:5px">${exitPct}%</span>
           </div>
         </div>`;
       }).join('');
@@ -8008,7 +8008,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       const t          = donutTotais[ciaIdx];
       const statData   = [donutExito[ciaIdx], donutSemEx[ciaIdx], donutAndamt[ciaIdx], donutSemAv[ciaIdx]];
       const statLabels = ['Av. c/ Êxito', 'Av. s/ Êxito', 'Andamento', 'Sem Averiguação'];
-      const statCors   = ['#5ae09a', '#e08a5a', '#f7d060', '#e06060'];
+      const statCors   = ['#5ae09a', '#e08a5a', '#f7d060', '#f07878'];
       const extTt = document.getElementById('dd-donut-ext-tt');
       if (extTt) extTt.style.display = 'none';
       const mainEl  = document.getElementById('dd-donut-main');
@@ -8064,7 +8064,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
             </div>
             <div>
               <span style="font-size:16px;color:${statCors[i]};font-family:'DM Mono',monospace;font-weight:700">${v}</span>
-              <span style="font-size:12px;color:#aaa;margin-left:8px">${pct}%</span>
+              <span style="font-size:12px;color:var(--tx3);margin-left:8px">${pct}%</span>
             </div>
           </div>`;
         }).join('');
@@ -8227,8 +8227,8 @@ function openDDMo(id) {
   document.getElementById('dd-mo-msg').textContent = '';
 
   const fmtDate = v => v ? v.slice(0,10) : '';
-  const selectStyle = 'width:100%;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:6px;padding:8px 10px;font-size:14px;margin-bottom:12px';
-  const inputStyle  = 'width:100%;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:6px;padding:8px 10px;font-size:14px;margin-bottom:12px;box-sizing:border-box';
+  const selectStyle = 'width:100%;background:var(--s2);color:var(--tx);border:1px solid var(--bd2);border-radius:6px;padding:8px 10px;font-size:14px;margin-bottom:12px';
+  const inputStyle  = 'width:100%;background:var(--s2);color:var(--tx);border:1px solid var(--bd2);border-radius:6px;padding:8px 10px;font-size:14px;margin-bottom:12px;box-sizing:border-box';
   const labelStyle  = 'display:block;font-size:12px;color:var(--tx3);font-family:"DM Mono",monospace;letter-spacing:1px;margin-bottom:4px;text-transform:uppercase';
 
   document.getElementById('dd-mo-body').innerHTML = `
@@ -8338,20 +8338,20 @@ function ddUplFileChange() {
   Papa.parse(file, {
     header: true, skipEmptyLines: true,
     complete: r => {
-      if (!r.data.length) { prev.innerHTML = '<span style="color:#e06060">Arquivo vazio.</span>'; return; }
+      if (!r.data.length) { prev.innerHTML = '<span style="color:#f07878">Arquivo vazio.</span>'; return; }
       const keys = Object.keys(r.data[0]).map(k => k.toLowerCase().trim());
       const hasData = keys.some(k => k.includes('data'));
       const hasCia  = keys.some(k => k.includes('cia'));
       const hasNum  = keys.some(k => k.includes('disque') || k.includes('nº') || k.includes('numero'));
       if (!hasData || !hasCia || !hasNum) {
-        prev.innerHTML = `<span style="color:#e06060">Colunas obrigatórias não encontradas. Verifique: Data, Cia, Nº Disque Denuncia.</span>`;
+        prev.innerHTML = `<span style="color:#f07878">Colunas obrigatórias não encontradas. Verifique: Data, Cia, Nº Disque Denuncia.</span>`;
         return;
       }
       ddUplParsed = r.data;
       prev.innerHTML = `<span style="color:#4bc87a">✓ <b>${r.data.length}</b> registros lidos.</span>`;
       btn.disabled = false; btn.style.opacity = '1';
     },
-    error: err => { prev.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`; }
+    error: err => { prev.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`; }
   });
 }
 
@@ -8372,7 +8372,7 @@ async function ddUplConfirm() {
     await loadDDData();
     setTimeout(closeDDUpl, 1800);
   } catch (err) {
-    msg.innerHTML = `<span style="color:#e06060">Erro: ${err.message}</span>`;
+    msg.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`;
     btn.disabled = false; btn.style.opacity = '1';
   }
 }
