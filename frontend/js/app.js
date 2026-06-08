@@ -6647,7 +6647,9 @@ function renderProdDetail() {
       <div id="${id}-empty" style="display:none;color:var(--tx3);font-size:19px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>`;
 
-  const ciaTitleLabel = pdSelCia ? `Detalhamento — ${pdSelCia}` : 'Ranking por CIA';
+  const ciaTitleLabel = pdSelCia
+    ? (tipo === 'ocorrencias' ? `Municípios — ${pdSelCia}` : `Detalhamento — ${pdSelCia}`)
+    : 'Ranking por CIA';
   let html = cardHtml('pd-cia', ciaTitleLabel, true) + cardHtml('pd-evo', 'Evolução Mensal', true);
   if (!pdNatFilter) html += cardHtml('pd-cat', 'Detalhamento por Categoria', true);
   if (tipo === 'ocorrencias') {
@@ -6682,13 +6684,20 @@ function renderProdDetail() {
     pdChs.push(new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ data:values, backgroundColor:bkgs, borderColor:brds, borderWidth:1, borderRadius:3 }] }, options: { ...barOpts, maintainAspectRatio: false } }));
   };
 
-  // --- Ranking CIA / Detalhamento por categoria quando CIA filtrada ---
+  // --- Ranking CIA / Detalhamento por município (ocorrencias) ou categoria quando CIA filtrada ---
   if (pdSelCia) {
-    const breakField = PROD_BREAK[tipo] || 'natureza';
-    const catAgg = {};
-    rows.forEach(r => { const k = r[breakField] || 'Não informado'; catAgg[k] = (catAgg[k]||0) + (Number(r[campo])||0); });
-    const catEntries = Object.entries(catAgg).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]).slice(0, 15);
-    rdBar('pd-cia', catEntries.map(([k]) => k), catEntries.map(([,v]) => v), () => cor);
+    if (tipo === 'ocorrencias') {
+      const munAgg = {};
+      rows.forEach(r => { const k = r.municipio || 'Não informado'; munAgg[k] = (munAgg[k]||0) + (Number(r[campo])||0); });
+      const munEntries = Object.entries(munAgg).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]).slice(0, 15);
+      rdBar('pd-cia', munEntries.map(([k]) => k), munEntries.map(([,v]) => v), () => cor);
+    } else {
+      const breakField = PROD_BREAK[tipo] || 'natureza';
+      const catAgg = {};
+      rows.forEach(r => { const k = r[breakField] || 'Não informado'; catAgg[k] = (catAgg[k]||0) + (Number(r[campo])||0); });
+      const catEntries = Object.entries(catAgg).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]).slice(0, 15);
+      rdBar('pd-cia', catEntries.map(([k]) => k), catEntries.map(([,v]) => v), () => cor);
+    }
   } else {
     rdBar('pd-cia', topCias.map(([k])=>k), topCias.map(([,v])=>v));
   }

@@ -1038,6 +1038,7 @@ function mapProdRow(tipo, r) {
     grupo_natureza:    get('Grupo de Natureza'),
     natureza:          get('Natureza da Ocorrência', 'Natureza da Ocorrencia'),
     numero_ocorrencia: get('Número da Ocorrência', 'Numero da Ocorrencia'),
+    municipio:         get('Município', 'Municipio'),
     us: get('US'), cia, ano, mes,
     contagem: parseInt(get('Contagem de Ocorrências', 'Contagem de Ocorrencias')) || 0
   };
