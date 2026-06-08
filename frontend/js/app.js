@@ -263,12 +263,12 @@ function buildUserTable(users, me) {
 
   let h = `<table style="width:100%;border-collapse:collapse;font-size:19px">
     <thead><tr>
-      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">NOME</th>
-      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">POSTO/GRAD.</th>
-      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">RE</th>
-      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">FUNÇÃO</th>
-      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">STATUS</th>
-      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">NÍVEL</th>
+      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">NOME</th>
+      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">POSTO/GRAD.</th>
+      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">RE</th>
+      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">FUNÇÃO</th>
+      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">STATUS</th>
+      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">NÍVEL</th>
       <th style="padding:9px 8px;border-bottom:1px solid var(--bd)"></th>
     </tr></thead><tbody>`;
 
@@ -289,21 +289,21 @@ function buildUserTable(users, me) {
 
     let actions = '';
     if (u.status === 'pending') {
-      actions = `<button onclick="admAction('${u.id}','approved')" style="padding:5px 12px;background:rgba(61,191,122,.15);border:1px solid rgba(61,191,122,.3);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:14px;margin-right:4px">✓ Aprovar</button>
-                 <button onclick="admAction('${u.id}','rejected')" style="padding:5px 12px;background:rgba(230,100,100,.1);border:1px solid rgba(230,100,100,.25);color:#f07878;border-radius:4px;cursor:pointer;font-size:14px">✕ Recusar</button>`;
+      actions = `<button onclick="admAction('${u.id}','approved')" style="padding:5px 12px;background:rgba(61,191,122,.15);border:1px solid rgba(61,191,122,.3);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:19px;margin-right:4px">✓ Aprovar</button>
+                 <button onclick="admAction('${u.id}','rejected')" style="padding:5px 12px;background:rgba(230,100,100,.1);border:1px solid rgba(230,100,100,.25);color:#f07878;border-radius:4px;cursor:pointer;font-size:19px">✕ Recusar</button>`;
     } else if (u.status === 'approved') {
       actions = `<button onclick="admAction('${u.id}','approved')" style="display:none"></button>
-                 <button onclick="admAction('${u.id}','rejected')" style="padding:5px 12px;background:rgba(230,100,100,.08);border:1px solid rgba(230,100,100,.2);color:#f07878;border-radius:4px;cursor:pointer;font-size:14px">Revogar</button>
-                 <button data-uid="${escHtml(u.id)}" data-unome="${escHtml(u.nome)}" onclick="admResetSenha(this.dataset.uid,this.dataset.unome)" style="padding:5px 12px;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.25);color:#e8c96a;border-radius:4px;cursor:pointer;font-size:14px;margin-left:4px" title="Senha temporária = matrícula do usuário">🔑 Redefinir Senha</button>`;
+                 <button onclick="admAction('${u.id}','rejected')" style="padding:5px 12px;background:rgba(230,100,100,.08);border:1px solid rgba(230,100,100,.2);color:#f07878;border-radius:4px;cursor:pointer;font-size:19px">Revogar</button>
+                 <button data-uid="${escHtml(u.id)}" data-unome="${escHtml(u.nome)}" onclick="admResetSenha(this.dataset.uid,this.dataset.unome)" style="padding:5px 12px;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.25);color:#e8c96a;border-radius:4px;cursor:pointer;font-size:19px;margin-left:4px" title="Senha temporária = matrícula do usuário">🔑 Redefinir Senha</button>`;
     } else {
-      actions = `<button onclick="admAction('${u.id}','approved')" style="padding:5px 12px;background:rgba(61,191,122,.1);border:1px solid rgba(61,191,122,.25);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:14px">Reativar</button>`;
+      actions = `<button onclick="admAction('${u.id}','approved')" style="padding:5px 12px;background:rgba(61,191,122,.1);border:1px solid rgba(61,191,122,.25);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:19px">Reativar</button>`;
     }
 
     h += `<tr>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:#d8dce8">${escHtml(u.nome)}</td>
       <td style="padding:4px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
         ${canEditPosto
-          ? `<select onchange="admChangePosto('${u.id}',this.value)" style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:4px 8px;border-radius:4px;font-size:14px;cursor:pointer">
+          ? `<select onchange="admChangePosto('${u.id}',this.value)" style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:4px 8px;border-radius:4px;font-size:19px;cursor:pointer">
               ${ ['Sd PM','Cb PM','3º Sgt PM','2º Sgt PM','1º Sgt PM','Subten PM','Asp Of PM','2º Ten PM','1º Ten PM','Cap PM','Maj PM','Ten Cel PM','Cel PM']
                 .map(p => `<option value="${p}" ${(u.posto||'')=== p?'selected':''}>${p}</option>`).join('') }
             </select>`
@@ -311,15 +311,15 @@ function buildUserTable(users, me) {
       </td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-family:'DM Mono',monospace;color:var(--tx3)">${escHtml(u.matricula)}</td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
-        <select onchange="admChangeSecao('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:4px 8px;border-radius:4px;font-size:14px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${secaoOpts}</select>
+        <select onchange="admChangeSecao('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:4px 8px;border-radius:4px;font-size:19px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${secaoOpts}</select>
       </td>
-      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)"><span style="padding:3px 10px;border-radius:20px;font-family:'DM Mono',monospace;font-size:14px;${sStyle}">${STATUS_LABEL[u.status]||u.status}</span></td>
+      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)"><span style="padding:3px 10px;border-radius:20px;font-family:'DM Mono',monospace;font-size:19px;${sStyle}">${STATUS_LABEL[u.status]||u.status}</span></td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
-        <select onchange="admChangeRole('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:4px 8px;border-radius:4px;font-size:14px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${roleOpts}</select>
+        <select onchange="admChangeRole('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:4px 8px;border-radius:4px;font-size:19px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${roleOpts}</select>
       </td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);white-space:nowrap">
         ${actions}
-        <button data-uid="${escHtml(u.id)}" data-unome="${escHtml(u.nome)}" onclick="admDelete(this.dataset.uid,this.dataset.unome)" style="padding:5px 10px;background:transparent;border:1px solid rgba(230,100,100,.2);color:var(--tx3);border-radius:4px;cursor:pointer;font-size:14px;margin-left:4px" title="Excluir usuário">🗑</button>
+        <button data-uid="${escHtml(u.id)}" data-unome="${escHtml(u.nome)}" onclick="admDelete(this.dataset.uid,this.dataset.unome)" style="padding:5px 10px;background:transparent;border:1px solid rgba(230,100,100,.2);color:var(--tx3);border-radius:4px;cursor:pointer;font-size:19px;margin-left:4px" title="Excluir usuário">🗑</button>
       </td>
     </tr>`;
   });
@@ -2886,7 +2886,7 @@ function renderP1() {
   const thL = thS.replace('text-align:right','text-align:left');
   const tdS = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-family:"DM Mono",monospace;font-size:19px;color:var(--tx3);text-align:right';
   const tdL = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:19px;font-weight:600;color:var(--tx)';
-  const badge = (txt, color) => `<span style="padding:3px 9px;border-radius:20px;font-size:14px;font-family:'DM Mono',monospace;background:${color}22;color:${color}">${txt}</span>`;
+  const badge = (txt, color) => `<span style="padding:3px 9px;border-radius:20px;font-size:19px;font-family:'DM Mono',monospace;background:${color}22;color:${color}">${txt}</span>`;
 
   // ── Seção: Afastados agora
   let afastSection = '';
@@ -2959,7 +2959,7 @@ function renderP1() {
       const cor  = isFer(a.tipo_afastamento) ? '#5a9de0' : '#9b6de0';
       alertItems.push(`<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center">
         ${badge(tipo, cor)}
-        <span style="font-size:14px;color:var(--tx2)">${pm?.posto||''}</span>
+        <span style="font-size:19px;color:var(--tx2)">${pm?.posto||''}</span>
         <span style="font-size:19px;color:var(--tx)">${pm?.nome_guerra || pm?.nome || a.re}</span>
         <span style="font-size:19px;color:#ffffff;margin-left:auto">Inicia em <b style="color:${cor}">${diasAte}d</b> — ${fmtDate(a.inicio)}</span>
       </div>`);
@@ -3033,7 +3033,7 @@ function renderP1() {
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${cia.color};letter-spacing:.5px;line-height:1">${cia.label}</div>
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;margin-top:2px">Sede · ${cia.sede}</div>
         </div>
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:20px;font-weight:700;color:var(--tx)">${s.total}</span></div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:20px;font-weight:700;color:var(--tx)">${s.total}</span></div>
       </div>
       <div style="background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin-bottom:10px">
         <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:4px;transition:width .5s ease"></div>
@@ -3041,19 +3041,19 @@ function renderP1() {
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
         <div style="background:rgba(255,255,255,.03);border-radius:5px;padding:7px 4px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.color};line-height:1">${s.pct}%</div>
-          <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);margin-top:1px">DISP</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-top:1px">DISP</div>
         </div>
         <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:14px;color:#4bc87a;margin-top:1px">APTOS</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;margin-top:1px">APTOS</div>
         </div>
         <div style="background:rgba(230,100,100,.07);border-radius:5px;padding:7px 4px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.afst>0?'#e05555':'var(--tx3)'};line-height:1">${s.afst}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:14px;color:${s.afst>0?'#e05555':'var(--tx3)'};margin-top:1px">AFST</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.afst>0?'#e05555':'var(--tx3)'};margin-top:1px">AFST</div>
         </div>
         <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:7px 4px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:14px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
         </div>
       </div>
       <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;margin-bottom:12px;line-height:1.8">${catLine}</div>
@@ -3078,7 +3078,7 @@ function renderP1() {
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${s.color};letter-spacing:.5px;line-height:1">${unit}</div>
         </div>
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:20px;font-weight:700;color:var(--tx)">${d.length}</span></div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:20px;font-weight:700;color:var(--tx)">${d.length}</span></div>
       </div>
       <div style="background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin-bottom:10px">
         <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:4px;transition:width .5s ease"></div>
@@ -3086,19 +3086,19 @@ function renderP1() {
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
         <div style="background:rgba(255,255,255,.03);border-radius:5px;padding:7px 4px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.color};line-height:1">${s.pct}%</div>
-          <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);margin-top:1px">DISP</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-top:1px">DISP</div>
         </div>
         <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:14px;color:#4bc87a;margin-top:1px">APTOS</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;margin-top:1px">APTOS</div>
         </div>
         <div style="background:rgba(230,100,100,.07);border-radius:5px;padding:7px 4px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.afst>0?'#e05555':'var(--tx3)'};line-height:1">${s.afst}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:14px;color:${s.afst>0?'#e05555':'var(--tx3)'};margin-top:1px">AFST</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.afst>0?'#e05555':'var(--tx3)'};margin-top:1px">AFST</div>
         </div>
         <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:7px 4px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:14px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
         </div>
       </div>
       <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;border-top:1px solid rgba(255,255,255,.05);padding-top:10px;line-height:1.8">${catLine || '—'}</div>
@@ -3130,13 +3130,13 @@ function renderP1() {
             <div style="height:100%;width:${r.pct}%;background:${r.pctColor};border-radius:4px;transition:width .4s"></div>
           </div>
           <div style="width:46px;text-align:right;font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${r.pctColor}">${r.pct}%</div>
-          <div style="width:110px;font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);text-align:right">${r.presentes}/${r.vagas} vagas</div>
-          <div style="width:80px;font-family:'DM Mono',monospace;font-size:14px;text-align:right;color:${r.claro > 0 ? '#e05555' : '#4bc87a'}">${r.claro > 0 ? '−' + r.claro + ' claro' : 'completo'}</div>
+          <div style="width:110px;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">${r.presentes}/${r.vagas} vagas</div>
+          <div style="width:80px;font-family:'DM Mono',monospace;font-size:19px;text-align:right;color:${r.claro > 0 ? '#e05555' : '#4bc87a'}">${r.claro > 0 ? '−' + r.claro + ' claro' : 'completo'}</div>
         </div>`).join('');
       claroSection = `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin-bottom:14px">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px">
           <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase">Claro Operacional — Ranking por Disponibilidade</div>
-          <button onclick="openVagasModal()" style="font-size:14px;padding:5px 12px;background:rgba(90,157,224,.1);border:1px solid rgba(90,157,224,.25);color:#5a9de0;border-radius:4px;cursor:pointer">⚙ Editar Vagas</button>
+          <button onclick="openVagasModal()" style="font-size:19px;padding:5px 12px;background:rgba(90,157,224,.1);border:1px solid rgba(90,157,224,.25);color:#5a9de0;border-radius:4px;cursor:pointer">⚙ Editar Vagas</button>
         </div>
         ${rows}
       </div>`;
@@ -3165,7 +3165,7 @@ function renderP1() {
       const retStr = diasRest !== null ? `retorna em <b style="color:#e05555">${diasRest}d</b> · ${fmtDate(termino)}` : fmtDate(termino)||'—';
       bottomItems.push({ order: 0, html: `<div style="padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
         ${badge(tipo.split(',')[0].trim().toUpperCase(), '#e05555')}
-        <span style="font-size:14px;color:var(--tx3)">${r.posto||''}</span>
+        <span style="font-size:19px;color:var(--tx3)">${r.posto||''}</span>
         <span style="font-size:19px;font-weight:600;color:var(--tx);cursor:pointer" onclick="openProntuario('${_esc2(r.re)}')">${r.nome_guerra||r.nome}</span>
         <span style="font-size:19px;color:var(--tx3)">${r.opm||''}</span>
         <span style="font-size:19px;color:var(--tx3);margin-left:auto">${retStr}</span>
@@ -3205,7 +3205,7 @@ function renderP1() {
       const [label, cor] = TIPO_COR(a.tipo_afastamento);
       bottomItems.push({ order: 3, html: `<div style="padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
         ${badge(label, cor)}
-        <span style="font-size:14px;color:var(--tx3)">${pm?.posto||''}</span>
+        <span style="font-size:19px;color:var(--tx3)">${pm?.posto||''}</span>
         <span style="font-size:19px;font-weight:600;color:var(--tx)">${pm?.nome_guerra||pm?.nome||a.re}</span>
         <span style="font-size:19px;color:var(--tx3)">${pm?.opm||''}</span>
         <span style="font-size:19px;color:var(--tx3);margin-left:auto">Inicia em <b style="color:${cor}">${diasAte}d</b> · ${fmtDate(a.inicio)} → ${fmtDate(a.termino)}</span>
@@ -3218,7 +3218,7 @@ function renderP1() {
 
   const mkBlock = (titulo, cor, items) => !items.length ? '' : `
     <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-top:14px;overflow:hidden">
-      <div style="font-family:'DM Mono',monospace;font-size:14px;letter-spacing:2px;color:${cor};padding:10px 16px 8px;text-transform:uppercase;border-bottom:1px solid var(--bd)">${titulo} — ${items.length}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:${cor};padding:10px 16px 8px;text-transform:uppercase;border-bottom:1px solid var(--bd)">${titulo} — ${items.length}</div>
       ${items.sort((a,b)=>a.order-b.order).map(i=>i.html).join('')}
     </div>`;
 
@@ -3491,7 +3491,7 @@ function p1ShowKpiDetail(tipo) {
 
   const closeBtn = ''; // botão ✕ fica no header do modal
 
-  const thL = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:left';
+  const thL = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:left';
   const thR = thL.replace('text-align:left','text-align:right');
   const tdL = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:19px;font-weight:600;color:var(--tx)';
   const tdS = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-family:"DM Mono",monospace;font-size:19px;color:var(--tx3)';
@@ -3502,8 +3502,8 @@ function p1ShowKpiDetail(tipo) {
     const rows = dataF.map(r => {
       const afst = p1AfastHoje[r.re];
       const s = afst
-        ? `<span style="font-size:14px;padding:3px 9px;border-radius:10px;background:#e0555522;color:#e05555;font-family:'DM Mono',monospace">${afst[0]?.tipo_afastamento||'Afastado'}</span>`
-        : `<span style="font-size:14px;padding:3px 9px;border-radius:10px;background:#4bc87a22;color:#4bc87a;font-family:'DM Mono',monospace">Apto</span>`;
+        ? `<span style="font-size:19px;padding:3px 9px;border-radius:10px;background:#e0555522;color:#e05555;font-family:'DM Mono',monospace">${afst[0]?.tipo_afastamento||'Afastado'}</span>`
+        : `<span style="font-size:19px;padding:3px 9px;border-radius:10px;background:#4bc87a22;color:#4bc87a;font-family:'DM Mono',monospace">Apto</span>`;
       return `<tr>
         <td style="${tdS}">${r.posto||'—'}</td>
         <td style="${tdS}">${r.re}</td>
@@ -3542,7 +3542,7 @@ function p1ShowKpiDetail(tipo) {
       const list = groups[cat]; if (!list?.length) return;
       const color = TIPO_COLOR[cat];
       inner += `<tr><td colspan="5" style="padding:10px 12px 4px;border-bottom:1px solid rgba(255,255,255,.04)">
-        <span style="font-family:'DM Mono',monospace;font-size:14px;letter-spacing:1px;padding:3px 10px;border-radius:10px;background:${color}22;color:${color};text-transform:uppercase">${cat} — ${list.length}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:1px;padding:3px 10px;border-radius:10px;background:${color}22;color:${color};text-transform:uppercase">${cat} — ${list.length}</span>
       </td></tr>`;
       list.forEach(a => {
         const pm = p1Data.find(r => r.re === a.re);
@@ -3607,8 +3607,8 @@ function p1ShowKpiDetail(tipo) {
 
     const notaCor2  = n => ({ 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#e05555','inapto':'#e05555' })[(n||'').toLowerCase()] || 'var(--tx3)';
     const notaBadge = n => n
-      ? `<span style="font-size:14px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:8px;background:${notaCor2(n)}22;color:${notaCor2(n)}">${n}</span>`
-      : `<span style="color:var(--tx3);font-size:14px">—</span>`;
+      ? `<span style="font-size:19px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:8px;background:${notaCor2(n)}22;color:${notaCor2(n)}">${n}</span>`
+      : `<span style="color:var(--tx3);font-size:19px">—</span>`;
     const p2 = n => String(n).padStart(2,'0');
     const fmtEap = s => {
       if (!s) return '—';
@@ -3619,7 +3619,7 @@ function p1ShowKpiDetail(tipo) {
     const cS  = 'font-family:"DM Mono",monospace;font-size:19px;color:var(--tx3)';
     const cL  = 'font-size:19px;font-weight:600;color:var(--tx)';
     const pC  = 'padding:8px 6px 8px 4px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-    const thE = 'padding:8px 6px 8px 4px;border-bottom:1px solid rgba(200,168,75,.25);background:rgba(200,168,75,.06);font-family:"DM Mono",monospace;font-size:14px;color:#c8a84b;letter-spacing:1px;text-transform:uppercase;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    const thE = 'padding:8px 6px 8px 4px;border-bottom:1px solid rgba(200,168,75,.25);background:rgba(200,168,75,.06);font-family:"DM Mono",monospace;font-size:19px;color:#c8a84b;letter-spacing:1px;text-transform:uppercase;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
 
     const mkRow7 = r => `<tr>
       <td style="${pC};${cS}">${r.posto||'—'}</td>
@@ -3654,8 +3654,8 @@ function p1ShowKpiDetail(tipo) {
         <tbody>${pend.map(r => {
           const venc = taftatVencFn(r);
           const sit = venc
-            ? `<span style="font-size:14px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:8px;background:#e0555522;color:#e05555">Vencido</span>`
-            : `<span style="font-size:14px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:8px;background:#c8a84b22;color:#c8a84b">Não realizado</span>`;
+            ? `<span style="font-size:19px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:8px;background:#e0555522;color:#e05555">Vencido</span>`
+            : `<span style="font-size:19px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:8px;background:#c8a84b22;color:#c8a84b">Não realizado</span>`;
           return `<tr>
             <td style="${pC};${cS}">${r.posto||'—'}</td>
             <td style="${pC};${cS}">${r.re}</td>
@@ -3689,9 +3689,9 @@ function p1ShowKpiDetail(tipo) {
     // Cartão de resumo clicável
     const smCard = (key, label, val, cor) =>
       `<div onclick="eapFiltroSet('${key}')" style="background:var(--bg2);border:1px solid var(--bd2);border-top:3px solid ${cor};border-radius:8px;padding:14px 16px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='${cor}'" onmouseout="this.style.borderTopColor='${cor}';this.style.borderColor='var(--bd2)';this.style.borderTopColor='${cor}'">
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">${label}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">${label}</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:${cor};line-height:1">${val}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);margin-top:4px">▸ ver lista</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-top:4px">▸ ver lista</div>
       </div>`;
 
     // Pill de filtro
@@ -3760,10 +3760,10 @@ function p1ShowKpiDetail(tipo) {
 
     let inner = '';
     if (gozo.length) inner += `
-      <div style="font-family:'DM Mono',monospace;font-size:14px;color:#5a9de0;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Em Gozo — ${gozo.length}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#5a9de0;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Em Gozo — ${gozo.length}</div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:4px">${colH(true)}<tbody>${gozo.map(a=>ferRow(a,true)).join('')}</tbody></table>`;
     if (prox.length) inner += `
-      <div style="font-family:'DM Mono',monospace;font-size:14px;color:#c8a84b;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Iniciando em 15 dias — ${prox.length}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#c8a84b;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Iniciando em 15 dias — ${prox.length}</div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:4px">${colH(false)}<tbody>${prox.map(a=>ferRow(a,false)).join('')}</tbody></table>`;
     if (semFer.length) {
       const rows = semFer.map(r => `<tr>
@@ -3773,7 +3773,7 @@ function p1ShowKpiDetail(tipo) {
         <td style="${tdS}">${r.opm||'—'}</td>
       </tr>`).join('');
       inner += `
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:#e05555;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Sem Férias em ${anoAtual} — ${semFer.length}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#e05555;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Sem Férias em ${anoAtual} — ${semFer.length}</div>
         <table style="width:100%;border-collapse:collapse">
           <thead><tr><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th></tr></thead>
           <tbody>${rows}</tbody></table>`;
@@ -3809,7 +3809,7 @@ function p1ShowKpiDetail(tipo) {
     const cVal   = c => c < 0 ? `+${Math.abs(c)}` : c === 0 ? '0' : `−${c}`;
     const cPct   = (c, fx) => fx > 0 ? ((c / fx) * 100).toFixed(1) + '%' : '—';
 
-    const thH  = 'padding:8px 14px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:14px;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);text-align:right;white-space:nowrap';
+    const thH  = 'padding:8px 14px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:19px;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);text-align:right;white-space:nowrap';
     const thHL = thH + ';text-align:left';
     const tdc  = 'padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:19px;text-align:right;white-space:nowrap';
     const tdcL = 'padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx);white-space:nowrap';
@@ -3834,7 +3834,7 @@ function p1ShowKpiDetail(tipo) {
           <span style="font-size:19px;color:#5a9de0;margin-left:6px">${r.cia}</span>
           ${bar}
         </div>
-        <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:800;color:${cor};white-space:nowrap">−${r.claro} <span style="font-size:14px;font-weight:400">(${pct}%)</span></span>
+        <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:800;color:${cor};white-space:nowrap">−${r.claro} <span style="font-size:19px;font-weight:400">(${pct}%)</span></span>
       </div>`;
     }).join('');
 
@@ -3850,11 +3850,11 @@ function p1ShowKpiDetail(tipo) {
     if (rankCb.length || rankSub.length) {
       rankHtml = `<div style="padding:14px 18px;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:1fr 1fr;gap:24px">
         <div>
-          <div style="font-family:'DM Mono',monospace;font-size:14px;letter-spacing:2px;color:#e0965a;text-transform:uppercase;margin-bottom:10px">Cb / Sd — Vagas em aberto</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#e0965a;text-transform:uppercase;margin-bottom:10px">Cb / Sd — Vagas em aberto</div>
           <div style="display:flex;flex-direction:column;gap:8px">${rankCb.length ? mkRankList(rankCb,'#e0965a') : '<span style="font-size:19px;color:var(--tx3)">Sem vagas abertas</span>'}</div>
         </div>
         <div>
-          <div style="font-family:'DM Mono',monospace;font-size:14px;letter-spacing:2px;color:#9b6de0;text-transform:uppercase;margin-bottom:10px">Subten / Sgt — Vagas em aberto</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#9b6de0;text-transform:uppercase;margin-bottom:10px">Subten / Sgt — Vagas em aberto</div>
           <div style="display:flex;flex-direction:column;gap:8px">${rankSub.length ? mkRankList(rankSub,'#9b6de0') : '<span style="font-size:19px;color:var(--tx3)">Sem vagas abertas</span>'}</div>
         </div>
       </div>`;
@@ -3866,7 +3866,7 @@ function p1ShowKpiDetail(tipo) {
 
     cias.forEach(cia => {
       const rows = byCia[cia];
-      bodyQ += `<tr><td colspan="8" style="padding:9px 16px 5px;background:rgba(90,157,224,.07);border-top:1px solid rgba(90,157,224,.2);border-bottom:1px solid rgba(90,157,224,.12);font-family:'DM Mono',monospace;font-size:14px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;font-weight:700">${cia}</td></tr>`;
+      bodyQ += `<tr><td colspan="8" style="padding:9px 16px 5px;background:rgba(90,157,224,.07);border-top:1px solid rgba(90,157,224,.2);border-bottom:1px solid rgba(90,157,224,.12);font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;font-weight:700">${cia}</td></tr>`;
       let cFxSub=0, cCSub=0, cFxCb=0, cCCb=0;
       rows.forEach(q => {
         const fxSub = Number(q.fx_subten_sgt)||0, exSub = Number(q.ex_subten_sgt)||0;
@@ -3887,7 +3887,7 @@ function p1ShowKpiDetail(tipo) {
       });
       // Subtotal CIA — St/Sgt e Cb/Sd continuam independentes
       bodyQ += `<tr style="background:rgba(255,255,255,.03);border-top:1px solid rgba(255,255,255,.07)">
-        <td style="${tdcL};color:var(--tx3);font-size:14px;letter-spacing:.5px" colspan="2">Subtotal ${cia}</td>
+        <td style="${tdcL};color:var(--tx3);font-size:19px;letter-spacing:.5px" colspan="2">Subtotal ${cia}</td>
         <td style="${tdc};color:#fff;font-weight:700">${cFxSub}</td>
         <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(cCSub)}">${cVal(cCSub)}</td>
         <td style="${tdc};font-size:19px;color:${cColor(cCSub)}">${cPct(cCSub,cFxSub)}</td>
@@ -3901,7 +3901,7 @@ function p1ShowKpiDetail(tipo) {
     // Total geral — St/Sgt e Cb/Sd totalmente separados, sem somar entre si
     if (qRows.length) {
       bodyQ += `<tr style="border-top:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05)">
-        <td style="${tdcL};text-transform:uppercase;font-size:14px;letter-spacing:1px;color:var(--tx2)" colspan="2">Total Geral</td>
+        <td style="${tdcL};text-transform:uppercase;font-size:19px;letter-spacing:1px;color:var(--tx2)" colspan="2">Total Geral</td>
         <td style="${tdc};color:#fff;font-weight:700;font-size:19px">${gtFxSub}</td>
         <td style="${tdc};font-size:19px;font-weight:900;color:${cColor(gtCSub)}">${cVal(gtCSub)}</td>
         <td style="${tdc};font-size:19px;color:${cColor(gtCSub)}">${cPct(gtCSub,gtFxSub)}</td>
@@ -3978,9 +3978,9 @@ function p1SearchInput(val) {
       <div style="flex-shrink:0">${p1AvatarSVG(nomePrinc, r.posto)}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:19px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${hi(nomePrinc)}</div>
-        <div style="font-size:14px;color:var(--tx3)">${hi(r.nome || '')} · ${r.posto || '—'} · ${r.opm || '—'}</div>
+        <div style="font-size:19px;color:var(--tx3)">${hi(r.nome || '')} · ${r.posto || '—'} · ${r.opm || '—'}</div>
       </div>
-      <div style="font-size:14px;font-family:'DM Mono',monospace;padding:3px 9px;border-radius:10px;background:${statusColor}22;color:${statusColor};white-space:nowrap">${statusTxt}</div>
+      <div style="font-size:19px;font-family:'DM Mono',monospace;padding:3px 9px;border-radius:10px;background:${statusColor}22;color:${statusColor};white-space:nowrap">${statusTxt}</div>
     </div>`;
   }).join('');
 
@@ -4060,12 +4060,12 @@ async function openProntuario(re) {
   let statusHtml = '';
   if (afsts.length) {
     statusHtml = afsts.map(a =>
-      `<span style="padding:4px 12px;border-radius:20px;background:#e0555522;color:#e05555;font-size:14px;font-family:'DM Mono',monospace">${a.tipo_afastamento}</span>`
+      `<span style="padding:4px 12px;border-radius:20px;background:#e0555522;color:#e05555;font-size:19px;font-family:'DM Mono',monospace">${a.tipo_afastamento}</span>`
     ).join(' ');
   } else if (emRestr) {
-    statusHtml = `<span style="padding:4px 12px;border-radius:20px;background:#c8a84b22;color:#c8a84b;font-size:14px;font-family:'DM Mono',monospace">Em Restrição</span>`;
+    statusHtml = `<span style="padding:4px 12px;border-radius:20px;background:#c8a84b22;color:#c8a84b;font-size:19px;font-family:'DM Mono',monospace">Em Restrição</span>`;
   } else {
-    statusHtml = `<span style="padding:4px 12px;border-radius:20px;background:#4bc87a22;color:#4bc87a;font-size:14px;font-family:'DM Mono',monospace">Apto</span>`;
+    statusHtml = `<span style="padding:4px 12px;border-radius:20px;background:#4bc87a22;color:#4bc87a;font-size:19px;font-family:'DM Mono',monospace">Apto</span>`;
   }
   document.getElementById('pronto-status').innerHTML = statusHtml;
 
@@ -4080,16 +4080,16 @@ async function openProntuario(re) {
     const mon = p2(d3.getUTCMonth() + 1), yr = d3.getUTCFullYear();
     document.getElementById('pronto-eap').innerHTML =
       `<span style="color:#4bc87a;font-weight:600">EAP ${anoAtual} ✓</span>` +
-      `<div style="font-size:14px;color:var(--tx3);margin-top:2px">${d1d} à ${d3d}/${mon}/${yr}</div>`;
+      `<div style="font-size:19px;color:var(--tx3);margin-top:2px">${d1d} à ${d3d}/${mon}/${yr}</div>`;
   } else {
     document.getElementById('pronto-eap').innerHTML = `<span style="color:#c8a84b">⚠ Pendente ${anoAtual}</span>`;
   }
 
   // Restrição
   document.getElementById('pronto-restr').innerHTML = emRestr
-    ? `<div style="font-size:14px;color:#c8a84b">${pm.tipos_restricao || 'Sim'}</div>
-       <div style="font-size:14px;color:var(--tx3)">${fmtD(pm.restricao_inicio)} → ${fmtD(pm.restricao_termino)}</div>`
-    : `<span style="font-size:14px;color:var(--tx3)">—</span>`;
+    ? `<div style="font-size:19px;color:#c8a84b">${pm.tipos_restricao || 'Sim'}</div>
+       <div style="font-size:19px;color:var(--tx3)">${fmtD(pm.restricao_inicio)} → ${fmtD(pm.restricao_termino)}</div>`
+    : `<span style="font-size:19px;color:var(--tx3)">—</span>`;
 
   // TAF / TAT
   const NOTA_COR = { 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#e05555','inapto':'#e05555' };
@@ -4109,12 +4109,12 @@ async function openProntuario(re) {
     return new Date() > limite;
   })();
   const renderTeste = (dataTafTat, nota) => {
-    if (!nota && !dataTafTat) return `<span style="font-size:14px;color:var(--tx3)">—</span>`;
+    if (!nota && !dataTafTat) return `<span style="font-size:19px;color:var(--tx3)">—</span>`;
     const cor = tafVencido ? '#e05555' : notaCor(nota);
     const range = fmtRange(dataTafTat);
-    return `${nota ? `<div style="font-size:14px;font-weight:600;color:${cor}">${nota}</div>` : ''}
-            ${range ? `<div style="font-size:14px;color:var(--tx3)">${range}</div>` : ''}
-            ${tafVencido ? `<div style="font-size:14px;font-weight:600;color:#e05555;margin-top:2px">⚠ VENCIDO</div>` : ''}`;
+    return `${nota ? `<div style="font-size:19px;font-weight:600;color:${cor}">${nota}</div>` : ''}
+            ${range ? `<div style="font-size:19px;color:var(--tx3)">${range}</div>` : ''}
+            ${tafVencido ? `<div style="font-size:19px;font-weight:600;color:#e05555;margin-top:2px">⚠ VENCIDO</div>` : ''}`;
   };
   document.getElementById('pronto-taf').innerHTML = renderTeste(pm.data_eap, pm.taf);
   document.getElementById('pronto-tat').innerHTML = renderTeste(pm.data_eap, pm.tat);
@@ -4122,7 +4122,7 @@ async function openProntuario(re) {
   // Alerta TAF/TAT vencido no status
   if (tafVencido) {
     document.getElementById('pronto-status').innerHTML +=
-      ` <span style="padding:4px 12px;border-radius:20px;background:#e0555522;color:#e05555;font-size:14px;font-family:'DM Mono',monospace">TAF/TAT Vencido</span>`;
+      ` <span style="padding:4px 12px;border-radius:20px;background:#e0555522;color:#e05555;font-size:19px;font-family:'DM Mono',monospace">TAF/TAT Vencido</span>`;
   }
 
   // Foto
@@ -4163,15 +4163,15 @@ async function openProntuario(re) {
   const extratoHtml = extrato.length
     ? extrato.map(a => {
         const ativo = a.inicio <= hoje && a.termino >= hoje;
-        const tdE = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:14px;color:var(--tx3)';
+        const tdE = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:19px;color:var(--tx3)';
         return `<tr>
-          <td style="${tdE};font-size:14px;color:${ativo?'var(--tx)':'var(--tx3)'};font-family:inherit">${a.tipo_afastamento || '—'}</td>
+          <td style="${tdE};font-size:19px;color:${ativo?'var(--tx)':'var(--tx3)'};font-family:inherit">${a.tipo_afastamento || '—'}</td>
           <td style="${tdE}">${fmtD(a.inicio)}</td>
           <td style="${tdE}">${fmtD(a.termino)}</td>
           <td style="${tdE}">${a.n_dias ? a.n_dias + 'd' : '—'}</td>
           <td style="${tdE};color:var(--tx2)">${a.nbi || '—'}</td>
           <td style="${tdE};color:var(--tx2)">${a.bol_g || '—'}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04)">${ativo ? '<span style="font-size:14px;padding:2px 8px;border-radius:8px;background:#e0555522;color:#e05555;font-family:DM Mono,monospace">ATIVO</span>' : ''}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04)">${ativo ? '<span style="font-size:19px;padding:2px 8px;border-radius:8px;background:#e0555522;color:#e05555;font-family:DM Mono,monospace">ATIVO</span>' : ''}</td>
         </tr>`;
       }).join('')
     : '<tr><td colspan="7" style="padding:14px 10px;color:var(--tx3);font-size:19px;text-align:center">Nenhum afastamento registrado.</td></tr>';
@@ -4180,19 +4180,19 @@ async function openProntuario(re) {
   // Cursos institucionais
   const cursosEl = document.getElementById('pronto-cursos');
   if (cursosEl) {
-    cursosEl.innerHTML = '<tr><td colspan="3" style="padding:10px;color:var(--tx3);font-size:14px;text-align:center">Carregando...</td></tr>';
+    cursosEl.innerHTML = '<tr><td colspan="3" style="padding:10px;color:var(--tx3);font-size:19px;text-align:center">Carregando...</td></tr>';
     authFetch(`${API}/pm/${encodeURIComponent(re)}/cursos`).then(r => r.json()).then(cursosData => {
       const fmtDc = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
-      const tdC = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:14px;color:var(--tx3)';
+      const tdC = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:19px;color:var(--tx3)';
       cursosEl.innerHTML = Array.isArray(cursosData) && cursosData.length
         ? cursosData.map(c => `<tr>
             <td style="${tdC};white-space:nowrap">${fmtDc(c.data)}</td>
-            <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:14px;font-weight:600;color:var(--tx)">${c.nome_curso||'—'}</td>
+            <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx)">${c.nome_curso||'—'}</td>
             <td style="${tdC}">${c.posto_pm||'—'}</td>
           </tr>`).join('')
-        : '<tr><td colspan="3" style="padding:12px 10px;color:var(--tx3);font-size:14px;text-align:center">Nenhum curso registrado.</td></tr>';
+        : '<tr><td colspan="3" style="padding:12px 10px;color:var(--tx3);font-size:19px;text-align:center">Nenhum curso registrado.</td></tr>';
     }).catch(() => {
-      cursosEl.innerHTML = '<tr><td colspan="3" style="padding:12px 10px;color:var(--tx3);font-size:14px;text-align:center">—</td></tr>';
+      cursosEl.innerHTML = '<tr><td colspan="3" style="padding:12px 10px;color:var(--tx3);font-size:19px;text-align:center">—</td></tr>';
     });
   }
 }
@@ -4301,27 +4301,27 @@ function quadroForUnit(opmLabel) {
   const rows = grupos.map(g => {
     const pres = present(g.cat);
     return `<tr>
-      <td style="padding:6px 8px;font-size:14px;color:var(--tx)">${g.label}</td>
-      <td style="padding:6px 8px;font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);text-align:right">${g.fx}</td>
-      <td style="padding:6px 8px;font-family:'DM Mono',monospace;font-size:14px;color:#c8a84b;text-align:right">${g.ex}</td>
-      <td style="padding:6px 8px;font-family:'DM Mono',monospace;font-size:14px;color:#4bc87a;text-align:right">${pres}</td>
+      <td style="padding:6px 8px;font-size:19px;color:var(--tx)">${g.label}</td>
+      <td style="padding:6px 8px;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">${g.fx}</td>
+      <td style="padding:6px 8px;font-family:'DM Mono',monospace;font-size:19px;color:#c8a84b;text-align:right">${g.ex}</td>
+      <td style="padding:6px 8px;font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;text-align:right">${pres}</td>
     </tr>`;
   }).join('');
 
   return `<div style="margin-top:14px;border-top:1px solid rgba(255,255,255,.07);padding-top:12px">
-    <div style="font-family:'DM Mono',monospace;font-size:14px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;margin-bottom:8px">Quadro Fixado</div>
+    <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;margin-bottom:8px">Quadro Fixado</div>
     <table style="width:100%;border-collapse:collapse">
       <thead><tr>
-        <th style="padding:4px 8px;font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);text-align:left;letter-spacing:1px">GRADUAÇÃO</th>
-        <th style="padding:4px 8px;font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);text-align:right;letter-spacing:1px">FIXADO</th>
-        <th style="padding:4px 8px;font-family:'DM Mono',monospace;font-size:14px;color:#c8a84b;text-align:right;letter-spacing:1px">EX QUAD</th>
-        <th style="padding:4px 8px;font-family:'DM Mono',monospace;font-size:14px;color:#4bc87a;text-align:right;letter-spacing:1px">PRESENTE</th>
+        <th style="padding:4px 8px;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:left;letter-spacing:1px">GRADUAÇÃO</th>
+        <th style="padding:4px 8px;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right;letter-spacing:1px">FIXADO</th>
+        <th style="padding:4px 8px;font-family:'DM Mono',monospace;font-size:19px;color:#c8a84b;text-align:right;letter-spacing:1px">EX QUAD</th>
+        <th style="padding:4px 8px;font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;text-align:right;letter-spacing:1px">PRESENTE</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <div style="display:flex;justify-content:space-between;margin-top:8px;padding:6px 8px;background:rgba(255,255,255,.03);border-radius:4px">
-      <span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3)">TOTAL FX <b style="color:var(--tx)">${totalFx}</b> · EX <b style="color:#c8a84b">${totalEx}</b></span>
-      <span style="font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:${claroColor(totalClaro)}">CLARO ${totalClaro > 0 ? '−'+totalClaro : totalClaro === 0 ? '0' : '+'+Math.abs(totalClaro)}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">TOTAL FX <b style="color:var(--tx)">${totalFx}</b> · EX <b style="color:#c8a84b">${totalEx}</b></span>
+      <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${claroColor(totalClaro)}">CLARO ${totalClaro > 0 ? '−'+totalClaro : totalClaro === 0 ? '0' : '+'+Math.abs(totalClaro)}</span>
     </div>
   </div>`;
 }
@@ -4459,9 +4459,9 @@ function renderVagasTable() {
   }
   tbl.innerHTML = `<table style="width:100%;border-collapse:collapse">
     <thead><tr>
-      <th style="text-align:left;padding:9px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">OPM</th>
-      <th style="text-align:right;padding:9px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">Efetivo Atual</th>
-      <th style="text-align:right;padding:9px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">Vagas Autorizadas</th>
+      <th style="text-align:left;padding:9px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">OPM</th>
+      <th style="text-align:right;padding:9px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">Efetivo Atual</th>
+      <th style="text-align:right;padding:9px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">Vagas Autorizadas</th>
     </tr></thead>
     <tbody>${opms.map(opm => {
       const atual = p1ByUnit[opm]?.length || 0;
@@ -4540,7 +4540,7 @@ function p1AvatarSVG(nome, posto) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
     <circle cx="16" cy="16" r="16" fill="${bg}33"/>
     <circle cx="16" cy="16" r="15.5" fill="none" stroke="${bg}" stroke-width="1"/>
-    <text x="16" y="21" text-anchor="middle" fill="${bg}" font-family="DM Mono,monospace" font-size="12" font-weight="600">${initials}</text>
+    <text x="16" y="21" text-anchor="middle" fill="${bg}" font-family="DM Mono,monospace" font-size="14" font-weight="600">${initials}</text>
   </svg>`;
 }
 
@@ -4751,10 +4751,10 @@ function p1ShowPmList(pms, label) {
       : p1AvatarSVG(r.nome_guerra || r.nome, r.posto).replace('width="32" height="32" viewBox="0 0 32 32"','width="56" height="56" viewBox="0 0 32 32"');
     return `<div onclick="openProntuario('${_re}')" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)'">
       <div data-foto-re="${r.re}" data-nome="${(r.nome_guerra||r.nome).replace(/"/g,'&quot;')}" data-posto="${(r.posto||'').replace(/"/g,'&quot;')}">${avatarContent}</div>
-      <div style="font-size:14px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:2px">${r.posto || '—'}</div>
-      <div style="font-size:14px;color:var(--tx3);font-family:'DM Mono',monospace">RE ${r.re}</div>
-      <div style="font-size:14px;font-weight:700;color:var(--tx);line-height:1.3;word-break:break-word">${r.nome_guerra || r.nome}</div>
-      <div style="font-size:14px;padding:2px 8px;border-radius:10px;background:${statusColor}22;color:${statusColor};font-family:'DM Mono',monospace;margin-top:2px">${statusTxt}</div>
+      <div style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:2px">${r.posto || '—'}</div>
+      <div style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace">RE ${r.re}</div>
+      <div style="font-size:19px;font-weight:700;color:var(--tx);line-height:1.3;word-break:break-word">${r.nome_guerra || r.nome}</div>
+      <div style="font-size:19px;padding:2px 8px;border-radius:10px;background:${statusColor}22;color:${statusColor};font-family:'DM Mono',monospace;margin-top:2px">${statusTxt}</div>
     </div>`;
   }).join('');
 
@@ -4762,8 +4762,8 @@ function p1ShowPmList(pms, label) {
 
   det.innerHTML = `<div id="p1-unit-panel" style="margin-top:14px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div style="font-family:'DM Mono',monospace;font-size:14px;letter-spacing:2px;color:var(--gold);text-transform:uppercase">${label} — ${pms.length} militares</div>
-      <button onclick="p1CloseUnit()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--tx3);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:14px">✕ Fechar</button>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:var(--gold);text-transform:uppercase">${label} — ${pms.length} militares</div>
+      <button onclick="p1CloseUnit()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--tx3);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:19px">✕ Fechar</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px">${cards}</div>
     ${quadroHtml}
@@ -4857,14 +4857,14 @@ function renderHome() {
       if (!pms.length) return '';
       const s = stOf(pms);
       return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:${color};width:48px;flex-shrink:0">${label}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:${color};width:48px;flex-shrink:0">${label}</div>
         <div style="flex:1;background:rgba(255,255,255,.06);border-radius:3px;height:6px;overflow:hidden">
           <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:3px"></div>
         </div>
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:${s.color};width:38px;text-align:right">${s.pct}%</div>
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);width:58px">${s.total} PMs</div>
-        ${s.afst  > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:14px;color:#e05555">${s.afst} afst</div>` : ''}
-        ${s.restr > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:14px;color:#c8a84b">${s.restr} restr</div>` : ''}
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.color};width:38px;text-align:right">${s.pct}%</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);width:58px">${s.total} PMs</div>
+        ${s.afst  > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:19px;color:#e05555">${s.afst} afst</div>` : ''}
+        ${s.restr > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:19px;color:#c8a84b">${s.restr} restr</div>` : ''}
       </div>`;
     };
 
@@ -4876,13 +4876,13 @@ function renderHome() {
     p1Preview = `
       <div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px">
         <div style="display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap">
-          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--tx)">${gs.total}</span><span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);margin-left:4px">total</span></div>
-          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:#4bc87a">${gs.aptos}</span><span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);margin-left:4px">aptos</span></div>
-          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${gs.afst>0?'#e05555':'var(--tx3)'}">${gs.afst}</span><span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);margin-left:4px">afst</span></div>
-          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${gs.restr>0?'#c8a84b':'var(--tx3)'}">${gs.restr}</span><span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);margin-left:4px">restr</span></div>
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--tx)">${gs.total}</span><span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-left:4px">total</span></div>
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:#4bc87a">${gs.aptos}</span><span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-left:4px">aptos</span></div>
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${gs.afst>0?'#e05555':'var(--tx3)'}">${gs.afst}</span><span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-left:4px">afst</span></div>
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${gs.restr>0?'#c8a84b':'var(--tx3)'}">${gs.restr}</span><span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-left:4px">restr</span></div>
         </div>
         ${ciaRows}
-        ${alertas.length ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);display:flex;flex-wrap:wrap;gap:8px;font-family:'DM Mono',monospace;font-size:14px">${alertas.join('<span style="color:var(--bd2)">·</span>')}</div>` : ''}
+        ${alertas.length ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);display:flex;flex-wrap:wrap;gap:8px;font-family:'DM Mono',monospace;font-size:19px">${alertas.join('<span style="color:var(--bd2)">·</span>')}</div>` : ''}
       </div>`;
   }
 
@@ -4915,10 +4915,10 @@ function renderHome() {
 
     p3Preview = `
       <div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px">
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;margin-bottom:6px">${mesR} ${anoR}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;margin-bottom:6px">${mesR} ${anoR}</div>
         <div style="display:flex;gap:14px;margin-bottom:8px;flex-wrap:wrap">
-          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--tx)">${totalMes}</span><span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);margin-left:4px">ocorr.</span></div>
-          ${pctMeta !== null ? `<div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${metaColor}">${pctMeta}%</span><span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);margin-left:4px">da meta</span></div>` : ''}
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--tx)">${totalMes}</span><span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-left:4px">ocorr.</span></div>
+          ${pctMeta !== null ? `<div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${metaColor}">${pctMeta}%</span><span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-left:4px">da meta</span></div>` : ''}
         </div>
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff">${criticoTxt}</div>
       </div>`;
@@ -4958,7 +4958,7 @@ function renderHome() {
           </div>`;
         }).join('');
         insColsP3Meta.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px">
-          <div style="font-family:'DM Mono',monospace;font-size:14px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · CRIMES × META — ${mes3} ${ano3} — BATALHÃO</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · CRIMES × META — ${mes3} ${ano3} — BATALHÃO</div>
           ${crimesSomaRows}
         </div>`);
       }
@@ -4986,7 +4986,7 @@ function renderHome() {
           </div>`;
         }).join('');
         insColsP3Fora.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px">
-          <div style="font-family:'DM Mono',monospace;font-size:14px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · CRIMES FORA DA META — ${mes3} ${ano3}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · CRIMES FORA DA META — ${mes3} ${ano3}</div>
           ${munRows3}
         </div>`);
       }
@@ -5025,7 +5025,7 @@ function renderHome() {
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;width:64px;text-align:right">${c.total} PMs</div>
         </div>`).join('');
         insColsP1.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #4bc87a;border-radius:10px;padding:20px">
-          <div style="font-family:'DM Mono',monospace;font-size:14px;color:#4bc87a;letter-spacing:1.5px;margin-bottom:12px">P1 · DISPONIBILIDADE POR CIA</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;letter-spacing:1.5px;margin-bottom:12px">P1 · DISPONIBILIDADE POR CIA</div>
           ${ciaRows3}
         </div>`);
       }
@@ -5047,7 +5047,7 @@ function renderHome() {
           </div>`;
         }).join('');
         insColsP1.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #e05555;border-radius:10px;padding:20px">
-          <div style="font-family:'DM Mono',monospace;font-size:14px;color:#e05555;letter-spacing:1.5px;margin-bottom:12px">P1 · RANKING AFASTAMENTOS POR TIPO</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#e05555;letter-spacing:1.5px;margin-bottom:12px">P1 · RANKING AFASTAMENTOS POR TIPO</div>
           ${tipoRows3}
         </div>`);
       }
@@ -5056,7 +5056,7 @@ function renderHome() {
     const insCols = [...insColsP1, ...insColsP3Meta, ...insColsP3Fora];
     if (insCols.length > 0) {
       insightsHtml = `<div style="margin-top:28px">
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:#ffffff;letter-spacing:2px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bd)">INSIGHTS &amp; RANKINGS</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:2px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bd)">INSIGHTS &amp; RANKINGS</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">${insCols.join('')}</div>
       </div>`;
     }
@@ -5102,7 +5102,7 @@ function renderHome() {
         <div style="width:44px;height:44px;border-radius:10px;background:${s.color}18;border:1px solid ${s.color}33;display:flex;align-items:center;justify-content:center;flex-shrink:0">
           <i data-lucide="${s.icon}" style="width:22px;height:22px;stroke:${s.color};stroke-width:1.75"></i>
         </div>
-        ${s.soon ? `<span style="font-family:'DM Mono',monospace;font-size:14px;padding:3px 10px;border-radius:10px;background:rgba(255,255,255,.05);color:#ffffff;letter-spacing:1px">EM BREVE</span>` : `<span style="font-family:'DM Mono',monospace;font-size:14px;padding:3px 10px;border-radius:10px;background:${s.color}18;color:${s.color};letter-spacing:1px">ATIVO</span>`}
+        ${s.soon ? `<span style="font-family:'DM Mono',monospace;font-size:19px;padding:3px 10px;border-radius:10px;background:rgba(255,255,255,.05);color:#ffffff;letter-spacing:1px">EM BREVE</span>` : `<span style="font-family:'DM Mono',monospace;font-size:19px;padding:3px 10px;border-radius:10px;background:${s.color}18;color:${s.color};letter-spacing:1px">ATIVO</span>`}
       </div>
       <div style="margin-bottom:8px">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:800;color:${s.soon?'var(--tx3)':s.color};letter-spacing:1px;line-height:1;margin-bottom:4px">${s.label}</div>
@@ -5138,14 +5138,14 @@ function updateSidebarImports(section) {
   if (section === 'p1') {
     if (!isP1) { el.innerHTML = ''; return; }
     el.innerHTML = `
-      <button onclick="openP1Upload()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:14px;font-weight:600">↑ Importar Efetivo</button>
-      <button onclick="openAfUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:14px;font-weight:600">↑ Importar Afastamentos</button>
-      <button onclick="openQuadroUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(75,200,122,.12);border:1px solid rgba(75,200,122,.3);color:#4bc87a;border-radius:4px;cursor:pointer;font-size:14px;font-weight:600">↑ Importar Quadro de Claros</button>`;
+      <button onclick="openP1Upload()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Efetivo</button>
+      <button onclick="openAfUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Afastamentos</button>
+      <button onclick="openQuadroUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(75,200,122,.12);border:1px solid rgba(75,200,122,.3);color:#4bc87a;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Quadro de Claros</button>`;
   } else if (section === 'p3') {
     if (!isP3) { el.innerHTML = ''; return; }
     el.innerHTML = `
-      <button onclick="openUploadModal()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:14px;font-weight:600">↑ Importar Banco de Dados RAC</button>
-      <button onclick="openOcorrModal()" style="margin-top:4px;width:100%;padding:6px;background:rgba(61,122,191,.12);border:1px solid rgba(61,122,191,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:14px;font-weight:600">↑ Importar Ocorrências (InfoCrim)</button>`;
+      <button onclick="openUploadModal()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Banco de Dados RAC</button>
+      <button onclick="openOcorrModal()" style="margin-top:4px;width:100%;padding:6px;background:rgba(61,122,191,.12);border:1px solid rgba(61,122,191,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Ocorrências (InfoCrim)</button>`;
   } else if (section === 'p3prod') {
     if (!isP3) { el.innerHTML = ''; return; }
     const itens = [
@@ -5159,8 +5159,8 @@ function updateSidebarImports(section) {
       ['cursos',           'Cursos Institucionais',            '#9de05a'],
     ];
     el.innerHTML = itens.map(([t, l, c]) =>
-      `<button onclick="openProdUpl('${t}')" style="width:100%;padding:6px;margin-top:4px;background:rgba(0,0,0,.15);border:1px solid ${c}55;color:${c};border-radius:4px;cursor:pointer;font-size:14px;font-weight:600">↑ ${l}</button>`
-    ).join('') + `<button onclick="openDDUpl()" style="width:100%;padding:6px;margin-top:4px;background:rgba(0,0,0,.15);border:1px solid #5a9de055;color:#5a9de0;border-radius:4px;cursor:pointer;font-size:14px;font-weight:600">↑ Disque Denúncia</button>`;
+      `<button onclick="openProdUpl('${t}')" style="width:100%;padding:6px;margin-top:4px;background:rgba(0,0,0,.15);border:1px solid ${c}55;color:${c};border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ ${l}</button>`
+    ).join('') + `<button onclick="openDDUpl()" style="width:100%;padding:6px;margin-top:4px;background:rgba(0,0,0,.15);border:1px solid #5a9de055;color:#5a9de0;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Disque Denúncia</button>`;
   } else {
     el.innerHTML = '';
   }
@@ -5420,7 +5420,7 @@ function prodRender() {
       </div>`;
       const totAtivo = prodSum(filt.entorpecentes.filter(r => (r.unidade_medida||'Sem unidade').trim() === prodEntorpUnit), 'quantidade');
       const pills = unidadesEntorp.map(u =>
-        `<button class="pf-btn${u===prodEntorpUnit?' on':''}" data-eunit="${u.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();switchEntorpUnit('${u.replace(/'/g,"\\'")}','kpi')" style="font-size:14px;padding:2px 7px;line-height:1.4">${u}</button>`
+        `<button class="pf-btn${u===prodEntorpUnit?' on':''}" data-eunit="${u.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();switchEntorpUnit('${u.replace(/'/g,"\\'")}','kpi')" style="font-size:19px;padding:2px 7px;line-height:1.4">${u}</button>`
       ).join('');
       return `<div class="kpi" onclick="openProdDetail('entorpecentes',prodEntorpUnit)" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top" style="background:${PROD_CORES.entorpecentes}"></div>
@@ -5498,7 +5498,7 @@ function prodRender() {
       const vencidos = p1Data.filter(isVenc).length;
       const metricRow = (label, val, cor) =>
         `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px">
-          <span style="font-family:'DM Mono',monospace;font-size:17px;color:#f4f6fc">${label}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:19px;color:#f4f6fc">${label}</span>
           <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${cor}">${val}</span>
         </div>`;
       return `<div class="kpi" onclick="openProdDetail('taftat')" title="Clique para detalhes" style="cursor:pointer">
@@ -5577,7 +5577,7 @@ function prodRender() {
     insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:10px;padding:20px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:10px">CIA em Destaque</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;color:var(--tx);line-height:1.1;margin-bottom:4px">${ciaTopo}</div>
-      <div style="font-family:'DM Mono',monospace;font-size:17px;color:#f0c040;margin-bottom:12px">${valTopo.toLocaleString('pt-BR')} ações (presos + armas + veíc.)</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#f0c040;margin-bottom:12px">${valTopo.toLocaleString('pt-BR')} ações (presos + armas + veíc.)</div>
       ${runners}
     </div>`);
   }
@@ -5605,20 +5605,20 @@ function prodRender() {
     [...cursosUnicosAno.values()].forEach(t => { tipoCount[t] = (tipoCount[t]||0) + 1; });
     const tipoRows = TIPO_ORD.filter(t => tipoCount[t]).map(t =>
       `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-        <span style="font-size:17px;color:var(--tx2)">${t}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:700;color:${TIPO_COR[t]||'var(--tx)'}">${tipoCount[t]}</span>
+        <span style="font-size:19px;color:var(--tx2)">${t}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${TIPO_COR[t]||'var(--tx)'}">${tipoCount[t]}</span>
       </div>`
     ).join('');
 
     insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR_CAP};border-radius:10px;padding:20px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR_CAP};margin-bottom:10px">Índice de Capacitação</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:800;color:var(--tx);line-height:1;margin-bottom:2px">${pmsCapacitados.size}</div>
-      <div style="font-family:'DM Mono',monospace;font-size:17px;color:${COR_CAP};margin-bottom:${pct !== null ? '10' : '14'}px">PMs capacitados em ${prodSelAno||'—'}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;color:${COR_CAP};margin-bottom:${pct !== null ? '10' : '14'}px">PMs capacitados em ${prodSelAno||'—'}</div>
       ${pct !== null ? `
       <div style="margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px">
           <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">do efetivo (${totalEfetivo} PMs)</span>
-          <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:700;color:${COR_CAP}">${pct}%</span>
+          <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${COR_CAP}">${pct}%</span>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px">
           <div style="height:100%;width:${barW}%;background:${COR_CAP};border-radius:3px;transition:width .4s"></div>
@@ -5671,7 +5671,7 @@ function prodRender() {
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;font-weight:700">${pct}%</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px"><div style="height:100%;width:${pct}%;background:${t.cor};border-radius:3px"></div></div>
-        <div style="font-family:'DM Mono',monospace;font-size:17px;color:#ffffff;margin-top:4px">${t.v.toLocaleString('pt-BR')} no período</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;margin-top:4px">${t.v.toLocaleString('pt-BR')} no período</div>
       </div>`;
     }).join('');
     insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid var(--bd2);border-radius:10px;padding:20px">
@@ -5726,7 +5726,7 @@ function prodRender() {
             <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">${MES_ABREV[mesA] || mesA.slice(0,3)}</div>
             <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx2);font-weight:600">${vA.toLocaleString('pt-BR')}</div>
           </div>
-          <div style="color:var(--tx3);font-size:14px">›</div>
+          <div style="color:var(--tx3);font-size:19px">›</div>
           <div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:8px 10px;text-align:center;border:1px solid ${cor}44">
             <div style="font-family:'DM Mono',monospace;font-size:19px;color:${cor};letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">${MES_ABREV[mesB] || mesB.slice(0,3)}</div>
             <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx);font-weight:700">${vB.toLocaleString('pt-BR')}</div>
@@ -5954,8 +5954,8 @@ function switchEntorpUnit(u, origem) {
     indexAxis: 'y', responsive: true,
     plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
     scales: {
-      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 13 } } },
-      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 13 } } }
+      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } } },
+      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 19 } } }
     }
   });
   renderEntorpCatChart(u, filt, PROD_CORES.entorpecentes, barOpts);
@@ -6151,7 +6151,7 @@ function renderTRModalDetail() {
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:${cor};font-weight:700;flex-shrink:0">${val}</div>
       </div>
       <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px"><div style="height:100%;width:${Math.min(100,barPct)}%;background:${cor};border-radius:3px"></div></div>
-      <div style="font-size:14px;color:var(--tx3);margin-top:2px">${sub}</div>
+      <div style="font-size:19px;color:var(--tx3);margin-top:2px">${sub}</div>
     </div>`;
 
   const natTop = natRank.slice(0, 10);
@@ -6222,8 +6222,8 @@ function renderTRModalDetail() {
             },
           },
           scales: {
-            x: { grid: GR, min: 0, max: 100, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 13 }, callback: v => v + '%' } },
-            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 13 } } },
+            x: { grid: GR, min: 0, max: 100, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 }, callback: v => v + '%' } },
+            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 19 } } },
           },
         },
       }));
@@ -6264,7 +6264,7 @@ function renderTRModalDetail() {
             legend: {
               display: hasBoeData,
               position: 'top',
-              labels: { color: '#f4f6fc', font: { size: 13, family: "'DM Sans',sans-serif" }, padding: 16, usePointStyle: true },
+              labels: { color: '#f4f6fc', font: { size: 19, family: "'DM Sans',sans-serif" }, padding: 16, usePointStyle: true },
             },
             tooltip: {
               callbacks: {
@@ -6279,8 +6279,8 @@ function renderTRModalDetail() {
             },
           },
           scales: {
-            x: { grid: GR, min: 0, max: 100, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 13 }, callback: v => v + '%' } },
-            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 13 } } },
+            x: { grid: GR, min: 0, max: 100, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 }, callback: v => v + '%' } },
+            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 19 } } },
           },
         },
       }));
@@ -6338,28 +6338,28 @@ function renderCursosModalDetail() {
   document.getElementById('pd-sub').textContent = periodoLbl.toUpperCase();
   document.getElementById('pd-kpis').innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:8px;padding:14px 18px">
-      <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Cursos Realizados</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Cursos Realizados</div>
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${COR}">${cursosList.length}</div>
     </div>
     <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:8px;padding:14px 18px">
-      <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">PMs Capacitados</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">PMs Capacitados</div>
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${COR}">${pmsUnicos.size}</div>
     </div>`;
 
   const fmtD = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
   const tdS = 'padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:19px;color:var(--tx3)';
   const tdL = 'padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx)';
-  const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:left';
+  const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:left';
 
   const tableRows = cursosList.map(c => {
     const cor = TIPO_COR[c.tipo] || '#607090';
     return `<tr>
       <td style="${tdS};white-space:nowrap">${fmtD(c.data)}</td>
       <td style="padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.04);text-align:center">
-        <span style="font-family:'DM Mono',monospace;font-size:14px;padding:1px 7px;border-radius:8px;background:${cor}22;color:${cor};display:inline-block;margin-bottom:4px">${c.tipo}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:19px;padding:1px 7px;border-radius:8px;background:${cor}22;color:${cor};display:inline-block;margin-bottom:4px">${c.tipo}</span>
         <div style="font-size:19px;font-weight:600;color:var(--tx);display:flex;align-items:center;justify-content:center;gap:8px">
           <span>${c.nome_curso||'—'}</span>
-          ${c.pms.length ? `<span style="font-family:'DM Mono',monospace;font-size:14px;padding:1px 8px;border-radius:8px;background:${COR}22;color:${COR};font-weight:400;white-space:nowrap">${c.pms.length} PM${c.pms.length !== 1 ? 's' : ''}</span>` : ''}
+          ${c.pms.length ? `<span style="font-family:'DM Mono',monospace;font-size:19px;padding:1px 8px;border-radius:8px;background:${COR}22;color:${COR};font-weight:400;white-space:nowrap">${c.pms.length} PM${c.pms.length !== 1 ? 's' : ''}</span>` : ''}
         </div>
       </td>
     </tr>`;
@@ -6416,8 +6416,8 @@ function renderCursosModalDetail() {
           maintainAspectRatio: false,
           plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw} curso${i.raw !== 1 ? 's' : ''}` } } },
           scales: {
-            x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 13 } } },
-            y: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 13 }, stepSize: 1 }, beginAtZero: true }
+            x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 19 } } },
+            y: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 19 }, stepSize: 1 }, beginAtZero: true }
           }
         }
       }));
@@ -6441,7 +6441,7 @@ function renderCursosModalDetail() {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.7)', font: { size: 14 }, padding: 16, boxWidth: 14 } },
+            legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.7)', font: { size: 19 }, padding: 16, boxWidth: 14 } },
             tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} curso${i.raw !== 1 ? 's' : ''}` } }
           }
         }
@@ -6498,9 +6498,9 @@ async function renderTafTatModalDetail() {
 
   const kpiMini = (lbl, val, cor, sub) =>
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:8px;padding:14px 18px">
-      <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${lbl}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${lbl}</div>
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${cor}">${val}</div>
-      ${sub ? `<div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);margin-top:3px">${sub}</div>` : ''}
+      ${sub ? `<div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-top:3px">${sub}</div>` : ''}
     </div>`;
 
   document.getElementById('pd-kpis').innerHTML =
@@ -6590,8 +6590,8 @@ async function renderTafTatModalDetail() {
         tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw} PM${i.raw!==1?'s':''}` } }
       },
       scales: {
-        x: { grid: GR, ticks: { color:'rgba(255,255,255,.7)', font:{size:13} } },
-        y: { grid: GR, ticks: { color:'rgba(255,255,255,.7)', font:{size:13}, stepSize:1 }, beginAtZero: true }
+        x: { grid: GR, ticks: { color:'rgba(255,255,255,.7)', font:{size:19} } },
+        y: { grid: GR, ticks: { color:'rgba(255,255,255,.7)', font:{size:19}, stepSize:1 }, beginAtZero: true }
       }
     }
   }));
@@ -6653,7 +6653,7 @@ function renderProdDetail() {
   if (tipo === 'ocorrencias') {
     html += `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:12px">Natureza × Mês</div>
-      <div id="pd-matriz" style="overflow-x:auto;font-size:14px"></div>
+      <div id="pd-matriz" style="overflow-x:auto;font-size:19px"></div>
     </div>`;
   }
   chartsEl.innerHTML = html;
@@ -6730,7 +6730,7 @@ function renderProdDetail() {
         options: {
           responsive: true, maintainAspectRatio: false,
           plugins: {
-            legend: { display: true, position: 'top', labels: { color: '#f4f6fc', font: { size: 13, family: "'DM Sans',sans-serif" }, padding: 18, usePointStyle: true, pointStyleWidth: 10 } },
+            legend: { display: true, position: 'top', labels: { color: '#f4f6fc', font: { size: 19, family: "'DM Sans',sans-serif" }, padding: 18, usePointStyle: true, pointStyleWidth: 10 } },
             tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw.toLocaleString('pt-BR')}` } }
           },
           scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 19 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } } } }
@@ -6815,9 +6815,9 @@ function renderProdDetail() {
         natList.forEach((nat, i) => {
           const rowTot = mesesUsados.reduce((s,m) => s+(natMes[nat][m]||0), 0);
           tbl += `<tr style="background:${i%2?'':'rgba(255,255,255,.02)'}">
-            <td style="padding:8px 12px;font-size:14px;color:var(--tx)">${nat}</td>`;
-          mesesUsados.forEach(m => { const v = natMes[nat][m]||0; tbl += `<td style="padding:8px 12px;text-align:right;font-size:14px;color:${v>0?'var(--tx)':'var(--tx3)'}">${v>0?v:'—'}</td>`; });
-          tbl += `<td style="padding:8px 12px;text-align:right;font-size:14px;font-weight:700;color:${cor}">${rowTot}</td></tr>`;
+            <td style="padding:8px 12px;font-size:19px;color:var(--tx)">${nat}</td>`;
+          mesesUsados.forEach(m => { const v = natMes[nat][m]||0; tbl += `<td style="padding:8px 12px;text-align:right;font-size:19px;color:${v>0?'var(--tx)':'var(--tx3)'}">${v>0?v:'—'}</td>`; });
+          tbl += `<td style="padding:8px 12px;text-align:right;font-size:19px;font-weight:700;color:${cor}">${rowTot}</td></tr>`;
         });
         tbl += '</tbody></table>';
         matEl.innerHTML = tbl;
@@ -6941,7 +6941,7 @@ function renderProdDetail() {
       if (!reiterantes.length) return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #9b6de0;border-radius:8px;padding:14px 16px">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#9b6de0;margin-bottom:8px">Reiterações</div>
         <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:#fff">0</div>
-        <div style="font-size:14px;color:var(--tx3);margin-top:4px">nenhuma vítima com mais de 1 ocorrência</div>
+        <div style="font-size:19px;color:var(--tx3);margin-top:4px">nenhuma vítima com mais de 1 ocorrência</div>
       </div>`;
 
       const cards = reiterantes.map(v => {
@@ -6955,17 +6955,17 @@ function renderProdDetail() {
           const nContatos = vsFields.filter(f => o[f] && o[f].trim()).length;
           const quer = simRx.test((o.quer_acompanhamento||'').trim()) ? 'Sim' : naoRx.test((o.quer_acompanhamento||'').trim()) ? 'Não' : '—';
           return `<tr style="background:${i%2?'':'rgba(255,255,255,.02)'}">
-            <td style="padding:5px 8px;font-size:14px;color:var(--tx);white-space:nowrap;overflow:hidden">${o.data_ocorrencia||'—'}</td>
-            <td style="padding:5px 8px;font-size:14px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(o.bairro||'').replace(/"/g,'&quot;')}">${(o.bairro||'—')}</td>
-            <td style="padding:5px 8px;font-size:14px;color:${quer==='Sim'?'#4bc87a':quer==='Não'?'#f07878':'var(--tx3)'};text-align:center">${quer}</td>
-            <td style="padding:5px 8px;font-size:14px;color:${VD_COR2};text-align:center;font-family:'DM Mono',monospace">${nContatos}</td>
+            <td style="padding:5px 8px;font-size:19px;color:var(--tx);white-space:nowrap;overflow:hidden">${o.data_ocorrencia||'—'}</td>
+            <td style="padding:5px 8px;font-size:19px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(o.bairro||'').replace(/"/g,'&quot;')}">${(o.bairro||'—')}</td>
+            <td style="padding:5px 8px;font-size:19px;color:${quer==='Sim'?'#4bc87a':quer==='Não'?'#f07878':'var(--tx3)'};text-align:center">${quer}</td>
+            <td style="padding:5px 8px;font-size:19px;color:${VD_COR2};text-align:center;font-family:'DM Mono',monospace">${nContatos}</td>
           </tr>`;
         }).join('');
         return `<div style="background:rgba(155,109,224,.07);border:1px solid rgba(155,109,224,.25);border-radius:8px;padding:12px;margin-bottom:10px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
             <div style="font-size:19px;font-weight:700;color:#fff">${titleNome(normNome(v.nome))}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:14px;color:#9b6de0;font-weight:700">${ocorrs.length}x</div>
-            <div style="font-size:14px;color:${mesmoCal?'#f0c040':'#4bc87a'};margin-left:auto">${mesmoCal?'⚠ mesmo local':'locais diferentes'}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:19px;color:#9b6de0;font-weight:700">${ocorrs.length}x</div>
+            <div style="font-size:19px;color:${mesmoCal?'#f0c040':'#4bc87a'};margin-left:auto">${mesmoCal?'⚠ mesmo local':'locais diferentes'}</div>
           </div>
           <table style="width:100%;border-collapse:collapse;table-layout:fixed">
             <colgroup>
@@ -6975,10 +6975,10 @@ function renderProdDetail() {
               <col style="width:80px">
             </colgroup>
             <thead><tr>
-              <th style="text-align:left;padding:4px 8px;font-size:14px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)">Data</th>
-              <th style="text-align:left;padding:4px 8px;font-size:14px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)">Bairro</th>
-              <th style="text-align:center;padding:4px 8px;font-size:14px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)">Quer visita</th>
-              <th style="text-align:center;padding:4px 8px;font-size:14px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)">Contatos</th>
+              <th style="text-align:left;padding:4px 8px;font-size:19px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)">Data</th>
+              <th style="text-align:left;padding:4px 8px;font-size:19px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)">Bairro</th>
+              <th style="text-align:center;padding:4px 8px;font-size:19px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)">Quer visita</th>
+              <th style="text-align:center;padding:4px 8px;font-size:19px;color:var(--tx3);font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)">Contatos</th>
             </tr></thead>
             <tbody>${rows}</tbody>
           </table>
@@ -7048,7 +7048,7 @@ function renderProdDetail() {
               ${['1ª→2ª','2ª→3ª','3ª→4ª','4ª→5ª','5ª→6ª'].map((lbl,i)=>avgIntvs[i]!==null?`<div style="text-align:center;flex:1;min-width:52px">
                 <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:#f0c040">${avgIntvs[i]}</div>
                 <div style="font-size:19px;color:#ffffff;margin-top:2px">dias</div>
-                <div style="font-size:14px;color:#ffffff;margin-top:1px">${lbl}</div>
+                <div style="font-size:19px;color:#ffffff;margin-top:1px">${lbl}</div>
               </div>`:''  ).join('')}
             </div>
           </div>` : ''}
@@ -7083,12 +7083,12 @@ function renderProdDetail() {
           options: {
             responsive:true, maintainAspectRatio:false,
             plugins: {
-              legend: { display:true, labels:{ color:'#ffffff', font:{size:13}, boxWidth:14, padding:18 } },
+              legend: { display:true, labels:{ color:'#ffffff', font:{size:19}, boxWidth:14, padding:18 } },
               tooltip: { callbacks:{ label: i => ` ${i.dataset.label}: ${i.raw.toLocaleString('pt-BR')}` } }
             },
             scales: {
-              x: { grid:GR, ticks:{ color:'#ffffff', font:{size:13} } },
-              y: { grid:GR, beginAtZero:true, ticks:{ color:'#ffffff', font:{size:13} } }
+              x: { grid:GR, ticks:{ color:'#ffffff', font:{size:19} } },
+              y: { grid:GR, beginAtZero:true, ticks:{ color:'#ffffff', font:{size:19} } }
             }
           }
         }));
@@ -7158,7 +7158,7 @@ function renderIqHistorico() {
   // ── Tabela ─────────────────────────────────────────────────────────────
   const headerCells = anos.map(a => {
     const isCalc = !IQ_HISTORICO_ANOS.includes(a);
-    return `<th style="padding:8px 14px;border-bottom:1px solid var(--bd);text-align:right;font-family:'DM Mono',monospace;font-size:14px;color:${isCalc ? '#5a9de0' : 'var(--tx3)'};${isCalc ? 'background:rgba(90,157,224,.06)' : ''}">${a}${isCalc ? ' ●' : ''}</th>`;
+    return `<th style="padding:8px 14px;border-bottom:1px solid var(--bd);text-align:right;font-family:'DM Mono',monospace;font-size:19px;color:${isCalc ? '#5a9de0' : 'var(--tx3)'};${isCalc ? 'background:rgba(90,157,224,.06)' : ''}">${a}${isCalc ? ' ●' : ''}</th>`;
   }).join('');
 
   const tableRows = IQ_AUTO_CAMPOS.map(c => {
@@ -7171,11 +7171,11 @@ function renderIqHistorico() {
       let trend = '';
       if (prev !== null && v !== prev) {
         const melhorou = c.melhor === 'maior' ? v > prev : v < prev;
-        trend = melhorou ? ' <span style="color:#5ae09a;font-size:14px">▲</span>' : ' <span style="color:#f07878;font-size:14px">▼</span>';
+        trend = melhorou ? ' <span style="color:#5ae09a;font-size:19px">▲</span>' : ' <span style="color:#f07878;font-size:19px">▼</span>';
       }
       return `<td style="padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.03);text-align:right;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx);${bg}">${fmtVal(v, c.unit)}${trend}</td>`;
     }).join('');
-    const autoBadge = c.auto ? `<span style="font-size:14px;background:rgba(90,157,224,.15);color:#5a9de0;border-radius:3px;padding:1px 5px;margin-left:6px;font-family:'DM Mono',monospace">AUTO</span>` : '';
+    const autoBadge = c.auto ? `<span style="font-size:19px;background:rgba(90,157,224,.15);color:#5a9de0;border-radius:3px;padding:1px 5px;margin-left:6px;font-family:'DM Mono',monospace">AUTO</span>` : '';
     return `<tr><td style="padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.03);color:${c.cor};font-size:19px;white-space:nowrap">${c.label}${autoBadge}</td>${cells}</tr>`;
   }).join('');
 
@@ -7204,12 +7204,12 @@ function renderIqHistorico() {
     <div class="card" style="margin-top:16px">
       <div class="card-head" style="flex-wrap:wrap;gap:8px">
         <div class="card-title">Indicadores Históricos</div>
-        <span style="font-size:14px;color:var(--tx3);font-family:'DM Mono',monospace">● azul = calculado do banco &nbsp;|&nbsp; AUTO = cálculo automático</span>
+        <span style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace">● azul = calculado do banco &nbsp;|&nbsp; AUTO = cálculo automático</span>
       </div>
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse">
           <thead><tr>
-            <th style="text-align:left;padding:8px 14px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);white-space:nowrap">Indicador</th>
+            <th style="text-align:left;padding:8px 14px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);white-space:nowrap">Indicador</th>
             ${headerCells}
           </tr></thead>
           <tbody>${tableRows}</tbody>
@@ -7241,8 +7241,8 @@ function renderIqHistorico() {
       borderColor: c.cor, backgroundColor: 'transparent', tension: 0.3, pointRadius: 5, borderWidth: 2
     }))},
     options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#fff', font: { size: 14 }, boxWidth: 14, padding: 16 } } },
-      scales: { x: { grid: GR, ticks: { color: '#fff', font: { size: 13 } } }, y: { grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true } }
+      plugins: { legend: { labels: { color: '#fff', font: { size: 19 }, boxWidth: 14, padding: 16 } } },
+      scales: { x: { grid: GR, ticks: { color: '#fff', font: { size: 19 } } }, y: { grid: GR, ticks: { color: '#fff', font: { size: 19 } }, beginAtZero: true } }
     }
   }));
 
@@ -7255,8 +7255,8 @@ function renderIqHistorico() {
       backgroundColor: c.cor + 'aa', borderColor: c.cor, borderWidth: 1, borderRadius: 3
     }))},
     options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#fff', font: { size: 14 }, boxWidth: 14, padding: 16 } } },
-      scales: { x: { grid: GR, ticks: { color: '#fff', font: { size: 13 } } }, y: { grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true } }
+      plugins: { legend: { labels: { color: '#fff', font: { size: 19 }, boxWidth: 14, padding: 16 } } },
+      scales: { x: { grid: GR, ticks: { color: '#fff', font: { size: 19 } } }, y: { grid: GR, ticks: { color: '#fff', font: { size: 19 } }, beginAtZero: true } }
     }
   }));
 }
@@ -7293,18 +7293,18 @@ function renderIndicadoresP3() {
       ? `Prazo encerrado — indicadores de <strong>${mesAtual} ${anoAtual}</strong> ainda não foram preenchidos. Cobrar a seção P3.`
       : `Indicadores de <strong>${mesAtual} ${anoAtual}</strong> ainda não foram preenchidos. Prazo: dia ${IQ_PRAZO_DIA}.`;
     bannerHtml = `<div style="padding:12px 16px;border-radius:8px;border:1px solid ${bd};background:${bg};color:${cor};font-size:19px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span style="font-size:18px">${icn}</span>
+      <span style="font-size:19px">${icn}</span>
       <span style="flex:1">${txt}</span>
-      ${canEdit ? `<button onclick="openIqMo('${mesAtual}',${anoAtual})" style="padding:5px 14px;background:${cor};color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px;font-weight:700;white-space:nowrap">Preencher agora</button>` : ''}
+      ${canEdit ? `<button onclick="openIqMo('${mesAtual}',${anoAtual})" style="padding:5px 14px;background:${cor};color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:19px;font-weight:700;white-space:nowrap">Preencher agora</button>` : ''}
     </div>`;
   } else {
     const dt   = regMesAtual.preenchido_em ? new Date(regMesAtual.preenchido_em) : null;
     const dtStr = dt ? `${dt.getDate().toString().padStart(2,'0')}/${(dt.getMonth()+1).toString().padStart(2,'0')} às ${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')}` : '';
     const quem = regMesAtual.preenchido_por || '';
     bannerHtml = `<div style="padding:12px 16px;border-radius:8px;border:1px solid rgba(61,191,122,.30);background:rgba(61,191,122,.08);color:#5ae09a;font-size:19px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span style="font-size:18px">✅</span>
+      <span style="font-size:19px">✅</span>
       <span style="flex:1">Indicadores de <strong>${mesAtual} ${anoAtual}</strong> preenchidos${dtStr ? ` em ${dtStr}` : ''}${quem ? ` por <strong>${quem}</strong>` : ''}.</span>
-      ${canEdit ? `<button onclick="openIqMo('${mesAtual}',${anoAtual})" style="padding:5px 14px;background:rgba(61,191,122,.2);color:#5ae09a;border:1px solid rgba(61,191,122,.3);border-radius:5px;cursor:pointer;font-size:14px">Editar</button>` : ''}
+      ${canEdit ? `<button onclick="openIqMo('${mesAtual}',${anoAtual})" style="padding:5px 14px;background:rgba(61,191,122,.2);color:#5ae09a;border:1px solid rgba(61,191,122,.3);border-radius:5px;cursor:pointer;font-size:19px">Editar</button>` : ''}
     </div>`;
   }
 
@@ -7331,7 +7331,7 @@ function renderIndicadoresP3() {
     }
     const valStr = val != null ? val.toLocaleString('pt-BR') + (c.unit ? ' ' + c.unit : '') : '—';
     return `<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${c.cor};border-radius:8px;padding:14px">
-      <div style="font-size:14px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;line-height:1.3">${c.label}</div>
+      <div style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;line-height:1.3">${c.label}</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${c.cor};line-height:1">${valStr}</div>
       <div style="margin-top:6px;min-height:18px">${tendHtml}</div>
     </div>`;
@@ -7394,9 +7394,9 @@ function renderIqLinha(dados) {
     data: { labels: mesesOrdenados.map(m => m.slice(0,3)), datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#ffffff', font: { size: 12 }, boxWidth: 12, padding: 14 } } },
+      plugins: { legend: { labels: { color: '#ffffff', font: { size: 19 }, boxWidth: 12, padding: 14 } } },
       scales: {
-        x: { grid: GR, ticks: { color: '#ffffff', font: { size: 12 } } },
+        x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } },
         y: { grid: GR, ticks: { color: '#ffffff' }, beginAtZero: true }
       }
     }
@@ -7421,9 +7421,9 @@ function renderIqBarra(dados) {
     data: { labels: mesesOrdenados.map(m => m.slice(0,3)), datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#ffffff', font: { size: 12 }, boxWidth: 12, padding: 12 } } },
+      plugins: { legend: { labels: { color: '#ffffff', font: { size: 19 }, boxWidth: 12, padding: 12 } } },
       scales: {
-        x: { grid: GR, ticks: { color: '#ffffff', font: { size: 12 } } },
+        x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } },
         y: { grid: GR, ticks: { color: '#ffffff' }, beginAtZero: true }
       }
     }
@@ -7455,12 +7455,12 @@ function renderIqRadar(dados, mesAtual) {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#ffffff', font: { size: 12 } } } },
+      plugins: { legend: { labels: { color: '#ffffff', font: { size: 19 } } } },
       scales: {
         r: {
           grid: { color: 'rgba(255,255,255,.10)' },
           angleLines: { color: 'rgba(255,255,255,.10)' },
-          pointLabels: { color: '#ffffff', font: { size: 13 } },
+          pointLabels: { color: '#ffffff', font: { size: 19 } },
           ticks: { display: false, beginAtZero: true, max: 100 }
         }
       }
@@ -7518,19 +7518,19 @@ function openIqMo(mes, ano) {
   document.getElementById('iq-mo-body').innerHTML =
     `<div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--bd)">
       <div>
-        <label style="font-size:14px;color:var(--tx3);font-family:'DM Mono',monospace;display:block;margin-bottom:4px;text-transform:uppercase">Mês</label>
+        <label style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace;display:block;margin-bottom:4px;text-transform:uppercase">Mês</label>
         <select id="iq-sel-mes" onchange="iqMoMes=this.value;iqMoFillCampos()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:6px 10px;border-radius:5px;font-size:19px;cursor:pointer">${mesOpts}</select>
       </div>
       <div>
-        <label style="font-size:14px;color:var(--tx3);font-family:'DM Mono',monospace;display:block;margin-bottom:4px;text-transform:uppercase">Ano</label>
+        <label style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace;display:block;margin-bottom:4px;text-transform:uppercase">Ano</label>
         <select id="iq-sel-ano" onchange="iqMoAno=+this.value;iqMoFillCampos()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:6px 10px;border-radius:5px;font-size:19px;cursor:pointer">${anoOpts}</select>
       </div>
-      <div id="iq-mo-badge" style="margin-top:18px;font-size:14px;color:var(--tx3);font-family:'DM Mono',monospace"></div>
+      <div id="iq-mo-badge" style="margin-top:18px;font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace"></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px">` +
     IQ_CAMPOS.map(c => `
       <div>
-        <label style="font-size:14px;color:var(--tx3);font-family:'DM Mono',monospace;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">${c.label}${c.unit ? ' (' + c.unit + ')' : ''}</label>
+        <label style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">${c.label}${c.unit ? ' (' + c.unit + ')' : ''}</label>
         <input id="iq-inp-${c.key}" type="number" min="0" step="any"
           style="width:100%;background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:7px 10px;border-radius:5px;font-size:19px;box-sizing:border-box">
       </div>`).join('') +
@@ -7780,7 +7780,7 @@ function renderDDSection() {
   const funilHtml = funilSteps.map((s, i) => {
     const barPct = Math.max(8, (s.val / funilMax) * 100);
     const arrow  = i < funilSteps.length - 1
-      ? `<div style="text-align:center;color:var(--tx3);font-size:14px;padding:3px 0;letter-spacing:1px">▼ ${funilSteps[i+1].sub}</div>`
+      ? `<div style="text-align:center;color:var(--tx3);font-size:19px;padding:3px 0;letter-spacing:1px">▼ ${funilSteps[i+1].sub}</div>`
       : '';
     return `
       <div>
@@ -7818,7 +7818,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       <div class="card-head" style="flex-wrap:wrap;gap:10px">
         <div style="display:flex;align-items:center;gap:12px">
           <div class="card-title">Disque Denúncia</div>
-          <span style="font-size:14px;color:#5a9de0;font-family:'DM Mono',monospace;letter-spacing:1px">${ddAnoFiltro}</span>
+          <span style="font-size:19px;color:#5a9de0;font-family:'DM Mono',monospace;letter-spacing:1px">${ddAnoFiltro}</span>
         </div>
         ${canEdit ? `<button onclick="openDDUpl()" style="padding:6px 16px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.3);color:#c8a84b;border-radius:6px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar CSV</button>` : ''}
       </div>
@@ -7835,22 +7835,22 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
                 <canvas id="dd-chart-donut" style="cursor:pointer" title="Clique na fatia para ver detalhes da CIA"></canvas>
                 <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
                   <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#fff;line-height:1">${total}</div>
-                  <div style="font-size:14px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px;margin-top:2px">TOTAL DDs</div>
+                  <div style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px;margin-top:2px">TOTAL DDs</div>
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:6px;background:rgba(90,224,154,.1);border:1px solid rgba(90,224,154,.3);border-radius:20px;padding:4px 12px">
-                <span style="font-size:14px;color:#5ae09a">▲</span>
-                <span style="font-size:14px;color:#5ae09a;font-family:'DM Mono',monospace;letter-spacing:1px">fatias destacadas = c/ Êxito</span>
+                <span style="font-size:19px;color:#5ae09a">▲</span>
+                <span style="font-size:19px;color:#5ae09a;font-family:'DM Mono',monospace;letter-spacing:1px">fatias destacadas = c/ Êxito</span>
               </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
               <div style="display:grid;grid-template-columns:auto 110px 110px;gap:8px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.08)">
-                <span style="font-size:14px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px">CIA</span>
-                <span style="font-size:14px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px;text-align:right">TOTAL DDs</span>
-                <span style="font-size:14px;color:#5ae09a;font-family:'DM Mono',monospace;letter-spacing:1px;text-align:right">c/ ÊXITO</span>
+                <span style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px">CIA</span>
+                <span style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px;text-align:right">TOTAL DDs</span>
+                <span style="font-size:19px;color:#5ae09a;font-family:'DM Mono',monospace;letter-spacing:1px;text-align:right">c/ ÊXITO</span>
               </div>
               <div id="dd-donut-legend" style="display:flex;flex-direction:column;gap:10px"></div>
-              <div style="font-size:14px;color:rgba(255,255,255,.6);margin-top:6px;font-family:'DM Mono',monospace">clique na legenda para ocultar/exibir</div>
+              <div style="font-size:19px;color:rgba(255,255,255,.6);margin-top:6px;font-family:'DM Mono',monospace">clique na legenda para ocultar/exibir</div>
             </div>
           </div>
           <div id="dd-donut-drill" style="display:none;flex-direction:column;align-items:center;gap:16px;padding-top:8px">
@@ -7863,7 +7863,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
                 <div style="width:240px;height:240px">
                   <canvas id="dd-chart-drill"></canvas>
                 </div>
-                <div style="font-size:14px;color:rgba(255,255,255,.6);font-family:'DM Mono',monospace">clique no gráfico para voltar</div>
+                <div style="font-size:19px;color:rgba(255,255,255,.6);font-family:'DM Mono',monospace">clique no gráfico para voltar</div>
               </div>
               <div id="dd-drill-legend" style="display:flex;flex-direction:column;gap:4px;min-width:220px;padding-top:8px"></div>
             </div>
@@ -7922,7 +7922,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       if (!el) {
         el = document.createElement('div');
         el.id = TT_ID;
-        el.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;background:rgba(17,21,34,.97);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:12px 16px;font-family:"DM Mono",monospace;font-size:14px;color:#ccc;min-width:210px;box-shadow:0 6px 24px rgba(0,0,0,.65);display:none';
+        el.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;background:rgba(17,21,34,.97);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:12px 16px;font-family:"DM Mono",monospace;font-size:19px;color:#ccc;min-width:210px;box-shadow:0 6px 24px rgba(0,0,0,.65);display:none';
         document.body.appendChild(el);
       }
       if (tooltip.opacity === 0 || !tooltip.dataPoints?.length) { el.style.display = 'none'; return; }
@@ -7933,7 +7933,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       const cor = donutCors[i];
       const pct = (v, base) => base > 0 ? `<span style="color:#777"> (${((v / base) * 100).toFixed(1)}%)</span>` : '';
       el.innerHTML = `
-        <div style="font-size:14px;font-weight:700;color:${cor};letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid ${cor}44">${DD_CIAS[i]}</div>
+        <div style="font-size:19px;font-weight:700;color:${cor};letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid ${cor}44">${DD_CIAS[i]}</div>
         <div style="display:grid;grid-template-columns:auto auto;gap:4px 14px;align-items:baseline">
           <span style="color:#888">Total DDs</span><span style="color:#fff;font-weight:700">${t}${pct(t, total)}</span>
           <span style="color:#888">c/ Êxito</span><span style="color:#5ae09a;font-weight:700">${donutExito[i]}${pct(donutExito[i], t)}</span>
@@ -7994,15 +7994,15 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
           <div style="display:flex;align-items:center;gap:6px">
             <div style="width:10px;height:10px;border-radius:2px;background:${hidden ? 'rgba(255,255,255,.2)' : donutCors[i]};flex-shrink:0"></div>
             <div style="width:10px;height:10px;border-radius:2px;background:${hidden ? 'rgba(255,255,255,.2)' : exitoCor};flex-shrink:0"></div>
-            <span style="font-size:14px;color:${hidden ? 'rgba(255,255,255,.35)' : '#fff'};font-family:'DM Mono',monospace;font-weight:600">${cia}</span>
+            <span style="font-size:19px;color:${hidden ? 'rgba(255,255,255,.35)' : '#fff'};font-family:'DM Mono',monospace;font-weight:600">${cia}</span>
           </div>
           <div style="text-align:right">
-            <span style="font-size:14px;color:${hidden ? 'rgba(255,255,255,.35)' : '#fff'};font-family:'DM Mono',monospace">${val}</span>
-            <span style="font-size:14px;color:${hidden ? 'rgba(255,255,255,.2)' : donutCors[i]};margin-left:5px;font-weight:700">${pct}%</span>
+            <span style="font-size:19px;color:${hidden ? 'rgba(255,255,255,.35)' : '#fff'};font-family:'DM Mono',monospace">${val}</span>
+            <span style="font-size:19px;color:${hidden ? 'rgba(255,255,255,.2)' : donutCors[i]};margin-left:5px;font-weight:700">${pct}%</span>
           </div>
           <div style="text-align:right">
-            <span style="font-size:14px;color:${hidden ? 'rgba(255,255,255,.35)' : exitoCor};font-family:'DM Mono',monospace">${exit}</span>
-            <span style="font-size:14px;color:${hidden ? 'rgba(255,255,255,.2)' : exitoCor + '88'};margin-left:5px">${exitPct}%</span>
+            <span style="font-size:19px;color:${hidden ? 'rgba(255,255,255,.35)' : exitoCor};font-family:'DM Mono',monospace">${exit}</span>
+            <span style="font-size:19px;color:${hidden ? 'rgba(255,255,255,.2)' : exitoCor + '88'};margin-left:5px">${exitPct}%</span>
           </div>
         </div>`;
       }).join('');
@@ -8067,11 +8067,11 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
           return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
             <div style="display:flex;align-items:center;gap:8px">
               <div style="width:10px;height:10px;border-radius:50%;background:${statCors[i]};flex-shrink:0"></div>
-              <span style="font-size:14px;color:#fff;font-family:'DM Mono',monospace">${lbl}</span>
+              <span style="font-size:19px;color:#fff;font-family:'DM Mono',monospace">${lbl}</span>
             </div>
             <div>
               <span style="font-size:19px;color:${statCors[i]};font-family:'DM Mono',monospace;font-weight:700">${v}</span>
-              <span style="font-size:14px;color:var(--tx3);margin-left:8px">${pct}%</span>
+              <span style="font-size:19px;color:var(--tx3);margin-left:8px">${pct}%</span>
             </div>
           </div>`;
         }).join('');
@@ -8089,7 +8089,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend: { labels: { color: '#fff', font: { size: 14 }, boxWidth: 14, padding: 16 } },
+          legend: { labels: { color: '#fff', font: { size: 19 }, boxWidth: 14, padding: 16 } },
           tooltip: {
             mode: 'index',
             intersect: false,
@@ -8099,8 +8099,8 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
           },
         },
         scales: {
-          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } } },
-          y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true },
+          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 19 } } },
+          y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 19 } }, beginAtZero: true },
         },
       }
     });
@@ -8146,10 +8146,10 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       options: {
         indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#fff', font: { size: 13 }, boxWidth: 12, padding: 14 } } },
+        plugins: { legend: { labels: { color: '#fff', font: { size: 19 }, boxWidth: 12, padding: 14 } } },
         scales: {
-          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 12 } }, beginAtZero: true },
-          y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 12 } } }
+          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 19 } }, beginAtZero: true },
+          y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 19 } } }
         }
       }
     });
@@ -8185,8 +8185,8 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
           tooltip: { callbacks: { label: ctx => ctx.raw !== null ? ` ${ctx.raw} dias (média)` : ' Sem dados' } }
         },
         scales: {
-          x: { grid: GR, ticks: { color: '#fff', font: { size: 13 } } },
-          y: { grid: GR, ticks: { color: '#fff', font: { size: 13 } }, beginAtZero: true }
+          x: { grid: GR, ticks: { color: '#fff', font: { size: 19 } } },
+          y: { grid: GR, ticks: { color: '#fff', font: { size: 19 } }, beginAtZero: true }
         }
       }
     });
@@ -8236,7 +8236,7 @@ function openDDMo(id) {
   const fmtDate = v => v ? v.slice(0,10) : '';
   const selectStyle = 'width:100%;background:var(--s2);color:var(--tx);border:1px solid var(--bd2);border-radius:6px;padding:8px 10px;font-size:19px;margin-bottom:12px';
   const inputStyle  = 'width:100%;background:var(--s2);color:var(--tx);border:1px solid var(--bd2);border-radius:6px;padding:8px 10px;font-size:19px;margin-bottom:12px;box-sizing:border-box';
-  const labelStyle  = 'display:block;font-size:14px;color:var(--tx3);font-family:"DM Mono",monospace;letter-spacing:1px;margin-bottom:4px;text-transform:uppercase';
+  const labelStyle  = 'display:block;font-size:19px;color:var(--tx3);font-family:"DM Mono",monospace;letter-spacing:1px;margin-bottom:4px;text-transform:uppercase';
 
   document.getElementById('dd-mo-body').innerHTML = `
     <label style="${labelStyle}">Data</label>
@@ -8397,10 +8397,10 @@ function initInspector() {
 
   const style = document.createElement('style');
   style.textContent = `
-    #inspector-btn{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:#5a9de0;opacity:.45;transition:opacity .2s,color .2s;user-select:none;padding:2px 4px;border-radius:4px;flex-shrink:0}
+    #inspector-btn{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:19px;color:#5a9de0;opacity:.45;transition:opacity .2s,color .2s;user-select:none;padding:2px 4px;border-radius:4px;flex-shrink:0}
     #inspector-btn:hover{opacity:1}
     #inspector-btn.on{opacity:1;color:#5ae09a}
-    #inspector-popup{position:fixed;z-index:9999;background:#1a1e2e;border:1px solid rgba(90,157,224,.45);border-radius:10px;padding:14px 16px;font-family:'DM Mono',monospace;font-size:14px;color:#d0d4dc;box-shadow:0 4px 24px rgba(0,0,0,.6);display:none;max-width:340px;min-width:280px;pointer-events:none;line-height:1.5}
+    #inspector-popup{position:fixed;z-index:9999;background:#1a1e2e;border:1px solid rgba(90,157,224,.45);border-radius:10px;padding:14px 16px;font-family:'DM Mono',monospace;font-size:19px;color:#d0d4dc;box-shadow:0 4px 24px rgba(0,0,0,.6);display:none;max-width:340px;min-width:280px;pointer-events:none;line-height:1.5}
     body.inspector-on *{cursor:crosshair !important}
     body.inspector-on canvas:hover,body.inspector-on div[id]:hover,body.inspector-on section[id]:hover{outline:2px solid rgba(90,157,224,.7) !important;outline-offset:3px !important}
   `;
@@ -8530,10 +8530,10 @@ function initInspector() {
     const claudeRef = buildClaudeRef(el);
 
     popup.innerHTML = `
-      <div style="color:#5a9de0;font-size:14px;letter-spacing:1.5px;margin-bottom:8px;font-weight:700">🔍 INSPETOR</div>
+      <div style="color:#5a9de0;font-size:19px;letter-spacing:1.5px;margin-bottom:8px;font-weight:700">🔍 INSPETOR</div>
       <div style="color:#fff;font-size:19px;font-weight:700;margin-bottom:2px;line-height:1.4">${title}</div>
-      <div style="color:#666;font-size:14px;margin-bottom:10px">${tag}</div>
-      <div style="display:grid;grid-template-columns:80px 1fr;gap:4px 8px;font-size:14px;margin-bottom:10px;align-items:center">
+      <div style="color:#666;font-size:19px;margin-bottom:10px">${tag}</div>
+      <div style="display:grid;grid-template-columns:80px 1fr;gap:4px 8px;font-size:19px;margin-bottom:10px;align-items:center">
         <span style="color:#555">ID ref.</span>
         <span style="color:#c8a84b;font-family:'DM Mono',monospace">${refEl.id || '(sem id)'}</span>
         <span style="color:#555">Tamanho</span>
@@ -8549,14 +8549,14 @@ function initInspector() {
         <span style="color:#555">Opacidade</span>
         <span style="color:${opacity < 1 ? '#c8a84b' : '#d0d4dc'}">${opacityTxt}</span>
       </div>
-      <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:8px;margin-bottom:8px;font-size:14px">
+      <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:8px;margin-bottom:8px;font-size:19px">
         <div style="color:#555;margin-bottom:3px;letter-spacing:1px;text-transform:uppercase">Buscar no código</div>
         <div style="color:#c8a84b;font-family:'DM Mono',monospace;margin-bottom:2px">${searchTerm}</div>
         <div style="color:#444">em <span style="color:#6a8fc0">${srcFile}</span></div>
       </div>
       <div style="border-top:1px solid rgba(90,224,154,.2);padding-top:8px;background:rgba(90,224,154,.04);border-radius:0 0 6px 6px;margin:-2px -2px -2px -2px;padding:8px 10px">
-        <div style="color:#5ae09a;font-size:14px;letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:5px">💬 Diga ao Claude</div>
-        <div style="color:#e8f5ee;font-size:14px;line-height:1.55;word-break:break-word;user-select:text">${claudeRef}</div>
+        <div style="color:#5ae09a;font-size:19px;letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:5px">💬 Diga ao Claude</div>
+        <div style="color:#e8f5ee;font-size:19px;line-height:1.55;word-break:break-word;user-select:text">${claudeRef}</div>
       </div>
     `;
 

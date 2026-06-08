@@ -11,7 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-<link rel="stylesheet" href="css/style.css?v=20260602">
+<link rel="stylesheet" href="css/style.css?v=20260608">
 </head>
 <body>
 <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">☰</button>
@@ -89,19 +89,19 @@
   <div id="adm-box" style="max-width:1100px;margin:0 auto;background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:28px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid var(--bd)">
       <div>
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">ADMINISTRAÇÃO</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">ADMINISTRAÇÃO</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:2px">GERENCIAR <span style="color:#c8a84b">USUÁRIOS</span></div>
       </div>
       <button onclick="closeAdminModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:6px 14px;cursor:pointer;font-size:19px">✕</button>
     </div>
     <div id="adm-pending-section" style="margin-bottom:20px;display:none">
-      <div style="font-family:'DM Mono',monospace;font-size:14px;color:#e8c96a;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#e8c96a;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px">
         <span style="display:inline-block;width:8px;height:8px;background:#c8a84b;border-radius:50%"></span>PENDENTES DE APROVAÇÃO
       </div>
       <div id="adm-pending" style="overflow-x:auto"></div>
     </div>
     <div>
-      <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">TODOS OS USUÁRIOS</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">TODOS OS USUÁRIOS</div>
       <div id="adm-users" style="overflow-x:auto"></div>
     </div>
     <div id="adm-msg" style="margin-top:14px;padding:10px 14px;border-radius:6px;font-size:19px;display:none"></div>
@@ -191,10 +191,10 @@
       <div class="upl-drop-sub">Colunas esperadas: Ano · Mes · Cia · Municipio · Crime · Anterior · Meta · Avaliado</div>
     </label>
     <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(61,122,191,.08);border:1px solid rgba(61,122,191,.2);border-radius:8px">
-      <span style="font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;white-space:nowrap">ANO DOS DADOS</span>
+      <span style="font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;white-space:nowrap">ANO DOS DADOS</span>
       <input type="number" id="upl-ano" min="2020" max="2035" placeholder="ex: 2025"
         style="width:90px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:6px 10px;color:var(--tx);font-family:'DM Mono',monospace;font-size:19px;outline:none">
-      <span style="font-size:14px;color:var(--tx3);line-height:1.4">Opcional — preencha só se o CSV tiver o<br>ano errado. Deixe em branco para usar a<br>coluna Ano do próprio arquivo.</span>
+      <span style="font-size:19px;color:var(--tx3);line-height:1.4">Opcional — preencha só se o CSV tiver o<br>ano errado. Deixe em branco para usar a<br>coluna Ano do próprio arquivo.</span>
     </div>
     <div class="upl-preview" id="upl-preview">
       <div class="upl-prev-row">
@@ -216,7 +216,7 @@
   <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:12px;width:min(540px,95vw);padding:28px;display:flex;flex-direction:column;gap:18px">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div>
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">IMPORTAÇÃO</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">IMPORTAÇÃO</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800">OCORRÊNCIAS <span style="color:#5a9de0">INFOCRIM</span></div>
       </div>
       <button onclick="closeOcorrModal()" style="background:var(--s3);border:1px solid var(--bd);color:var(--tx2);border-radius:4px;padding:6px 14px;cursor:pointer;font-size:19px">✕</button>
@@ -225,8 +225,8 @@
       <input type="file" id="ocorr-file" accept=".csv" style="display:none" onchange="handleOcorrFile(this)">
       <div style="font-size:28px;margin-bottom:8px">📂</div>
       <div style="font-weight:600;color:var(--tx);margin-bottom:4px">Selecione o CSV exportado do InfoCrim</div>
-      <div style="font-size:14px;color:var(--tx3)">Colunas: DataOcorrencia · HoraOcorrencia · PeriodoEstimado · DiaSemana · Flagrante · Rubrica · Conduta · BatalhaoCircunscricao · CompanhiaCircunscricao · MunicipioCircunscricao · Bairro · TipoLocal</div>
-      <div style="margin-top:8px;font-size:14px;color:#c8a84b">⚠ O upload substitui todas as ocorrências anteriores.</div>
+      <div style="font-size:19px;color:var(--tx3)">Colunas: DataOcorrencia · HoraOcorrencia · PeriodoEstimado · DiaSemana · Flagrante · Rubrica · Conduta · BatalhaoCircunscricao · CompanhiaCircunscricao · MunicipioCircunscricao · Bairro · TipoLocal</div>
+      <div style="margin-top:8px;font-size:19px;color:#c8a84b">⚠ O upload substitui todas as ocorrências anteriores.</div>
     </label>
     <div id="ocorr-preview" style="display:none;background:var(--s2);border-radius:6px;padding:12px;font-size:19px">
       <b id="ocorr-fn" style="color:var(--tx)">—</b><br>
@@ -250,7 +250,7 @@
   <div class="ph" style="position:relative">
     <!-- Última Atualização — canto superior direito, visível a todos -->
     <div style="position:absolute;top:0;right:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px">
-      <span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1.5px">ÚLTIMA ATUALIZAÇÃO</span>
+      <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1.5px">ÚLTIMA ATUALIZAÇÃO</span>
       <div style="display:flex;align-items:center;gap:6px">
         <input id="inp-p1-periodo" type="text" placeholder="Ex: Mar 2026"
           style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:19px;outline:none;width:160px;display:none">
@@ -331,16 +331,16 @@
         <div id="pronto-foto-edit-area" style="display:none;text-align:center">
           <input id="pronto-foto-file" type="file" accept="image/*" style="display:none" onchange="prontoFotoPreview()">
           <div style="display:flex;gap:4px;justify-content:center">
-            <button onclick="document.getElementById('pronto-foto-file').click()" style="padding:3px 8px;font-size:14px;background:rgba(90,157,224,.15);border:1px solid rgba(90,157,224,.35);color:#5a9de0;border-radius:4px;cursor:pointer">Alterar</button>
-            <button onclick="prontoRemoveFoto()" style="padding:3px 8px;font-size:14px;background:rgba(230,100,100,.1);border:1px solid rgba(230,100,100,.3);color:#e05555;border-radius:4px;cursor:pointer">Remover</button>
+            <button onclick="document.getElementById('pronto-foto-file').click()" style="padding:3px 8px;font-size:19px;background:rgba(90,157,224,.15);border:1px solid rgba(90,157,224,.35);color:#5a9de0;border-radius:4px;cursor:pointer">Alterar</button>
+            <button onclick="prontoRemoveFoto()" style="padding:3px 8px;font-size:19px;background:rgba(230,100,100,.1);border:1px solid rgba(230,100,100,.3);color:#e05555;border-radius:4px;cursor:pointer">Remover</button>
           </div>
-          <button id="pronto-btn-salvar" onclick="prontoSaveFoto()" style="display:none;margin-top:4px;width:100%;padding:3px 8px;font-size:14px;background:rgba(75,200,122,.15);border:1px solid rgba(75,200,122,.35);color:#4bc87a;border-radius:4px;cursor:pointer;font-weight:600">Salvar Foto</button>
-          <div id="pronto-foto-msg" style="font-size:14px;color:var(--tx3);margin-top:3px;max-width:82px;word-break:break-word"></div>
+          <button id="pronto-btn-salvar" onclick="prontoSaveFoto()" style="display:none;margin-top:4px;width:100%;padding:3px 8px;font-size:19px;background:rgba(75,200,122,.15);border:1px solid rgba(75,200,122,.35);color:#4bc87a;border-radius:4px;cursor:pointer;font-weight:600">Salvar Foto</button>
+          <div id="pronto-foto-msg" style="font-size:19px;color:var(--tx3);margin-top:3px;max-width:82px;word-break:break-word"></div>
         </div>
       </div>
       <!-- Dados -->
       <div style="flex:1;min-width:0">
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px" id="pronto-re">RE —</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px" id="pronto-re">RE —</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:1px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="pronto-nome">—</div>
         <div style="font-size:19px;color:var(--tx3);margin-bottom:6px" id="pronto-posto">—</div>
         <div id="pronto-status"></div>
@@ -350,50 +350,50 @@
     <!-- Detalhe -->
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:18px;font-size:19px">
       <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">OPM</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">OPM</div>
         <div style="color:var(--tx);font-weight:600" id="pronto-opm">—</div>
       </div>
       <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Função</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Função</div>
         <div style="color:var(--tx)" id="pronto-func">—</div>
       </div>
       <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Nome de Guerra</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Nome de Guerra</div>
         <div style="color:var(--tx)" id="pronto-guerra">—</div>
       </div>
       <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Gênero</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Gênero</div>
         <div style="color:var(--tx)" id="pronto-gen">—</div>
       </div>
       <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">EAP</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">EAP</div>
         <div id="pronto-eap">—</div>
       </div>
       <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Restrição Médica</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Restrição Médica</div>
         <div id="pronto-restr">—</div>
       </div>
       <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">TAF</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">TAF</div>
         <div id="pronto-taf">—</div>
       </div>
       <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px">
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">TAT</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">TAT</div>
         <div id="pronto-tat">—</div>
       </div>
     </div>
     <!-- Extrato cronológico -->
     <div style="border-top:1px solid var(--bd);padding-top:16px">
-      <div style="font-family:'DM Mono',monospace;font-size:14px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px">Extrato de Afastamentos</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px">Extrato de Afastamentos</div>
       <div style="overflow-x:auto;max-height:260px;overflow-y:auto">
         <table style="width:100%;border-collapse:collapse">
           <thead><tr>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">TIPO</th>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">INÍCIO</th>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">TÉRMINO</th>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">DIAS</th>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">NBI</th>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">BOL G</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">TIPO</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">INÍCIO</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">TÉRMINO</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">DIAS</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">NBI</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">BOL G</th>
             <th style="padding:6px 10px;border-bottom:1px solid var(--bd)"></th>
           </tr></thead>
           <tbody id="pronto-extrato"></tbody>
@@ -402,13 +402,13 @@
     </div>
     <!-- Cursos Institucionais -->
     <div style="border-top:1px solid var(--bd);padding-top:16px;margin-top:16px">
-      <div style="font-family:'DM Mono',monospace;font-size:14px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px">Cursos Institucionais</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px">Cursos Institucionais</div>
       <div style="overflow-x:auto;max-height:200px;overflow-y:auto">
         <table style="width:100%;border-collapse:collapse">
           <thead><tr>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">DATA</th>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">CURSO</th>
-            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">POSTO</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">DATA</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">CURSO</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">POSTO</th>
           </tr></thead>
           <tbody id="pronto-cursos"></tbody>
         </table>
@@ -440,7 +440,7 @@
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:26px;width:100%;max-width:480px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
       <div>
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">SEÇÃO P1</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">SEÇÃO P1</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px">EFETIVO <span style="color:#5a9de0">FIXADO</span></div>
       </div>
       <button onclick="closeVagasModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:19px">✕</button>
@@ -456,7 +456,7 @@
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:26px;width:100%;max-width:360px">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px">
       <div>
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px" id="foto-mo-re">RE —</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px" id="foto-mo-re">RE —</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px;color:var(--tx)" id="foto-mo-nome">—</div>
         <div style="font-size:19px;color:var(--tx3)" id="foto-mo-posto">—</div>
       </div>
@@ -470,11 +470,11 @@
       </div>
     </div>
     <!-- Nota para usuários sem permissão de edição -->
-    <div id="foto-readonly-note" style="display:none;font-size:14px;color:var(--tx3);text-align:center;margin-bottom:10px">Foto gerenciada pela <span style="color:var(--gold)">Seção P1</span></div>
+    <div id="foto-readonly-note" style="display:none;font-size:19px;color:var(--tx3);text-align:center;margin-bottom:10px">Foto gerenciada pela <span style="color:var(--gold)">Seção P1</span></div>
     <!-- Área de edição — visível apenas para role 'p1' / 'admin' -->
     <div id="foto-edit-area" style="display:none">
       <div style="border-top:1px solid var(--bd);padding-top:14px">
-        <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Gerenciar Foto</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Gerenciar Foto</div>
         <input type="file" id="foto-file-input" accept="image/*" onchange="fotoPreviewChange()" style="display:block;width:100%;margin-bottom:10px;color:var(--tx);font-size:19px">
         <div style="display:flex;gap:8px">
           <button onclick="p1SaveFoto()" style="flex:1;padding:7px;background:rgba(200,168,75,.2);border:1px solid rgba(200,168,75,.4);color:var(--gold);border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">Salvar</button>
@@ -547,7 +547,7 @@
 <div id="prod-upl-mo" onclick="prodUplClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;align-items:center;justify-content:center">
   <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:10px;padding:24px;width:min(420px,92vw);max-height:90vh;overflow-y:auto">
     <div id="prod-upl-title" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:6px">Importar</div>
-    <div id="prod-upl-hint" style="font-size:14px;color:var(--tx3);margin-bottom:12px;font-family:'DM Mono',monospace;line-height:1.5"></div>
+    <div id="prod-upl-hint" style="font-size:19px;color:var(--tx3);margin-bottom:12px;font-family:'DM Mono',monospace;line-height:1.5"></div>
     <input type="file" accept=".csv" id="prod-upl-file" onchange="prodUplFileChange()" style="width:100%;margin-bottom:10px;color:var(--tx);font-size:19px">
     <div id="prod-upl-preview" style="font-size:19px;margin-bottom:10px;min-height:20px"></div>
     <div id="prod-upl-msg" style="font-size:19px;margin-bottom:10px;min-height:16px"></div>
@@ -664,7 +664,7 @@
     </div>
     <div class="ph-meta">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-        <span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">SSP</span>
+        <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">SSP</span>
         <input id="inp-p3-periodo" type="text" placeholder="Ex: Jan – Mar 2026"
           style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:19px;outline:none;width:180px;display:none"
           oninput="savePeriodo(this.value)">
@@ -672,7 +672,7 @@
         <button id="btn-edit-periodo" onclick="toggleEditPeriodo()" style="display:none;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:14px;font-family:'DM Mono',monospace">✎ Editar</button>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">INFOCRIM</span>
+        <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">INFOCRIM</span>
         <input id="inp-fonte" type="text" placeholder="Ex: Banco de Dados RAC"
           style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:19px;outline:none;width:220px;display:none"
           oninput="saveFonte(this.value)">
@@ -680,7 +680,7 @@
         <button id="btn-edit-fonte" onclick="toggleEditFonte()" style="display:none;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:14px;font-family:'DM Mono',monospace">✎ Editar</button>
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
-        <span style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px">UPLOAD</span>
+        <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">UPLOAD</span>
         <span id="sync-time" style="font-size:19px;color:var(--tx3)">—</span>
       </div>
     </div>
