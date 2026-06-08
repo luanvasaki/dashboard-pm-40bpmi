@@ -6179,9 +6179,9 @@ function renderTRModalDetail() {
     </div>`;
 
   // Variante clicável de barRow — abre drill-down de CIAs ao clicar
-  const barRowDrill = (name, val, barPct, cor, sub) => {
+  const barRowDrill = (name, val, barPct, cor, sub, sortMode) => {
     const enc = encodeURIComponent(name);
-    return `<div style="margin-bottom:12px;cursor:pointer;transition:opacity .15s" onclick="trDrillNat(this,decodeURIComponent('${enc}'))" title="Clique para ver desempenho por CIA">
+    return `<div style="margin-bottom:12px;cursor:pointer;transition:opacity .15s" onclick="trDrillNat(this,decodeURIComponent('${enc}'),'${sortMode}')" title="Clique para ver desempenho por CIA">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;gap:8px">
         <div style="font-size:19px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${name}">${name}<span style="font-size:13px;color:var(--tx3);margin-left:6px;vertical-align:middle;user-select:none">▾ CIA</span></div>
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:${cor};font-weight:700;flex-shrink:0">${val}</div>
@@ -6195,20 +6195,20 @@ function renderTRModalDetail() {
   const natTopCard = !natTop.length ? '' :
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR_BOM};border-radius:10px;padding:16px">
       ${cardTop(TR_COR_BOM, 'Naturezas Mais Rápidas — % ≤20min')}
-      ${natTop.map(d => barRowDrill(d.nat, parseFloat(d.pct.toFixed(1)) + '%', Math.round(d.pct), TR_COR_BOM, d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
+      ${natTop.map(d => barRowDrill(d.nat, parseFloat(d.pct.toFixed(1)) + '%', Math.round(d.pct), TR_COR_BOM, d.taloes.toLocaleString('pt-BR') + ' talões', 'desc-pct')).join('')}
     </div>`;
 
   const natBot = natRank.length > 3 ? [...natRank].reverse().slice(0, Math.min(10, natRank.length)) : [];
   const natBotCard = !natBot.length ? '' :
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR_MAU};border-radius:10px;padding:16px">
       ${cardTop(TR_COR_MAU, 'Naturezas Mais Demoradas — % ≤20min')}
-      ${natBot.map(d => barRowDrill(d.nat, parseFloat(d.pct.toFixed(1)) + '%', Math.round(d.pct), TR_COR_MAU, d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
+      ${natBot.map(d => barRowDrill(d.nat, parseFloat(d.pct.toFixed(1)) + '%', Math.round(d.pct), TR_COR_MAU, d.taloes.toLocaleString('pt-BR') + ' talões', 'asc-pct')).join('')}
     </div>`;
 
   const criticasCard = !natCriticas.length ? '' :
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #e0965a;border-radius:10px;padding:16px">
       ${cardTop('#e0965a', 'Naturezas Críticas — Maior Impacto')}
-      ${natCriticas.map(d => barRowDrill(d.nat, parseFloat(d.pct.toFixed(1)) + '%', Math.round(d.pct), '#e0965a', d.taloes.toLocaleString('pt-BR') + ' talões · ~' + d.fora_prazo.toLocaleString('pt-BR') + ' fora do prazo')).join('')}
+      ${natCriticas.map(d => barRowDrill(d.nat, parseFloat(d.pct.toFixed(1)) + '%', Math.round(d.pct), '#e0965a', d.taloes.toLocaleString('pt-BR') + ' talões · ~' + d.fora_prazo.toLocaleString('pt-BR') + ' fora do prazo', 'desc-fora')).join('')}
     </div>`;
 
   const topTitle = pdSelCia ? `Detalhamento — ${pdSelCia}` : 'Ranking por CIA — Precisão e % BOe';
@@ -6326,7 +6326,7 @@ function renderTRModalDetail() {
 }
 
 // Drill-down de CIA por natureza no painel Tempo Resposta
-function trDrillNat(el, nat) {
+function trDrillNat(el, nat, sortMode) {
   const existing = el.nextElementSibling;
   if (existing && existing.dataset.drill === 'tr') {
     existing.remove();
@@ -6339,8 +6339,16 @@ function trDrillNat(el, nat) {
     p.remove();
   });
 
-  const cias = (_trNatCiaData[nat] || []);
-  if (!cias.length) return;
+  const base = (_trNatCiaData[nat] || []);
+  if (!base.length) return;
+
+  // Ordena conforme o contexto do card de origem
+  const cias = [...base].sort((a, b) => {
+    if (sortMode === 'desc-pct')  return b.pct - a.pct;   // Mais Rápidas: maior % primeiro
+    if (sortMode === 'asc-pct')   return a.pct - b.pct;   // Mais Demoradas: menor % primeiro
+    if (sortMode === 'desc-fora') return b.fora - a.fora; // Críticas: mais fora do prazo primeiro
+    return b.pct - a.pct;
+  });
 
   el.style.opacity = '0.7';
 
@@ -6348,17 +6356,11 @@ function trDrillNat(el, nat) {
   const COR_MED = '#4bc8e0';
   const COR_MAU = '#e8b840';
 
-  const ciaRows = cias.map((d, i) => {
+  const ciaRows = cias.map(d => {
     const pctCor = d.pct >= 70 ? COR_BOM : d.pct >= 50 ? COR_MED : COR_MAU;
-    const badge = i === 0
-      ? `<span style="font-size:11px;background:${COR_MAU}22;color:${COR_MAU};border:1px solid ${COR_MAU}55;border-radius:4px;padding:1px 5px;flex-shrink:0">↑ Pior</span>`
-      : i === cias.length - 1
-        ? `<span style="font-size:11px;background:${COR_BOM}22;color:${COR_BOM};border:1px solid ${COR_BOM}55;border-radius:4px;padding:1px 5px;flex-shrink:0">↓ Melhor</span>`
-        : '';
     return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)">
       <div style="width:8px;height:8px;border-radius:50%;background:${ciaCorByName(d.cia)};flex-shrink:0"></div>
       <div style="flex:1;font-size:16px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.cia}</div>
-      ${badge}
       <div style="font-family:'DM Mono',monospace;font-size:17px;color:${pctCor};font-weight:700;flex-shrink:0">${parseFloat(d.pct.toFixed(1))}%</div>
       <div style="font-size:13px;color:var(--tx3);flex-shrink:0;min-width:58px;text-align:right">${d.taloes.toLocaleString('pt-BR')} tal.</div>
       ${d.fora > 0 ? `<div style="font-size:13px;color:${COR_MAU};flex-shrink:0;min-width:52px;text-align:right">~${d.fora.toLocaleString('pt-BR')} fora</div>` : '<div style="min-width:52px"></div>'}
@@ -6371,7 +6373,7 @@ function trDrillNat(el, nat) {
   panel.innerHTML =
     `<div style="font-size:13px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Desempenho por CIA — ${nat}</div>` +
     ciaRows +
-    `<div style="font-size:12px;color:var(--tx3);margin-top:8px;text-align:right">ordenado: pior → melhor &nbsp;·&nbsp; clique novamente para fechar</div>`;
+    `<div style="font-size:12px;color:var(--tx3);margin-top:8px;text-align:right">clique novamente para fechar</div>`;
 
   el.insertAdjacentElement('afterend', panel);
 }
