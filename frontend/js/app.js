@@ -5233,6 +5233,7 @@ function goPage(id, btn) {
 // PRODUTIVIDADE P3
 // ---------------------------------------------------------------------------
 let prodRaw = { ocorrencias: [], presos: [], armas: [], veiculos: [], entorpecentes: [], visitaSolidaria: [], tempoResposta: [], cursos: [], loaded: false };
+let _trNatCiaData = {}; // { natureza: [{cia, pct, taloes, fora}, ...] } — populado em renderTRModalDetail
 let prodSelAno    = null;
 let prodSelMeses  = [];
 let prodSelCia    = null;
@@ -6102,6 +6103,29 @@ function renderTRModalDetail() {
     if (!byNat[r.natureza_final]) byNat[r.natureza_final] = [];
     byNat[r.natureza_final].push(r);
   });
+
+  // Monta índice CIA × natureza para drill-down interativo
+  _trNatCiaData = {};
+  Object.entries(byNat).forEach(([nat, rs]) => {
+    const ciasMap = {};
+    rs.forEach(r => {
+      const cia = r.cia ? normCiaDisplay(r.cia) : 'Não informado';
+      if (!ciasMap[cia]) ciasMap[cia] = { pctW: 0, taloes: 0 };
+      const t = r.qtde_taloes || 0;
+      ciasMap[cia].pctW   += (r.pct_hd_hcl_20min || 0) * t;
+      ciasMap[cia].taloes += t;
+    });
+    _trNatCiaData[nat] = Object.entries(ciasMap)
+      .filter(([, d]) => d.taloes > 0)
+      .map(([cia, d]) => ({
+        cia,
+        pct:    d.pctW / d.taloes,
+        taloes: d.taloes,
+        fora:   Math.round(d.taloes * (1 - (d.pctW / d.taloes) / 100)),
+      }))
+      .sort((a, b) => a.pct - b.pct); // pior primeiro
+  });
+
   const natRank = Object.entries(byNat)
     .map(([nat, rs]) => ({
       nat,
@@ -6154,24 +6178,37 @@ function renderTRModalDetail() {
       <div style="font-size:19px;color:var(--tx3);margin-top:2px">${sub}</div>
     </div>`;
 
+  // Variante clicável de barRow — abre drill-down de CIAs ao clicar
+  const barRowDrill = (name, val, barPct, cor, sub) => {
+    const enc = encodeURIComponent(name);
+    return `<div style="margin-bottom:12px;cursor:pointer;transition:opacity .15s" onclick="trDrillNat(this,decodeURIComponent('${enc}'))" title="Clique para ver desempenho por CIA">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;gap:8px">
+        <div style="font-size:19px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${name}">${name}<span style="font-size:13px;color:var(--tx3);margin-left:6px;vertical-align:middle;user-select:none">▾ CIA</span></div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:${cor};font-weight:700;flex-shrink:0">${val}</div>
+      </div>
+      <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px"><div style="height:100%;width:${Math.min(100,barPct)}%;background:${cor};border-radius:3px"></div></div>
+      <div style="font-size:19px;color:var(--tx3);margin-top:2px">${sub}</div>
+    </div>`;
+  };
+
   const natTop = natRank.slice(0, 10);
   const natTopCard = !natTop.length ? '' :
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR_BOM};border-radius:10px;padding:16px">
       ${cardTop(TR_COR_BOM, 'Naturezas Mais Rápidas — % ≤20min')}
-      ${natTop.map(d => barRow(d.nat, parseFloat(d.pct.toFixed(1)) + '%', Math.round(d.pct), TR_COR_BOM, d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
+      ${natTop.map(d => barRowDrill(d.nat, parseFloat(d.pct.toFixed(1)) + '%', Math.round(d.pct), TR_COR_BOM, d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
     </div>`;
 
   const natBot = natRank.length > 3 ? [...natRank].reverse().slice(0, Math.min(10, natRank.length)) : [];
   const natBotCard = !natBot.length ? '' :
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR_MAU};border-radius:10px;padding:16px">
       ${cardTop(TR_COR_MAU, 'Naturezas Mais Demoradas — % ≤20min')}
-      ${natBot.map(d => barRow(d.nat, parseFloat(d.pct.toFixed(1)) + '%', Math.round(d.pct), TR_COR_MAU, d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
+      ${natBot.map(d => barRowDrill(d.nat, parseFloat(d.pct.toFixed(1)) + '%', Math.round(d.pct), TR_COR_MAU, d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
     </div>`;
 
   const criticasCard = !natCriticas.length ? '' :
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #e0965a;border-radius:10px;padding:16px">
       ${cardTop('#e0965a', 'Naturezas Críticas — Maior Impacto')}
-      ${natCriticas.map(d => barRow(d.nat, parseFloat(d.pct.toFixed(1)) + '%', Math.round(d.pct), '#e0965a', d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
+      ${natCriticas.map(d => barRowDrill(d.nat, parseFloat(d.pct.toFixed(1)) + '%', Math.round(d.pct), '#e0965a', d.taloes.toLocaleString('pt-BR') + ' talões · ~' + d.fora_prazo.toLocaleString('pt-BR') + ' fora do prazo')).join('')}
     </div>`;
 
   const topTitle = pdSelCia ? `Detalhamento — ${pdSelCia}` : 'Ranking por CIA — Precisão e % BOe';
@@ -6286,6 +6323,57 @@ function renderTRModalDetail() {
       }));
     }
   }
+}
+
+// Drill-down de CIA por natureza no painel Tempo Resposta
+function trDrillNat(el, nat) {
+  const existing = el.nextElementSibling;
+  if (existing && existing.dataset.drill === 'tr') {
+    existing.remove();
+    el.style.opacity = '';
+    return;
+  }
+  // Fecha qualquer outro painel aberto
+  document.querySelectorAll('[data-drill="tr"]').forEach(p => {
+    if (p.previousElementSibling) p.previousElementSibling.style.opacity = '';
+    p.remove();
+  });
+
+  const cias = (_trNatCiaData[nat] || []);
+  if (!cias.length) return;
+
+  el.style.opacity = '0.7';
+
+  const COR_BOM = '#4bc87a';
+  const COR_MED = '#4bc8e0';
+  const COR_MAU = '#e8b840';
+
+  const ciaRows = cias.map((d, i) => {
+    const pctCor = d.pct >= 70 ? COR_BOM : d.pct >= 50 ? COR_MED : COR_MAU;
+    const badge = i === 0
+      ? `<span style="font-size:11px;background:${COR_MAU}22;color:${COR_MAU};border:1px solid ${COR_MAU}55;border-radius:4px;padding:1px 5px;flex-shrink:0">↑ Pior</span>`
+      : i === cias.length - 1
+        ? `<span style="font-size:11px;background:${COR_BOM}22;color:${COR_BOM};border:1px solid ${COR_BOM}55;border-radius:4px;padding:1px 5px;flex-shrink:0">↓ Melhor</span>`
+        : '';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="width:8px;height:8px;border-radius:50%;background:${ciaCorByName(d.cia)};flex-shrink:0"></div>
+      <div style="flex:1;font-size:16px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.cia}</div>
+      ${badge}
+      <div style="font-family:'DM Mono',monospace;font-size:17px;color:${pctCor};font-weight:700;flex-shrink:0">${parseFloat(d.pct.toFixed(1))}%</div>
+      <div style="font-size:13px;color:var(--tx3);flex-shrink:0;min-width:58px;text-align:right">${d.taloes.toLocaleString('pt-BR')} tal.</div>
+      ${d.fora > 0 ? `<div style="font-size:13px;color:${COR_MAU};flex-shrink:0;min-width:52px;text-align:right">~${d.fora.toLocaleString('pt-BR')} fora</div>` : '<div style="min-width:52px"></div>'}
+    </div>`;
+  }).join('');
+
+  const panel = document.createElement('div');
+  panel.dataset.drill = 'tr';
+  panel.style.cssText = 'background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 14px;margin:-4px 0 14px;animation:fu .15s ease';
+  panel.innerHTML =
+    `<div style="font-size:13px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Desempenho por CIA — ${nat}</div>` +
+    ciaRows +
+    `<div style="font-size:12px;color:var(--tx3);margin-top:8px;text-align:right">ordenado: pior → melhor &nbsp;·&nbsp; clique novamente para fechar</div>`;
+
+  el.insertAdjacentElement('afterend', panel);
 }
 
 function tipoCurso(nome) {
