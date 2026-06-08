@@ -6438,31 +6438,33 @@ async function renderCursosModalDetail() {
   });
   const getCiaPM = re => reToCia[_normRe(re)] || null;
 
-  // CIA × mês — PMs únicos por CIA em cada mês (para tooltip do gráfico de evolução)
+  // CIA × mês — contagem de PMs por CIA em cada mês (para tooltip do gráfico de evolução)
   const mesTooltipCia = {};
   rows.forEach(r => {
     const m = (r.mes||'').toLowerCase();
     if (!m || !r.re_pm) return;
     const cia = getCiaPM(r.re_pm) || 'Não identificado';
     if (!mesTooltipCia[m]) mesTooltipCia[m] = {};
-    if (!mesTooltipCia[m][cia]) mesTooltipCia[m][cia] = new Set();
-    mesTooltipCia[m][cia].add(_normRe(r.re_pm));
+    mesTooltipCia[m][cia] = (mesTooltipCia[m][cia] || 0) + 1;
   });
 
-  // CIA × tipo — PMs únicos por CIA em cada tipo de curso (para tooltip do doughnut)
+  // CIA × tipo — contagem de PMs por CIA em cada tipo de curso (para tooltip do doughnut)
   const tipoTooltipCia = {};
   rows.forEach(r => {
     if (!r.re_pm) return;
     const tipo = tipoCurso(r.nome_curso);
     const cia = getCiaPM(r.re_pm) || 'Não identificado';
     if (!tipoTooltipCia[tipo]) tipoTooltipCia[tipo] = {};
-    if (!tipoTooltipCia[tipo][cia]) tipoTooltipCia[tipo][cia] = new Set();
-    tipoTooltipCia[tipo][cia].add(_normRe(r.re_pm));
+    tipoTooltipCia[tipo][cia] = (tipoTooltipCia[tipo][cia] || 0) + 1;
   });
 
-  // Agrega por tipo (cursos únicos)
+  // Agrega por tipo — conta PMs que fizeram cada tipo de curso
   const tipoAgg = {};
-  cursosList.forEach(c => { tipoAgg[c.tipo] = (tipoAgg[c.tipo] || 0) + 1; });
+  rows.forEach(r => {
+    if (!r.re_pm) return;
+    const tipo = tipoCurso(r.nome_curso);
+    tipoAgg[tipo] = (tipoAgg[tipo] || 0) + 1;
+  });
   const tipoLabels = TIPO_ORD.filter(t => tipoAgg[t]);
   const tipoValues = tipoLabels.map(t => tipoAgg[t]);
   const tipoCores  = tipoLabels.map(t => TIPO_COR[t]);
@@ -6497,17 +6499,15 @@ async function renderCursosModalDetail() {
     </tr>`;
   }).join('');
 
-  // Evolução mensal (cursos únicos por mês)
+  // Evolução mensal — conta PMs que fizeram cursos por mês
   const mesAgg = {};
   rows.forEach(r => {
-    const key = (r.data||'') + '||' + (r.nome_curso||'');
     const m = (r.mes||'').toLowerCase();
-    if (!m) return;
-    if (!mesAgg[m]) mesAgg[m] = new Set();
-    mesAgg[m].add(key);
+    if (!m || !r.re_pm) return;
+    mesAgg[m] = (mesAgg[m] || 0) + 1;
   });
   const evoLabels = MES_ORD.filter(m => mesAgg[m.toLowerCase()]);
-  const evoData   = evoLabels.map(m => mesAgg[m.toLowerCase()].size);
+  const evoData   = evoLabels.map(m => mesAgg[m.toLowerCase()] || 0);
 
   const chartsEl = document.getElementById('pd-charts');
   chartsEl.innerHTML = `
@@ -6547,13 +6547,13 @@ async function renderCursosModalDetail() {
           responsive: true,
           maintainAspectRatio: false,
           plugins: { legend: { display: false }, tooltip: { callbacks: {
-            label: i => ` ${i.raw} curso${i.raw !== 1 ? 's' : ''}`,
+            label: i => ` ${i.raw} PM${i.raw !== 1 ? 's' : ''}`,
             afterBody: items => {
               const mes = (evoLabels[items[0].dataIndex]||'').toLowerCase();
               const ciaMap = mesTooltipCia[mes] || {};
-              const sorted = Object.entries(ciaMap).sort((a,b) => b[1].size - a[1].size);
+              const sorted = Object.entries(ciaMap).sort((a,b) => b[1] - a[1]);
               if (!sorted.length) return [];
-              return [''].concat(sorted.map(([c,s]) => `  ${c}: ${s.size} PM${s.size !== 1 ? 's' : ''}`));
+              return [''].concat(sorted.map(([c,n]) => `  ${c}: ${n} PM${n !== 1 ? 's' : ''}`));
             }
           } } },
           scales: {
@@ -6584,13 +6584,13 @@ async function renderCursosModalDetail() {
           plugins: {
             legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.7)', font: { size: 19 }, padding: 16, boxWidth: 14 } },
             tooltip: { callbacks: {
-              label: i => ` ${i.label}: ${i.raw} curso${i.raw !== 1 ? 's' : ''}`,
+              label: i => ` ${i.label}: ${i.raw} PM${i.raw !== 1 ? 's' : ''}`,
               afterBody: items => {
                 const tipo = tipoLabels[items[0].dataIndex];
                 const ciaMap = tipoTooltipCia[tipo] || {};
-                const sorted = Object.entries(ciaMap).sort((a,b) => b[1].size - a[1].size);
+                const sorted = Object.entries(ciaMap).sort((a,b) => b[1] - a[1]);
                 if (!sorted.length) return [];
-                return [''].concat(sorted.map(([c,s]) => `  ${c}: ${s.size} PM${s.size !== 1 ? 's' : ''}`));
+                return [''].concat(sorted.map(([c,n]) => `  ${c}: ${n} PM${n !== 1 ? 's' : ''}`));
               }
             } }
           }
