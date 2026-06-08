@@ -6511,9 +6511,9 @@ async function renderCursosModalDetail() {
 
   const chartsEl = document.getElementById('pd-charts');
   chartsEl.innerHTML = `
-    <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px">Evolução Mensal</div>
-      <canvas id="cursos-evo" style="height:420px;max-height:420px"></canvas>
+      <canvas id="cursos-evo"></canvas>
       <div id="cursos-evo-empty" style="display:none;color:var(--tx3);font-size:19px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>
     <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
