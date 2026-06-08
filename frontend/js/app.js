@@ -5234,6 +5234,8 @@ function goPage(id, btn) {
 // ---------------------------------------------------------------------------
 let prodRaw = { ocorrencias: [], presos: [], armas: [], veiculos: [], entorpecentes: [], visitaSolidaria: [], tempoResposta: [], cursos: [], loaded: false };
 let _trNatCiaData = {}; // { natureza: [{cia, pct, taloes, fora}, ...] } — populado em renderTRModalDetail
+let _taftatData   = null;
+let _taftatTab    = 'taf';
 let prodSelAno    = null;
 let prodSelMeses  = [];
 let prodSelCia    = null;
@@ -6741,111 +6743,71 @@ async function renderTafTatModalDetail() {
     if (!tatCiaCts[tatK]) tatCiaCts[tatK] = {};
     tatCiaCts[tatK][cia] = (tatCiaCts[tatK][cia] || 0) + 1;
   });
-  const ciaAfterBody = (ciaCts, lbls) => items => {
-    const conceito = lbls[items[0].dataIndex];
-    const sorted = Object.entries(ciaCts[conceito] || {}).sort((a,b) => b[1]-a[1]);
-    if (!sorted.length) return [];
-    return [''].concat(sorted.map(([c,n]) => `  ${c}: ${n} PM${n!==1?'s':''}`));
-  };
+  _taftatTab  = 'taf';
+  _taftatData = { tafCts, tatCts, tafLbls, tatLbls, tafCiaCts, tatCiaCts, COR, CONCS_ORD, CONC_COR };
+  _renderTafTatCharts();
+}
 
+function switchTafTatTab(tab) {
+  if (!_taftatData || tab === _taftatTab) return;
+  _taftatTab = tab;
+  pdChs.forEach(c => { try { c.destroy(); } catch {} });
+  pdChs.length = 0;
+  _renderTafTatCharts();
+}
+
+function _renderTafTatCharts() {
   const chartsEl = document.getElementById('pd-charts');
+  if (!chartsEl || !_taftatData) return;
+  const { tafCts, tatCts, tafLbls, tatLbls, tafCiaCts, tatCiaCts, COR, CONCS_ORD, CONC_COR } = _taftatData;
+  const tab    = _taftatTab;
+  const lbls   = tab === 'taf' ? tafLbls   : tatLbls;
+  const cts    = tab === 'taf' ? tafCts    : tatCts;
+  const ciaCts = tab === 'taf' ? tafCiaCts : tatCiaCts;
+  const campo  = tab.toUpperCase();
   const cardSt = 'background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px';
   const titSt  = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px`;
-  chartsEl.innerHTML = `
-    <div style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      <div style="${cardSt}">
-        <div style="${titSt}">Distribuição TAF por Conceito</div>
-        <canvas id="taftat-taf-dist" style="height:460px;max-height:460px"></canvas>
-      </div>
-      <div style="${cardSt}">
-        <div style="${titSt}">Distribuição TAT por Conceito</div>
-        <canvas id="taftat-tat-dist" style="height:460px;max-height:460px"></canvas>
-      </div>
-    </div>
-    <div style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      <div style="${cardSt}">
-        <div style="${titSt}">TAF — Distribuição por CIA</div>
-        <canvas id="taftat-taf-cia" style="height:420px;max-height:420px"></canvas>
-      </div>
-      <div style="${cardSt}">
-        <div style="${titSt}">TAT — Distribuição por CIA</div>
-        <canvas id="taftat-tat-cia" style="height:420px;max-height:420px"></canvas>
-      </div>
-    </div>`;
-
+  const btnSt  = active => `padding:7px 24px;border-radius:8px;border:1px solid ${active?COR:'rgba(255,255,255,.15)'};background:${active?COR+'22':'transparent'};color:${active?COR:'rgba(255,255,255,.45)'};font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .15s`;
   const legendOpts = { position:'bottom', labels:{ color:'rgba(255,255,255,.9)', font:{size:19}, padding:20, boxWidth:16 } };
-
-  // Doughnut TAF
-  if (tafLbls.some(l => l !== 'Sem dados')) {
-    const ctx = document.getElementById('taftat-taf-dist')?.getContext('2d');
+  chartsEl.innerHTML = `
+    <div style="grid-column:1/-1;display:flex;gap:10px;padding-bottom:4px">
+      <button id="btn-taftat-taf" onclick="switchTafTatTab('taf')" style="${btnSt(tab==='taf')}">TAF</button>
+      <button id="btn-taftat-tat" onclick="switchTafTatTab('tat')" style="${btnSt(tab==='tat')}">TAT</button>
+    </div>
+    <div style="${cardSt}">
+      <div style="${titSt}">Distribuição ${campo} por Conceito</div>
+      <canvas id="taftat-dist" style="height:460px;max-height:460px"></canvas>
+    </div>
+    <div style="${cardSt}">
+      <div style="${titSt}">${campo} — Distribuição por CIA</div>
+      <canvas id="taftat-cia" style="height:460px;max-height:460px"></canvas>
+    </div>`;
+  if (lbls.some(l => l !== 'Sem dados')) {
+    const ctx = document.getElementById('taftat-dist')?.getContext('2d');
     if (ctx) pdChs.push(new Chart(ctx, {
       type: 'doughnut',
-      data: { labels: tafLbls, datasets: [{ data: tafLbls.map(l => tafCts[l]||0), backgroundColor: tafLbls.map(l => (CONC_COR[l]||'#607090')+'cc'), borderColor: tafLbls.map(l => CONC_COR[l]||'#607090'), borderWidth: 2 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: legendOpts, tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} PM${i.raw!==1?'s':''}`, afterBody: ciaAfterBody(tafCiaCts, tafLbls) } } } }
-    }));
-  }
-
-  // Doughnut TAT
-  if (tatLbls.some(l => l !== 'Sem dados')) {
-    const ctx2 = document.getElementById('taftat-tat-dist')?.getContext('2d');
-    if (ctx2) pdChs.push(new Chart(ctx2, {
-      type: 'doughnut',
-      data: { labels: tatLbls, datasets: [{ data: tatLbls.map(l => tatCts[l]||0), backgroundColor: tatLbls.map(l => (CONC_COR[l]||'#607090')+'cc'), borderColor: tatLbls.map(l => CONC_COR[l]||'#607090'), borderWidth: 2 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: legendOpts, tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} PM${i.raw!==1?'s':''}`, afterBody: ciaAfterBody(tatCiaCts, tatLbls) } } } }
-    }));
-  }
-
-  // Stacked bar TAF por CIA e TAT por CIA
-  const buildCiaConcMap = (ciaCts) => {
-    const map = {};
-    Object.entries(ciaCts).forEach(([conc, cias]) => {
-      Object.entries(cias).forEach(([cia, n]) => {
-        if (!map[cia]) map[cia] = {};
-        map[cia][conc] = n;
-      });
-    });
-    return map;
-  };
-  const makeCiaChart = (ciaCts, canvasId) => {
-    const ciaConcMap = buildCiaConcMap(ciaCts);
-    const cias = Object.entries(ciaConcMap)
-      .map(([cia, concs]) => ({ cia, total: Object.values(concs).reduce((s,v)=>s+v,0) }))
-      .sort((a,b) => b.total - a.total).map(d => d.cia);
-    const datasets = CONCS_ORD
-      .map(conc => ({
-        label: conc,
-        data: cias.map(cia => ciaConcMap[cia]?.[conc] || 0),
-        backgroundColor: (CONC_COR[conc]||'#607090') + 'cc',
-        borderColor: CONC_COR[conc]||'#607090',
-        borderWidth: 1,
-      }))
-      .filter(d => d.data.some(v => v > 0));
-    const ctx = document.getElementById(canvasId)?.getContext('2d');
-    if (!ctx || !cias.length) return;
-    const h = Math.max(280, cias.length * 52 + 60);
-    ctx.canvas.style.height = h + 'px';
-    ctx.canvas.style.maxHeight = h + 'px';
-    pdChs.push(new Chart(ctx, {
-      type: 'bar',
-      data: { labels: cias, datasets },
-      options: {
-        indexAxis: 'y',
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { position:'bottom', labels:{ color:'rgba(255,255,255,.9)', font:{size:19}, padding:14, boxWidth:13 } },
-          tooltip: { callbacks: {
-            label: i => ` ${i.dataset.label}: ${i.raw} PM${i.raw!==1?'s':''}`,
-          } }
-        },
-        scales: {
-          x: { stacked: true, grid: GR, ticks: { color:'rgba(255,255,255,.45)', font:{size:19} }, beginAtZero: true },
-          y: { stacked: true, grid: { display:false }, ticks: { color:'rgba(255,255,255,.8)', font:{size:19} } }
+      data: { labels: lbls, datasets: [{ data: lbls.map(l=>cts[l]||0), backgroundColor: lbls.map(l=>(CONC_COR[l]||'#607090')+'cc'), borderColor: lbls.map(l=>CONC_COR[l]||'#607090'), borderWidth: 2 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: legendOpts, tooltip: { callbacks: {
+        label: i => ` ${i.label}: ${i.raw} PM${i.raw!==1?'s':''}`,
+        afterBody: items => {
+          const conceito = lbls[items[0].dataIndex];
+          const sorted = Object.entries(ciaCts[conceito]||{}).sort((a,b)=>b[1]-a[1]);
+          if (!sorted.length) return [];
+          return [''].concat(sorted.map(([c,n])=>`  ${c}: ${n} PM${n!==1?'s':''}`));
         }
-      }
+      } } } }
     }));
-  };
-  makeCiaChart(tafCiaCts, 'taftat-taf-cia');
-  makeCiaChart(tatCiaCts, 'taftat-tat-cia');
+  }
+  const ciaConcMap = {};
+  Object.entries(ciaCts).forEach(([conc,cias])=>{ Object.entries(cias).forEach(([cia,n])=>{ if(!ciaConcMap[cia]) ciaConcMap[cia]={}; ciaConcMap[cia][conc]=n; }); });
+  const cias = Object.entries(ciaConcMap).map(([cia,concs])=>({cia,total:Object.values(concs).reduce((s,v)=>s+v,0)})).sort((a,b)=>b.total-a.total).map(d=>d.cia);
+  const datasets = CONCS_ORD.map(conc=>({ label:conc, data:cias.map(cia=>ciaConcMap[cia]?.[conc]||0), backgroundColor:(CONC_COR[conc]||'#607090')+'cc', borderColor:CONC_COR[conc]||'#607090', borderWidth:1 })).filter(d=>d.data.some(v=>v>0));
+  const ctxCia = document.getElementById('taftat-cia')?.getContext('2d');
+  if (ctxCia && cias.length) {
+    const h = Math.max(280, cias.length*52+60);
+    ctxCia.canvas.style.height = h+'px'; ctxCia.canvas.style.maxHeight = h+'px';
+    pdChs.push(new Chart(ctxCia, { type:'bar', data:{ labels:cias, datasets }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ color:'rgba(255,255,255,.9)', font:{size:19}, padding:14, boxWidth:13 } }, tooltip:{ callbacks:{ label: i=>` ${i.dataset.label}: ${i.raw} PM${i.raw!==1?'s':''}` } } }, scales:{ x:{ stacked:true, grid:GR, ticks:{ color:'rgba(255,255,255,.45)', font:{size:19} }, beginAtZero:true }, y:{ stacked:true, grid:{ display:false }, ticks:{ color:'rgba(255,255,255,.8)', font:{size:19} } } } } }));
+  }
 }
 
 function renderProdDetail() {
