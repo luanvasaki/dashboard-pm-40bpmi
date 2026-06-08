@@ -6774,13 +6774,15 @@ function _renderTafTatCharts() {
       <button id="btn-taftat-taf" onclick="switchTafTatTab('taf')" style="${btnSt(tab==='taf')}">TAF</button>
       <button id="btn-taftat-tat" onclick="switchTafTatTab('tat')" style="${btnSt(tab==='tat')}">TAT</button>
     </div>
-    <div style="${cardSt}">
-      <div style="${titSt}">Distribuição ${campo} por Conceito</div>
-      <canvas id="taftat-dist" style="height:460px;max-height:460px"></canvas>
-    </div>
-    <div style="${cardSt}">
-      <div style="${titSt}">${campo} — Distribuição por CIA</div>
-      <canvas id="taftat-cia" style="height:460px;max-height:460px"></canvas>
+    <div style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div style="${cardSt}">
+        <div style="${titSt}">Distribuição ${campo} por Conceito</div>
+        <canvas id="taftat-dist" style="height:460px;max-height:460px"></canvas>
+      </div>
+      <div style="${cardSt}">
+        <div style="${titSt}">${campo} — Distribuição por CIA</div>
+        <canvas id="taftat-cia" style="height:460px;max-height:460px"></canvas>
+      </div>
     </div>`;
   if (lbls.some(l => l !== 'Sem dados')) {
     const ctx = document.getElementById('taftat-dist')?.getContext('2d');
