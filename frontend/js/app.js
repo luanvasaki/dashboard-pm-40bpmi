@@ -2601,8 +2601,8 @@ function renderBairros(data) {
   if (!sorted.length) return;
   const wrapper = document.getElementById('mo-bairros')?.parentElement;
   if (!wrapper) return;
-  const rowH = 105;
-  wrapper.style.height = (sorted.length * rowH + 70) + 'px';
+  const rowH = 52;
+  wrapper.style.height = Math.max(220, sorted.length * rowH + 40) + 'px';
   safeChart('mo-bairros', {
     type: 'bar',
     data: {
