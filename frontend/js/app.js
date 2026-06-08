@@ -6541,24 +6541,27 @@ async function renderCursosModalDetail() {
     const ctx = document.getElementById('cursos-evo')?.getContext('2d');
     if (ctx) {
       pdChs.push(new Chart(ctx, {
-        type: 'bar',
-        data: { labels: evoLabels, datasets: [{ data: evoData, backgroundColor: COR + '88', borderColor: COR, borderWidth: 1, borderRadius: 3 }] },
+        type: 'line',
+        data: { labels: evoLabels, datasets: [{ label: 'PMs em Cursos', data: evoData, borderColor: COR, backgroundColor: COR + '18', borderWidth: 2, fill: true, tension: 0.4, pointBackgroundColor: COR, pointRadius: 5 }] },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { callbacks: {
-            label: i => ` ${i.raw} PM${i.raw !== 1 ? 's' : ''}`,
-            afterBody: items => {
-              const mes = (evoLabels[items[0].dataIndex]||'').toLowerCase();
-              const ciaMap = mesTooltipCia[mes] || {};
-              const sorted = Object.entries(ciaMap).sort((a,b) => b[1] - a[1]);
-              if (!sorted.length) return [];
-              return [''].concat(sorted.map(([c,n]) => `  ${c}: ${n} PM${n !== 1 ? 's' : ''}`));
-            }
-          } } },
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: {
+              label: i => ` ${i.raw} PM${i.raw !== 1 ? 's' : ''}`,
+              afterBody: items => {
+                const mes = (evoLabels[items[0].dataIndex]||'').toLowerCase();
+                const ciaMap = mesTooltipCia[mes] || {};
+                const sorted = Object.entries(ciaMap).sort((a,b) => b[1] - a[1]);
+                if (!sorted.length) return [];
+                return [''].concat(sorted.map(([c,n]) => `  ${c}: ${n} PM${n !== 1 ? 's' : ''}`));
+              }
+            } }
+          },
           scales: {
             x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 19 } } },
-            y: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 19 }, stepSize: 1 }, beginAtZero: true }
+            y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 }, stepSize: 1 } }
           }
         }
       }));
