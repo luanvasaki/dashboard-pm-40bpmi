@@ -6428,11 +6428,13 @@ async function renderCursosModalDetail() {
   const pmsUnicos  = new Set(rows.filter(r => r.re_pm).map(r => r.re_pm));
 
   // Lookup RE → CIA a partir do efetivo (p1Data pode estar vazio se P1 ainda não foi aberto)
+  // Usa pm.cia quando disponível; cai em pm.opm que contém o nome da OPM (ex: "1ª CIA PM SOROCABA")
   const _normRe = re => String(re||'').trim().split('-')[0].trim();
   const reToCia = {};
   p1Data.forEach(pm => {
     const re = _normRe(pm.re);
-    if (re && (pm.cia||'').trim()) reToCia[re] = normCiaDisplay(pm.cia);
+    const src = (pm.cia||'').trim() || (pm.opm||'').trim();
+    if (re && src) reToCia[re] = normCiaDisplay(src);
   });
   const getCiaPM = re => reToCia[_normRe(re)] || null;
 
