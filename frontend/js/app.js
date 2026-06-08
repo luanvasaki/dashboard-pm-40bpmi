@@ -6728,6 +6728,26 @@ async function renderTafTatModalDetail() {
   const tafLbls = [...CONCS_ORD.filter(c => tafCts[c]), ...(tafCts['Sem dados'] ? ['Sem dados'] : [])];
   const tatLbls = [...CONCS_ORD.filter(c => tatCts[c]), ...(tatCts['Sem dados'] ? ['Sem dados'] : [])];
 
+  // CIA × conceito para TAF e TAT (para afterBody dos tooltips)
+  const tafCiaCts = {}, tatCiaCts = {};
+  efetivo.forEach(pm => {
+    const cia = normCiaDisplay((pm.cia||'').trim() || (pm.opm||'').trim()) || 'Não identificado';
+    const tafN = (pm.taf||'').toLowerCase().trim();
+    const tatN = (pm.tat||'').toLowerCase().trim();
+    const tafK = CONC_NORM[tafN] || (tafN ? tafN.charAt(0).toUpperCase() + tafN.slice(1) : 'Sem dados');
+    const tatK = CONC_NORM[tatN] || (tatN ? tatN.charAt(0).toUpperCase() + tatN.slice(1) : 'Sem dados');
+    if (!tafCiaCts[tafK]) tafCiaCts[tafK] = {};
+    tafCiaCts[tafK][cia] = (tafCiaCts[tafK][cia] || 0) + 1;
+    if (!tatCiaCts[tatK]) tatCiaCts[tatK] = {};
+    tatCiaCts[tatK][cia] = (tatCiaCts[tatK][cia] || 0) + 1;
+  });
+  const ciaAfterBody = (ciaCts, lbls) => items => {
+    const conceito = lbls[items[0].dataIndex];
+    const sorted = Object.entries(ciaCts[conceito] || {}).sort((a,b) => b[1]-a[1]);
+    if (!sorted.length) return [];
+    return [''].concat(sorted.map(([c,n]) => `  ${c}: ${n} PM${n!==1?'s':''}`));
+  };
+
   const chartsEl = document.getElementById('pd-charts');
   const cardSt = 'background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px';
   const titSt  = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px`;
@@ -6755,7 +6775,7 @@ async function renderTafTatModalDetail() {
     if (ctx) pdChs.push(new Chart(ctx, {
       type: 'doughnut',
       data: { labels: tafLbls, datasets: [{ data: tafLbls.map(l => tafCts[l]||0), backgroundColor: tafLbls.map(l => (CONC_COR[l]||'#607090')+'cc'), borderColor: tafLbls.map(l => CONC_COR[l]||'#607090'), borderWidth: 2 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: legendOpts, tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} PM${i.raw!==1?'s':''}` } } } }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: legendOpts, tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} PM${i.raw!==1?'s':''}`, afterBody: ciaAfterBody(tafCiaCts, tafLbls) } } } }
     }));
   }
 
@@ -6765,7 +6785,7 @@ async function renderTafTatModalDetail() {
     if (ctx2) pdChs.push(new Chart(ctx2, {
       type: 'doughnut',
       data: { labels: tatLbls, datasets: [{ data: tatLbls.map(l => tatCts[l]||0), backgroundColor: tatLbls.map(l => (CONC_COR[l]||'#607090')+'cc'), borderColor: tatLbls.map(l => CONC_COR[l]||'#607090'), borderWidth: 2 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: legendOpts, tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} PM${i.raw!==1?'s':''}` } } } }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: legendOpts, tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} PM${i.raw!==1?'s':''}`, afterBody: ciaAfterBody(tatCiaCts, tatLbls) } } } }
     }));
   }
 
@@ -6784,7 +6804,21 @@ async function renderTafTatModalDetail() {
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: legendOpts,
-        tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw} PM${i.raw!==1?'s':''}` } }
+        tooltip: { callbacks: {
+          label: i => ` ${i.dataset.label}: ${i.raw} PM${i.raw!==1?'s':''}`,
+          afterBody: items => {
+            const conceito = CONCS_ORD[items[0].dataIndex];
+            const lines = [];
+            items.forEach(item => {
+              const ciaMap = (item.datasetIndex === 0 ? tafCiaCts : tatCiaCts)[conceito] || {};
+              const sorted = Object.entries(ciaMap).sort((a,b) => b[1]-a[1]);
+              if (!sorted.length) return;
+              lines.push('', ` ${item.dataset.label} por CIA:`);
+              sorted.forEach(([c,n]) => lines.push(`  ${c}: ${n} PM${n!==1?'s':''}`));
+            });
+            return lines;
+          }
+        } }
       },
       scales: {
         x: { grid: GR, ticks: { color:'rgba(255,255,255,.7)', font:{size:19} } },
