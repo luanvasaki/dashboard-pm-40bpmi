@@ -6398,10 +6398,19 @@ const TIPO_COR = {
 };
 const TIPO_ORD = ['CEP','EEP','Habilitação','Adaptação','Instrução','Outros'];
 
-function renderCursosModalDetail() {
+async function renderCursosModalDetail() {
   const COR = '#9de05a';
   const mesesDisp = prodGetMesesDisp(prodSelAno);
   const periodoLbl = pdMeses.length === mesesDisp.length ? 'Acumulado ' + (prodSelAno || '') : pdMeses.join(', ');
+
+  // Carrega efetivo se ainda não foi carregado (necessário para cruzar RE → CIA)
+  if (!p1Data.length) {
+    try {
+      const r = await authFetch(`${API}/efetivo`);
+      const ef = await r.json();
+      if (Array.isArray(ef) && ef.length) p1Data = ef;
+    } catch { /* segue sem CIA */ }
+  }
 
   const rows = (prodRaw.cursos || []).filter(r => {
     if (prodSelAno && r.ano !== prodSelAno) return false;
