@@ -6765,23 +6765,28 @@ function _renderTafTatCharts() {
   const cts    = tab === 'taf' ? tafCts    : tatCts;
   const ciaCts = tab === 'taf' ? tafCiaCts : tatCiaCts;
   const campo  = tab.toUpperCase();
-  const cardSt = 'background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px';
-  const titSt  = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px`;
-  const btnSt  = active => `padding:7px 24px;border-radius:8px;border:1px solid ${active?COR:'rgba(255,255,255,.15)'};background:${active?COR+'22':'transparent'};color:${active?COR:'rgba(255,255,255,.45)'};font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .15s`;
+  const subTitSt = 'font-family:\'Barlow Condensed\',sans-serif;font-size:17px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:16px';
+  const titSt    = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:14px`;
+  const btnSt    = active => `padding:7px 24px;border-radius:8px;border:1px solid ${active?COR:'rgba(255,255,255,.15)'};background:${active?COR+'22':'transparent'};color:${active?COR:'rgba(255,255,255,.45)'};font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .15s`;
   const legendOpts = { position:'bottom', labels:{ color:'rgba(255,255,255,.9)', font:{size:19}, padding:20, boxWidth:16 } };
   chartsEl.innerHTML = `
-    <div style="grid-column:1/-1;display:flex;gap:10px;padding-bottom:4px">
-      <button id="btn-taftat-taf" onclick="switchTafTatTab('taf')" style="${btnSt(tab==='taf')}">TAF</button>
-      <button id="btn-taftat-tat" onclick="switchTafTatTab('tat')" style="${btnSt(tab==='tat')}">TAT</button>
-    </div>
-    <div style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      <div style="${cardSt}">
-        <div style="${titSt}">Distribuição ${campo} por Conceito</div>
-        <canvas id="taftat-dist" style="height:460px;max-height:460px"></canvas>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="${titSt}">Distribuição ${campo} por Conceito e CIA</div>
+        <div style="display:flex;gap:8px">
+          <button id="btn-taftat-taf" onclick="switchTafTatTab('taf')" style="${btnSt(tab==='taf')}">TAF</button>
+          <button id="btn-taftat-tat" onclick="switchTafTatTab('tat')" style="${btnSt(tab==='tat')}">TAT</button>
+        </div>
       </div>
-      <div style="${cardSt}">
-        <div style="${titSt}">${campo} — Distribuição por CIA</div>
-        <canvas id="taftat-cia" style="height:460px;max-height:460px"></canvas>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start">
+        <div>
+          <div style="${subTitSt}">Por Conceito</div>
+          <canvas id="taftat-dist" style="height:460px;max-height:460px"></canvas>
+        </div>
+        <div>
+          <div style="${subTitSt}">Por CIA</div>
+          <canvas id="taftat-cia" style="height:460px;max-height:460px"></canvas>
+        </div>
       </div>
     </div>`;
   if (lbls.some(l => l !== 'Sem dados')) {
