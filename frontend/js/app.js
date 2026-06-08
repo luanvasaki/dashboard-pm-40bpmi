@@ -6650,7 +6650,11 @@ function renderProdDetail() {
   const ciaTitleLabel = pdSelCia
     ? (tipo === 'ocorrencias' ? `Municípios — ${pdSelCia}` : `Detalhamento — ${pdSelCia}`)
     : 'Ranking por CIA';
-  let html = cardHtml('pd-cia', ciaTitleLabel, true) + cardHtml('pd-evo', 'Evolução Mensal', true);
+  let html = cardHtml('pd-cia', ciaTitleLabel, true);
+  if (pdSelCia && tipo === 'ocorrencias') {
+    html += `<div id="pd-mun-detail" style="grid-column:1/-1;display:none;background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${cor};border-radius:10px;padding:16px"></div>`;
+  }
+  html += cardHtml('pd-evo', 'Evolução Mensal', true);
   if (!pdNatFilter) html += cardHtml('pd-cat', 'Detalhamento por Categoria', true);
   if (tipo === 'ocorrencias') {
     html += `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
@@ -6687,10 +6691,69 @@ function renderProdDetail() {
   // --- Ranking CIA / Detalhamento por município (ocorrencias) ou categoria quando CIA filtrada ---
   if (pdSelCia) {
     if (tipo === 'ocorrencias') {
+      // Mapa municipio → { natureza: count } para tooltip e drill-down
+      const munNatMap = {};
+      rows.forEach(r => {
+        const mun = r.municipio || 'Não informado';
+        const nat = r.natureza  || 'Não informado';
+        if (!munNatMap[mun]) munNatMap[mun] = {};
+        munNatMap[mun][nat] = (munNatMap[mun][nat] || 0) + (Number(r[campo]) || 0);
+      });
       const munAgg = {};
       rows.forEach(r => { const k = r.municipio || 'Não informado'; munAgg[k] = (munAgg[k]||0) + (Number(r[campo])||0); });
       const munEntries = Object.entries(munAgg).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]).slice(0, 15);
-      rdBar('pd-cia', munEntries.map(([k]) => k), munEntries.map(([,v]) => v), () => cor);
+      const munLabels = munEntries.map(([k]) => k);
+      const munVals   = munEntries.map(([,v]) => v);
+      const munCtx = document.getElementById('pd-cia')?.getContext('2d');
+      if (munCtx && munLabels.length) {
+        const h = Math.max(300, munLabels.length * 52 + 40);
+        munCtx.canvas.style.height = h + 'px';
+        munCtx.canvas.style.maxHeight = h + 'px';
+        munCtx.canvas.style.cursor = 'pointer';
+        let munDetChart = null;
+        pdChs.push(new Chart(munCtx, {
+          type: 'bar',
+          data: { labels: munLabels, datasets: [{ data: munVals, backgroundColor: munLabels.map(() => cor + '99'), borderColor: munLabels.map(() => cor), borderWidth: 1, borderRadius: 3 }] },
+          options: {
+            ...barOpts, maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: {
+                label: i => ` ${i.raw.toLocaleString('pt-BR')} ocorrências`,
+                afterBody: items => {
+                  const nats = Object.entries(munNatMap[items[0]?.label] || {}).sort((a,b)=>b[1]-a[1]).slice(0,5);
+                  if (!nats.length) return [];
+                  return ['', '  Principais naturezas:', ...nats.map(([n,v]) => `  · ${n}: ${v.toLocaleString('pt-BR')}`)];
+                }
+              }}
+            },
+            onClick: (_evt, elems) => {
+              if (!elems.length) return;
+              const mun = munLabels[elems[0].index];
+              const nats = Object.entries(munNatMap[mun] || {}).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+              const det = document.getElementById('pd-mun-detail');
+              if (!det) return;
+              det.style.display = '';
+              det.innerHTML = `<div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:10px">Naturezas — ${mun}</div><canvas id="pd-mun-nat-ch"></canvas>`;
+              if (munDetChart) { munDetChart.destroy(); munDetChart = null; }
+              const natCtx = document.getElementById('pd-mun-nat-ch')?.getContext('2d');
+              if (natCtx && nats.length) {
+                const natH = Math.max(300, nats.length * 44 + 40);
+                natCtx.canvas.style.height = natH + 'px';
+                natCtx.canvas.style.maxHeight = natH + 'px';
+                munDetChart = new Chart(natCtx, {
+                  type: 'bar',
+                  data: { labels: nats.map(([n])=>n), datasets: [{ data: nats.map(([,v])=>v), backgroundColor: cor+'66', borderColor: cor, borderWidth:1, borderRadius:3 }] },
+                  options: { ...barOpts, maintainAspectRatio: false }
+                });
+                pdChs.push(munDetChart);
+              }
+            }
+          }
+        }));
+      } else if (munCtx) {
+        const e = document.getElementById('pd-cia-empty'); if(e) e.style.display=''; munCtx.canvas.style.display='none';
+      }
     } else {
       const breakField = PROD_BREAK[tipo] || 'natureza';
       const catAgg = {};
