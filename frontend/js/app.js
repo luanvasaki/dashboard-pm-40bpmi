@@ -6778,14 +6778,18 @@ function _renderTafTatCharts() {
           <button id="btn-taftat-tat" onclick="switchTafTatTab('tat')" style="${btnSt(tab==='tat')}">TAT</button>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start">
-        <div>
+      <div style="display:flex;gap:28px">
+        <div style="flex:1;min-width:0">
           <div style="${subTitSt}">Por Conceito</div>
-          <canvas id="taftat-dist" style="height:460px;max-height:460px"></canvas>
+          <div style="position:relative;height:460px">
+            <canvas id="taftat-dist"></canvas>
+          </div>
         </div>
-        <div>
+        <div style="flex:1;min-width:0">
           <div style="${subTitSt}">Por CIA</div>
-          <canvas id="taftat-cia" style="height:460px;max-height:460px"></canvas>
+          <div style="position:relative;height:460px">
+            <canvas id="taftat-cia"></canvas>
+          </div>
         </div>
       </div>
     </div>`;
