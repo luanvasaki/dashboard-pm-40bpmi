@@ -5452,7 +5452,7 @@ function prodRender() {
       return `<div class="kpi" onclick="openProdDetail('tempo-resposta')" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top" style="background:${TR_COR}"></div>
         <div class="kpi-lbl" style="letter-spacing:.5px;line-height:1.4">Tempo Resposta Atend. Ocorrência</div>
-        <div class="kpi-val" style="color:${TR_COR}">${trGlobal.toFixed(1)}%</div>
+        <div class="kpi-val" style="color:${TR_COR}">${parseFloat(trGlobal.toFixed(1))}%</div>
         <div class="kpi-sub">% atendidos no prazo</div>
         <div class="kpi-hint">▸ clique p/ detalhes</div>
       </div>`;
@@ -6134,8 +6134,8 @@ function renderTRModalDetail() {
 
   const kpiCor = trGlobal >= 70 ? TR_COR_BOM : trGlobal >= 50 ? TR_COR : TR_COR_MAU;
   document.getElementById('pd-kpis').innerHTML = `
-    <div class="pd-kpi"><div class="pd-kpi-lbl">Tempo ≤20min</div><div class="pd-kpi-val" style="color:${kpiCor}">${trGlobal.toFixed(1)}%</div></div>
-    <div class="pd-kpi"><div class="pd-kpi-lbl">% BOe</div><div class="pd-kpi-val" style="color:${TR_COR}">${trBoe > 0 ? trBoe.toFixed(1) + '%' : '—'}</div></div>
+    <div class="pd-kpi"><div class="pd-kpi-lbl">Tempo ≤20min</div><div class="pd-kpi-val" style="color:${kpiCor}">${parseFloat(trGlobal.toFixed(1))}%</div></div>
+    <div class="pd-kpi"><div class="pd-kpi-lbl">% BOe</div><div class="pd-kpi-val" style="color:${TR_COR}">${trBoe > 0 ? parseFloat(trBoe.toFixed(1)) + '%' : '—'}</div></div>
     <div class="pd-kpi"><div class="pd-kpi-lbl">Total Talões</div><div class="pd-kpi-val" style="color:${TR_COR}">${trTotalTal.toLocaleString('pt-BR')}</div></div>
     <div class="pd-kpi"><div class="pd-kpi-lbl">Fora do Prazo</div><div class="pd-kpi-val" style="color:${TR_COR_MAU}">~${trForaPrazo.toLocaleString('pt-BR')}</div></div>
   `;
@@ -6158,20 +6158,20 @@ function renderTRModalDetail() {
   const natTopCard = !natTop.length ? '' :
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR_BOM};border-radius:10px;padding:16px">
       ${cardTop(TR_COR_BOM, 'Naturezas Mais Rápidas — % ≤20min')}
-      ${natTop.map(d => barRow(d.nat, d.pct.toFixed(1) + '%', Math.round(d.pct), TR_COR_BOM, d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
+      ${natTop.map(d => barRow(d.nat, parseFloat(d.pct.toFixed(1)) + '%', Math.round(d.pct), TR_COR_BOM, d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
     </div>`;
 
   const natBot = natRank.length > 3 ? [...natRank].reverse().slice(0, Math.min(10, natRank.length)) : [];
   const natBotCard = !natBot.length ? '' :
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${TR_COR_MAU};border-radius:10px;padding:16px">
       ${cardTop(TR_COR_MAU, 'Naturezas Mais Demoradas — % ≤20min')}
-      ${natBot.map(d => barRow(d.nat, d.pct.toFixed(1) + '%', Math.round(d.pct), TR_COR_MAU, d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
+      ${natBot.map(d => barRow(d.nat, parseFloat(d.pct.toFixed(1)) + '%', Math.round(d.pct), TR_COR_MAU, d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
     </div>`;
 
   const criticasCard = !natCriticas.length ? '' :
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #e0965a;border-radius:10px;padding:16px">
       ${cardTop('#e0965a', 'Naturezas Críticas — Maior Impacto')}
-      ${natCriticas.map(d => barRow(d.nat, d.pct.toFixed(1) + '%', Math.round(d.pct), '#e0965a', d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
+      ${natCriticas.map(d => barRow(d.nat, parseFloat(d.pct.toFixed(1)) + '%', Math.round(d.pct), '#e0965a', d.taloes.toLocaleString('pt-BR') + ' talões')).join('')}
     </div>`;
 
   const topTitle = pdSelCia ? `Detalhamento — ${pdSelCia}` : 'Ranking por CIA — Precisão e % BOe';
@@ -6216,7 +6216,7 @@ function renderTRModalDetail() {
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: i => ` ${i.raw.toFixed(1)}% no prazo`,
+                label: i => ` ${parseFloat(i.raw.toFixed(1))}% no prazo`,
                 afterLabel: i => ` ${natShow[i.dataIndex].taloes.toLocaleString('pt-BR')} talões`,
               },
             },
