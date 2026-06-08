@@ -6438,6 +6438,34 @@ async function renderCursosModalDetail() {
   });
   const getCiaPM = re => reToCia[_normRe(re)] || null;
 
+  // Total de PMs por CIA (para ranking no card "Distribuição por Tipo")
+  const ciaTotaisMap = {};
+  rows.forEach(r => {
+    if (!r.re_pm) return;
+    const cia = getCiaPM(r.re_pm) || 'Não identificado';
+    ciaTotaisMap[cia] = (ciaTotaisMap[cia] || 0) + 1;
+  });
+  const ciaTotaisOrdered = Object.entries(ciaTotaisMap).sort((a,b) => b[1] - a[1]);
+  const ciaTotaisMaxVal  = ciaTotaisOrdered[0]?.[1] || 1;
+  const ciaTotaisHtml = ciaTotaisOrdered.length
+    ? ciaTotaisOrdered.map(([cia, n]) => {
+        const pct = Math.round(n / ciaTotaisMaxVal * 100);
+        const c   = ciaCorByName(cia);
+        return `<div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:8px">
+            <div style="font-size:19px;color:var(--tx);display:flex;align-items:center;gap:8px;overflow:hidden">
+              <div style="width:9px;height:9px;border-radius:50%;background:${c};flex-shrink:0"></div>
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cia}</span>
+            </div>
+            <div style="font-family:'DM Mono',monospace;font-size:19px;color:${c};font-weight:700;flex-shrink:0">${n} PM${n !== 1 ? 's' : ''}</div>
+          </div>
+          <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px">
+            <div style="height:100%;width:${pct}%;background:${c};border-radius:3px"></div>
+          </div>
+        </div>`;
+      }).join('')
+    : `<div style="color:var(--tx3);font-size:19px">Sem dados para o período</div>`;
+
   // CIA × mês — contagem de PMs por CIA em cada mês (para tooltip do gráfico de evolução)
   const mesTooltipCia = {};
   rows.forEach(r => {
@@ -6516,10 +6544,18 @@ async function renderCursosModalDetail() {
       <canvas id="cursos-evo"></canvas>
       <div id="cursos-evo-empty" style="display:none;color:var(--tx3);font-size:19px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>
-    <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px">Distribuição por Tipo</div>
-      <canvas id="cursos-tipo" style="height:420px;max-height:420px"></canvas>
-      <div id="cursos-tipo-empty" style="display:none;color:var(--tx3);font-size:19px;text-align:center;padding:12px 0">Sem dados para o período</div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:14px">Distribuição por Tipo</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start">
+        <div>
+          <canvas id="cursos-tipo" style="height:340px;max-height:340px"></canvas>
+          <div id="cursos-tipo-empty" style="display:none;color:var(--tx3);font-size:19px;text-align:center;padding:12px 0">Sem dados para o período</div>
+        </div>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:16px">PMs por CIA</div>
+          ${ciaTotaisHtml}
+        </div>
+      </div>
     </div>
     <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:12px">Lista de Cursos</div>
