@@ -1227,11 +1227,11 @@ function renderEvolMuns() {
     options: {
       responsive: true,
       plugins: {
-        legend: { position: 'bottom', labels: { boxWidth: 20, padding: 18, font: { size: 20 }, usePointStyle: true, color: '#ffffff' } }
+        legend: { position: 'bottom', labels: { boxWidth: 20, padding: 18, font: { size: 19 }, usePointStyle: true, color: '#ffffff' } }
       },
       scales: {
-        x: { grid: GR, ticks: { color: '#ffffff' } },
-        y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1, color: '#ffffff' } }
+        x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } },
+        y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1, color: '#ffffff', font: { size: 19 } } }
       }
     }
   });
@@ -1538,8 +1538,8 @@ function renderEvolucao() {
     },
     options: {
       responsive: true,
-      plugins: { legend: { labels: { boxWidth: 20, padding: 16, font: { size: 20 }, color: '#ffffff' } } },
-      scales: { x: { grid: GR, ticks: { color: '#ffffff' } }, y: { grid: GR, beginAtZero: true, ticks: { color: '#ffffff' } } }
+      plugins: { legend: { labels: { boxWidth: 20, padding: 16, font: { size: 19 }, color: '#ffffff' } } },
+      scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: '#ffffff', font: { size: 19 } } } }
     }
   });
 
@@ -7397,7 +7397,7 @@ function renderIqLinha(dados) {
       plugins: { legend: { labels: { color: '#ffffff', font: { size: 19 }, boxWidth: 12, padding: 14 } } },
       scales: {
         x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } },
-        y: { grid: GR, ticks: { color: '#ffffff' }, beginAtZero: true }
+        y: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } }, beginAtZero: true }
       }
     }
   }));
@@ -7424,7 +7424,7 @@ function renderIqBarra(dados) {
       plugins: { legend: { labels: { color: '#ffffff', font: { size: 19 }, boxWidth: 12, padding: 12 } } },
       scales: {
         x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } },
-        y: { grid: GR, ticks: { color: '#ffffff' }, beginAtZero: true }
+        y: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } }, beginAtZero: true }
       }
     }
   }));
