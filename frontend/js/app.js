@@ -6811,8 +6811,6 @@ function _renderTafTatCharts() {
   const datasets = CONCS_ORD.map(conc=>({ label:conc, data:cias.map(cia=>ciaConcMap[cia]?.[conc]||0), backgroundColor:(CONC_COR[conc]||'#607090')+'cc', borderColor:CONC_COR[conc]||'#607090', borderWidth:1 })).filter(d=>d.data.some(v=>v>0));
   const ctxCia = document.getElementById('taftat-cia')?.getContext('2d');
   if (ctxCia && cias.length) {
-    const h = Math.max(280, cias.length*52+60);
-    ctxCia.canvas.style.height = h+'px'; ctxCia.canvas.style.maxHeight = h+'px';
     pdChs.push(new Chart(ctxCia, { type:'bar', data:{ labels:cias, datasets }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ color:'rgba(255,255,255,.9)', font:{size:19}, padding:14, boxWidth:13 } }, tooltip:{ callbacks:{ label: i=>` ${i.dataset.label}: ${i.raw} PM${i.raw!==1?'s':''}` } } }, scales:{ x:{ stacked:true, grid:GR, ticks:{ color:'rgba(255,255,255,.45)', font:{size:19} }, beginAtZero:true }, y:{ stacked:true, grid:{ display:false }, ticks:{ color:'rgba(255,255,255,.8)', font:{size:19} } } } } }));
   }
 }
