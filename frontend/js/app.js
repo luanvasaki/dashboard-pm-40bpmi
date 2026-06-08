@@ -6762,9 +6762,15 @@ async function renderTafTatModalDetail() {
         <canvas id="taftat-tat-dist" style="height:460px;max-height:460px"></canvas>
       </div>
     </div>
-    <div style="grid-column:1/-1;${cardSt}">
-      <div style="${titSt}">TAF × TAT — Comparativo por Conceito</div>
-      <canvas id="taftat-compare" style="height:480px;max-height:480px"></canvas>
+    <div style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div style="${cardSt}">
+        <div style="${titSt}">TAF — Distribuição por CIA</div>
+        <canvas id="taftat-taf-cia" style="height:420px;max-height:420px"></canvas>
+      </div>
+      <div style="${cardSt}">
+        <div style="${titSt}">TAT — Distribuição por CIA</div>
+        <canvas id="taftat-tat-cia" style="height:420px;max-height:420px"></canvas>
+      </div>
     </div>`;
 
   const legendOpts = { position:'bottom', labels:{ color:'rgba(255,255,255,.9)', font:{size:19}, padding:20, boxWidth:16 } };
@@ -6789,43 +6795,57 @@ async function renderTafTatModalDetail() {
     }));
   }
 
-  // Bar comparativo TAF × TAT
-  const ctx3 = document.getElementById('taftat-compare')?.getContext('2d');
-  if (ctx3) pdChs.push(new Chart(ctx3, {
-    type: 'bar',
-    data: {
-      labels: CONCS_ORD,
-      datasets: [
-        { label: 'TAF', data: CONCS_ORD.map(c => tafCts[c]||0), backgroundColor: COR+'99', borderColor: COR, borderWidth: 1, borderRadius: 3 },
-        { label: 'TAT', data: CONCS_ORD.map(c => tatCts[c]||0), backgroundColor: '#e0a87b99', borderColor: '#e0a87b', borderWidth: 1, borderRadius: 3 }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: legendOpts,
-        tooltip: { callbacks: {
-          label: i => ` ${i.dataset.label}: ${i.raw} PM${i.raw!==1?'s':''}`,
-          afterBody: items => {
-            const conceito = CONCS_ORD[items[0].dataIndex];
-            const lines = [];
-            items.forEach(item => {
-              const ciaMap = (item.datasetIndex === 0 ? tafCiaCts : tatCiaCts)[conceito] || {};
-              const sorted = Object.entries(ciaMap).sort((a,b) => b[1]-a[1]);
-              if (!sorted.length) return;
-              lines.push('', ` ${item.dataset.label} por CIA:`);
-              sorted.forEach(([c,n]) => lines.push(`  ${c}: ${n} PM${n!==1?'s':''}`));
-            });
-            return lines;
-          }
-        } }
-      },
-      scales: {
-        x: { grid: GR, ticks: { color:'rgba(255,255,255,.7)', font:{size:19} } },
-        y: { grid: GR, ticks: { color:'rgba(255,255,255,.7)', font:{size:19}, stepSize:1 }, beginAtZero: true }
+  // Stacked bar TAF por CIA e TAT por CIA
+  const buildCiaConcMap = (ciaCts) => {
+    const map = {};
+    Object.entries(ciaCts).forEach(([conc, cias]) => {
+      Object.entries(cias).forEach(([cia, n]) => {
+        if (!map[cia]) map[cia] = {};
+        map[cia][conc] = n;
+      });
+    });
+    return map;
+  };
+  const makeCiaChart = (ciaCts, canvasId) => {
+    const ciaConcMap = buildCiaConcMap(ciaCts);
+    const cias = Object.entries(ciaConcMap)
+      .map(([cia, concs]) => ({ cia, total: Object.values(concs).reduce((s,v)=>s+v,0) }))
+      .sort((a,b) => b.total - a.total).map(d => d.cia);
+    const datasets = CONCS_ORD
+      .map(conc => ({
+        label: conc,
+        data: cias.map(cia => ciaConcMap[cia]?.[conc] || 0),
+        backgroundColor: (CONC_COR[conc]||'#607090') + 'cc',
+        borderColor: CONC_COR[conc]||'#607090',
+        borderWidth: 1,
+      }))
+      .filter(d => d.data.some(v => v > 0));
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx || !cias.length) return;
+    const h = Math.max(280, cias.length * 52 + 60);
+    ctx.canvas.style.height = h + 'px';
+    ctx.canvas.style.maxHeight = h + 'px';
+    pdChs.push(new Chart(ctx, {
+      type: 'bar',
+      data: { labels: cias, datasets },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position:'bottom', labels:{ color:'rgba(255,255,255,.9)', font:{size:19}, padding:14, boxWidth:13 } },
+          tooltip: { callbacks: {
+            label: i => ` ${i.dataset.label}: ${i.raw} PM${i.raw!==1?'s':''}`,
+          } }
+        },
+        scales: {
+          x: { stacked: true, grid: GR, ticks: { color:'rgba(255,255,255,.45)', font:{size:19} }, beginAtZero: true },
+          y: { stacked: true, grid: { display:false }, ticks: { color:'rgba(255,255,255,.8)', font:{size:19} } }
+        }
       }
-    }
-  }));
+    }));
+  };
+  makeCiaChart(tafCiaCts, 'taftat-taf-cia');
+  makeCiaChart(tatCiaCts, 'taftat-tat-cia');
 }
 
 function renderProdDetail() {
