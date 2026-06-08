@@ -6536,39 +6536,47 @@ async function renderCursosModalDetail() {
       </div>`}
     </div>`;
 
-  // Gráfico evolução
-  if (evoLabels.length) {
-    const ctx = document.getElementById('cursos-evo')?.getContext('2d');
-    if (ctx) {
-      pdChs.push(new Chart(ctx, {
+  // Gráfico evolução — multi-linha por CIA, mesmo padrão do KPI de Ocorrências
+  const evoCtx = document.getElementById('cursos-evo')?.getContext('2d');
+  if (evoCtx) {
+    evoCtx.canvas.style.height    = '340px';
+    evoCtx.canvas.style.maxHeight = '340px';
+    if (!evoLabels.length) {
+      const e = document.getElementById('cursos-evo-empty');
+      if (e) e.style.display = '';
+      evoCtx.canvas.style.display = 'none';
+    } else {
+      const CIA_LINHAS_C = [
+        { label: 'Total Batalhão', cor: CIA_COR.total, cia: null },
+        { label: '1ª CIA',         cor: CIA_COR['1'],  cia: '1ª CIA' },
+        { label: '2ª CIA',         cor: CIA_COR['2'],  cia: '2ª CIA' },
+        { label: '3ª CIA',         cor: CIA_COR['3'],  cia: '3ª CIA' },
+        { label: 'FT',             cor: CIA_COR.ft,    cia: 'FT' },
+      ];
+      const ciaDatasets = CIA_LINHAS_C.map(({ label, cor: c, cia }) => {
+        const vals = evoLabels.map(m => rows.filter(r => {
+          if (!r.re_pm) return false;
+          if ((r.mes||'').toLowerCase() !== m.toLowerCase()) return false;
+          return cia === null || getCiaPM(r.re_pm) === cia;
+        }).length);
+        return { label, data: vals, borderColor: c, backgroundColor: c + '18', borderWidth: label === 'Total Batalhão' ? 3 : 2, fill: false, tension: 0.4, pointBackgroundColor: c, pointRadius: 4 };
+      });
+      pdChs.push(new Chart(evoCtx, {
         type: 'line',
-        data: { labels: evoLabels, datasets: [{ label: 'PMs em Cursos', data: evoData, borderColor: COR, backgroundColor: COR + '18', borderWidth: 2, fill: true, tension: 0.4, pointBackgroundColor: COR, pointRadius: 5 }] },
+        data: { labels: evoLabels.map(m => m.slice(0, 3)), datasets: ciaDatasets },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
+          responsive: true, maintainAspectRatio: false,
           plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: {
-              label: i => ` ${i.raw} PM${i.raw !== 1 ? 's' : ''}`,
-              afterBody: items => {
-                const mes = (evoLabels[items[0].dataIndex]||'').toLowerCase();
-                const ciaMap = mesTooltipCia[mes] || {};
-                const sorted = Object.entries(ciaMap).sort((a,b) => b[1] - a[1]);
-                if (!sorted.length) return [];
-                return [''].concat(sorted.map(([c,n]) => `  ${c}: ${n} PM${n !== 1 ? 's' : ''}`));
-              }
-            } }
+            legend: { display: true, position: 'top', labels: { color: '#f4f6fc', font: { size: 19, family: "'DM Sans',sans-serif" }, padding: 18, usePointStyle: true, pointStyleWidth: 10 } },
+            tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw} PM${i.raw !== 1 ? 's' : ''}` } }
           },
           scales: {
             x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 19 } } },
-            y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 }, stepSize: 1 } }
+            y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } } }
           }
         }
       }));
     }
-  } else {
-    const e = document.getElementById('cursos-evo-empty'), c = document.getElementById('cursos-evo');
-    if (e) e.style.display = ''; if (c) c.style.display = 'none';
   }
 
   // Gráfico distribuição por tipo
