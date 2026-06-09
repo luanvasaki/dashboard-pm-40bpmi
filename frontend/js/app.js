@@ -6948,19 +6948,19 @@ function renderPvsModalDetail() {
     if (!el) {
       el = document.createElement('div');
       el.id = 'pvs-ext-tip';
-      el.style.cssText = 'position:fixed;background:rgba(22,28,36,.97);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:10px 14px;pointer-events:none;z-index:99999;max-width:300px;line-height:1.7;word-break:break-word;transition:opacity .1s';
+      el.style.cssText = 'position:fixed;background:rgba(22,28,36,.97);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:14px 18px;pointer-events:none;z-index:99999;max-width:380px;line-height:1.8;word-break:break-word;transition:opacity .1s';
       document.body.appendChild(el);
     }
     const { tooltip } = ctx;
     if (tooltip.opacity === 0) { el.style.opacity = '0'; return; }
     let html = '';
-    if (tooltip.title?.length) html += `<div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.9);margin-bottom:6px">${tooltip.title[0]}</div>`;
-    tooltip.body?.forEach(b => b.lines.forEach(l => { html += `<div style="font-family:'DM Mono',monospace;font-size:13px;color:#f4f6fc">${l.trim()}</div>`; }));
+    if (tooltip.title?.length) html += `<div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.9);margin-bottom:8px">${tooltip.title[0]}</div>`;
+    tooltip.body?.forEach(b => b.lines.forEach(l => { html += `<div style="font-family:'DM Mono',monospace;font-size:17px;color:#f4f6fc">${l.trim()}</div>`; }));
     if (tooltip.afterBody?.length) {
       tooltip.afterBody.forEach(l => {
-        if (l === '') { html += '<div style="height:4px"></div>'; return; }
+        if (l === '') { html += '<div style="height:6px"></div>'; return; }
         const col = l.startsWith('✓') ? '#4bc87a' : l.startsWith('✗') ? '#e05555' : 'rgba(255,255,255,.65)';
-        html += `<div style="font-family:'DM Mono',monospace;font-size:13px;color:${col}">${l}</div>`;
+        html += `<div style="font-family:'DM Mono',monospace;font-size:17px;color:${col}">${l}</div>`;
       });
     }
     el.innerHTML = html;
