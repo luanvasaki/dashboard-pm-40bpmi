@@ -1178,8 +1178,8 @@ app.post('/api/pvs', requireAuth, requireRole('admin', 'p3'), async (req, res) =
   const { records } = req.body;
   if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
   try {
-    const _nk = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
-    const simNao = v => { const s = _nk(v||''); return s === 'sim' ? 'Sim' : (s === 'nao' || s === 'não') ? 'Não' : (v||'').trim() || null; };
+    const _nk = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[.\-/]/g,' ').replace(/\s+/g,' ').trim();
+    const simNao = v => { const s = _nk(v||''); return s === 'sim' ? 'Sim' : (s === 'nao' || s === 'nao') ? 'Não' : (v||'').trim() || null; };
     const rows = records.map(r => {
       const idx = {}; Object.entries(r).forEach(([k, v]) => { idx[_nk(k)] = v; });
       const get = (...keys) => { for (const k of keys) { const v = idx[_nk(k)]; if (v !== undefined && v !== null) return (v||'').toString().trim(); } return ''; };
@@ -1187,19 +1187,19 @@ app.post('/api/pvs', requireAuth, requireRole('admin', 'p3'), async (req, res) =
       return {
         cia:                get('cia'),
         municipio:          get('municipio', 'município'),
-        bairros_com_pvs:    getInt('bairros_com_pvs', 'bairros com pvs'),
+        bairros_com_pvs:    getInt('bairros_com_pvs', 'bairros com pvs', 'bairros c pvs'),
         nucleos_total:      getInt('nucleos_total', 'nucleos total', 'núcleos total'),
         familias_atendidas: getInt('familias_atendidas', 'familias atendidas', 'famílias atendidas'),
-        modal_residencial:  simNao(get('modal_residencial')),
-        modal_comercial:    simNao(get('modal_comercial')),
-        modal_escolar:      simNao(get('modal_escolar')),
-        modal_rural:        simNao(get('modal_rural')),
-        modal_empresarial:  simNao(get('modal_empresarial')),
+        modal_residencial:  simNao(get('modal_residencial', 'modal residencial')),
+        modal_comercial:    simNao(get('modal_comercial',   'modal comercial')),
+        modal_escolar:      simNao(get('modal_escolar',     'modal escolar')),
+        modal_rural:        simNao(get('modal_rural',       'modal rural')),
+        modal_empresarial:  simNao(get('modal_empresarial', 'modal empresarial')),
         nota_eficacia:      getInt('nota_eficacia', 'nota eficacia', 'nota eficácia'),
-        tem_cadastro:       simNao(get('tem_cadastro')),
-        pm_whatsapp:        simNao(get('pm_whatsapp')),
-        reunioes_semestrais: simNao(get('reunioes_semestrais')),
-        visitas_solidarias: simNao(get('visitas_solidarias')),
+        tem_cadastro:       simNao(get('tem_cadastro',       'tem cadastro')),
+        pm_whatsapp:        simNao(get('pm_whatsapp',        'pm no whatsapp', 'pm whatsapp')),
+        reunioes_semestrais: simNao(get('reunioes_semestrais', 'reunioes semestrais', 'reuniões semestrais')),
+        visitas_solidarias: simNao(get('visitas_solidarias',  'visitas solidarias', 'visitas solidárias')),
         ano:                parseInt(get('ano')) || new Date().getFullYear(),
       };
     }).filter(r => r.cia && r.municipio);
