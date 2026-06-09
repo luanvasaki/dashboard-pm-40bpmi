@@ -5157,6 +5157,7 @@ function updateSidebarImports(section) {
       ['visita-solidaria', 'Visita Solidária (VD)',     '#e05a8a'],
       ['tempo-resposta',   'Tempo Resposta Atend. Ocorrência', '#4bc8e0'],
       ['cursos',           'Cursos Institucionais',            '#9de05a'],
+      ['pvs',              'PVS — Vigilância Solidária',       '#e8a040'],
     ];
     el.innerHTML = itens.map(([t, l, c]) =>
       `<button onclick="openProdUpl('${t}')" style="width:100%;padding:6px;margin-top:4px;background:rgba(0,0,0,.15);border:1px solid ${c}55;color:${c};border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ ${l}</button>`
@@ -5864,6 +5865,7 @@ function openProdUpl(tipo) {
     'visita-solidaria': 'Colunas: Data da ocorrência · Cia PM · Nome da Vitima · Parentesco do Agressor · ...',
     'tempo-resposta':   'Colunas: Ano · Mês · CIA · Natureza Final · Qtde Talões · % Talões HD-HCL até 20min · % BOe',
     'cursos':           'Colunas: Nº do Ofício · Data · Curso · PM (formato: Posto PM RE Nome; Posto PM RE Nome; ...)',
+    'pvs':              'Colunas: ano · cia · municipio · bairros_com_pvs · nucleos_total · familias_atendidas · modal_residencial · modal_comercial · modal_escolar · modal_rural · modal_empresarial · nota_eficacia · tem_cadastro · pm_whatsapp · reunioes_semestrais · visitas_solidarias',
   };
   const hintEl = document.getElementById('prod-upl-hint');
   if (hintEl) hintEl.textContent = PROD_UPL_HINTS[tipo] || '';
@@ -5924,7 +5926,7 @@ async function prodUplConfirm() {
   btn.disabled = true; btn.style.opacity = '.5';
   msg.innerHTML = '<span style="color:var(--tx3)">Enviando...</span>';
   try {
-    const uplEndpoint = prodUplTipo === 'cursos' ? `${API}/upload/cursos` : `${API}/upload/prod/${prodUplTipo}`;
+    const uplEndpoint = prodUplTipo === 'pvs' ? `${API}/pvs` : prodUplTipo === 'cursos' ? `${API}/upload/cursos` : `${API}/upload/prod/${prodUplTipo}`;
     const res = await authFetch(uplEndpoint, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ records: prodUplParsed })
