@@ -1159,6 +1159,62 @@ app.post('/api/upload/prod/:tipo', requireAuth, requireRole('admin', 'p3'), asyn
   }
 });
 
+// ---------------------------------------------------------------------------
+// PVS — Programa de Vigilância Solidária
+// ---------------------------------------------------------------------------
+app.get('/api/pvs', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  try {
+    let q = supabase.from('pvs').select('*').limit(5000);
+    if (req.query.ano) q = q.eq('ano', parseInt(req.query.ano));
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/pvs', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  const { records } = req.body;
+  if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
+  try {
+    const _nk = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+    const simNao = v => { const s = _nk(v||''); return s === 'sim' ? 'Sim' : (s === 'nao' || s === 'não') ? 'Não' : (v||'').trim() || null; };
+    const rows = records.map(r => {
+      const idx = {}; Object.entries(r).forEach(([k, v]) => { idx[_nk(k)] = v; });
+      const get = (...keys) => { for (const k of keys) { const v = idx[_nk(k)]; if (v !== undefined && v !== null) return (v||'').toString().trim(); } return ''; };
+      const getInt = (...keys) => { const v = get(...keys); const n = parseInt((v||'').replace(/\D/g,'')); return isNaN(n) ? null : n; };
+      return {
+        cia:                get('cia'),
+        municipio:          get('municipio', 'município'),
+        bairros_com_pvs:    getInt('bairros_com_pvs', 'bairros com pvs'),
+        nucleos_total:      getInt('nucleos_total', 'nucleos total', 'núcleos total'),
+        familias_atendidas: getInt('familias_atendidas', 'familias atendidas', 'famílias atendidas'),
+        modal_residencial:  simNao(get('modal_residencial')),
+        modal_comercial:    simNao(get('modal_comercial')),
+        modal_escolar:      simNao(get('modal_escolar')),
+        modal_rural:        simNao(get('modal_rural')),
+        modal_empresarial:  simNao(get('modal_empresarial')),
+        nota_eficacia:      getInt('nota_eficacia', 'nota eficacia', 'nota eficácia'),
+        tem_cadastro:       simNao(get('tem_cadastro')),
+        pm_whatsapp:        simNao(get('pm_whatsapp')),
+        reunioes_semestrais: simNao(get('reunioes_semestrais')),
+        visitas_solidarias: simNao(get('visitas_solidarias')),
+        ano:                parseInt(get('ano')) || new Date().getFullYear(),
+      };
+    }).filter(r => r.cia && r.municipio);
+    if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido.' });
+    const anos = [...new Set(rows.map(r => r.ano))];
+    for (const ano of anos) {
+      const { error: delErr } = await supabase.from('pvs').delete().eq('ano', ano);
+      if (delErr) throw new Error(delErr.message);
+    }
+    const { error: insErr } = await supabase.from('pvs').insert(rows);
+    if (insErr) throw new Error(insErr.message);
+    res.json({ ok: true, total: rows.length });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // GET /api/config — configurações globais do dashboard (período, fonte, etc.)
 app.get('/api/config', requireAuth, async (req, res) => {
   if (!supabase) return res.json({});

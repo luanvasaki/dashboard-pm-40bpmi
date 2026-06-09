@@ -5232,7 +5232,7 @@ function goPage(id, btn) {
 // ---------------------------------------------------------------------------
 // PRODUTIVIDADE P3
 // ---------------------------------------------------------------------------
-let prodRaw = { ocorrencias: [], presos: [], armas: [], veiculos: [], entorpecentes: [], visitaSolidaria: [], tempoResposta: [], cursos: [], loaded: false };
+let prodRaw = { ocorrencias: [], presos: [], armas: [], veiculos: [], entorpecentes: [], visitaSolidaria: [], tempoResposta: [], cursos: [], pvs: [], loaded: false };
 let _trNatCiaData = {}; // { natureza: [{cia, pct, taloes, fora}, ...] } — populado em renderTRModalDetail
 let _taftatData   = null;
 let _taftatTab    = 'taf';
@@ -5254,7 +5254,8 @@ const PROD_CORES = {
   entorpecentes:    '#9b6de0',
   'tempo-resposta': '#4bc8e0',
   cursos:           '#9de05a',
-  taftat:           '#7b8cde'
+  taftat:           '#7b8cde',
+  pvs:              '#e8a040'
 };
 const PROD_LABELS = {
   ocorrencias:        'Ocorrências Atendidas',
@@ -5265,7 +5266,8 @@ const PROD_LABELS = {
   'visita-solidaria': 'Visita Solidária (VD)',
   'tempo-resposta':   'Tempo Resposta de Atendimento de Ocorrência',
   'cursos':           'Cursos Institucionais',
-  'taftat':           'TAF / TAT'
+  'taftat':           'TAF / TAT',
+  'pvs':              'PVS — Vigilância Solidária'
 };
 const PROD_CAMPO = {
   ocorrencias:   'contagem',
@@ -5511,6 +5513,30 @@ function prodRender() {
           ${metricRow('Aptos MB+', aptosMB365, '#4bc87a')}
           ${metricRow('Inaptos TAF', inaptosTafN, inaptosTafN > 0 ? '#e05555' : 'var(--tx3)')}
           ${metricRow('Vencidos', vencidos, vencidos > 0 ? '#e05555' : 'var(--tx3)')}
+        </div>
+        <div class="kpi-hint" style="margin-top:10px">▸ clique p/ detalhes</div>
+      </div>`;
+    })() +
+    (() => {
+      const PVS_COR = PROD_CORES.pvs;
+      const pvsData = (prodRaw.pvs||[]).filter(r => !prodSelAno || r.ano === prodSelAno);
+      if (!pvsData.length) return '';
+      const totalMuns = new Set(pvsData.map(r => r.municipio)).size;
+      const totalFamilias = pvsData.reduce((s, r) => s + (r.familias_atendidas || 0), 0);
+      const allNotas = pvsData.filter(r => r.nota_eficacia).map(r => r.nota_eficacia);
+      const mediaNota = allNotas.length ? (allNotas.reduce((s, n) => s + n, 0) / allNotas.length).toFixed(1) : null;
+      const metricRow = (label, val, cor) =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px">
+          <span style="font-family:'DM Mono',monospace;font-size:19px;color:#f4f6fc">${label}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${cor}">${val}</span>
+        </div>`;
+      return `<div class="kpi" onclick="openProdDetail('pvs')" title="Clique para detalhes" style="cursor:pointer">
+        <div class="kpi-top" style="background:${PVS_COR}"></div>
+        <div class="kpi-lbl">PVS — Vig. Solidária</div>
+        <div style="margin-top:10px">
+          ${metricRow('Municípios', totalMuns, PVS_COR)}
+          ${metricRow('Famílias', totalFamilias.toLocaleString('pt-BR'), PVS_COR)}
+          ${mediaNota ? metricRow('Nota Eficácia', `${mediaNota}/10`, '#4bc87a') : ''}
         </div>
         <div class="kpi-hint" style="margin-top:10px">▸ clique p/ detalhes</div>
       </div>`;
@@ -5786,7 +5812,7 @@ async function loadProdData(force) {
   if (kpisEl) kpisEl.innerHTML = '<div style="grid-column:1/-1;color:var(--tx3);font-size:19px;padding:20px 0">Carregando dados de produtividade...</div>';
   if (chartsEl) chartsEl.innerHTML = '';
   try {
-    const [ocorr, presos, armas, veiculos, entorp, visitaSol, tempoResp, cursos] = await Promise.all([
+    const [ocorr, presos, armas, veiculos, entorp, visitaSol, tempoResp, cursos, pvs] = await Promise.all([
       authFetch(`${API}/prod/ocorrencias`).then(r => r.json()),
       authFetch(`${API}/prod/presos`).then(r => r.json()),
       authFetch(`${API}/prod/armas`).then(r => r.json()),
@@ -5795,6 +5821,7 @@ async function loadProdData(force) {
       authFetch(`${API}/prod/visita-solidaria`).then(r => r.json()).catch(() => []),
       authFetch(`${API}/prod/tempo-resposta`).then(r => r.json()).catch(() => []),
       authFetch(`${API}/prod/cursos`).then(r => r.json()).catch(() => []),
+      authFetch(`${API}/pvs`).then(r => r.json()).catch(() => []),
     ]);
     prodRaw = {
       ocorrencias:    Array.isArray(ocorr)     ? ocorr     : [],
@@ -5805,6 +5832,7 @@ async function loadProdData(force) {
       visitaSolidaria: Array.isArray(visitaSol) ? visitaSol : [],
       tempoResposta:  Array.isArray(tempoResp) ? tempoResp : [],
       cursos:         Array.isArray(cursos)    ? cursos    : [],
+      pvs:            Array.isArray(pvs)       ? pvs       : [],
       loaded: true
     };
     const anosDisp = prodGetAnosDisp();
@@ -6002,7 +6030,7 @@ function prodDetailClickOut(e) {
 }
 
 function buildPdFilter() {
-  if (pdTipo === 'taftat') { document.getElementById('pd-filter-bar').innerHTML = ''; return; }
+  if (pdTipo === 'taftat' || pdTipo === 'pvs') { document.getElementById('pd-filter-bar').innerHTML = ''; return; }
   const mesesDisp = prodGetMesesDisp(prodSelAno);
   const _pdRawKey = pdTipo === 'tempo-resposta' ? 'tempoResposta' : pdTipo;
   let baseRows = prodRaw[_pdRawKey] || [];
@@ -6839,12 +6867,176 @@ function _renderTafTatCharts() {
   }
 }
 
+function renderPvsModalDetail() {
+  const chartsEl = document.getElementById('pd-charts');
+  if (!chartsEl) return;
+  const COR = PROD_CORES.pvs;
+  const pvsData = (prodRaw.pvs||[]).filter(r => !prodSelAno || r.ano === prodSelAno);
+  if (!pvsData.length) {
+    chartsEl.innerHTML = '<div style="grid-column:1/-1;color:var(--tx3);font-size:19px;padding:20px 0">Sem dados de PVS para o período selecionado.</div>';
+    return;
+  }
+
+  const ciaMap = {};
+  pvsData.forEach(r => {
+    const c = r.cia || 'Não informado';
+    if (!ciaMap[c]) ciaMap[c] = { bairros: 0, familias: 0, nucleos: 0, notas: [], cadastro: 0, whatsapp: 0, reunioes: 0, visitas: 0, total: 0 };
+    ciaMap[c].total++;
+    ciaMap[c].bairros   += r.bairros_com_pvs   || 0;
+    ciaMap[c].familias  += r.familias_atendidas || 0;
+    ciaMap[c].nucleos   += r.nucleos_total      || 0;
+    if (r.nota_eficacia) ciaMap[c].notas.push(r.nota_eficacia);
+    if ((r.tem_cadastro       ||'').toLowerCase() === 'sim') ciaMap[c].cadastro++;
+    if ((r.pm_whatsapp        ||'').toLowerCase() === 'sim') ciaMap[c].whatsapp++;
+    if ((r.reunioes_semestrais||'').toLowerCase() === 'sim') ciaMap[c].reunioes++;
+    if ((r.visitas_solidarias ||'').toLowerCase() === 'sim') ciaMap[c].visitas++;
+  });
+
+  const cias = Object.keys(ciaMap).sort((a, b) => {
+    const na = parseInt(a), nb = parseInt(b);
+    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+    return a.localeCompare(b, 'pt-BR');
+  });
+
+  const totalMuns     = new Set(pvsData.map(r => r.municipio)).size;
+  const totalFamilias = pvsData.reduce((s, r) => s + (r.familias_atendidas || 0), 0);
+  const totalNucleos  = pvsData.reduce((s, r) => s + (r.nucleos_total      || 0), 0);
+  const allNotas      = pvsData.filter(r => r.nota_eficacia).map(r => r.nota_eficacia);
+  const mediaNota     = allNotas.length ? (allNotas.reduce((s, n) => s + n, 0) / allNotas.length).toFixed(1) : '—';
+
+  const MODAIS       = ['residencial','comercial','escolar','rural','empresarial'];
+  const MODAL_LABELS = { residencial:'Residencial', comercial:'Comercial', escolar:'Escolar', rural:'Rural', empresarial:'Empresarial' };
+  const MODAL_CORES  = { residencial:'#5a9de0', comercial:'#e0965a', escolar:'#9de05a', rural:'#4bc87a', empresarial:'#9b6de0' };
+  const modalCts = {};
+  MODAIS.forEach(m => { modalCts[m] = pvsData.filter(r => (r[`modal_${m}`]||'').toLowerCase() === 'sim').length; });
+  const modalAtivos = MODAIS.filter(m => modalCts[m] > 0);
+
+  const titSt     = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:14px`;
+  const subTitSt  = `font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:16px`;
+  const legItemSt = `display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:19px;color:rgba(255,255,255,.85)`;
+  const legDot    = cor => `<span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:${cor};flex-shrink:0"></span>`;
+  const mkMini    = (label, val, cor) =>
+    `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:3px solid ${cor};border-radius:10px;padding:16px 20px;flex:1;min-width:120px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:6px">${label}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${cor}">${val}</div>
+    </div>`;
+
+  const munFamMap = {};
+  pvsData.forEach(r => { if (r.municipio) munFamMap[r.municipio] = (munFamMap[r.municipio] || 0) + (r.familias_atendidas || 0); });
+  const munsSorted = Object.entries(munFamMap).sort((a, b) => b[1] - a[1]);
+
+  chartsEl.innerHTML = `
+    <div style="grid-column:1/-1;display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px">
+      ${mkMini('Municípios', totalMuns, COR)}
+      ${mkMini('Famílias', totalFamilias.toLocaleString('pt-BR'), COR)}
+      ${mkMini('Núcleos', totalNucleos.toLocaleString('pt-BR'), COR)}
+      ${mkMini('Nota Média', `${mediaNota}/10`, '#4bc87a')}
+    </div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="${titSt}">Modalidades e Indicadores Operacionais</div>
+      <div style="display:flex;gap:28px">
+        <div style="flex:1;min-width:0">
+          <div style="${subTitSt}">Modalidades Ativas</div>
+          <div style="position:relative;height:280px"><canvas id="pvs-modal-chart"></canvas></div>
+          <div id="pvs-modal-leg" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="${subTitSt}">Indicadores por CIA</div>
+          <div style="position:relative;height:280px"><canvas id="pvs-ind-chart"></canvas></div>
+          <div id="pvs-ind-leg" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
+        </div>
+      </div>
+    </div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="${titSt}">Famílias Atendidas por CIA e Município</div>
+      <div style="display:flex;gap:28px">
+        <div style="flex:1;min-width:0">
+          <div style="${subTitSt}">Por CIA</div>
+          <div style="position:relative;height:${Math.max(160, cias.length * 52)}px"><canvas id="pvs-fam-cia-chart"></canvas></div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="${subTitSt}">Por Município</div>
+          <div style="position:relative;height:${Math.max(160, munsSorted.length * 44)}px"><canvas id="pvs-fam-mun-chart"></canvas></div>
+        </div>
+      </div>
+    </div>`;
+
+  // Doughnut — modalidades
+  if (modalAtivos.length) {
+    const ctx1 = document.getElementById('pvs-modal-chart')?.getContext('2d');
+    if (ctx1) {
+      pdChs.push(new Chart(ctx1, {
+        type: 'doughnut',
+        data: { labels: modalAtivos.map(m => MODAL_LABELS[m]), datasets: [{ data: modalAtivos.map(m => modalCts[m]), backgroundColor: modalAtivos.map(m => MODAL_CORES[m]+'cc'), borderColor: modalAtivos.map(m => MODAL_CORES[m]), borderWidth: 2 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} município${i.raw !== 1 ? 's' : ''}` } } } }
+      }));
+      const total = modalAtivos.reduce((s, m) => s + modalCts[m], 0);
+      const legEl = document.getElementById('pvs-modal-leg');
+      if (legEl) legEl.innerHTML = modalAtivos.map(m => {
+        const n = modalCts[m];
+        const pct = pvsData.length > 0 ? Math.round((n / pvsData.length) * 100) : 0;
+        return `<div style="${legItemSt}">${legDot(MODAL_CORES[m]+'cc')}<span>${MODAL_LABELS[m]}: <strong>${n}</strong> mun. <span style="color:var(--tx3)">(${pct}%)</span></span></div>`;
+      }).join('');
+    }
+  }
+
+  // Grouped bar — indicadores por CIA
+  if (cias.length) {
+    const IND_LABELS = ['Cadastro', 'PM no WhatsApp', 'Reuniões Sem.', 'Visitas Solid.'];
+    const IND_KEYS   = ['cadastro', 'whatsapp', 'reunioes', 'visitas'];
+    const IND_CORES  = ['#5a9de0', '#4bc87a', '#e8b840', '#e0965a'];
+    const ctx2 = document.getElementById('pvs-ind-chart')?.getContext('2d');
+    if (ctx2) {
+      const datasets = IND_KEYS.map((key, i) => ({
+        label: IND_LABELS[i],
+        data: cias.map(c => ciaMap[c][key] || 0),
+        backgroundColor: IND_CORES[i] + 'cc',
+        borderColor: IND_CORES[i],
+        borderWidth: 1
+      }));
+      pdChs.push(new Chart(ctx2, {
+        type: 'bar',
+        data: { labels: cias, datasets },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw}` } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 } } } } }
+      }));
+      const legEl2 = document.getElementById('pvs-ind-leg');
+      if (legEl2) legEl2.innerHTML = IND_LABELS.map((l, i) => `<div style="${legItemSt}">${legDot(IND_CORES[i]+'cc')}<span>${l}</span></div>`).join('');
+    }
+  }
+
+  // Horizontal bar — famílias por CIA
+  const famCiaData = cias.map(c => ciaMap[c].familias);
+  if (famCiaData.some(v => v > 0)) {
+    const ctx3 = document.getElementById('pvs-fam-cia-chart')?.getContext('2d');
+    if (ctx3) {
+      pdChs.push(new Chart(ctx3, {
+        type: 'bar',
+        data: { labels: cias, datasets: [{ data: famCiaData, backgroundColor: cias.map(c => ciaCorByName(c) + 'cc'), borderColor: cias.map(c => ciaCorByName(c)), borderWidth: 1 }] },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')} famílias` } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 } } } } }
+      }));
+    }
+  }
+
+  // Horizontal bar — famílias por município
+  if (munsSorted.length) {
+    const ctx4 = document.getElementById('pvs-fam-mun-chart')?.getContext('2d');
+    if (ctx4) {
+      pdChs.push(new Chart(ctx4, {
+        type: 'bar',
+        data: { labels: munsSorted.map(m => m[0]), datasets: [{ data: munsSorted.map(m => m[1]), backgroundColor: COR + 'cc', borderColor: COR, borderWidth: 1 }] },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')} famílias` } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 } } } } }
+      }));
+    }
+  }
+}
+
 function renderProdDetail() {
   pdDestroy();
   const tipo = pdTipo;
   if (tipo === 'tempo-resposta') { renderTRModalDetail(); return; }
   if (tipo === 'cursos') { renderCursosModalDetail(); return; }
   if (tipo === 'taftat') { renderTafTatModalDetail(); return; }
+  if (tipo === 'pvs') { renderPvsModalDetail(); return; }
   const cor = pdNatFilter ? '#e05a8a' : PROD_CORES[tipo];
   const campo = tipo === 'entorpecentes' ? 'quantidade' : PROD_CAMPO[tipo];
   const mesesDisp = prodGetMesesDisp(prodSelAno);
