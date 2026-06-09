@@ -6782,21 +6782,17 @@ function _renderTafTatCharts() {
       <div style="display:flex;gap:28px">
         <div style="flex:1;min-width:0">
           <div style="${subTitSt}">Por Conceito</div>
-          <div style="display:flex;align-items:center;gap:20px">
-            <div style="position:relative;flex:1;height:480px">
-              <canvas id="taftat-dist"></canvas>
-            </div>
-            <div id="taftat-dist-leg" style="display:flex;flex-direction:column;gap:7px;min-width:170px"></div>
+          <div style="position:relative;height:480px">
+            <canvas id="taftat-dist"></canvas>
           </div>
+          <div id="taftat-dist-leg" style="display:flex;flex-direction:column;gap:6px;margin-top:6px"></div>
         </div>
         <div style="flex:1;min-width:0">
           <div style="${subTitSt}">Por CIA</div>
-          <div style="display:flex;align-items:center;gap:20px">
-            <div style="position:relative;flex:1;height:480px">
-              <canvas id="taftat-cia"></canvas>
-            </div>
-            <div id="taftat-cia-leg" style="display:flex;flex-direction:column;gap:7px;min-width:130px"></div>
+          <div style="position:relative;height:480px">
+            <canvas id="taftat-cia"></canvas>
           </div>
+          <div id="taftat-cia-leg" style="display:flex;flex-direction:column;gap:6px;margin-top:6px"></div>
         </div>
       </div>
     </div>`;
