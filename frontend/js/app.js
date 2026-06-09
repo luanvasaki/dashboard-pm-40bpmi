@@ -7025,7 +7025,7 @@ function renderPvsModalDetail() {
         </div>
         <div style="flex:1;min-width:0">
           <div style="${subTitSt}">Por Município</div>
-          <div style="position:relative;height:${Math.max(160, munsSorted.length * 56)}px"><canvas id="pvs-fam-mun-chart"></canvas></div>
+          <div style="position:relative;height:${Math.max(160, munsSorted.length * 72)}px"><canvas id="pvs-fam-mun-chart"></canvas></div>
         </div>
       </div>
     </div>`;
