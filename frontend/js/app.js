@@ -6909,9 +6909,10 @@ function renderPvsModalDetail() {
 
   const totalMuns     = new Set(pvsData.map(r => r.municipio)).size;
   const totalFamilias = pvsData.reduce((s, r) => s + (r.familias_atendidas || 0), 0);
-  const totalNucleos  = pvsData.reduce((s, r) => s + (r.nucleos_total      || 0), 0);
-  const allNotas      = pvsData.filter(r => r.nota_eficacia).map(r => r.nota_eficacia);
-  const mediaNota     = allNotas.length ? (allNotas.reduce((s, n) => s + n, 0) / allNotas.length).toFixed(1) : '—';
+  const totalWhatsapp = pvsData.filter(r => (r.pm_whatsapp||'').toLowerCase() === 'sim').length;
+  const totalVisitas  = pvsData.filter(r => (r.visitas_solidarias||'').toLowerCase() === 'sim').length;
+  const pctWhatsapp   = totalMuns > 0 ? Math.round(totalWhatsapp / totalMuns * 100) : 0;
+  const pctVisitas    = totalMuns > 0 ? Math.round(totalVisitas  / totalMuns * 100) : 0;
 
   const MODAIS       = ['residencial','comercial','escolar','rural','empresarial'];
   const MODAL_LABELS = { residencial:'Residencial', comercial:'Comercial', escolar:'Escolar', rural:'Rural', empresarial:'Empresarial' };
@@ -6938,8 +6939,8 @@ function renderPvsModalDetail() {
     <div style="grid-column:1/-1;display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px">
       ${mkMini('Municípios', totalMuns, COR)}
       ${mkMini('Famílias', totalFamilias.toLocaleString('pt-BR'), COR)}
-      ${mkMini('Núcleos', totalNucleos.toLocaleString('pt-BR'), COR)}
-      ${mkMini('Nota Média', `${mediaNota}/10`, '#4bc87a')}
+      ${mkMini('PM no WhatsApp', `${pctWhatsapp}%`, '#4bc87a')}
+      ${mkMini('Visita Solidária', `${pctVisitas}%`, '#e0965a')}
     </div>
     <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
       <div style="${titSt}">Modalidades e Indicadores Operacionais</div>
