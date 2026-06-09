@@ -6959,7 +6959,10 @@ function renderPvsModalDetail() {
     if (tooltip.afterBody?.length) {
       tooltip.afterBody.forEach(l => {
         if (l === '') { html += '<div style="height:6px"></div>'; return; }
-        const col = l.startsWith('✓') ? '#4bc87a' : l.startsWith('✗') ? '#e05555' : 'rgba(255,255,255,.65)';
+        let col = l.startsWith('✓') ? '#4bc87a' : l.startsWith('✗') ? '#e05555' : '#f4f6fc';
+        // Colorir linha de CIA com a cor correspondente
+        const ciaM = l.match(/CIA:\s*([\dºa-zA-Z ]+CIA)/i);
+        if (ciaM) col = ciaCorByName(ciaM[1].trim()) || col;
         html += `<div style="font-family:'DM Mono',monospace;font-size:17px;color:${col}">${l}</div>`;
       });
     }
@@ -6978,12 +6981,12 @@ function renderPvsModalDetail() {
   };
 
   const titSt     = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:14px`;
-  const subTitSt  = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.75);margin-bottom:16px`;
+  const subTitSt  = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.9);margin-bottom:16px`;
   const legItemSt = `display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:19px;color:rgba(255,255,255,.85)`;
   const legDot    = cor => `<span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:${cor};flex-shrink:0"></span>`;
   const mkMini    = (label, val, cor) =>
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:3px solid ${cor};border-radius:10px;padding:16px 20px;flex:1;min-width:120px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:6px">${label}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.65);margin-bottom:6px">${label}</div>
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${cor}">${val}</div>
     </div>`;
 
@@ -7125,7 +7128,7 @@ function renderPvsModalDetail() {
           afterBody: items => {
             const cia = cias[items[0].dataIndex];
             const muns = pvsData.filter(r => r.cia === cia && (r.familias_atendidas || 0) > 0).sort((a, b) => (b.familias_atendidas||0) - (a.familias_atendidas||0));
-            return muns.length ? [''].concat(muns.map(r => `  ${r.municipio}: ${(r.familias_atendidas||0).toLocaleString('pt-BR')}`)) : [];
+            return muns.length ? [''].concat(muns.map(r => `• ${r.municipio}: ${(r.familias_atendidas||0).toLocaleString('pt-BR')}`)) : [];
           }
         } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 19 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 } } } } }
       }));
@@ -7144,7 +7147,7 @@ function renderPvsModalDetail() {
           afterBody: items => {
             const mun = munsSorted[items[0].dataIndex]?.[0];
             const r = pvsData.find(d => d.municipio === mun);
-            return r ? [`  CIA: ${r.cia}`] : [];
+            return r ? [`• CIA: ${r.cia}`] : [];
           }
         } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 19 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 }, autoSkip: false } } } }
       }));
