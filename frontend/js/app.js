@@ -5903,6 +5903,13 @@ function prodUplFileChange() {
           prev.innerHTML = `<span style="color:#f07878">Coluna "Data da ocorrência" não encontrada no CSV.</span>`;
           return;
         }
+      } else if (prodUplTipo === 'pvs') {
+        const hasCia = keys.some(k => k.includes('cia'));
+        const hasMun = keys.some(k => k.includes('munic'));
+        if (!hasCia || !hasMun) {
+          prev.innerHTML = `<span style="color:#f07878">Colunas "CIA" e "Municipio" não encontradas no CSV.</span>`;
+          return;
+        }
       } else {
         const hasAno = keys.some(k => k.includes('ano'));
         const hasMes = keys.some(k => k.includes('mês') || k.includes('mes'));
