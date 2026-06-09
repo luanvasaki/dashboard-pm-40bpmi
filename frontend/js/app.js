@@ -6008,6 +6008,7 @@ function switchEntorpUnit(u, origem) {
 function pdDestroy() {
   pdChs.forEach(c => { try { c.destroy(); } catch(e){} });
   pdChs = [];
+  document.getElementById('pvs-ext-tip')?.remove();
 }
 
 function openProdDetail(tipo, unidade, natFilter) {
@@ -6937,6 +6938,45 @@ function renderPvsModalDetail() {
     });
   });
 
+  const munCiaColor = {};
+  pvsData.forEach(r => { if (r.municipio) munCiaColor[r.municipio] = ciaCorByName(r.cia || ''); });
+
+  // Tooltip HTML externo — não fica preso ao canvas
+  document.getElementById('pvs-ext-tip')?.remove();
+  const pvsExtTip = ctx => {
+    let el = document.getElementById('pvs-ext-tip');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'pvs-ext-tip';
+      el.style.cssText = 'position:fixed;background:rgba(22,28,36,.97);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:10px 14px;pointer-events:none;z-index:99999;max-width:300px;line-height:1.7;word-break:break-word;transition:opacity .1s';
+      document.body.appendChild(el);
+    }
+    const { tooltip } = ctx;
+    if (tooltip.opacity === 0) { el.style.opacity = '0'; return; }
+    let html = '';
+    if (tooltip.title?.length) html += `<div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.9);margin-bottom:6px">${tooltip.title[0]}</div>`;
+    tooltip.body?.forEach(b => b.lines.forEach(l => { html += `<div style="font-family:'DM Mono',monospace;font-size:13px;color:#f4f6fc">${l.trim()}</div>`; }));
+    if (tooltip.afterBody?.length) {
+      tooltip.afterBody.forEach(l => {
+        if (l === '') { html += '<div style="height:4px"></div>'; return; }
+        const col = l.startsWith('✓') ? '#4bc87a' : l.startsWith('✗') ? '#e05555' : 'rgba(255,255,255,.65)';
+        html += `<div style="font-family:'DM Mono',monospace;font-size:13px;color:${col}">${l}</div>`;
+      });
+    }
+    el.innerHTML = html;
+    el.style.opacity = '1';
+    const rect = ctx.chart.canvas.getBoundingClientRect();
+    let x = rect.left + tooltip.caretX + 14;
+    let y = rect.top  + tooltip.caretY;
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    requestAnimationFrame(() => {
+      const tw = el.offsetWidth, th = el.offsetHeight;
+      if (x + tw > window.innerWidth - 8) x = rect.left + tooltip.caretX - tw - 14;
+      y = Math.max(8, Math.min(y - th / 2, window.innerHeight - th - 8));
+      el.style.left = Math.max(8, x) + 'px'; el.style.top = y + 'px';
+    });
+  };
+
   const titSt     = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:14px`;
   const subTitSt  = `font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:16px`;
   const legItemSt = `display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:19px;color:rgba(255,255,255,.85)`;
@@ -6982,7 +7022,7 @@ function renderPvsModalDetail() {
         </div>
         <div style="flex:1;min-width:0">
           <div style="${subTitSt}">Por Município</div>
-          <div style="position:relative;height:${Math.max(160, munsSorted.length * 44)}px"><canvas id="pvs-fam-mun-chart"></canvas></div>
+          <div style="position:relative;height:${Math.max(160, munsSorted.length * 56)}px"><canvas id="pvs-fam-mun-chart"></canvas></div>
         </div>
       </div>
     </div>`;
@@ -6994,12 +7034,16 @@ function renderPvsModalDetail() {
       pdChs.push(new Chart(ctx1, {
         type: 'doughnut',
         data: { labels: modalAtivos.map(m => MODAL_LABELS[m]), datasets: [{ data: modalAtivos.map(m => modalCts[m]), backgroundColor: modalAtivos.map(m => MODAL_CORES[m]+'cc'), borderColor: modalAtivos.map(m => MODAL_CORES[m]), borderWidth: 2 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: {
-          label: i => ` ${i.label}: ${i.raw} município${i.raw !== 1 ? 's' : ''}`,
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false, external: pvsExtTip, callbacks: {
+          label: i => `${i.label}: ${i.raw} município${i.raw !== 1 ? 's' : ''}`,
           afterBody: items => {
             const m = modalAtivos[items[0].dataIndex];
-            const muns = munsByModal[m] || [];
-            return muns.length ? [''].concat(muns.map(mn => `  • ${mn}`)) : [];
+            const simMuns = munsByModal[m] || [];
+            const naoMuns = pvsData.filter(r => (r[`modal_${m}`]||'').toLowerCase() !== 'sim').map(r => r.municipio);
+            const out = [];
+            if (simMuns.length) { out.push(''); simMuns.forEach(mn => out.push(`✓ ${mn}`)); }
+            if (naoMuns.length) { out.push(''); naoMuns.forEach(mn => out.push(`✗ ${mn}`)); }
+            return out;
           }
         } } } }
       }));
@@ -7038,19 +7082,23 @@ function renderPvsModalDetail() {
         data: { labels: cias, datasets },
         options: {
           indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { callbacks: {
+          plugins: { legend: { display: false }, tooltip: { enabled: false, external: pvsExtTip, callbacks: {
             label: i => {
               const cia = cias[i.dataIndex];
               const d = IND_DEFS[i.datasetIndex];
               const n = ciaMap[cia][d.key] || 0;
               const tot = ciaMap[cia].total || 1;
-              return ` ${d.label}: ${n}/${tot} mun. (${i.raw}%)`;
+              return `${d.label}: ${n}/${tot} mun. (${i.raw}%)`;
             },
             afterBody: items => {
               const cia = cias[items[0].dataIndex];
               const d = IND_DEFS[items[0].datasetIndex];
-              const muns = (munsSimByCia[d.key] || {})[cia] || [];
-              return muns.length ? [''].concat(muns.map(mn => `  • ${mn}`)) : ['  (nenhum)'];
+              const simMuns = (munsSimByCia[d.key] || {})[cia] || [];
+              const naoMuns = pvsData.filter(r => r.cia === cia && (r[IND_FIELD[d.key]]||'').toLowerCase() !== 'sim').map(r => r.municipio);
+              const out = [];
+              if (simMuns.length) { out.push(''); simMuns.forEach(mn => out.push(`✓ ${mn}`)); }
+              if (naoMuns.length) { out.push(''); naoMuns.forEach(mn => out.push(`✗ ${mn}`)); }
+              return out;
             }
           } } },
           scales: {
@@ -7072,7 +7120,14 @@ function renderPvsModalDetail() {
       pdChs.push(new Chart(ctx3, {
         type: 'bar',
         data: { labels: cias, datasets: [{ data: famCiaData, backgroundColor: cias.map(c => ciaCorByName(c) + 'cc'), borderColor: cias.map(c => ciaCorByName(c)), borderWidth: 1 }] },
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')} famílias` } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 } } } } }
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false, external: pvsExtTip, callbacks: {
+          label: i => `${i.raw.toLocaleString('pt-BR')} famílias`,
+          afterBody: items => {
+            const cia = cias[items[0].dataIndex];
+            const muns = pvsData.filter(r => r.cia === cia && (r.familias_atendidas || 0) > 0).sort((a, b) => (b.familias_atendidas||0) - (a.familias_atendidas||0));
+            return muns.length ? [''].concat(muns.map(r => `  ${r.municipio}: ${(r.familias_atendidas||0).toLocaleString('pt-BR')}`)) : [];
+          }
+        } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 } } } } }
       }));
     }
   }
@@ -7083,8 +7138,15 @@ function renderPvsModalDetail() {
     if (ctx4) {
       pdChs.push(new Chart(ctx4, {
         type: 'bar',
-        data: { labels: munsSorted.map(m => m[0]), datasets: [{ data: munsSorted.map(m => m[1]), backgroundColor: COR + 'cc', borderColor: COR, borderWidth: 1 }] },
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')} famílias` } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 } } } } }
+        data: { labels: munsSorted.map(m => m[0]), datasets: [{ data: munsSorted.map(m => m[1]), backgroundColor: munsSorted.map(([mn]) => (munCiaColor[mn] || COR) + 'cc'), borderColor: munsSorted.map(([mn]) => munCiaColor[mn] || COR), borderWidth: 1 }] },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false, external: pvsExtTip, callbacks: {
+          label: i => `${munsSorted[i.dataIndex]?.[0]} — ${i.raw.toLocaleString('pt-BR')} famílias`,
+          afterBody: items => {
+            const mun = munsSorted[items[0].dataIndex]?.[0];
+            const r = pvsData.find(d => d.municipio === mun);
+            return r ? [`  CIA: ${r.cia}`] : [];
+          }
+        } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 }, autoSkip: false } } } }
       }));
     }
   }
