@@ -6978,7 +6978,7 @@ function renderPvsModalDetail() {
   };
 
   const titSt     = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:14px`;
-  const subTitSt  = `font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:16px`;
+  const subTitSt  = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.75);margin-bottom:16px`;
   const legItemSt = `display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:19px;color:rgba(255,255,255,.85)`;
   const legDot    = cor => `<span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:${cor};flex-shrink:0"></span>`;
   const mkMini    = (label, val, cor) =>
@@ -7127,7 +7127,7 @@ function renderPvsModalDetail() {
             const muns = pvsData.filter(r => r.cia === cia && (r.familias_atendidas || 0) > 0).sort((a, b) => (b.familias_atendidas||0) - (a.familias_atendidas||0));
             return muns.length ? [''].concat(muns.map(r => `  ${r.municipio}: ${(r.familias_atendidas||0).toLocaleString('pt-BR')}`)) : [];
           }
-        } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 } } } } }
+        } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 19 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 } } } } }
       }));
     }
   }
@@ -7146,7 +7146,7 @@ function renderPvsModalDetail() {
             const r = pvsData.find(d => d.municipio === mun);
             return r ? [`  CIA: ${r.cia}`] : [];
           }
-        } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 }, autoSkip: false } } } }
+        } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 19 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 }, autoSkip: false } } } }
       }));
     }
   }
