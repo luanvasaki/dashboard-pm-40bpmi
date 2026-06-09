@@ -6768,7 +6768,7 @@ function _renderTafTatCharts() {
   const subTitSt = 'font-family:\'Barlow Condensed\',sans-serif;font-size:17px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:16px';
   const titSt    = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:14px`;
   const btnSt    = active => `padding:7px 24px;border-radius:8px;border:1px solid ${active?COR:'rgba(255,255,255,.15)'};background:${active?COR+'22':'transparent'};color:${active?COR:'rgba(255,255,255,.45)'};font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .15s`;
-  const legItemSt = (cor) => `display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:17px;color:rgba(255,255,255,.85)`;
+  const legItemSt = (cor) => `display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:19px;color:rgba(255,255,255,.85)`;
   const legDot    = (cor) => `<span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:${cor};flex-shrink:0"></span>`;
   chartsEl.innerHTML = `
     <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
