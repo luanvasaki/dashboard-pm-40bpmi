@@ -6918,8 +6918,24 @@ function renderPvsModalDetail() {
   const MODAL_LABELS = { residencial:'Residencial', comercial:'Comercial', escolar:'Escolar', rural:'Rural', empresarial:'Empresarial' };
   const MODAL_CORES  = { residencial:'#5a9de0', comercial:'#e0965a', escolar:'#9de05a', rural:'#4bc87a', empresarial:'#9b6de0' };
   const modalCts = {};
-  MODAIS.forEach(m => { modalCts[m] = pvsData.filter(r => (r[`modal_${m}`]||'').toLowerCase() === 'sim').length; });
+  const munsByModal = {};
+  MODAIS.forEach(m => {
+    const com = pvsData.filter(r => (r[`modal_${m}`]||'').toLowerCase() === 'sim');
+    modalCts[m]    = com.length;
+    munsByModal[m] = com.map(r => r.municipio);
+  });
   const modalAtivos = MODAIS.filter(m => modalCts[m] > 0);
+
+  const IND_FIELD = { whatsapp: 'pm_whatsapp', reunioes: 'reunioes_semestrais', visitas: 'visitas_solidarias', cadastro: 'tem_cadastro' };
+  const munsSimByCia = {};
+  Object.keys(IND_FIELD).forEach(key => {
+    munsSimByCia[key] = {};
+    cias.forEach(cia => {
+      munsSimByCia[key][cia] = pvsData
+        .filter(r => r.cia === cia && (r[IND_FIELD[key]]||'').toLowerCase() === 'sim')
+        .map(r => r.municipio);
+    });
+  });
 
   const titSt     = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:14px`;
   const subTitSt  = `font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:16px`;
@@ -6978,7 +6994,14 @@ function renderPvsModalDetail() {
       pdChs.push(new Chart(ctx1, {
         type: 'doughnut',
         data: { labels: modalAtivos.map(m => MODAL_LABELS[m]), datasets: [{ data: modalAtivos.map(m => modalCts[m]), backgroundColor: modalAtivos.map(m => MODAL_CORES[m]+'cc'), borderColor: modalAtivos.map(m => MODAL_CORES[m]), borderWidth: 2 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} município${i.raw !== 1 ? 's' : ''}` } } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: {
+          label: i => ` ${i.label}: ${i.raw} município${i.raw !== 1 ? 's' : ''}`,
+          afterBody: items => {
+            const m = modalAtivos[items[0].dataIndex];
+            const muns = munsByModal[m] || [];
+            return muns.length ? [''].concat(muns.map(mn => `  • ${mn}`)) : [];
+          }
+        } } } }
       }));
       const total = modalAtivos.reduce((s, m) => s + modalCts[m], 0);
       const legEl = document.getElementById('pvs-modal-leg');
@@ -7015,13 +7038,21 @@ function renderPvsModalDetail() {
         data: { labels: cias, datasets },
         options: {
           indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => {
-            const cia = cias[i.dataIndex];
-            const d = IND_DEFS[i.datasetIndex];
-            const n = ciaMap[cia][d.key] || 0;
-            const tot = ciaMap[cia].total || 1;
-            return ` ${d.label}: ${n}/${tot} mun. (${i.raw}%)`;
-          } } } },
+          plugins: { legend: { display: false }, tooltip: { callbacks: {
+            label: i => {
+              const cia = cias[i.dataIndex];
+              const d = IND_DEFS[i.datasetIndex];
+              const n = ciaMap[cia][d.key] || 0;
+              const tot = ciaMap[cia].total || 1;
+              return ` ${d.label}: ${n}/${tot} mun. (${i.raw}%)`;
+            },
+            afterBody: items => {
+              const cia = cias[items[0].dataIndex];
+              const d = IND_DEFS[items[0].datasetIndex];
+              const muns = (munsSimByCia[d.key] || {})[cia] || [];
+              return muns.length ? [''].concat(muns.map(mn => `  • ${mn}`)) : ['  (nenhum)'];
+            }
+          } } },
           scales: {
             x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 }, callback: v => `${v}%` }, beginAtZero: true, max: 100 },
             y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 } } }
