@@ -6785,14 +6785,14 @@ function _renderTafTatCharts() {
           <div style="position:relative;height:480px">
             <canvas id="taftat-dist"></canvas>
           </div>
-          <div id="taftat-dist-leg" style="display:flex;flex-direction:column;gap:6px;margin-top:3px"></div>
+          <div id="taftat-dist-leg" style="display:flex;flex-direction:column;gap:6px;margin-top:0px"></div>
         </div>
         <div style="flex:1;min-width:0">
           <div style="${subTitSt}">Por CIA</div>
           <div style="position:relative;height:480px">
             <canvas id="taftat-cia"></canvas>
           </div>
-          <div id="taftat-cia-leg" style="display:flex;flex-direction:column;gap:6px;margin-top:3px"></div>
+          <div id="taftat-cia-leg" style="display:flex;flex-direction:column;gap:6px;margin-top:0px"></div>
         </div>
       </div>
     </div>`;
