@@ -6989,27 +6989,46 @@ function renderPvsModalDetail() {
     }
   }
 
-  // Grouped bar — indicadores por CIA
+  // Horizontal bar — indicadores por CIA (% municípios com Sim)
   if (cias.length) {
-    const IND_LABELS = ['Cadastro', 'PM no WhatsApp', 'Reuniões Sem.', 'Visitas Solid.'];
-    const IND_KEYS   = ['cadastro', 'whatsapp', 'reunioes', 'visitas'];
-    const IND_CORES  = ['#5a9de0', '#4bc87a', '#e8b840', '#e0965a'];
+    const IND_DEFS = [
+      { label: 'PM no WhatsApp',  key: 'whatsapp',  cor: '#4bc87a' },
+      { label: 'Reuniões Sem.',   key: 'reunioes',  cor: '#e8b840' },
+      { label: 'Visitas Solid.',  key: 'visitas',   cor: '#e0965a' },
+      { label: 'Cadastro',        key: 'cadastro',  cor: '#5a9de0' },
+    ].filter(d => cias.some(c => (ciaMap[c][d.key] || 0) > 0));
     const ctx2 = document.getElementById('pvs-ind-chart')?.getContext('2d');
-    if (ctx2) {
-      const datasets = IND_KEYS.map((key, i) => ({
-        label: IND_LABELS[i],
-        data: cias.map(c => ciaMap[c][key] || 0),
-        backgroundColor: IND_CORES[i] + 'cc',
-        borderColor: IND_CORES[i],
+    if (ctx2 && IND_DEFS.length) {
+      const datasets = IND_DEFS.map(d => ({
+        label: d.label,
+        data: cias.map(c => {
+          const tot = ciaMap[c].total || 1;
+          return Math.round((ciaMap[c][d.key] || 0) / tot * 100);
+        }),
+        backgroundColor: d.cor + 'cc',
+        borderColor: d.cor,
         borderWidth: 1
       }));
       pdChs.push(new Chart(ctx2, {
         type: 'bar',
         data: { labels: cias, datasets },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw}` } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 } } } } }
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => {
+            const cia = cias[i.dataIndex];
+            const d = IND_DEFS[i.datasetIndex];
+            const n = ciaMap[cia][d.key] || 0;
+            const tot = ciaMap[cia].total || 1;
+            return ` ${d.label}: ${n}/${tot} mun. (${i.raw}%)`;
+          } } } },
+          scales: {
+            x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 }, callback: v => `${v}%` }, beginAtZero: true, max: 100 },
+            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 } } }
+          }
+        }
       }));
       const legEl2 = document.getElementById('pvs-ind-leg');
-      if (legEl2) legEl2.innerHTML = IND_LABELS.map((l, i) => `<div style="${legItemSt}">${legDot(IND_CORES[i]+'cc')}<span>${l}</span></div>`).join('');
+      if (legEl2) legEl2.innerHTML = IND_DEFS.map(d => `<div style="${legItemSt}">${legDot(d.cor+'cc')}<span>${d.label}</span></div>`).join('');
     }
   }
 
