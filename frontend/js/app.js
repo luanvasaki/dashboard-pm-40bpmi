@@ -6768,7 +6768,8 @@ function _renderTafTatCharts() {
   const subTitSt = 'font-family:\'Barlow Condensed\',sans-serif;font-size:17px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:16px';
   const titSt    = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:14px`;
   const btnSt    = active => `padding:7px 24px;border-radius:8px;border:1px solid ${active?COR:'rgba(255,255,255,.15)'};background:${active?COR+'22':'transparent'};color:${active?COR:'rgba(255,255,255,.45)'};font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .15s`;
-  const legendOpts = { position:'bottom', labels:{ color:'rgba(255,255,255,.9)', font:{size:19}, padding:20, boxWidth:16 } };
+  const legItemSt = (cor) => `display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:17px;color:rgba(255,255,255,.85)`;
+  const legDot    = (cor) => `<span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:${cor};flex-shrink:0"></span>`;
   chartsEl.innerHTML = `
     <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
@@ -6781,41 +6782,60 @@ function _renderTafTatCharts() {
       <div style="display:flex;gap:28px">
         <div style="flex:1;min-width:0">
           <div style="${subTitSt}">Por Conceito</div>
-          <div style="position:relative;height:460px">
+          <div style="position:relative;height:520px">
             <canvas id="taftat-dist"></canvas>
           </div>
+          <div id="taftat-dist-leg" style="display:flex;flex-direction:column;gap:6px;margin-top:14px"></div>
         </div>
         <div style="flex:1;min-width:0">
           <div style="${subTitSt}">Por CIA</div>
-          <div style="position:relative;height:460px">
+          <div style="position:relative;height:520px">
             <canvas id="taftat-cia"></canvas>
           </div>
+          <div id="taftat-cia-leg" style="display:flex;flex-direction:column;gap:6px;margin-top:14px"></div>
         </div>
       </div>
     </div>`;
+  // Doughnut — Por Conceito
   if (lbls.some(l => l !== 'Sem dados')) {
     const ctx = document.getElementById('taftat-dist')?.getContext('2d');
-    if (ctx) pdChs.push(new Chart(ctx, {
-      type: 'doughnut',
-      data: { labels: lbls, datasets: [{ data: lbls.map(l=>cts[l]||0), backgroundColor: lbls.map(l=>(CONC_COR[l]||'#607090')+'cc'), borderColor: lbls.map(l=>CONC_COR[l]||'#607090'), borderWidth: 2 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: legendOpts, tooltip: { callbacks: {
-        label: i => ` ${i.label}: ${i.raw} PM${i.raw!==1?'s':''}`,
-        afterBody: items => {
-          const conceito = lbls[items[0].dataIndex];
-          const sorted = Object.entries(ciaCts[conceito]||{}).sort((a,b)=>b[1]-a[1]);
-          if (!sorted.length) return [];
-          return [''].concat(sorted.map(([c,n])=>`  ${c}: ${n} PM${n!==1?'s':''}`));
-        }
-      } } } }
-    }));
+    if (ctx) {
+      pdChs.push(new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels: lbls, datasets: [{ data: lbls.map(l=>cts[l]||0), backgroundColor: lbls.map(l=>(CONC_COR[l]||'#607090')+'cc'), borderColor: lbls.map(l=>CONC_COR[l]||'#607090'), borderWidth: 2 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: {
+          label: i => ` ${i.label}: ${i.raw} PM${i.raw!==1?'s':''}`,
+          afterBody: items => {
+            const conceito = lbls[items[0].dataIndex];
+            const sorted = Object.entries(ciaCts[conceito]||{}).sort((a,b)=>b[1]-a[1]);
+            if (!sorted.length) return [];
+            return [''].concat(sorted.map(([c,n])=>`  ${c}: ${n} PM${n!==1?'s':''}`));
+          }
+        } } } }
+      }));
+      // legenda HTML vertical
+      const total = lbls.reduce((s,l) => s+(cts[l]||0), 0);
+      const legEl = document.getElementById('taftat-dist-leg');
+      if (legEl) legEl.innerHTML = lbls.map(l => {
+        const n = cts[l]||0;
+        const pct = total > 0 ? ((n/total)*100).toFixed(1) : '0.0';
+        return `<div style="${legItemSt()}">${legDot(CONC_COR[l]||'#607090')}<span>${l}: <strong>${n}</strong> PM${n!==1?'s':''} <span style="color:var(--tx3)">(${pct}%)</span></span></div>`;
+      }).join('');
+    }
   }
+  // Stacked bar — Por CIA
   const ciaConcMap = {};
   Object.entries(ciaCts).forEach(([conc,cias])=>{ Object.entries(cias).forEach(([cia,n])=>{ if(!ciaConcMap[cia]) ciaConcMap[cia]={}; ciaConcMap[cia][conc]=n; }); });
   const cias = Object.entries(ciaConcMap).map(([cia,concs])=>({cia,total:Object.values(concs).reduce((s,v)=>s+v,0)})).sort((a,b)=>b.total-a.total).map(d=>d.cia);
   const datasets = CONCS_ORD.map(conc=>({ label:conc, data:cias.map(cia=>ciaConcMap[cia]?.[conc]||0), backgroundColor:(CONC_COR[conc]||'#607090')+'cc', borderColor:CONC_COR[conc]||'#607090', borderWidth:1 })).filter(d=>d.data.some(v=>v>0));
   const ctxCia = document.getElementById('taftat-cia')?.getContext('2d');
   if (ctxCia && cias.length) {
-    pdChs.push(new Chart(ctxCia, { type:'bar', data:{ labels:cias, datasets }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ color:'rgba(255,255,255,.9)', font:{size:19}, padding:14, boxWidth:13 } }, tooltip:{ callbacks:{ label: i=>` ${i.dataset.label}: ${i.raw} PM${i.raw!==1?'s':''}` } } }, scales:{ x:{ stacked:true, grid:GR, ticks:{ color:'rgba(255,255,255,.45)', font:{size:19} }, beginAtZero:true }, y:{ stacked:true, grid:{ display:false }, ticks:{ color:'rgba(255,255,255,.8)', font:{size:19} } } } } }));
+    pdChs.push(new Chart(ctxCia, { type:'bar', data:{ labels:cias, datasets }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: i=>` ${i.dataset.label}: ${i.raw} PM${i.raw!==1?'s':''}` } } }, scales:{ x:{ stacked:true, grid:GR, ticks:{ color:'rgba(255,255,255,.45)', font:{size:19} }, beginAtZero:true }, y:{ stacked:true, grid:{ display:false }, ticks:{ color:'rgba(255,255,255,.8)', font:{size:19} } } } } }));
+    // legenda HTML vertical (conceitos presentes)
+    const legEl2 = document.getElementById('taftat-cia-leg');
+    if (legEl2) legEl2.innerHTML = datasets.map(d =>
+      `<div style="${legItemSt()}">${legDot((CONC_COR[d.label]||'#607090')+'cc')}<span>${d.label}</span></div>`
+    ).join('');
   }
 }
 
