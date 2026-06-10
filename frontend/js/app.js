@@ -5790,112 +5790,6 @@ function prodRender() {
     }
   }
 
-  // Seção CONSEG
-  const consegHtml = (() => {
-    const consegData = prodRaw.conseg || [];
-    if (!consegData.length) return '';
-    const CONSEG_COR = PROD_CORES.conseg;
-    const allMuns = [...new Set(consegData.map(r => r.municipio).filter(Boolean))].sort();
-    const inativosMuns = new Set(consegData.filter(r => !r.conseg_ativo).map(r => r.municipio));
-    const filtConseg = consegData.filter(r => !prodSelAno || r.ano === prodSelAno);
-    if (!filtConseg.length) return '';
-    const consegMeses = MES_ORD.filter(m => filtConseg.some(r => (r.mes||'').toLowerCase() === m.toLowerCase()));
-
-    // Grade de status: município × mês
-    const gridHeaders = consegMeses.map(m =>
-      `<th style="padding:6px 8px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${CONSEG_COR}">${MES_ABREV[m] || m.slice(0,3).toUpperCase()}</th>`
-    ).join('');
-    const gridRows = allMuns.map(mun => {
-      const ciaRec = consegData.find(r => r.municipio === mun);
-      const cia = ciaRec ? normCiaDisp(ciaRec.cia) : '';
-      const cells = consegMeses.map(mes => {
-        const recs = filtConseg.filter(r => r.municipio === mun && (r.mes||'').toLowerCase() === mes.toLowerCase());
-        if (!recs.length) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:22px;color:#e05555">✗</td>`;
-        const rec = recs.find(r => r.houve_reuniao) || recs[0];
-        if (!rec.conseg_ativo) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:15px;color:#f07878;font-weight:700">INATIVO</td>`;
-        return rec.houve_reuniao
-          ? `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;font-weight:700">✓</td>`
-          : `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:19px;color:#e05555">✗</td>`;
-      }).join('');
-      return `<tr style="border-bottom:1px solid var(--bd2)">
-        <td style="padding:7px 10px;font-size:19px;color:var(--tx2);font-weight:600;white-space:nowrap">${mun}</td>
-        <td style="padding:7px 10px;font-size:19px;color:var(--tx3)">${cia}</td>
-        ${cells}
-      </tr>`;
-    }).join('');
-    const statusGrid = `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${CONSEG_COR};border-radius:10px;padding:20px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${CONSEG_COR};margin-bottom:14px">Status de Reuniões por Município — ${prodSelAno}</div>
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;min-width:360px">
-          <thead><tr style="border-bottom:2px solid var(--bd2)">
-            <th style="padding:6px 10px;text-align:left;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);font-weight:400">Município</th>
-            <th style="padding:6px 10px;text-align:left;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);font-weight:400">CIA</th>
-            ${gridHeaders}
-          </tr></thead>
-          <tbody>${gridRows}</tbody>
-        </table>
-      </div>
-      <div style="margin-top:10px;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">✓ reunião realizada · ✗ sem reunião · INATIVO conseg inativo · — sem registro</div>
-    </div>`;
-
-    // Denominador correto: meses com dados no período (ex: Jan–Jun = 6)
-    const nMeses = consegMeses.length || 1;
-
-    // Barras de frequência por município: reuniões / nMeses
-    const freqItems = allMuns
-      .filter(mun => filtConseg.some(r => r.municipio === mun))
-      .map(mun => {
-        const reunioes = filtConseg.filter(r => r.municipio === mun && r.houve_reuniao).length;
-        const pct = Math.round(reunioes / nMeses * 100);
-        const cor = inativosMuns.has(mun) ? '#e05555' : (pct >= 75 ? '#4bc87a' : pct >= 50 ? '#e8b840' : '#e0965a');
-        return { mun, reunioes, total: nMeses, pct, cor };
-      }).sort((a, b) => b.pct - a.pct);
-
-    const freqCard = freqItems.length ? `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${CONSEG_COR};border-radius:10px;padding:20px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${CONSEG_COR};margin-bottom:16px">Frequência por Município</div>
-      ${freqItems.map((item, i) => `<div style="margin-bottom:${i < freqItems.length - 1 ? '12' : '0'}px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <span style="font-size:19px;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:58%">${item.mun}</span>
-          <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${item.cor}">${item.reunioes}/${nMeses} meses (${item.pct}%)</span>
-        </div>
-        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px"><div style="height:100%;width:${item.pct}%;background:${item.cor};border-radius:3px"></div></div>
-      </div>`).join('')}
-    </div>` : '';
-
-    // Barras por CIA: reuniões / (municípios da CIA × nMeses)
-    const ciaMunsMap = {};
-    filtConseg.forEach(r => {
-      const cia = r.cia ? normCiaDisp(r.cia) : 'Não informado';
-      if (!ciaMunsMap[cia]) ciaMunsMap[cia] = { muns: new Set(), reunioes: 0 };
-      if (r.municipio) ciaMunsMap[cia].muns.add(r.municipio);
-      if (r.houve_reuniao) ciaMunsMap[cia].reunioes++;
-    });
-    const ciaItems = Object.entries(ciaMunsMap)
-      .map(([cia, s]) => {
-        const total = s.muns.size * nMeses;
-        return { cia, pct: total ? Math.round(s.reunioes / total * 100) : 0, reunioes: s.reunioes, total };
-      })
-      .sort((a, b) => b.pct - a.pct);
-    const ciaCard = ciaItems.length ? `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${CONSEG_COR};border-radius:10px;padding:20px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${CONSEG_COR};margin-bottom:16px">Frequência por CIA</div>
-      ${ciaItems.map((item, i) => {
-        const barCor = ciaCorByName(item.cia);
-        return `<div style="margin-bottom:${i < ciaItems.length - 1 ? '12' : '0'}px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-            <span style="font-size:19px;color:${barCor}">${item.cia}</span>
-            <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${barCor}">${item.reunioes}/${item.total} possíveis (${item.pct}%)</span>
-          </div>
-          <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px"><div style="height:100%;width:${item.pct}%;background:${barCor};border-radius:3px"></div></div>
-        </div>`;
-      }).join('')}
-    </div>` : '';
-
-    return sec('CONSEG — Conselhos Comunitários de Segurança') +
-      statusGrid +
-      (freqCard || ciaCard
-        ? `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:4px">${freqCard}${ciaCard}</div>`
-        : '');
-  })();
 
   // Monta HTML de todas as seções
   chartsEl.innerHTML =
@@ -5907,8 +5801,7 @@ function prodRender() {
     (insCards.length
       ? sec('Insights do Período') +
         `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">${insCards.join('')}</div>`
-      : '') +
-    consegHtml;
+      : '');
 
 }
 function prodSetAno(ano) {
