@@ -6994,19 +6994,20 @@ function renderConsegModalDetail() {
       <div style="display:flex;gap:28px;flex-wrap:wrap">
         <div style="flex:1;min-width:220px">
           <div style="${subTitSt}">CONSEGs Ativos vs Inativos</div>
-          <div style="position:relative;height:280px"><canvas id="conseg-donut"></canvas></div>
+          <div style="position:relative;height:360px"><canvas id="conseg-donut"></canvas></div>
         </div>
         <div style="flex:1;min-width:220px">
           <div style="${subTitSt}">% Reuniões por CIA</div>
-          <div style="position:relative;height:280px"><canvas id="conseg-cia-bar"></canvas></div>
+          <div style="position:relative;height:360px"><canvas id="conseg-cia-bar"></canvas></div>
         </div>
       </div>
     </div>
-    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:10px;padding:12px 12px 6px">
-      <div style="${titSt}">% Reuniões Realizadas por Município — ${prodSelAno}</div>
-      <div style="position:relative;height:${munHeight}px"><canvas id="conseg-mun-bar"></canvas></div>
-    </div>
-    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:10px;padding:16px">
+    <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:8px">
+      <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:10px;padding:12px 12px 6px">
+        <div style="${titSt}">% Reuniões Realizadas por Município — ${prodSelAno}</div>
+        <div style="position:relative;height:${munHeight}px"><canvas id="conseg-mun-bar"></canvas></div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:10px;padding:16px">
       <div style="${titSt}">Status Mês a Mês — ${prodSelAno}</div>
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;min-width:360px">
@@ -7019,6 +7020,7 @@ function renderConsegModalDetail() {
         </table>
       </div>
       <div style="margin-top:12px;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">✓ reunião realizada · ✗ sem reunião · INATIVO conseg inativo · — sem registro</div>
+    </div>
     </div>`;
 
   // Doughnut: Ativos vs Inativos
@@ -7078,8 +7080,8 @@ function renderConsegModalDetail() {
           tooltip: { callbacks: { label: i => ` ${ciaItems[i.dataIndex].reunioes}/${ciaItems[i.dataIndex].total} possíveis (${i.raw}%)` } }
         },
         scales: {
-          x: { min: 0, max: 100, grid: GR, ticks: { color: '#ffffff', font: { size: 19, weight: '700' }, callback: v => v + '%' } },
-          y: { grid: { display: false }, ticks: { color: '#ffffff', font: { size: 19, weight: '700' } } }
+          x: { min: 0, max: 100, grid: GR, ticks: { color: '#ffffff', font: { size: 20, weight: '700' }, callback: v => v + '%' } },
+          y: { grid: { display: false }, ticks: { color: '#ffffff', font: { size: 20, weight: '700' } } }
         }
       }
     }));
