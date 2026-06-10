@@ -5823,7 +5823,7 @@ function prodRender() {
       const cia = ciaRec ? normCiaDisp(ciaRec.cia) : '';
       const cells = consegMeses.map(mes => {
         const recs = filtConseg.filter(r => r.municipio === mun && (r.mes||'').toLowerCase() === mes.toLowerCase());
-        if (!recs.length) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">—</td>`;
+        if (!recs.length) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:22px;color:#e05555">✗</td>`;
         const rec = recs.find(r => r.houve_reuniao) || recs[0];
         if (!rec.conseg_ativo) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:15px;color:#f07878;font-weight:700">INATIVO</td>`;
         return rec.houve_reuniao
@@ -7084,7 +7084,7 @@ function renderConsegModalDetail() {
     const cia    = ciaRec ? normCiaDisp(ciaRec.cia) : '';
     const cells  = consegMeses.map(mes => {
       const recs = filtConseg.filter(r => r.municipio === mun && (r.mes||'').toLowerCase() === mes.toLowerCase());
-      if (!recs.length) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">—</td>`;
+      if (!recs.length) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:22px;color:#e05555">✗</td>`;
       const rec = recs.find(r => r.houve_reuniao) || recs[0];
       if (!rec.conseg_ativo) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:15px;color:#f07878;font-weight:700">INATIVO</td>`;
       return rec.houve_reuniao
@@ -7098,7 +7098,7 @@ function renderConsegModalDetail() {
     </tr>`;
   }).join('');
 
-  const munHeight = Math.max(160, munFreq.length * 72);
+  const munHeight = Math.max(240, allMuns.length * 90);
 
   document.getElementById('pd-sub').textContent = prodSelAno || '';
 
