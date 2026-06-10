@@ -6978,7 +6978,7 @@ function renderConsegModalDetail() {
     </tr>`;
   }).join('');
 
-  const munHeight = Math.max(200, munFreq.length * 120);
+  const munHeight = Math.max(200, munFreq.length * 80);
 
   document.getElementById('pd-sub').textContent = prodSelAno || '';
 
