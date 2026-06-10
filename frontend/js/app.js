@@ -7085,7 +7085,7 @@ function renderConsegModalDetail() {
     </tr>`;
   }).join('');
 
-  const munHeight = Math.max(240, allMuns.length * 90);
+  const munHeight = Math.max(280, allMuns.length * 110);
 
   document.getElementById('pd-sub').textContent = prodSelAno || '';
 
@@ -7109,7 +7109,7 @@ function renderConsegModalDetail() {
         </div>
       </div>
     </div>
-    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:10px;padding:16px">
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:10px;padding:12px 12px 6px">
       <div style="${titSt}">% Reuniões Realizadas por Município — ${prodSelAno}</div>
       <div style="position:relative;height:${munHeight}px"><canvas id="conseg-mun-bar"></canvas></div>
     </div>
