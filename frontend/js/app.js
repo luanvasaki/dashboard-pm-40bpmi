@@ -7104,8 +7104,8 @@ function renderConsegModalDetail() {
           tooltip: { callbacks: { label: i => ` ${munFreq[i.dataIndex].reunioes}/${nMeses} meses (${i.raw}%)` } }
         },
         scales: {
-          x: { min: 0, max: 100, grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 }, callback: v => v + '%' } },
-          y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.80)', font: { size: 19 } } }
+          x: { min: 0, max: 100, grid: GR, ticks: { color: '#ffffff', font: { size: 20, weight: '700' }, callback: v => v + '%' } },
+          y: { grid: { display: false }, ticks: { color: '#ffffff', font: { size: 20, weight: '700' } } }
         }
       }
     }));
