@@ -7090,12 +7090,14 @@ function renderConsegModalDetail() {
   // Barras por município
   const munBarCtx = document.getElementById('conseg-mun-bar');
   if (munBarCtx && munFreq.length) {
+    munBarCtx.style.height    = munHeight + 'px';
+    munBarCtx.style.maxHeight = munHeight + 'px';
     const munColors = munFreq.map(m => inativosMuns.has(m.mun) ? '#e05555' : (m.pct >= 75 ? '#4bc87a' : m.pct >= 50 ? '#e8b840' : '#e0965a'));
     pdChs.push(new Chart(munBarCtx, {
       type: 'bar',
       data: {
         labels: munFreq.map(m => m.mun),
-        datasets: [{ data: munFreq.map(m => m.pct), backgroundColor: munColors, borderRadius: 4, borderSkipped: false, barThickness: 48 }]
+        datasets: [{ data: munFreq.map(m => m.pct), backgroundColor: munColors, borderRadius: 4, borderSkipped: false, maxBarThickness: 48 }]
       },
       options: {
         indexAxis: 'y', responsive: true, maintainAspectRatio: false,
