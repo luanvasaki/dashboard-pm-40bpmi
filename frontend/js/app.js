@@ -5851,38 +5851,43 @@ function prodRender() {
       <div style="margin-top:10px;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">✓ reunião realizada · ✗ sem reunião · INATIVO conseg inativo · — sem registro</div>
     </div>`;
 
-    // Barras de frequência por município
-    const freqItems = allMuns.map(mun => {
-      const rows = filtConseg.filter(r => r.municipio === mun);
-      if (!rows.length) return null;
-      const reunioes = rows.filter(r => r.houve_reuniao).length;
-      const total = rows.length;
-      const pct = Math.round(reunioes / total * 100);
-      const cor = inativosMuns.has(mun) ? '#e05555' : (pct >= 75 ? '#4bc87a' : pct >= 50 ? '#e8b840' : '#e0965a');
-      return { mun, reunioes, total, pct, cor };
-    }).filter(Boolean).sort((a, b) => b.pct - a.pct);
+    // Denominador correto: meses com dados no período (ex: Jan–Jun = 6)
+    const nMeses = consegMeses.length || 1;
+
+    // Barras de frequência por município: reuniões / nMeses
+    const freqItems = allMuns
+      .filter(mun => filtConseg.some(r => r.municipio === mun))
+      .map(mun => {
+        const reunioes = filtConseg.filter(r => r.municipio === mun && r.houve_reuniao).length;
+        const pct = Math.round(reunioes / nMeses * 100);
+        const cor = inativosMuns.has(mun) ? '#e05555' : (pct >= 75 ? '#4bc87a' : pct >= 50 ? '#e8b840' : '#e0965a');
+        return { mun, reunioes, total: nMeses, pct, cor };
+      }).sort((a, b) => b.pct - a.pct);
 
     const freqCard = freqItems.length ? `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${CONSEG_COR};border-radius:10px;padding:20px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${CONSEG_COR};margin-bottom:16px">Frequência por Município</div>
       ${freqItems.map((item, i) => `<div style="margin-bottom:${i < freqItems.length - 1 ? '12' : '0'}px">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px">
           <span style="font-size:19px;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:58%">${item.mun}</span>
-          <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${item.cor}">${item.reunioes}/${item.total} (${item.pct}%)</span>
+          <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${item.cor}">${item.reunioes}/${nMeses} meses (${item.pct}%)</span>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px"><div style="height:100%;width:${item.pct}%;background:${item.cor};border-radius:3px"></div></div>
       </div>`).join('')}
     </div>` : '';
 
-    // Barras por CIA
-    const ciaStats = {};
+    // Barras por CIA: reuniões / (municípios da CIA × nMeses)
+    const ciaMunsMap = {};
     filtConseg.forEach(r => {
       const cia = r.cia ? normCiaDisp(r.cia) : 'Não informado';
-      if (!ciaStats[cia]) ciaStats[cia] = { total: 0, reunioes: 0 };
-      ciaStats[cia].total++;
-      if (r.houve_reuniao) ciaStats[cia].reunioes++;
+      if (!ciaMunsMap[cia]) ciaMunsMap[cia] = { muns: new Set(), reunioes: 0 };
+      if (r.municipio) ciaMunsMap[cia].muns.add(r.municipio);
+      if (r.houve_reuniao) ciaMunsMap[cia].reunioes++;
     });
-    const ciaItems = Object.entries(ciaStats)
-      .map(([cia, s]) => ({ cia, pct: s.total ? Math.round(s.reunioes / s.total * 100) : 0, reunioes: s.reunioes, total: s.total }))
+    const ciaItems = Object.entries(ciaMunsMap)
+      .map(([cia, s]) => {
+        const total = s.muns.size * nMeses;
+        return { cia, pct: total ? Math.round(s.reunioes / total * 100) : 0, reunioes: s.reunioes, total };
+      })
       .sort((a, b) => b.pct - a.pct);
     const ciaCard = ciaItems.length ? `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${CONSEG_COR};border-radius:10px;padding:20px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${CONSEG_COR};margin-bottom:16px">Frequência por CIA</div>
@@ -5891,7 +5896,7 @@ function prodRender() {
         return `<div style="margin-bottom:${i < ciaItems.length - 1 ? '12' : '0'}px">
           <div style="display:flex;justify-content:space-between;margin-bottom:4px">
             <span style="font-size:19px;color:${barCor}">${item.cia}</span>
-            <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${barCor}">${item.reunioes}/${item.total} (${item.pct}%)</span>
+            <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${barCor}">${item.reunioes}/${item.total} possíveis (${item.pct}%)</span>
           </div>
           <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px"><div style="height:100%;width:${item.pct}%;background:${barCor};border-radius:3px"></div></div>
         </div>`;
@@ -7044,24 +7049,30 @@ function renderConsegModalDetail() {
   const filtConseg   = consegData.filter(r => !prodSelAno || r.ano === prodSelAno);
   const consegMeses  = MES_ORD.filter(m => filtConseg.some(r => (r.mes||'').toLowerCase() === m.toLowerCase()));
 
-  // Frequência por município (ano selecionado)
-  const munFreq = allMuns.map(mun => {
-    const rows     = filtConseg.filter(r => r.municipio === mun);
-    const reunioes = rows.filter(r => r.houve_reuniao).length;
-    const total    = rows.length;
-    return { mun, reunioes, total, pct: total ? Math.round(reunioes / total * 100) : 0 };
-  }).filter(r => r.total > 0).sort((a, b) => b.pct - a.pct);
+  // Denominador correto: meses com dados no período (ex: Jan–Jun = 6)
+  const nMeses = consegMeses.length || 1;
 
-  // Frequência por CIA
-  const ciaStats = {};
+  // Frequência por município: reuniões / nMeses (não por registros no banco)
+  const munFreq = allMuns
+    .filter(mun => filtConseg.some(r => r.municipio === mun))
+    .map(mun => {
+      const reunioes = filtConseg.filter(r => r.municipio === mun && r.houve_reuniao).length;
+      return { mun, reunioes, total: nMeses, pct: Math.round(reunioes / nMeses * 100) };
+    }).sort((a, b) => b.pct - a.pct);
+
+  // Frequência por CIA: reuniões / (municípios da CIA × nMeses)
+  const ciaMuns = {};
   filtConseg.forEach(r => {
     const cia = r.cia ? normCiaDisp(r.cia) : 'Não informado';
-    if (!ciaStats[cia]) ciaStats[cia] = { total: 0, reunioes: 0 };
-    ciaStats[cia].total++;
-    if (r.houve_reuniao) ciaStats[cia].reunioes++;
+    if (!ciaMuns[cia]) ciaMuns[cia] = { muns: new Set(), reunioes: 0 };
+    if (r.municipio) ciaMuns[cia].muns.add(r.municipio);
+    if (r.houve_reuniao) ciaMuns[cia].reunioes++;
   });
-  const ciaItems = Object.entries(ciaStats)
-    .map(([cia, s]) => ({ cia, pct: s.total ? Math.round(s.reunioes / s.total * 100) : 0, reunioes: s.reunioes, total: s.total }))
+  const ciaItems = Object.entries(ciaMuns)
+    .map(([cia, s]) => {
+      const total = s.muns.size * nMeses;
+      return { cia, reunioes: s.reunioes, total, pct: total ? Math.round(s.reunioes / total * 100) : 0 };
+    })
     .sort((a, b) => b.pct - a.pct);
 
   // Status grid
@@ -7162,7 +7173,7 @@ function renderConsegModalDetail() {
         indexAxis: 'y', responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: i => ` ${ciaItems[i.dataIndex].reunioes}/${ciaItems[i.dataIndex].total} reuniões (${i.raw}%)` } }
+          tooltip: { callbacks: { label: i => ` ${ciaItems[i.dataIndex].reunioes}/${ciaItems[i.dataIndex].total} possíveis (${i.raw}%)` } }
         },
         scales: {
           x: { min: 0, max: 100, grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 }, callback: v => v + '%' } },
@@ -7186,7 +7197,7 @@ function renderConsegModalDetail() {
         indexAxis: 'y', responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: i => ` ${munFreq[i.dataIndex].reunioes}/${munFreq[i.dataIndex].total} reuniões (${i.raw}%)` } }
+          tooltip: { callbacks: { label: i => ` ${munFreq[i.dataIndex].reunioes}/${nMeses} meses (${i.raw}%)` } }
         },
         scales: {
           x: { min: 0, max: 100, grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 }, callback: v => v + '%' } },
