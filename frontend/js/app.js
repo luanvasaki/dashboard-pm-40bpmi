@@ -5786,7 +5786,7 @@ function prodRender() {
     }).filter(Boolean);
     if (tendCards.length) {
       tendHtml = sec('Tendência Recente — ' + mesA.slice(0,3) + ' × ' + mesB.slice(0,3)) +
-        `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px">${tendCards.join('')}</div>`;
+        `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:14px">${tendCards.join('')}</div>`;
     }
   }
 
@@ -5796,11 +5796,11 @@ function prodRender() {
     tendHtml +
     (ciaRankCards
       ? sec('Ranking por CIA') +
-        `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">${ciaRankCards}</div>`
+        `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px">${ciaRankCards}</div>`
       : '') +
     (insCards.length
       ? sec('Insights do Período') +
-        `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">${insCards.join('')}</div>`
+        `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px">${insCards.join('')}</div>`
       : '');
 
 }
