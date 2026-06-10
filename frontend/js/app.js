@@ -7019,27 +7019,36 @@ function _renderTafTatCharts() {
 function renderConsegModalDetail() {
   const chartsEl = document.getElementById('pd-charts');
   if (!chartsEl) return;
-  const COR = PROD_CORES.conseg;
+  const COR     = PROD_CORES.conseg;
+  const titSt   = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:14px`;
+  const subTitSt = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.9);margin-bottom:16px`;
+  const mkMini  = (label, val, cor) =>
+    `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:3px solid ${cor};border-radius:10px;padding:16px 20px;flex:1;min-width:120px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.65);margin-bottom:6px">${label}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${cor}">${val}</div>
+    </div>`;
+
   const consegData = prodRaw.conseg || [];
   if (!consegData.length) {
     chartsEl.innerHTML = '<div style="grid-column:1/-1;color:var(--tx3);font-size:19px;padding:20px 0">Sem dados de CONSEG para o período selecionado.</div>';
     return;
   }
 
-  const allMuns = [...new Set(consegData.map(r => r.municipio).filter(Boolean))].sort();
+  const allMuns      = [...new Set(consegData.map(r => r.municipio).filter(Boolean))].sort();
   const inativosMuns = new Set(consegData.filter(r => !r.conseg_ativo).map(r => r.municipio));
   const ativosCount  = allMuns.filter(m => !inativosMuns.has(m)).length;
   const inativosCount = inativosMuns.size;
-  const taxa = allMuns.length ? Math.round(ativosCount / allMuns.length * 100) : 0;
+  const taxa         = allMuns.length ? Math.round(ativosCount / allMuns.length * 100) : 0;
+  const taxaCor      = taxa >= 80 ? '#4bc87a' : taxa >= 60 ? '#e8b840' : '#e05555';
 
-  const filtConseg = consegData.filter(r => !prodSelAno || r.ano === prodSelAno);
-  const consegMeses = MES_ORD.filter(m => filtConseg.some(r => (r.mes||'').toLowerCase() === m.toLowerCase()));
+  const filtConseg   = consegData.filter(r => !prodSelAno || r.ano === prodSelAno);
+  const consegMeses  = MES_ORD.filter(m => filtConseg.some(r => (r.mes||'').toLowerCase() === m.toLowerCase()));
 
   // Frequência por município (ano selecionado)
   const munFreq = allMuns.map(mun => {
-    const rows = filtConseg.filter(r => r.municipio === mun);
+    const rows     = filtConseg.filter(r => r.municipio === mun);
     const reunioes = rows.filter(r => r.houve_reuniao).length;
-    const total = rows.length;
+    const total    = rows.length;
     return { mun, reunioes, total, pct: total ? Math.round(reunioes / total * 100) : 0 };
   }).filter(r => r.total > 0).sort((a, b) => b.pct - a.pct);
 
@@ -7061,32 +7070,24 @@ function renderConsegModalDetail() {
   ).join('');
   const gridRows = allMuns.map(mun => {
     const ciaRec = consegData.find(r => r.municipio === mun);
-    const cia = ciaRec ? normCiaDisp(ciaRec.cia) : '';
-    const cells = consegMeses.map(mes => {
+    const cia    = ciaRec ? normCiaDisp(ciaRec.cia) : '';
+    const cells  = consegMeses.map(mes => {
       const recs = filtConseg.filter(r => r.municipio === mun && (r.mes||'').toLowerCase() === mes.toLowerCase());
       if (!recs.length) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">—</td>`;
       const rec = recs.find(r => r.houve_reuniao) || recs[0];
       if (!rec.conseg_ativo) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:15px;color:#f07878;font-weight:700">INATIVO</td>`;
       return rec.houve_reuniao
-        ? `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;font-weight:700">✓</td>`
-        : `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:19px;color:#e05555">✗</td>`;
+        ? `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:22px;color:#4bc87a;font-weight:700">✓</td>`
+        : `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:22px;color:#e05555">✗</td>`;
     }).join('');
     return `<tr style="border-bottom:1px solid var(--bd2)">
-      <td style="padding:7px 10px;font-size:19px;color:var(--tx2);font-weight:600;white-space:nowrap">${mun}</td>
-      <td style="padding:7px 10px;font-size:19px;color:var(--tx3)">${cia}</td>
+      <td style="padding:9px 12px;font-size:19px;color:var(--tx2);font-weight:600;white-space:nowrap">${mun}</td>
+      <td style="padding:9px 12px;font-size:19px;color:var(--tx3)">${cia}</td>
       ${cells}
     </tr>`;
   }).join('');
 
-  const titSt = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:14px`;
-  const mkMini = (label, val, cor) =>
-    `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:3px solid ${cor};border-radius:10px;padding:16px 20px;flex:1;min-width:100px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.65);margin-bottom:6px">${label}</div>
-      <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${cor}">${val}</div>
-    </div>`;
-
-  const munHeight = Math.max(160, munFreq.length * 46);
-  const ciaHeight = Math.max(120, ciaItems.length * 52);
+  const munHeight = Math.max(160, munFreq.length * 72);
 
   document.getElementById('pd-sub').textContent = prodSelAno || '';
 
@@ -7095,16 +7096,19 @@ function renderConsegModalDetail() {
       ${mkMini('Total CONSEGs', allMuns.length, COR)}
       ${mkMini('Ativos', ativosCount, '#4bc87a')}
       ${mkMini('Inativos', inativosCount, inativosCount > 0 ? '#e05555' : 'var(--tx3)')}
-      ${mkMini('Taxa Ativa', taxa + '%', taxa >= 80 ? '#4bc87a' : taxa >= 60 ? '#e8b840' : '#e05555')}
+      ${mkMini('Taxa Ativa', taxa + '%', taxaCor)}
     </div>
-    <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
-      <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:10px;padding:16px">
-        <div style="${titSt}">CONSEGs Ativos vs Inativos</div>
-        <div style="position:relative;height:220px"><canvas id="conseg-donut"></canvas></div>
-      </div>
-      <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:10px;padding:16px">
-        <div style="${titSt}">Frequência por CIA — ${prodSelAno}</div>
-        <div style="position:relative;height:${ciaHeight}px"><canvas id="conseg-cia-bar"></canvas></div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:10px;padding:16px">
+      <div style="${titSt}">Situação e Frequência por CIA — ${prodSelAno}</div>
+      <div style="display:flex;gap:28px;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px">
+          <div style="${subTitSt}">CONSEGs Ativos vs Inativos</div>
+          <div style="position:relative;height:280px"><canvas id="conseg-donut"></canvas></div>
+        </div>
+        <div style="flex:1;min-width:220px">
+          <div style="${subTitSt}">% Reuniões por CIA</div>
+          <div style="position:relative;height:280px"><canvas id="conseg-cia-bar"></canvas></div>
+        </div>
       </div>
     </div>
     <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:10px;padding:16px">
@@ -7116,14 +7120,14 @@ function renderConsegModalDetail() {
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;min-width:360px">
           <thead><tr style="border-bottom:2px solid var(--bd2)">
-            <th style="padding:6px 10px;text-align:left;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);font-weight:400">Município</th>
-            <th style="padding:6px 10px;text-align:left;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);font-weight:400">CIA</th>
+            <th style="padding:6px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);font-weight:400">Município</th>
+            <th style="padding:6px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);font-weight:400">CIA</th>
             ${gridHeaders}
           </tr></thead>
           <tbody>${gridRows}</tbody>
         </table>
       </div>
-      <div style="margin-top:10px;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">✓ reunião realizada · ✗ sem reunião · INATIVO conseg inativo · — sem registro</div>
+      <div style="margin-top:12px;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">✓ reunião realizada · ✗ sem reunião · INATIVO conseg inativo · — sem registro</div>
     </div>`;
 
   // Doughnut: Ativos vs Inativos
@@ -7139,7 +7143,7 @@ function renderConsegModalDetail() {
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.75)', font: { size: 19 }, padding: 16 } },
-          tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw}` } }
+          tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} CONSEG${i.raw !== 1 ? 's' : ''}` } }
         }
       }
     }));
@@ -7148,12 +7152,11 @@ function renderConsegModalDetail() {
   // Barras por CIA
   const ciaBarCtx = document.getElementById('conseg-cia-bar');
   if (ciaBarCtx && ciaItems.length) {
-    const ciaColors = ciaItems.map(c => ciaCorByName(c.cia));
     pdChs.push(new Chart(ciaBarCtx, {
       type: 'bar',
       data: {
         labels: ciaItems.map(c => c.cia),
-        datasets: [{ data: ciaItems.map(c => c.pct), backgroundColor: ciaColors, borderRadius: 4, borderSkipped: false }]
+        datasets: [{ data: ciaItems.map(c => c.pct), backgroundColor: ciaItems.map(c => ciaCorByName(c.cia)), borderRadius: 4, borderSkipped: false }]
       },
       options: {
         indexAxis: 'y', responsive: true, maintainAspectRatio: false,
