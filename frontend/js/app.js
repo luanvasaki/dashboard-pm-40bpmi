@@ -5560,7 +5560,7 @@ function prodRender() {
           <span style="font-family:'DM Mono',monospace;font-size:19px;color:#f4f6fc">${label}</span>
           <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${cor}">${val}</span>
         </div>`;
-      return `<div class="kpi">
+      return `<div class="kpi" onclick="openProdDetail('conseg')" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top" style="background:${CONSEG_COR}"></div>
         <div class="kpi-lbl">CONSEG</div>
         <div style="margin-top:10px">
@@ -6179,7 +6179,7 @@ function prodDetailClickOut(e) {
 }
 
 function buildPdFilter() {
-  if (pdTipo === 'taftat' || pdTipo === 'pvs') { document.getElementById('pd-filter-bar').innerHTML = ''; return; }
+  if (pdTipo === 'taftat' || pdTipo === 'pvs' || pdTipo === 'conseg') { document.getElementById('pd-filter-bar').innerHTML = ''; return; }
   const mesesDisp = prodGetMesesDisp(prodSelAno);
   const _pdRawKey = pdTipo === 'tempo-resposta' ? 'tempoResposta' : pdTipo;
   let baseRows = prodRaw[_pdRawKey] || [];
@@ -7016,6 +7016,184 @@ function _renderTafTatCharts() {
   }
 }
 
+function renderConsegModalDetail() {
+  const chartsEl = document.getElementById('pd-charts');
+  if (!chartsEl) return;
+  const COR = PROD_CORES.conseg;
+  const consegData = prodRaw.conseg || [];
+  if (!consegData.length) {
+    chartsEl.innerHTML = '<div style="grid-column:1/-1;color:var(--tx3);font-size:19px;padding:20px 0">Sem dados de CONSEG para o período selecionado.</div>';
+    return;
+  }
+
+  const allMuns = [...new Set(consegData.map(r => r.municipio).filter(Boolean))].sort();
+  const inativosMuns = new Set(consegData.filter(r => !r.conseg_ativo).map(r => r.municipio));
+  const ativosCount  = allMuns.filter(m => !inativosMuns.has(m)).length;
+  const inativosCount = inativosMuns.size;
+  const taxa = allMuns.length ? Math.round(ativosCount / allMuns.length * 100) : 0;
+
+  const filtConseg = consegData.filter(r => !prodSelAno || r.ano === prodSelAno);
+  const consegMeses = MES_ORD.filter(m => filtConseg.some(r => (r.mes||'').toLowerCase() === m.toLowerCase()));
+
+  // Frequência por município (ano selecionado)
+  const munFreq = allMuns.map(mun => {
+    const rows = filtConseg.filter(r => r.municipio === mun);
+    const reunioes = rows.filter(r => r.houve_reuniao).length;
+    const total = rows.length;
+    return { mun, reunioes, total, pct: total ? Math.round(reunioes / total * 100) : 0 };
+  }).filter(r => r.total > 0).sort((a, b) => b.pct - a.pct);
+
+  // Frequência por CIA
+  const ciaStats = {};
+  filtConseg.forEach(r => {
+    const cia = r.cia ? normCiaDisp(r.cia) : 'Não informado';
+    if (!ciaStats[cia]) ciaStats[cia] = { total: 0, reunioes: 0 };
+    ciaStats[cia].total++;
+    if (r.houve_reuniao) ciaStats[cia].reunioes++;
+  });
+  const ciaItems = Object.entries(ciaStats)
+    .map(([cia, s]) => ({ cia, pct: s.total ? Math.round(s.reunioes / s.total * 100) : 0, reunioes: s.reunioes, total: s.total }))
+    .sort((a, b) => b.pct - a.pct);
+
+  // Status grid
+  const gridHeaders = consegMeses.map(m =>
+    `<th style="padding:6px 8px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR}">${MES_ABREV[m] || m.slice(0,3).toUpperCase()}</th>`
+  ).join('');
+  const gridRows = allMuns.map(mun => {
+    const ciaRec = consegData.find(r => r.municipio === mun);
+    const cia = ciaRec ? normCiaDisp(ciaRec.cia) : '';
+    const cells = consegMeses.map(mes => {
+      const recs = filtConseg.filter(r => r.municipio === mun && (r.mes||'').toLowerCase() === mes.toLowerCase());
+      if (!recs.length) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">—</td>`;
+      const rec = recs.find(r => r.houve_reuniao) || recs[0];
+      if (!rec.conseg_ativo) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:15px;color:#f07878;font-weight:700">INATIVO</td>`;
+      return rec.houve_reuniao
+        ? `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;font-weight:700">✓</td>`
+        : `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:19px;color:#e05555">✗</td>`;
+    }).join('');
+    return `<tr style="border-bottom:1px solid var(--bd2)">
+      <td style="padding:7px 10px;font-size:19px;color:var(--tx2);font-weight:600;white-space:nowrap">${mun}</td>
+      <td style="padding:7px 10px;font-size:19px;color:var(--tx3)">${cia}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  const titSt = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:14px`;
+  const mkMini = (label, val, cor) =>
+    `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:3px solid ${cor};border-radius:10px;padding:16px 20px;flex:1;min-width:100px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.65);margin-bottom:6px">${label}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${cor}">${val}</div>
+    </div>`;
+
+  const munHeight = Math.max(160, munFreq.length * 46);
+  const ciaHeight = Math.max(120, ciaItems.length * 52);
+
+  document.getElementById('pd-sub').textContent = prodSelAno || '';
+
+  chartsEl.innerHTML = `
+    <div style="grid-column:1/-1;display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px">
+      ${mkMini('Total CONSEGs', allMuns.length, COR)}
+      ${mkMini('Ativos', ativosCount, '#4bc87a')}
+      ${mkMini('Inativos', inativosCount, inativosCount > 0 ? '#e05555' : 'var(--tx3)')}
+      ${mkMini('Taxa Ativa', taxa + '%', taxa >= 80 ? '#4bc87a' : taxa >= 60 ? '#e8b840' : '#e05555')}
+    </div>
+    <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+      <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:10px;padding:16px">
+        <div style="${titSt}">CONSEGs Ativos vs Inativos</div>
+        <div style="position:relative;height:220px"><canvas id="conseg-donut"></canvas></div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:10px;padding:16px">
+        <div style="${titSt}">Frequência por CIA — ${prodSelAno}</div>
+        <div style="position:relative;height:${ciaHeight}px"><canvas id="conseg-cia-bar"></canvas></div>
+      </div>
+    </div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:10px;padding:16px">
+      <div style="${titSt}">% Reuniões Realizadas por Município — ${prodSelAno}</div>
+      <div style="position:relative;height:${munHeight}px"><canvas id="conseg-mun-bar"></canvas></div>
+    </div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:10px;padding:16px">
+      <div style="${titSt}">Status Mês a Mês — ${prodSelAno}</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;min-width:360px">
+          <thead><tr style="border-bottom:2px solid var(--bd2)">
+            <th style="padding:6px 10px;text-align:left;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);font-weight:400">Município</th>
+            <th style="padding:6px 10px;text-align:left;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);font-weight:400">CIA</th>
+            ${gridHeaders}
+          </tr></thead>
+          <tbody>${gridRows}</tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">✓ reunião realizada · ✗ sem reunião · INATIVO conseg inativo · — sem registro</div>
+    </div>`;
+
+  // Doughnut: Ativos vs Inativos
+  const donutCtx = document.getElementById('conseg-donut');
+  if (donutCtx) {
+    pdChs.push(new Chart(donutCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Ativos', 'Inativos'],
+        datasets: [{ data: [ativosCount, inativosCount], backgroundColor: ['#4bc87a', '#e05555'], borderWidth: 0 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.75)', font: { size: 19 }, padding: 16 } },
+          tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw}` } }
+        }
+      }
+    }));
+  }
+
+  // Barras por CIA
+  const ciaBarCtx = document.getElementById('conseg-cia-bar');
+  if (ciaBarCtx && ciaItems.length) {
+    const ciaColors = ciaItems.map(c => ciaCorByName(c.cia));
+    pdChs.push(new Chart(ciaBarCtx, {
+      type: 'bar',
+      data: {
+        labels: ciaItems.map(c => c.cia),
+        datasets: [{ data: ciaItems.map(c => c.pct), backgroundColor: ciaColors, borderRadius: 4, borderSkipped: false }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: i => ` ${ciaItems[i.dataIndex].reunioes}/${ciaItems[i.dataIndex].total} reuniões (${i.raw}%)` } }
+        },
+        scales: {
+          x: { min: 0, max: 100, grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 }, callback: v => v + '%' } },
+          y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.80)', font: { size: 19 } } }
+        }
+      }
+    }));
+  }
+
+  // Barras por município
+  const munBarCtx = document.getElementById('conseg-mun-bar');
+  if (munBarCtx && munFreq.length) {
+    const munColors = munFreq.map(m => inativosMuns.has(m.mun) ? '#e05555' : (m.pct >= 75 ? '#4bc87a' : m.pct >= 50 ? '#e8b840' : '#e0965a'));
+    pdChs.push(new Chart(munBarCtx, {
+      type: 'bar',
+      data: {
+        labels: munFreq.map(m => m.mun),
+        datasets: [{ data: munFreq.map(m => m.pct), backgroundColor: munColors, borderRadius: 4, borderSkipped: false }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: i => ` ${munFreq[i.dataIndex].reunioes}/${munFreq[i.dataIndex].total} reuniões (${i.raw}%)` } }
+        },
+        scales: {
+          x: { min: 0, max: 100, grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 }, callback: v => v + '%' } },
+          y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.80)', font: { size: 19 } } }
+        }
+      }
+    }));
+  }
+}
+
 function renderPvsModalDetail() {
   const chartsEl = document.getElementById('pd-charts');
   if (!chartsEl) return;
@@ -7301,6 +7479,7 @@ function renderProdDetail() {
   if (tipo === 'cursos') { renderCursosModalDetail(); return; }
   if (tipo === 'taftat') { renderTafTatModalDetail(); return; }
   if (tipo === 'pvs') { renderPvsModalDetail(); return; }
+  if (tipo === 'conseg') { renderConsegModalDetail(); return; }
   const cor = pdNatFilter ? '#e05a8a' : PROD_CORES[tipo];
   const campo = tipo === 'entorpecentes' ? 'quantidade' : PROD_CAMPO[tipo];
   const mesesDisp = prodGetMesesDisp(prodSelAno);
