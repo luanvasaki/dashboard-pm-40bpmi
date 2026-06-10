@@ -6978,7 +6978,7 @@ function renderConsegModalDetail() {
     </tr>`;
   }).join('');
 
-  const munHeight = Math.max(200, munFreq.length * 95);
+  const munHeight = Math.max(200, munFreq.length * 120);
 
   document.getElementById('pd-sub').textContent = prodSelAno || '';
 
@@ -7445,7 +7445,7 @@ function renderProdDetail() {
 
   const ciaTitleLabel = pdSelCia
     ? (tipo === 'ocorrencias' ? `Municípios — ${pdSelCia}` : `Detalhamento — ${pdSelCia}`)
-    : 'Ranking por CIA';
+    : (tipo === 'ocorrencias' ? 'Ranking por CIA — clique para ver municípios' : 'Ranking por CIA');
   let html = cardHtml('pd-cia', ciaTitleLabel, true);
   if (pdSelCia && tipo === 'ocorrencias') {
     html += `<div id="pd-mun-detail" style="grid-column:1/-1;display:none;background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${cor};border-radius:10px;padding:16px"></div>`;
@@ -7556,6 +7556,40 @@ function renderProdDetail() {
       rows.forEach(r => { const k = r[breakField] || 'Não informado'; catAgg[k] = (catAgg[k]||0) + (Number(r[campo])||0); });
       const catEntries = Object.entries(catAgg).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]).slice(0, 15);
       rdBar('pd-cia', catEntries.map(([k]) => k), catEntries.map(([,v]) => v), () => cor);
+    }
+  } else if (tipo === 'ocorrencias') {
+    // Ranking CIA clicável — click filtra CIA e exibe municípios
+    const ciaRankLabels = topCias.map(([k]) => k);
+    const ciaRankVals   = topCias.map(([, v]) => v);
+    const ciaRankCtx    = document.getElementById('pd-cia')?.getContext('2d');
+    if (ciaRankCtx && ciaRankLabels.length) {
+      const h = Math.max(300, ciaRankLabels.length * 52 + 40);
+      ciaRankCtx.canvas.style.height = h + 'px';
+      ciaRankCtx.canvas.style.maxHeight = h + 'px';
+      ciaRankCtx.canvas.style.cursor = 'pointer';
+      pdChs.push(new Chart(ciaRankCtx, {
+        type: 'bar',
+        data: {
+          labels: ciaRankLabels,
+          datasets: [{ data: ciaRankVals, backgroundColor: ciaRankLabels.map(l => ciaCorByName(l) + '99'), borderColor: ciaRankLabels.map(l => ciaCorByName(l)), borderWidth: 1, borderRadius: 3 }]
+        },
+        options: {
+          ...barOpts, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: {
+              label: i => ` ${i.raw.toLocaleString('pt-BR')} ocorrências`,
+              afterBody: () => ['', '  ▸ clique para ver municípios']
+            }}
+          },
+          onClick: (_evt, elems) => {
+            if (!elems.length) return;
+            pdSetCia(ciaRankLabels[elems[0].index]);
+          }
+        }
+      }));
+    } else if (ciaRankCtx) {
+      const e = document.getElementById('pd-cia-empty'); if (e) e.style.display = ''; ciaRankCtx.canvas.style.display = 'none';
     }
   } else {
     rdBar('pd-cia', topCias.map(([k])=>k), topCias.map(([,v])=>v));
