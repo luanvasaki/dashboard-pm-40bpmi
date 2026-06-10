@@ -5563,16 +5563,13 @@ function prodRender() {
       return `<div class="kpi" onclick="openProdDetail('conseg')" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top" style="background:${CONSEG_COR}"></div>
         <div class="kpi-lbl">CONSEG</div>
-        <div style="margin-top:10px">
-          ${metricRow('CONSEGs Ativos', `${ativosCount}/${totalConseg}`, CONSEG_COR)}
-          <div style="display:flex;justify-content:flex-end;margin-top:6px">
-            <span style="font-family:'DM Mono',monospace;font-size:34px;font-weight:700;color:${taxaCor}">${taxa}%</span>
-          </div>
-          ${inativosMuns.length
-            ? `<div style="margin-top:8px;font-size:19px;color:#e05555;line-height:1.4">Inativos: ${inativosMuns.join(', ')}</div>`
-            : `<div style="margin-top:8px;font-size:19px;color:#4bc87a">Todos ativos ✓</div>`
-          }
-        </div>
+        <div class="kpi-sub" style="margin-top:4px">${ativosCount}/${totalConseg} ativos</div>
+        <div class="kpi-val" style="color:${taxaCor};margin-top:4px">${taxa}%</div>
+        ${inativosMuns.length
+          ? `<div style="margin-top:8px;font-size:19px;color:#e05555;line-height:1.4">Inativos: ${inativosMuns.join(', ')}</div>`
+          : `<div style="margin-top:8px;font-size:19px;color:#4bc87a">Todos ativos ✓</div>`
+        }
+        <div class="kpi-hint" style="margin-top:10px">▸ clique p/ detalhes</div>
       </div>`;
     })();
 
