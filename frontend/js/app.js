@@ -6978,7 +6978,7 @@ function renderConsegModalDetail() {
     </tr>`;
   }).join('');
 
-  const munHeight = Math.max(180, munFreq.length * 90);
+  const munHeight = Math.max(160, munFreq.length * 65);
 
   document.getElementById('pd-sub').textContent = prodSelAno || '';
 
@@ -7002,7 +7002,7 @@ function renderConsegModalDetail() {
         </div>
       </div>
     </div>
-    <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:8px">
+    <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:8px;align-items:stretch;align-self:start">
       <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:10px;padding:12px 12px 6px">
         <div style="${titSt}">% Reuniões Realizadas por Município — ${prodSelAno}</div>
         <div style="position:relative;height:${munHeight}px"><canvas id="conseg-mun-bar"></canvas></div>
@@ -7095,10 +7095,11 @@ function renderConsegModalDetail() {
       type: 'bar',
       data: {
         labels: munFreq.map(m => m.mun),
-        datasets: [{ data: munFreq.map(m => m.pct), backgroundColor: munColors, borderRadius: 4, borderSkipped: false }]
+        datasets: [{ data: munFreq.map(m => m.pct), backgroundColor: munColors, borderRadius: 4, borderSkipped: false, barThickness: 38 }]
       },
       options: {
         indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: 0, bottom: 4, left: 0, right: 0 } },
         plugins: {
           legend: { display: false },
           tooltip: { callbacks: { label: i => ` ${munFreq[i.dataIndex].reunioes}/${nMeses} meses (${i.raw}%)` } }
