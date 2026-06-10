@@ -6978,7 +6978,7 @@ function renderConsegModalDetail() {
     </tr>`;
   }).join('');
 
-  const munHeight = Math.max(160, munFreq.length * 65);
+  const munHeight = Math.max(200, munFreq.length * 95);
 
   document.getElementById('pd-sub').textContent = prodSelAno || '';
 
@@ -7095,7 +7095,7 @@ function renderConsegModalDetail() {
       type: 'bar',
       data: {
         labels: munFreq.map(m => m.mun),
-        datasets: [{ data: munFreq.map(m => m.pct), backgroundColor: munColors, borderRadius: 4, borderSkipped: false, barThickness: 38 }]
+        datasets: [{ data: munFreq.map(m => m.pct), backgroundColor: munColors, borderRadius: 4, borderSkipped: false, barThickness: 48 }]
       },
       options: {
         indexAxis: 'y', responsive: true, maintainAspectRatio: false,
