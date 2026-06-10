@@ -5505,19 +5505,15 @@ function prodRender() {
       }).length;
       const inaptosTafN = comTaf.filter(pm => REPROV.has((pm.taf||'').toLowerCase().trim())).length;
       const vencidos = p1Data.filter(isVenc).length;
-      const metricRow = (label, val, cor) =>
-        `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px">
-          <span style="font-family:'DM Mono',monospace;font-size:19px;color:#f4f6fc">${label}</span>
-          <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${cor}">${val}</span>
-        </div>`;
+      const pctAptos = comTaf.length ? Math.round(aptosMB365 / comTaf.length * 100) : 0;
+      const tafCor = pctAptos >= 70 ? '#4bc87a' : pctAptos >= 40 ? '#e8b840' : '#e05555';
       return `<div class="kpi" onclick="openProdDetail('taftat')" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top" style="background:${TF_COR}"></div>
         <div class="kpi-lbl">TAF / TAT</div>
-        <div style="margin-top:10px">
-          ${metricRow('Aptos MB+', aptosMB365, '#4bc87a')}
-          ${metricRow('Inaptos TAF', inaptosTafN, inaptosTafN > 0 ? '#e05555' : 'var(--tx3)')}
-          ${metricRow('Vencidos', vencidos, vencidos > 0 ? '#e05555' : 'var(--tx3)')}
-        </div>
+        <div class="kpi-sub" style="margin-top:4px">${aptosMB365}/${comTaf.length} aptos MB+</div>
+        <div class="kpi-val" style="color:${tafCor};margin-top:4px">${pctAptos}%</div>
+        ${inaptosTafN > 0 ? `<div style="margin-top:8px;font-size:19px;color:#e05555">${inaptosTafN} inapto${inaptosTafN > 1 ? 's' : ''} TAF</div>` : ''}
+        ${vencidos > 0 ? `<div style="margin-top:4px;font-size:19px;color:#e8b840">${vencidos} vencido${vencidos > 1 ? 's' : ''}</div>` : ''}
         <div class="kpi-hint" style="margin-top:10px">▸ clique p/ detalhes</div>
       </div>`;
     })() +
@@ -5529,19 +5525,12 @@ function prodRender() {
       const totalFamilias = pvsData.reduce((s, r) => s + (r.familias_atendidas || 0), 0);
       const allNotas = pvsData.filter(r => r.nota_eficacia).map(r => r.nota_eficacia);
       const mediaNota = allNotas.length ? (allNotas.reduce((s, n) => s + n, 0) / allNotas.length).toFixed(1) : null;
-      const metricRow = (label, val, cor) =>
-        `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px">
-          <span style="font-family:'DM Mono',monospace;font-size:19px;color:#f4f6fc">${label}</span>
-          <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${cor}">${val}</span>
-        </div>`;
       return `<div class="kpi" onclick="openProdDetail('pvs')" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top" style="background:${PVS_COR}"></div>
         <div class="kpi-lbl">PVS — Vig. Solidária</div>
-        <div style="margin-top:10px">
-          ${metricRow('Municípios', totalMuns, PVS_COR)}
-          ${metricRow('Famílias', totalFamilias.toLocaleString('pt-BR'), PVS_COR)}
-          ${mediaNota ? metricRow('Nota Eficácia', `${mediaNota}/10`, '#4bc87a') : ''}
-        </div>
+        <div class="kpi-sub" style="margin-top:4px">${totalMuns} município${totalMuns !== 1 ? 's' : ''}</div>
+        <div class="kpi-val" style="color:${PVS_COR};margin-top:4px">${totalFamilias.toLocaleString('pt-BR')}</div>
+        ${mediaNota ? `<div style="margin-top:8px;font-size:19px;color:#4bc87a">nota eficácia: ${mediaNota}/10</div>` : ''}
         <div class="kpi-hint" style="margin-top:10px">▸ clique p/ detalhes</div>
       </div>`;
     })() +
