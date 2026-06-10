@@ -5577,14 +5577,14 @@ function prodRender() {
       const pct = maxV > 0 ? Math.round(v / maxV * 100) : 0;
       return `<div style="margin-bottom:${i < rows.length - 1 ? '16' : '0'}px">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-          <div style="font-size:22px;color:${barCor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:68%">${i + 1}. ${cia}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:22px;color:${barCor};font-weight:700">${v.toLocaleString('pt-BR')}</div>
+          <div style="font-size:25px;color:${barCor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:68%">${i + 1}. ${cia}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:25px;color:${barCor};font-weight:700">${v.toLocaleString('pt-BR')}</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:3px;height:8px"><div style="height:100%;width:${pct}%;background:${barCor};border-radius:3px"></div></div>
       </div>`;
     }).join('');
     return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:10px;padding:22px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:18px">${label}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:25px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:18px">${label}</div>
       ${items}
     </div>`;
   };
@@ -5621,13 +5621,13 @@ function prodRender() {
     const [ciaTopo, valTopo] = ciaCompRank[0];
     const runners = ciaCompRank.slice(1, 4).map(([c, v]) =>
       `<div style="display:flex;justify-content:space-between;margin-top:12px">
-        <span style="font-size:22px;color:#ffffff">${c}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;font-weight:700">${v.toLocaleString('pt-BR')}</span>
+        <span style="font-size:25px;color:#ffffff">${c}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:25px;color:#ffffff;font-weight:700">${v.toLocaleString('pt-BR')}</span>
       </div>`).join('');
     insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:10px;padding:22px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:12px">CIA em Destaque</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:800;color:var(--tx);line-height:1.1;margin-bottom:6px">${ciaTopo}</div>
-      <div style="font-family:'DM Mono',monospace;font-size:22px;color:#f0c040;margin-bottom:14px">${valTopo.toLocaleString('pt-BR')} ações (presos + armas + veíc.)</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:25px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:12px">CIA em Destaque</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:800;color:var(--tx);line-height:1.1;margin-bottom:6px">${ciaTopo}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:25px;color:#f0c040;margin-bottom:14px">${valTopo.toLocaleString('pt-BR')} ações (presos + armas + veíc.)</div>
       ${runners}
     </div>`);
   }
@@ -5655,20 +5655,20 @@ function prodRender() {
     [...cursosUnicosAno.values()].forEach(t => { tipoCount[t] = (tipoCount[t]||0) + 1; });
     const tipoRows = TIPO_ORD.filter(t => tipoCount[t]).map(t =>
       `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
-        <span style="font-size:22px;color:var(--tx2)">${t}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:${TIPO_COR[t]||'var(--tx)'}">${tipoCount[t]}</span>
+        <span style="font-size:25px;color:var(--tx2)">${t}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:25px;font-weight:700;color:${TIPO_COR[t]||'var(--tx)'}">${tipoCount[t]}</span>
       </div>`
     ).join('');
 
     insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR_CAP};border-radius:10px;padding:22px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR_CAP};margin-bottom:12px">Índice de Capacitação</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:46px;font-weight:800;color:var(--tx);line-height:1;margin-bottom:4px">${pmsCapacitados.size}</div>
-      <div style="font-family:'DM Mono',monospace;font-size:22px;color:${COR_CAP};margin-bottom:${pct !== null ? '12' : '16'}px">PMs capacitados em ${prodSelAno||'—'}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:25px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR_CAP};margin-bottom:12px">Índice de Capacitação</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:54px;font-weight:800;color:var(--tx);line-height:1;margin-bottom:4px">${pmsCapacitados.size}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:25px;color:${COR_CAP};margin-bottom:${pct !== null ? '12' : '16'}px">PMs capacitados em ${prodSelAno||'—'}</div>
       ${pct !== null ? `
       <div style="margin-bottom:16px">
         <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-          <span style="font-family:'DM Mono',monospace;font-size:22px;color:var(--tx3)">do efetivo (${totalEfetivo} PMs)</span>
-          <span style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:${COR_CAP}">${pct}%</span>
+          <span style="font-family:'DM Mono',monospace;font-size:25px;color:var(--tx3)">do efetivo (${totalEfetivo} PMs)</span>
+          <span style="font-family:'DM Mono',monospace;font-size:25px;font-weight:700;color:${COR_CAP}">${pct}%</span>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:3px;height:8px">
           <div style="height:100%;width:${barW}%;background:${COR_CAP};border-radius:3px;transition:width .4s"></div>
@@ -5693,14 +5693,14 @@ function prodRender() {
       const pct = maxMes > 0 ? Math.round(v / maxMes * 100) : 0;
       return `<div style="margin-bottom:${i < 4 ? '16' : '0'}px">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-          <div style="font-size:22px;color:#ffffff;font-weight:${i === 0 ? '700' : '400'}">${i + 1}. ${m}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;font-weight:700">${v.toLocaleString('pt-BR')}</div>
+          <div style="font-size:25px;color:#ffffff;font-weight:${i === 0 ? '700' : '400'}">${i + 1}. ${m}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:25px;color:#ffffff;font-weight:700">${v.toLocaleString('pt-BR')}</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:3px;height:8px"><div style="height:100%;width:${pct}%;background:#f0c040;border-radius:3px"></div></div>
       </div>`;
     }).join('');
     insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:10px;padding:22px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:16px">Meses Mais Produtivos</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:25px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:16px">Meses Mais Produtivos</div>
       ${mesRows}
     </div>`);
   }
@@ -5717,15 +5717,15 @@ function prodRender() {
       const pct = Math.round(t.v / totGeral * 100);
       return `<div style="margin-bottom:18px">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-          <div style="font-size:22px;color:#ffffff;font-weight:600">${t.label}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;font-weight:700">${pct}%</div>
+          <div style="font-size:25px;color:#ffffff;font-weight:600">${t.label}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:25px;color:#ffffff;font-weight:700">${pct}%</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:3px;height:8px"><div style="height:100%;width:${pct}%;background:${t.cor};border-radius:3px"></div></div>
-        <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;margin-top:5px">${t.v.toLocaleString('pt-BR')} no período</div>
+        <div style="font-family:'DM Mono',monospace;font-size:25px;color:#ffffff;margin-top:5px">${t.v.toLocaleString('pt-BR')} no período</div>
       </div>`;
     }).join('');
     insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid var(--bd2);border-radius:10px;padding:22px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx2);margin-bottom:16px">Distribuição por Tipo</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:25px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx2);margin-bottom:16px">Distribuição por Tipo</div>
       ${distRows}
     </div>`);
   }
@@ -5766,20 +5766,20 @@ function prodRender() {
       const diffStr = (diff > 0 ? '+' : '') + diff.toLocaleString('pt-BR');
       const pctStr  = pct !== null ? ` (${diff >= 0 ? '+' : ''}${pct}%)` : '';
       return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:10px;padding:22px 24px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:12px">${label}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:25px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:12px">${label}</div>
         <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px">
-          <span style="font-family:'DM Mono',monospace;font-size:42px;font-weight:700;color:${corSeta};line-height:1">${seta}</span>
-          <span style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:${corSeta}">${diffStr}${pctStr}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:50px;font-weight:700;color:${corSeta};line-height:1">${seta}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:25px;font-weight:700;color:${corSeta}">${diffStr}${pctStr}</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <div style="flex:1;background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px;text-align:center">
-            <div style="font-family:'DM Mono',monospace;font-size:22px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${MES_ABREV[mesA] || mesA.slice(0,3)}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:22px;color:var(--tx2);font-weight:600">${vA.toLocaleString('pt-BR')}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:25px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${MES_ABREV[mesA] || mesA.slice(0,3)}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:25px;color:var(--tx2);font-weight:600">${vA.toLocaleString('pt-BR')}</div>
           </div>
-          <div style="color:var(--tx3);font-size:22px">›</div>
+          <div style="color:var(--tx3);font-size:25px">›</div>
           <div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:10px 12px;text-align:center;border:1px solid ${cor}44">
-            <div style="font-family:'DM Mono',monospace;font-size:22px;color:${cor};letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${MES_ABREV[mesB] || mesB.slice(0,3)}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:22px;color:var(--tx);font-weight:700">${vB.toLocaleString('pt-BR')}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:25px;color:${cor};letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${MES_ABREV[mesB] || mesB.slice(0,3)}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:25px;color:var(--tx);font-weight:700">${vB.toLocaleString('pt-BR')}</div>
           </div>
         </div>
       </div>`;
