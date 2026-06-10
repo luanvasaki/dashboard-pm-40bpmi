@@ -5530,6 +5530,7 @@ function prodRender() {
         <div class="kpi-lbl">PVS — Vig. Solidária</div>
         <div class="kpi-sub" style="margin-top:4px">${totalMuns} município${totalMuns !== 1 ? 's' : ''}</div>
         <div class="kpi-val" style="color:${PVS_COR};margin-top:4px">${totalFamilias.toLocaleString('pt-BR')}</div>
+        <div class="kpi-sub" style="margin-top:2px">famílias atendidas</div>
         ${mediaNota ? `<div style="margin-top:8px;font-size:19px;color:#4bc87a">nota eficácia: ${mediaNota}/10</div>` : ''}
         <div class="kpi-hint" style="margin-top:10px">▸ clique p/ detalhes</div>
       </div>`;
