@@ -1012,7 +1012,8 @@ const PROD_TABS = {
   entorpecentes:      'prod_entorpecentes',
   'visita-solidaria': 'prod_visita_solidaria',
   'tempo-resposta':   'prod_tempo_resposta',
-  'cursos':           'prod_cursos'
+  'cursos':           'prod_cursos',
+  'conseg':           'prod_conseg'
 };
 
 function mapProdRow(tipo, r) {
@@ -1116,6 +1117,27 @@ function mapProdRow(tipo, r) {
       pct_boe:          pctStr(getPartial('boe')),
     };
   }
+  if (tipo === 'conseg') {
+    // Campo "Mês / Ano (MM/AAAA)" contém datas no formato DD/MM/YYYY (ex.: "01/12/2025" = dezembro/2025)
+    const mesAnoStr = get('Mês / Ano (MM/AAAA)', 'Mes / Ano (MM/AAAA)', 'Mês / Ano', 'Mes / Ano') || '';
+    const dm = mesAnoStr.match(/^(\d{1,2})\/(\d{2})\/(\d{4})/);
+    const mesNum  = dm ? parseInt(dm[2]) : 0;
+    const anoVal  = dm ? parseInt(dm[3]) : 0;
+    const mesNome = normMes(_MESES_PT[mesNum - 1] || '');
+    const houveStr    = (get('Houve Reunião', 'Houve Reuniao') || '').toLowerCase().trim();
+    const providencias = get('Providências Adatodas', 'Providencias Adatodas', 'Providências Adotadas', 'Providencias Adotadas') || '';
+    return {
+      ano:                anoVal,
+      mes:                mesNome,
+      cia:                normCia(get('Cia', 'CIA')),
+      municipio:          (get('Município', 'Municipio') || '').trim(),
+      houve_reuniao:      houveStr === 'sim',
+      data_reuniao:       get('Data da Reunião', 'Data da Reuniao') || '',
+      data_ultima_reuniao: get('Data da última reunião', 'Data da ultima reuniao') || '',
+      providencias,
+      conseg_ativo:       !providencias.toUpperCase().includes('CONSEG INATIVO'),
+    };
+  }
   return null;
 }
 
@@ -1139,8 +1161,18 @@ app.post('/api/upload/prod/:tipo', requireAuth, requireRole('admin', 'p3'), asyn
   const { records } = req.body;
   if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
   try {
-    const rows = records.map(r => mapProdRow(req.params.tipo, r)).filter(r => r && r.ano > 0 && r.mes);
+    let rows = records.map(r => mapProdRow(req.params.tipo, r)).filter(r => r && r.ano > 0 && r.mes);
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
+    // CONSEG: deduplica por (municipio, mes, ano) — prioriza houve_reuniao=true; propaga conseg_ativo=false
+    if (req.params.tipo === 'conseg') {
+      const uniq = {};
+      rows.forEach(r => {
+        const key = `${r.municipio}|${r.mes}|${r.ano}`;
+        if (!uniq[key] || (!uniq[key].houve_reuniao && r.houve_reuniao)) uniq[key] = { ...r };
+        if (!r.conseg_ativo) uniq[key].conseg_ativo = false;
+      });
+      rows = Object.values(uniq);
+    }
     const anos = [...new Set(rows.map(r => r.ano))];
     for (const ano of anos) {
       const { error: delErr } = await supabase.from(tab).delete().eq('ano', ano);

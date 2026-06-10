@@ -5158,6 +5158,7 @@ function updateSidebarImports(section) {
       ['tempo-resposta',   'Tempo Resposta Atend. Ocorrência', '#4bc8e0'],
       ['cursos',           'Cursos Institucionais',            '#9de05a'],
       ['pvs',              'PVS — Vigilância Solidária',       '#e8a040'],
+      ['conseg',           'CONSEG',                           '#3db8a4'],
     ];
     el.innerHTML = itens.map(([t, l, c]) =>
       `<button onclick="openProdUpl('${t}')" style="width:100%;padding:6px;margin-top:4px;background:rgba(0,0,0,.15);border:1px solid ${c}55;color:${c};border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ ${l}</button>`
@@ -5233,7 +5234,7 @@ function goPage(id, btn) {
 // ---------------------------------------------------------------------------
 // PRODUTIVIDADE P3
 // ---------------------------------------------------------------------------
-let prodRaw = { ocorrencias: [], presos: [], armas: [], veiculos: [], entorpecentes: [], visitaSolidaria: [], tempoResposta: [], cursos: [], pvs: [], loaded: false };
+let prodRaw = { ocorrencias: [], presos: [], armas: [], veiculos: [], entorpecentes: [], visitaSolidaria: [], tempoResposta: [], cursos: [], pvs: [], conseg: [], loaded: false };
 let _trNatCiaData = {}; // { natureza: [{cia, pct, taloes, fora}, ...] } — populado em renderTRModalDetail
 let _taftatData   = null;
 let _taftatTab    = 'taf';
@@ -5256,7 +5257,8 @@ const PROD_CORES = {
   'tempo-resposta': '#4bc8e0',
   cursos:           '#9de05a',
   taftat:           '#7b8cde',
-  pvs:              '#e8a040'
+  pvs:              '#e8a040',
+  conseg:           '#3db8a4'
 };
 const PROD_LABELS = {
   ocorrencias:        'Ocorrências Atendidas',
@@ -5268,7 +5270,8 @@ const PROD_LABELS = {
   'tempo-resposta':   'Tempo Resposta de Atendimento de Ocorrência',
   'cursos':           'Cursos Institucionais',
   'taftat':           'TAF / TAT',
-  'pvs':              'PVS — Vigilância Solidária'
+  'pvs':              'PVS — Vigilância Solidária',
+  'conseg':           'CONSEG'
 };
 const PROD_CAMPO = {
   ocorrencias:   'contagem',
@@ -5302,7 +5305,7 @@ function prodSum(arr, field) {
 
 function prodGetAnosDisp() {
   const all = new Set();
-  ['ocorrencias','presos','armas','veiculos','entorpecentes','visitaSolidaria','tempoResposta','cursos'].forEach(k => {
+  ['ocorrencias','presos','armas','veiculos','entorpecentes','visitaSolidaria','tempoResposta','cursos','conseg'].forEach(k => {
     if (Array.isArray(prodRaw[k])) prodRaw[k].forEach(r => r.ano && all.add(r.ano));
   });
   return [...all].sort((a, b) => b - a);
@@ -5310,7 +5313,7 @@ function prodGetAnosDisp() {
 
 function prodGetMesesDisp(ano) {
   const all = new Set();
-  ['ocorrencias','presos','armas','veiculos','entorpecentes','visitaSolidaria','tempoResposta','cursos'].forEach(k => {
+  ['ocorrencias','presos','armas','veiculos','entorpecentes','visitaSolidaria','tempoResposta','cursos','conseg'].forEach(k => {
     if (Array.isArray(prodRaw[k]))
       prodRaw[k].filter(r => !ano || r.ano === ano).forEach(r => r.mes && all.add((r.mes||'').toLowerCase()));
   });
@@ -5319,7 +5322,7 @@ function prodGetMesesDisp(ano) {
 
 function prodGetCiasDisp() {
   const all = new Set();
-  ['ocorrencias','presos','armas','veiculos','entorpecentes','visitaSolidaria','tempoResposta'].forEach(k => {
+  ['ocorrencias','presos','armas','veiculos','entorpecentes','visitaSolidaria','tempoResposta','conseg'].forEach(k => {
     if (Array.isArray(prodRaw[k])) prodRaw[k].forEach(r => r.cia && all.add(normCiaDisp(r.cia.trim())));
   });
   return [...all].sort((a, b) => {
@@ -5540,6 +5543,36 @@ function prodRender() {
           ${mediaNota ? metricRow('Nota Eficácia', `${mediaNota}/10`, '#4bc87a') : ''}
         </div>
         <div class="kpi-hint" style="margin-top:10px">▸ clique p/ detalhes</div>
+      </div>`;
+    })() +
+    (() => {
+      const CONSEG_COR = PROD_CORES.conseg;
+      const consegAll = prodRaw.conseg || [];
+      if (!consegAll.length) return '';
+      const allMuns = [...new Set(consegAll.map(r => r.municipio).filter(Boolean))];
+      const inativosMuns = [...new Set(consegAll.filter(r => !r.conseg_ativo).map(r => r.municipio))];
+      const totalConseg  = allMuns.length;
+      const ativosCount  = totalConseg - inativosMuns.length;
+      const taxa = totalConseg ? Math.round(ativosCount / totalConseg * 100) : 0;
+      const taxaCor = taxa >= 80 ? '#4bc87a' : taxa >= 60 ? '#e8b840' : '#e05555';
+      const metricRow = (label, val, cor) =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px">
+          <span style="font-family:'DM Mono',monospace;font-size:19px;color:#f4f6fc">${label}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${cor}">${val}</span>
+        </div>`;
+      return `<div class="kpi">
+        <div class="kpi-top" style="background:${CONSEG_COR}"></div>
+        <div class="kpi-lbl">CONSEG</div>
+        <div style="margin-top:10px">
+          ${metricRow('CONSEGs Ativos', `${ativosCount}/${totalConseg}`, CONSEG_COR)}
+          <div style="display:flex;justify-content:flex-end;margin-top:6px">
+            <span style="font-family:'DM Mono',monospace;font-size:34px;font-weight:700;color:${taxaCor}">${taxa}%</span>
+          </div>
+          ${inativosMuns.length
+            ? `<div style="margin-top:8px;font-size:19px;color:#e05555;line-height:1.4">Inativos: ${inativosMuns.join(', ')}</div>`
+            : `<div style="margin-top:8px;font-size:19px;color:#4bc87a">Todos ativos ✓</div>`
+          }
+        </div>
       </div>`;
     })();
 
@@ -5770,6 +5803,108 @@ function prodRender() {
     }
   }
 
+  // Seção CONSEG
+  const consegHtml = (() => {
+    const consegData = prodRaw.conseg || [];
+    if (!consegData.length) return '';
+    const CONSEG_COR = PROD_CORES.conseg;
+    const allMuns = [...new Set(consegData.map(r => r.municipio).filter(Boolean))].sort();
+    const inativosMuns = new Set(consegData.filter(r => !r.conseg_ativo).map(r => r.municipio));
+    const filtConseg = consegData.filter(r => !prodSelAno || r.ano === prodSelAno);
+    if (!filtConseg.length) return '';
+    const consegMeses = MES_ORD.filter(m => filtConseg.some(r => (r.mes||'').toLowerCase() === m.toLowerCase()));
+
+    // Grade de status: município × mês
+    const gridHeaders = consegMeses.map(m =>
+      `<th style="padding:6px 8px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${CONSEG_COR}">${MES_ABREV[m] || m.slice(0,3).toUpperCase()}</th>`
+    ).join('');
+    const gridRows = allMuns.map(mun => {
+      const ciaRec = consegData.find(r => r.municipio === mun);
+      const cia = ciaRec ? normCiaDisp(ciaRec.cia) : '';
+      const cells = consegMeses.map(mes => {
+        const recs = filtConseg.filter(r => r.municipio === mun && (r.mes||'').toLowerCase() === mes.toLowerCase());
+        if (!recs.length) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">—</td>`;
+        const rec = recs.find(r => r.houve_reuniao) || recs[0];
+        if (!rec.conseg_ativo) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:15px;color:#f07878;font-weight:700">INATIVO</td>`;
+        return rec.houve_reuniao
+          ? `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;font-weight:700">✓</td>`
+          : `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:19px;color:#e05555">✗</td>`;
+      }).join('');
+      return `<tr style="border-bottom:1px solid var(--bd2)">
+        <td style="padding:7px 10px;font-size:19px;color:var(--tx2);font-weight:600;white-space:nowrap">${mun}</td>
+        <td style="padding:7px 10px;font-size:19px;color:var(--tx3)">${cia}</td>
+        ${cells}
+      </tr>`;
+    }).join('');
+    const statusGrid = `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${CONSEG_COR};border-radius:10px;padding:20px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${CONSEG_COR};margin-bottom:14px">Status de Reuniões por Município — ${prodSelAno}</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;min-width:360px">
+          <thead><tr style="border-bottom:2px solid var(--bd2)">
+            <th style="padding:6px 10px;text-align:left;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);font-weight:400">Município</th>
+            <th style="padding:6px 10px;text-align:left;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);font-weight:400">CIA</th>
+            ${gridHeaders}
+          </tr></thead>
+          <tbody>${gridRows}</tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">✓ reunião realizada · ✗ sem reunião · INATIVO conseg inativo · — sem registro</div>
+    </div>`;
+
+    // Barras de frequência por município
+    const freqItems = allMuns.map(mun => {
+      const rows = filtConseg.filter(r => r.municipio === mun);
+      if (!rows.length) return null;
+      const reunioes = rows.filter(r => r.houve_reuniao).length;
+      const total = rows.length;
+      const pct = Math.round(reunioes / total * 100);
+      const cor = inativosMuns.has(mun) ? '#e05555' : (pct >= 75 ? '#4bc87a' : pct >= 50 ? '#e8b840' : '#e0965a');
+      return { mun, reunioes, total, pct, cor };
+    }).filter(Boolean).sort((a, b) => b.pct - a.pct);
+
+    const freqCard = freqItems.length ? `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${CONSEG_COR};border-radius:10px;padding:20px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${CONSEG_COR};margin-bottom:16px">Frequência por Município</div>
+      ${freqItems.map((item, i) => `<div style="margin-bottom:${i < freqItems.length - 1 ? '12' : '0'}px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:19px;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:58%">${item.mun}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${item.cor}">${item.reunioes}/${item.total} (${item.pct}%)</span>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px"><div style="height:100%;width:${item.pct}%;background:${item.cor};border-radius:3px"></div></div>
+      </div>`).join('')}
+    </div>` : '';
+
+    // Barras por CIA
+    const ciaStats = {};
+    filtConseg.forEach(r => {
+      const cia = r.cia ? normCiaDisp(r.cia) : 'Não informado';
+      if (!ciaStats[cia]) ciaStats[cia] = { total: 0, reunioes: 0 };
+      ciaStats[cia].total++;
+      if (r.houve_reuniao) ciaStats[cia].reunioes++;
+    });
+    const ciaItems = Object.entries(ciaStats)
+      .map(([cia, s]) => ({ cia, pct: s.total ? Math.round(s.reunioes / s.total * 100) : 0, reunioes: s.reunioes, total: s.total }))
+      .sort((a, b) => b.pct - a.pct);
+    const ciaCard = ciaItems.length ? `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${CONSEG_COR};border-radius:10px;padding:20px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${CONSEG_COR};margin-bottom:16px">Frequência por CIA</div>
+      ${ciaItems.map((item, i) => {
+        const barCor = ciaCorByName(item.cia);
+        return `<div style="margin-bottom:${i < ciaItems.length - 1 ? '12' : '0'}px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:19px;color:${barCor}">${item.cia}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${barCor}">${item.reunioes}/${item.total} (${item.pct}%)</span>
+          </div>
+          <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px"><div style="height:100%;width:${item.pct}%;background:${barCor};border-radius:3px"></div></div>
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
+    return sec('CONSEG — Conselhos Comunitários de Segurança') +
+      statusGrid +
+      (freqCard || ciaCard
+        ? `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:4px">${freqCard}${ciaCard}</div>`
+        : '');
+  })();
+
   // Monta HTML de todas as seções
   chartsEl.innerHTML =
     tendHtml +
@@ -5780,7 +5915,8 @@ function prodRender() {
     (insCards.length
       ? sec('Insights do Período') +
         `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">${insCards.join('')}</div>`
-      : '');
+      : '') +
+    consegHtml;
 
 }
 function prodSetAno(ano) {
@@ -5813,7 +5949,7 @@ async function loadProdData(force) {
   if (kpisEl) kpisEl.innerHTML = '<div style="grid-column:1/-1;color:var(--tx3);font-size:19px;padding:20px 0">Carregando dados de produtividade...</div>';
   if (chartsEl) chartsEl.innerHTML = '';
   try {
-    const [ocorr, presos, armas, veiculos, entorp, visitaSol, tempoResp, cursos, pvs] = await Promise.all([
+    const [ocorr, presos, armas, veiculos, entorp, visitaSol, tempoResp, cursos, pvs, conseg] = await Promise.all([
       authFetch(`${API}/prod/ocorrencias`).then(r => r.json()),
       authFetch(`${API}/prod/presos`).then(r => r.json()),
       authFetch(`${API}/prod/armas`).then(r => r.json()),
@@ -5823,6 +5959,7 @@ async function loadProdData(force) {
       authFetch(`${API}/prod/tempo-resposta`).then(r => r.json()).catch(() => []),
       authFetch(`${API}/prod/cursos`).then(r => r.json()).catch(() => []),
       authFetch(`${API}/pvs`).then(r => r.json()).catch(() => []),
+      authFetch(`${API}/prod/conseg`).then(r => r.json()).catch(() => []),
     ]);
     prodRaw = {
       ocorrencias:    Array.isArray(ocorr)     ? ocorr     : [],
@@ -5834,6 +5971,7 @@ async function loadProdData(force) {
       tempoResposta:  Array.isArray(tempoResp) ? tempoResp : [],
       cursos:         Array.isArray(cursos)    ? cursos    : [],
       pvs:            Array.isArray(pvs)       ? pvs       : [],
+      conseg:         Array.isArray(conseg)    ? conseg    : [],
       loaded: true
     };
     const anosDisp = prodGetAnosDisp();
@@ -5866,6 +6004,7 @@ function openProdUpl(tipo) {
     'tempo-resposta':   'Colunas: Ano · Mês · CIA · Natureza Final · Qtde Talões · % Talões HD-HCL até 20min · % BOe',
     'cursos':           'Colunas: Nº do Ofício · Data · Curso · PM (formato: Posto PM RE Nome; Posto PM RE Nome; ...)',
     'pvs':              'Colunas: ano · cia · municipio · bairros_com_pvs · nucleos_total · familias_atendidas · modal_residencial · modal_comercial · modal_escolar · modal_rural · modal_empresarial · nota_eficacia · tem_cadastro · pm_whatsapp · reunioes_semestrais · visitas_solidarias',
+    'conseg':           'Colunas: Mês / Ano (MM/AAAA) · Cia · Município · Houve Reunião (Sim/Não) · Data da última reunião · Providências Adatodas · Data da Reunião',
   };
   const hintEl = document.getElementById('prod-upl-hint');
   if (hintEl) hintEl.textContent = PROD_UPL_HINTS[tipo] || '';
