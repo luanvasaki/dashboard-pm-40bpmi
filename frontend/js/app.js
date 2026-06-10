@@ -7022,6 +7022,23 @@ function renderConsegModalDetail() {
     </div>`;
 
   // Doughnut: Ativos vs Inativos
+  const ativosPorCia = {}, inativosPorCia = {};
+  allMuns.forEach(mun => {
+    const ciaRec = consegData.find(r => r.municipio === mun);
+    const cia = ciaRec ? normCiaDisp(ciaRec.cia) : 'Não informado';
+    if (inativosMuns.has(mun)) {
+      if (!inativosPorCia[cia]) inativosPorCia[cia] = [];
+      inativosPorCia[cia].push(mun);
+    } else {
+      if (!ativosPorCia[cia]) ativosPorCia[cia] = [];
+      ativosPorCia[cia].push(mun);
+    }
+  });
+  const donutLines = [
+    Object.entries(ativosPorCia).sort().map(([c, ms]) => `✓ ${c}: ${ms.join(', ')}`),
+    Object.entries(inativosPorCia).sort().map(([c, ms]) => `✗ ${c}: ${ms.join(', ')}`)
+  ];
+
   const donutCtx = document.getElementById('conseg-donut');
   if (donutCtx) {
     pdChs.push(new Chart(donutCtx, {
@@ -7034,7 +7051,12 @@ function renderConsegModalDetail() {
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { position: 'bottom', labels: { color: '#ffffff', font: { size: 19, weight: '700' }, padding: 16 } },
-          tooltip: { callbacks: { label: i => ` ${i.label}: ${i.raw} CONSEG${i.raw !== 1 ? 's' : ''}` } }
+          tooltip: {
+            callbacks: {
+              label: i => ` ${i.label}: ${i.raw} CONSEG${i.raw !== 1 ? 's' : ''}`,
+              afterBody: items => donutLines[items[0].dataIndex]
+            }
+          }
         }
       }
     }));
