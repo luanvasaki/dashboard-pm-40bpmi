@@ -2855,7 +2855,7 @@ function renderP1() {
       <div class="kpi-top"></div>
       <div class="kpi-lbl">${label}</div>
       <div class="kpi-val">${val}</div>
-      ${sub ? `<div class="kpi-sub" style="line-height:1.5;color:#ffffff">${sub}</div>` : ''}
+      ${sub ? `<div class="kpi-sub" style="line-height:1.5;width:100%">${sub}</div>` : ''}
       <div class="kpi-hint">▸ clique p/ detalhes</div>
     </div>`;
   };
@@ -2863,20 +2863,27 @@ function renderP1() {
   // Tipos de afastamento agrupados
   const tiposCount = {};
   pmAfastados.forEach(r => { (afastHoje[r.re] || []).forEach(a => { tiposCount[a.tipo_afastamento] = (tiposCount[a.tipo_afastamento] || 0) + 1; }); });
-  const tiposSub = Object.entries(tiposCount).map(([t,n]) => `${n} ${t}`).join(' · ') || '';
+  const _kpiRow = (label, val, color) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="color:var(--tx3);font-size:18px">${label}</span><span style="color:${color};font-weight:700;font-size:19px">${val}</span></div>`;
+  const tiposSub = Object.entries(tiposCount).map(([t,n]) => _kpiRow(t, n, '#e05555')).join('') || '—';
 
   kpisEl.innerHTML =
-    kpiCard('Total Efetivo', total, Object.keys(CATS).filter(k=>count(dataF,k)>0).map(k=>`<span style="color:${CATS_COLOR[k]}">${count(dataF,k)} ${CATS[k]}</span>`).join('<span style="color:var(--bd2);margin:0 4px">·</span>'), 'var(--tx)', 'total') +
+    kpiCard('Total Efetivo', total,
+      Object.keys(CATS).filter(k=>count(dataF,k)>0).map(k => _kpiRow(CATS[k], count(dataF,k), CATS_COLOR[k])).join(''),
+      'var(--tx)', 'total') +
     kpiCard('Aptos', pmAptos.length, total > 0 ? `${Math.round(pmAptos.length/total*100)}% do efetivo` : '—', '#4bc87a', 'aptos') +
-    kpiCard('Afastamentos', pmAfastados.length, tiposSub || '—', pmAfastados.length > 0 ? '#e05555' : 'var(--tx3)', 'afastados') +
+    kpiCard('Afastamentos', pmAfastados.length, tiposSub, pmAfastados.length > 0 ? '#e05555' : 'var(--tx3)', 'afastados') +
     kpiCard('Em Restrição', pmComRestricao.length, vencendoRestricao.length > 0 ? `⚠ ${vencendoRestricao.length} vencem em 30 dias` : '—', pmComRestricao.length > 0 ? '#c8a84b' : 'var(--tx3)', 'restricao') +
     kpiCard(`EAP / TAF / TAT ${anoAtual}`, pmEapFeito.length,
-      `<span style="color:#4bc87a">${pmEapFeito.length} realizaram</span> · <span style="color:#c8a84b">${pmEapPendente.length} pendentes</span>` +
-      (inaptosTaf.length ? ` · <span style="color:#e05555">${inaptosTaf.length} inapto${inaptosTaf.length>1?'s':''} TAF</span>` : '') +
-      (inaptosTat.length ? ` · <span style="color:#e05555">${inaptosTat.length} inapto${inaptosTat.length>1?'s':''} TAT</span>` : '') +
-      (taftatVencidos.length ? ` · <span style="color:#e05555">${taftatVencidos.length} vencidos</span>` : ''),
+      [_kpiRow('Realizaram', pmEapFeito.length, '#4bc87a'),
+       _kpiRow('Pendentes', pmEapPendente.length, '#c8a84b'),
+       ...(inaptosTaf.length ? [_kpiRow('Inaptos TAF', inaptosTaf.length, '#e05555')] : []),
+       ...(inaptosTat.length ? [_kpiRow('Inaptos TAT', inaptosTat.length, '#e05555')] : []),
+       ...(taftatVencidos.length ? [_kpiRow('Vencidos', taftatVencidos.length, '#e05555')] : [])
+      ].join(''),
       (inaptosTaf.length || inaptosTat.length || taftatVencidos.length) ? '#e05555' : pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a', 'eap') +
-    kpiCard('Controle de Férias', ferEmGozo.length, `${ferEmGozo.length} em gozo · ${ferEm15Dias.length} em 15d`, ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)', 'ferias') +
+    kpiCard('Controle de Férias', ferEmGozo.length,
+      [_kpiRow('Em gozo', ferEmGozo.length, '#5a9de0'), _kpiRow('Iniciam em 15d', ferEm15Dias.length, '#5a9de0')].join(''),
+      ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)', 'ferias') +
     (() => {
       if (!p1Quadro.length) return '';
       const excl = s => /cfp|uis\s*m[eé]d|uis\s*odonto/i.test(s||'');
@@ -2887,9 +2894,12 @@ function renderP1() {
       const gtPct = gtFx > 0 ? ((gtClaro/gtFx)*100).toFixed(1)+'%' : '—';
       const estouradas = qRows.filter(q => (Number(q.fx_total)||0) - (Number(q.ex_total)||0) < 0).length;
       const cor = gtClaro < 0 ? '#e05555' : gtClaro === 0 ? '#c8a84b' : '#4bc87a';
-      const sub = estouradas > 0
-        ? `<span style="color:#e05555">⚠ ${estouradas} unid. estouradas</span> · FX ${gtFx} / EX ${gtEx}`
-        : `FX ${gtFx} / EX ${gtEx} · ${gtPct} claro`;
+      const sub = [
+        ...(estouradas > 0 ? [_kpiRow('Unid. estouradas', estouradas, '#e05555')] : []),
+        _kpiRow('FX Total', gtFx, 'var(--tx3)'),
+        _kpiRow('EX Total', gtEx, 'var(--tx3)'),
+        ...(gtPct !== '—' && !estouradas ? [_kpiRow('Vagas abertas', gtPct, cor)] : [])
+      ].join('');
       return kpiCard('Quadro Fixado', `${gtClaro >= 0 ? '−' : '+'}${Math.abs(gtClaro)}`, sub, cor, 'quadro');
     })();
 
@@ -3014,8 +3024,8 @@ function renderP1() {
     const s = statsOf(ciaPms);
     const catLine = Object.keys(CATS).map(k => {
       const n = ciaPms.filter(r => p1Cat(r.posto) === k).length;
-      return n ? `<span style="color:${CATS_COLOR[k]}">${n} ${CATS[k]}</span>` : '';
-    }).filter(Boolean).join('<span style="color:var(--bd2);margin:0 4px">·</span>');
+      return n ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${CATS[k]}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${CATS_COLOR[k]}">${n}</span></div>` : '';
+    }).filter(Boolean).join('');
 
     const unitBtns = cia.units.map((u, ui) => {
       const upms = getPms(u.keys);
@@ -3078,8 +3088,8 @@ function renderP1() {
     const _esc = unit.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const catLine = Object.keys(CATS).map(k => {
       const n = count(d, k);
-      return n ? `<span style="color:${CATS_COLOR[k]}">${n} ${CATS[k]}</span>` : '';
-    }).filter(Boolean).join('<span style="color:var(--bd2);margin:0 4px">·</span>');
+      return n ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${CATS[k]}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${CATS_COLOR[k]}">${n}</span></div>` : '';
+    }).filter(Boolean).join('');
     return `<div class="p1-uc" data-unit="${unit.replace(/"/g,'&quot;')}" onclick="p1ShowUnit('${_esc}')"
       style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${s.color};border-radius:10px;padding:20px;cursor:pointer;transition:all .2s"
       onmouseover="if(!this.classList.contains('sel')){this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)';this.style.transform='translateY(-2px)'}"
@@ -3174,12 +3184,14 @@ function renderP1() {
       const termino = ats[0]?.termino || '';
       const diasRest = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : null;
       const retStr = diasRest !== null ? `retorna em <b style="color:#e05555">${diasRest}d</b> · ${fmtDate(termino)}` : fmtDate(termino)||'—';
-      bottomItems.push({ order: 0, html: `<div style="padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      bottomItems.push({ order: 0, html: `<div style="display:grid;grid-template-columns:170px 1fr auto;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);border-left:3px solid #e05555;gap:14px">
         ${badge(tipo.split(',')[0].trim().toUpperCase(), '#e05555')}
-        <span style="font-size:19px;color:var(--tx3)">${r.posto||''}</span>
-        <span style="font-size:19px;font-weight:600;color:var(--tx);cursor:pointer" onclick="openProntuario('${_esc2(r.re)}')">${r.nome_guerra||r.nome}</span>
-        <span style="font-size:19px;color:var(--tx3)">${r.opm||''}</span>
-        <span style="font-size:19px;color:var(--tx3);margin-left:auto">${retStr}</span>
+        <div>
+          <span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${r.posto||''}</span>
+          <span style="font-size:20px;font-weight:700;color:var(--tx);margin-left:6px;cursor:pointer" onclick="openProntuario('${_esc2(r.re)}')">${r.nome_guerra||r.nome}</span>
+          ${r.opm ? `<div style="font-size:17px;color:var(--tx3);margin-top:2px">${r.opm}</div>` : ''}
+        </div>
+        <div style="font-size:19px;color:var(--tx3);text-align:right;white-space:nowrap">${retStr}</div>
       </div>` });
     });
   }
@@ -3188,11 +3200,13 @@ function renderP1() {
   if (vencendoRestricao.length) {
     vencendoRestricao.forEach(r => {
       const dias = Math.ceil((new Date(r.restricao_termino) - new Date(hoje)) / 86400000);
-      bottomItems.push({ order: 1, html: `<div style="padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      bottomItems.push({ order: 1, html: `<div style="display:grid;grid-template-columns:170px 1fr auto;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);border-left:3px solid #c8a84b;gap:14px">
         ${badge('RESTRIÇÃO', '#c8a84b')}
-        <span style="font-size:19px;font-weight:600;color:var(--tx)">${r.nome_guerra||r.nome}</span>
-        <span style="font-size:19px;color:var(--tx3)">${r.opm||''}</span>
-        <span style="font-size:19px;color:var(--tx3);margin-left:auto">Vence em <b style="color:#c8a84b">${dias}d</b> · ${fmtDate(r.restricao_termino)}</span>
+        <div>
+          <span style="font-size:20px;font-weight:700;color:var(--tx)">${r.nome_guerra||r.nome}</span>
+          ${r.opm ? `<div style="font-size:17px;color:var(--tx3);margin-top:2px">${r.opm}</div>` : ''}
+        </div>
+        <div style="font-size:19px;color:var(--tx3);text-align:right;white-space:nowrap">Vence em <b style="color:#c8a84b">${dias}d</b> · ${fmtDate(r.restricao_termino)}</div>
       </div>` });
     });
   }
@@ -3214,12 +3228,14 @@ function renderP1() {
       const pm = p1Data.find(r => r.re === a.re);
       const diasAte = Math.ceil((new Date(a.inicio) - new Date(hoje)) / 86400000);
       const [label, cor] = TIPO_COR(a.tipo_afastamento);
-      bottomItems.push({ order: 3, html: `<div style="padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      bottomItems.push({ order: 3, html: `<div style="display:grid;grid-template-columns:170px 1fr auto;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);border-left:3px solid ${cor};gap:14px">
         ${badge(label, cor)}
-        <span style="font-size:19px;color:var(--tx3)">${pm?.posto||''}</span>
-        <span style="font-size:19px;font-weight:600;color:var(--tx)">${pm?.nome_guerra||pm?.nome||a.re}</span>
-        <span style="font-size:19px;color:var(--tx3)">${pm?.opm||''}</span>
-        <span style="font-size:19px;color:var(--tx3);margin-left:auto">Inicia em <b style="color:${cor}">${diasAte}d</b> · ${fmtDate(a.inicio)} → ${fmtDate(a.termino)}</span>
+        <div>
+          <span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${pm?.posto||''}</span>
+          <span style="font-size:20px;font-weight:700;color:var(--tx);margin-left:6px">${pm?.nome_guerra||pm?.nome||a.re}</span>
+          ${pm?.opm ? `<div style="font-size:17px;color:var(--tx3);margin-top:2px">${pm.opm}</div>` : ''}
+        </div>
+        <div style="font-size:19px;color:var(--tx3);text-align:right;white-space:nowrap">Inicia em <b style="color:${cor}">${diasAte}d</b> · ${fmtDate(a.inicio)} → ${fmtDate(a.termino)}</div>
       </div>` });
     });
   }
@@ -3229,7 +3245,10 @@ function renderP1() {
 
   const mkBlock = (titulo, cor, items) => !items.length ? '' : `
     <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-top:14px;overflow:hidden">
-      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:${cor};padding:10px 16px 8px;text-transform:uppercase;border-bottom:1px solid var(--bd)">${titulo} — ${items.length}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:${cor};padding:10px 16px 8px;text-transform:uppercase;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px">
+        <span>${titulo}</span>
+        <span style="background:${cor}28;color:${cor};border-radius:20px;padding:1px 10px;font-size:17px;letter-spacing:0">${items.length}</span>
+      </div>
       ${items.sort((a,b)=>a.order-b.order).map(i=>i.html).join('')}
     </div>`;
 
