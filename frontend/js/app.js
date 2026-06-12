@@ -995,9 +995,9 @@ function renderKPIs() {
     const vp   = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : 0;
     const up   = parseFloat(vp) > 0;
     html += `<div class="kpi" onclick="moOpen('${c}','${PAL[i]}')" title="Clique para detalhes">
-      <div class="kpi-top" style="background:${PAL[i]}"></div>
+      <div class="kpi-top"></div>
       <div class="kpi-lbl">${cl(c)}</div>
-      <div class="kpi-val" style="color:${PAL[i]}">${aval}</div>
+      <div class="kpi-val">${aval}</div>
       <div class="kpi-row2">
         <div class="kpi-sub">ant: ${ant}</div>
         <div class="tag ${up ? 'tbad' : 'tok'}">${up ? '▲' : '▼'}${Math.abs(vp)}%</div>
@@ -1013,9 +1013,9 @@ function renderKPIs() {
     const vp   = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : 0;
     const up   = parseFloat(vp) > 0;
     html += `<div class="kpi" onclick="moOpenGroup('${g.label}')" title="Clique para detalhes">
-      <div class="kpi-top" style="background:${g.color}"></div>
+      <div class="kpi-top"></div>
       <div class="kpi-lbl">${g.label}</div>
-      <div class="kpi-val" style="color:${g.color}">${aval}</div>
+      <div class="kpi-val">${aval}</div>
       <div class="kpi-row2">
         <div class="kpi-sub">ant: ${ant}</div>
         <div class="tag ${up ? 'tbad' : 'tok'}">${up ? '▲' : '▼'}${Math.abs(vp)}%</div>
@@ -1702,7 +1702,7 @@ function moRender() {
 
   const munCriticoHtml = acimaDoMeta.length === 0
     ? `<div class="mk-val" style="color:var(--green2);font-size:22px;padding-top:4px">✓ Todos na meta</div><div class="mk-sub" style="font-size:22px">Nenhum município acima</div>`
-    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span style="font-size:20px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:20px;color:#ffaaaa;margin-left:8px;flex-shrink:0">+${x.desvio.toFixed(0)}%</span></div>`).join('');
+    : acimaDoMeta.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span style="font-size:22px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%">${x.m}</span><span style="font-family:'DM Mono',monospace;font-size:22px;color:#ffaaaa;margin-left:8px;flex-shrink:0">+${x.desvio.toFixed(0)}%</span></div>`).join('');
 
   document.getElementById('mo-kpis').innerHTML = `
     <div class="mk"><div class="mk-lbl">Total Avaliado</div><div class="mk-val" style="color:${color}">${aval}</div><div class="mk-sub">${pLbl(moMeses)}</div></div>
@@ -2839,15 +2839,18 @@ function renderP1() {
 
   // ── KPI cards (clicáveis)
   kpisEl.style.gridTemplateColumns = 'repeat(auto-fill,minmax(210px,1fr))';
-  const kpiCard = (label, val, sub, color, key) =>
-    `<div onclick="p1ShowKpiDetail('${key}')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:22px 24px;cursor:pointer;transition:all .2s;min-height:140px;display:flex;flex-direction:column;justify-content:space-between" onmouseover="this.style.borderColor='${color}';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform=''">
-      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:var(--tx);text-transform:uppercase">${label}</div>
-      <div style="font-size:34px;font-weight:800;color:${color};font-family:'Barlow Condensed',sans-serif;line-height:1;margin:8px 0 6px">${val}</div>
+  const kpiCard = (label, val, sub, color, key) => {
+    const semColor = color && color !== 'var(--tx)' && color !== 'var(--tx3)';
+    const valClass = semColor ? (color === '#4bc87a' || color === 'var(--green2)' ? ' pos' : color === '#e05555' || color === 'var(--red2)' ? ' neg' : ' warn') : '';
+    return `<div onclick="p1ShowKpiDetail('${key}')" class="kpi" style="text-align:left;min-height:130px;display:flex;flex-direction:column;justify-content:space-between">
+      <div class="kpi-lbl">${label}</div>
+      <div class="kpi-val${valClass}">${val}</div>
       <div>
-        ${sub ? `<div style="font-size:19px;color:var(--tx3);margin-bottom:8px;line-height:1.4">${sub}</div>` : ''}
-        <div style="height:2px;background:${color};opacity:.25;border-radius:1px"></div>
+        ${sub ? `<div class="kpi-sub" style="margin-bottom:6px;line-height:1.4">${sub}</div>` : ''}
+        <div style="height:1px;background:var(--bd2);border-radius:1px"></div>
       </div>
     </div>`;
+  };
 
   // Tipos de afastamento agrupados
   const tiposCount = {};
@@ -3033,26 +3036,26 @@ function renderP1() {
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${cia.color};letter-spacing:.5px;line-height:1">${cia.label}</div>
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;margin-top:2px">Sede · ${cia.sede}</div>
         </div>
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:20px;font-weight:700;color:var(--tx)">${s.total}</span></div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:22px;font-weight:700;color:var(--tx)">${s.total}</span></div>
       </div>
       <div style="background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin-bottom:10px">
         <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:4px;transition:width .5s ease"></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
         <div style="background:rgba(255,255,255,.03);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.color};line-height:1">${s.pct}%</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.color};line-height:1">${s.pct}%</div>
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-top:1px">DISP</div>
         </div>
         <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;margin-top:1px">APTOS</div>
         </div>
         <div style="background:rgba(230,100,100,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.afst>0?'#e05555':'var(--tx3)'};line-height:1">${s.afst}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.afst>0?'#e05555':'var(--tx3)'};line-height:1">${s.afst}</div>
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.afst>0?'#e05555':'var(--tx3)'};margin-top:1px">AFST</div>
         </div>
         <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
         </div>
       </div>
@@ -3078,26 +3081,26 @@ function renderP1() {
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${s.color};letter-spacing:.5px;line-height:1">${unit}</div>
         </div>
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:20px;font-weight:700;color:var(--tx)">${d.length}</span></div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:22px;font-weight:700;color:var(--tx)">${d.length}</span></div>
       </div>
       <div style="background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin-bottom:10px">
         <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:4px;transition:width .5s ease"></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
         <div style="background:rgba(255,255,255,.03);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.color};line-height:1">${s.pct}%</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.color};line-height:1">${s.pct}%</div>
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-top:1px">DISP</div>
         </div>
         <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;margin-top:1px">APTOS</div>
         </div>
         <div style="background:rgba(230,100,100,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.afst>0?'#e05555':'var(--tx3)'};line-height:1">${s.afst}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.afst>0?'#e05555':'var(--tx3)'};line-height:1">${s.afst}</div>
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.afst>0?'#e05555':'var(--tx3)'};margin-top:1px">AFST</div>
         </div>
         <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
         </div>
       </div>
@@ -5412,38 +5415,38 @@ function prodRender() {
   kpisEl.innerHTML =
     ['ocorrencias','presos','armas','veiculos'].map(t =>
       `<div class="kpi" onclick="openProdDetail('${t}')" title="Clique para detalhes" style="cursor:pointer">
-        <div class="kpi-top" style="background:${PROD_CORES[t]}"></div>
+        <div class="kpi-top"></div>
         <div class="kpi-lbl">${PROD_LABELS[t]}</div>
-        <div class="kpi-val" style="color:${PROD_CORES[t]}">${totais[t].toLocaleString('pt-BR')}</div>
+        <div class="kpi-val">${totais[t].toLocaleString('pt-BR')}</div>
         <div class="kpi-sub">${periodoLbl}</div>
         <div class="kpi-hint">▸ clique p/ detalhes</div>
       </div>`
     ).join('') +
     (() => {
       if (!unidadesEntorp.length) return `<div class="kpi" onclick="openProdDetail('entorpecentes')" title="Clique para detalhes" style="cursor:pointer">
-        <div class="kpi-top" style="background:${PROD_CORES.entorpecentes}"></div>
+        <div class="kpi-top"></div>
         <div class="kpi-lbl">${PROD_LABELS.entorpecentes}</div>
-        <div class="kpi-val" style="color:${PROD_CORES.entorpecentes}">—</div>
+        <div class="kpi-val">—</div>
         <div class="kpi-sub">${periodoLbl}</div>
         <div class="kpi-hint">▸ clique p/ detalhes</div>
       </div>`;
       const totAtivo = prodSum(filt.entorpecentes.filter(r => (r.unidade_medida||'Sem unidade').trim() === prodEntorpUnit), 'quantidade');
       const pills = unidadesEntorp.map(u =>
-        `<button class="pf-btn${u===prodEntorpUnit?' on':''}" data-eunit="${u.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();switchEntorpUnit('${u.replace(/'/g,"\\'")}','kpi')" style="font-size:19px;padding:2px 7px;line-height:1.4">${u}</button>`
+        `<button class="pf-btn${u===prodEntorpUnit?' on':''}" data-eunit="${u.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();switchEntorpUnit('${u.replace(/'/g,"\\'")}','kpi')" style="font-size:18px;padding:2px 7px;line-height:1.4">${u}</button>`
       ).join('');
       return `<div class="kpi" onclick="openProdDetail('entorpecentes',prodEntorpUnit)" title="Clique para detalhes" style="cursor:pointer">
-        <div class="kpi-top" style="background:${PROD_CORES.entorpecentes}"></div>
+        <div class="kpi-top"></div>
         <div class="kpi-lbl">${PROD_LABELS.entorpecentes}</div>
         <div style="display:flex;gap:3px;flex-wrap:wrap;margin:5px 0">${pills}</div>
-        <div class="kpi-val" id="entorp-kpi-val" style="color:${PROD_CORES.entorpecentes}">${totAtivo.toLocaleString('pt-BR')}</div>
+        <div class="kpi-val" id="entorp-kpi-val">${totAtivo.toLocaleString('pt-BR')}</div>
         <div class="kpi-sub">${periodoLbl}</div>
         <div class="kpi-hint">▸ clique p/ detalhes</div>
       </div>`;
     })() +
     `<div class="kpi" onclick="openProdDetail('ocorrencias',null,'${VD_NAT}')" title="Clique para detalhes" style="cursor:pointer">
-      <div class="kpi-top" style="background:${VD_COR}"></div>
+      <div class="kpi-top"></div>
       <div class="kpi-lbl">Violência Doméstica</div>
-      <div class="kpi-val" style="color:${VD_COR}">${totVD.toLocaleString('pt-BR')}</div>
+      <div class="kpi-val">${totVD.toLocaleString('pt-BR')}</div>
       <div class="kpi-sub">${periodoLbl}</div>
       <div class="kpi-hint">▸ clique p/ detalhes</div>
     </div>` +
@@ -5458,10 +5461,11 @@ function prodRender() {
       const trGlobal = trWAvg(filtTR);
       const trTotalTaloes = filtTR.reduce((s, r) => s + (r.qtde_taloes || 0), 0);
       const TR_COR = '#4bc8e0';
+      const trCls = trGlobal >= 70 ? ' pos' : trGlobal >= 40 ? ' warn' : ' neg';
       return `<div class="kpi" onclick="openProdDetail('tempo-resposta')" title="Clique para detalhes" style="cursor:pointer">
-        <div class="kpi-top" style="background:${TR_COR}"></div>
-        <div class="kpi-lbl" style="letter-spacing:.5px;line-height:1.4">Tempo Resposta Atend. Ocorrência</div>
-        <div class="kpi-val" style="color:${TR_COR}">${parseFloat(trGlobal.toFixed(1))}%</div>
+        <div class="kpi-top"></div>
+        <div class="kpi-lbl">Tempo Resposta Atend. Ocorrência</div>
+        <div class="kpi-val${trCls}">${parseFloat(trGlobal.toFixed(1))}%</div>
         <div class="kpi-sub">% atendidos no prazo</div>
         <div class="kpi-hint">▸ clique p/ detalhes</div>
       </div>`;
@@ -5477,9 +5481,9 @@ function prodRender() {
       const pmsUnicos = new Set(cursosData.filter(r => r.re_pm).map(r => r.re_pm));
       const CUR_COR = '#9de05a';
       return `<div class="kpi" onclick="openProdDetail('cursos')" title="Clique para detalhes" style="cursor:pointer">
-        <div class="kpi-top" style="background:${CUR_COR}"></div>
+        <div class="kpi-top"></div>
         <div class="kpi-lbl">Cursos Institucionais</div>
-        <div class="kpi-val" style="color:${CUR_COR}">${cursosUnicos.size}</div>
+        <div class="kpi-val">${cursosUnicos.size}</div>
         <div class="kpi-sub">${pmsUnicos.size} PM${pmsUnicos.size !== 1 ? 's' : ''} capacitados</div>
         <div class="kpi-hint">▸ clique p/ detalhes</div>
       </div>`;
@@ -5508,12 +5512,12 @@ function prodRender() {
       const pctAptos = comTaf.length ? Math.round(aptosMB365 / comTaf.length * 100) : 0;
       const tafCor = pctAptos >= 70 ? '#4bc87a' : pctAptos >= 40 ? '#e8b840' : '#e05555';
       return `<div class="kpi" onclick="openProdDetail('taftat')" title="Clique para detalhes" style="cursor:pointer">
-        <div class="kpi-top" style="background:${TF_COR}"></div>
+        <div class="kpi-top"></div>
         <div class="kpi-lbl">TAF / TAT</div>
         <div class="kpi-sub" style="margin-top:4px">${aptosMB365}/${comTaf.length} aptos MB+</div>
-        <div class="kpi-val" style="color:${tafCor};margin-top:4px">${pctAptos}%</div>
-        ${inaptosTafN > 0 ? `<div style="margin-top:8px;font-size:19px;color:#e05555">${inaptosTafN} inapto${inaptosTafN > 1 ? 's' : ''} TAF</div>` : ''}
-        ${vencidos > 0 ? `<div style="margin-top:4px;font-size:19px;color:#e8b840">${vencidos} vencido${vencidos > 1 ? 's' : ''}</div>` : ''}
+        <div class="kpi-val" style="margin-top:4px">${pctAptos}%</div>
+        ${inaptosTafN > 0 ? `<div class="kpi-sub neg" style="margin-top:6px;color:var(--red2)">${inaptosTafN} inapto${inaptosTafN > 1 ? 's' : ''} TAF</div>` : ''}
+        ${vencidos > 0 ? `<div class="kpi-sub" style="margin-top:4px;color:var(--gold2)">${vencidos} vencido${vencidos > 1 ? 's' : ''}</div>` : ''}
         <div class="kpi-hint" style="margin-top:10px">▸ clique p/ detalhes</div>
       </div>`;
     })() +
@@ -5526,12 +5530,12 @@ function prodRender() {
       const allNotas = pvsData.filter(r => r.nota_eficacia).map(r => r.nota_eficacia);
       const mediaNota = allNotas.length ? (allNotas.reduce((s, n) => s + n, 0) / allNotas.length).toFixed(1) : null;
       return `<div class="kpi" onclick="openProdDetail('pvs')" title="Clique para detalhes" style="cursor:pointer">
-        <div class="kpi-top" style="background:${PVS_COR}"></div>
+        <div class="kpi-top"></div>
         <div class="kpi-lbl">PVS — Vig. Solidária</div>
         <div class="kpi-sub" style="margin-top:4px">${totalMuns} município${totalMuns !== 1 ? 's' : ''}</div>
-        <div class="kpi-val" style="color:${PVS_COR};margin-top:4px">${totalFamilias.toLocaleString('pt-BR')}</div>
+        <div class="kpi-val" style="margin-top:4px">${totalFamilias.toLocaleString('pt-BR')}</div>
         <div class="kpi-sub" style="margin-top:2px">famílias atendidas</div>
-        ${mediaNota ? `<div style="margin-top:8px;font-size:19px;color:#4bc87a">nota eficácia: ${mediaNota}/10</div>` : ''}
+        ${mediaNota ? `<div class="kpi-sub pos" style="margin-top:6px;color:var(--green2)">nota eficácia: ${mediaNota}/10</div>` : ''}
         <div class="kpi-hint" style="margin-top:10px">▸ clique p/ detalhes</div>
       </div>`;
     })() +
@@ -5550,14 +5554,15 @@ function prodRender() {
           <span style="font-family:'DM Mono',monospace;font-size:19px;color:#f4f6fc">${label}</span>
           <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:700;color:${cor}">${val}</span>
         </div>`;
+      const consegCls = taxa >= 80 ? ' pos' : taxa >= 60 ? ' warn' : ' neg';
       return `<div class="kpi" onclick="openProdDetail('conseg')" title="Clique para detalhes" style="cursor:pointer">
-        <div class="kpi-top" style="background:${CONSEG_COR}"></div>
+        <div class="kpi-top"></div>
         <div class="kpi-lbl">CONSEG</div>
         <div class="kpi-sub" style="margin-top:4px">${ativosCount}/${totalConseg} ativos</div>
-        <div class="kpi-val" style="color:${taxaCor};margin-top:4px">${taxa}%</div>
+        <div class="kpi-val${consegCls}" style="margin-top:4px">${taxa}%</div>
         ${inativosMuns.length
-          ? `<div style="margin-top:8px;font-size:19px;color:#e05555;line-height:1.4">Inativos: ${inativosMuns.join(', ')}</div>`
-          : `<div style="margin-top:8px;font-size:19px;color:#4bc87a">Todos ativos ✓</div>`
+          ? `<div class="kpi-sub" style="margin-top:6px;color:var(--red2);line-height:1.4">Inativos: ${inativosMuns.join(', ')}</div>`
+          : `<div class="kpi-sub" style="margin-top:6px;color:var(--green2)">Todos ativos ✓</div>`
         }
         <div class="kpi-hint" style="margin-top:10px">▸ clique p/ detalhes</div>
       </div>`;
@@ -5565,36 +5570,63 @@ function prodRender() {
 
   // Cabeçalho de seção
   const sec = label => `<div style="grid-column:1/-1;display:flex;align-items:center;gap:12px;margin-top:10px;padding-bottom:8px;border-bottom:1px solid var(--bd2)">
-    <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--tx2)">${label}</span>
+    <span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#ffffff">${label}</span>
   </div>`;
 
   // ─── Rankings por CIA ──────────────────────────────────────────────────
   const mkRankCard = (cor, label, rows) => {
     if (!rows.length) return '';
     const maxV = rows[0][1];
-    const items = rows.map(([cia, v], i) => {
+    const items = rows.map(([cia, v, meses], i) => {
       const barCor = ciaCorByName(cia);
       const pct = maxV > 0 ? Math.round(v / maxV * 100) : 0;
-      return `<div style="margin-bottom:${i < rows.length - 1 ? '16' : '0'}px">
+      const tooltipRows = (meses || []).map(([m, mv]) =>
+        `<div style="display:flex;justify-content:space-between;gap:20px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+          <span style="font-size:18px;color:rgba(255,255,255,.7)">${m}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:#e8c96a">${mv.toLocaleString('pt-BR')}</span>
+        </div>`).join('');
+      const tooltipHtml = meses && meses.length
+        ? `<div class="prod-rank-tooltip">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${barCor};margin-bottom:8px">${cia}</div>
+            ${tooltipRows}
+            <div style="display:flex;justify-content:space-between;gap:20px;padding:5px 0 0">
+              <span style="font-size:18px;font-weight:700;color:#ffffff">Total</span>
+              <span style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:${barCor}">${v.toLocaleString('pt-BR')}</span>
+            </div>
+          </div>` : '';
+      return `<div style="position:relative;margin-bottom:${i < rows.length - 1 ? '16' : '0'}px" class="prod-rank-row">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-          <div style="font-size:25px;color:${barCor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:68%">${i + 1}. ${cia}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:25px;color:${barCor};font-weight:700">${v.toLocaleString('pt-BR')}</div>
+          <div style="font-size:22px;color:${barCor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:68%">${i + 1}. ${cia}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:22px;color:${barCor};font-weight:700">${v.toLocaleString('pt-BR')}</div>
         </div>
-        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:8px"><div style="height:100%;width:${pct}%;background:${barCor};border-radius:3px"></div></div>
+        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:8px;cursor:default"><div style="height:100%;width:${pct}%;background:${barCor};border-radius:3px"></div></div>
+        ${tooltipHtml}
       </div>`;
     }).join('');
-    return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:10px;padding:22px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:25px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:18px">${label}</div>
+    return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid var(--bd2);border-radius:10px;padding:22px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:18px">${label}</div>
       ${items}
     </div>`;
   };
   const aggByCia = (tipo, campo, extraFilt) => {
-    const agg = {};
+    const aggTotal = {};
+    const aggMes   = {};
     (extraFilt ? filt[tipo].filter(extraFilt) : filt[tipo]).forEach(r => {
       const cia = r.cia ? normCiaDisplay(r.cia) : 'Não informado';
-      agg[cia] = (agg[cia] || 0) + (Number(r[campo]) || 0);
+      const val = Number(r[campo]) || 0;
+      aggTotal[cia] = (aggTotal[cia] || 0) + val;
+      const mes = MES_ORD.find(x => x.toLowerCase() === (r.mes||'').toLowerCase()) || r.mes || 'N/I';
+      if (!aggMes[cia]) aggMes[cia] = {};
+      aggMes[cia][mes] = (aggMes[cia][mes] || 0) + val;
     });
-    return Object.entries(agg).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    return Object.entries(aggTotal)
+      .sort((a, b) => b[1] - a[1]).slice(0, 8)
+      .map(([cia, total]) => {
+        const mesByOrder = MES_ORD
+          .filter(m => aggMes[cia]?.[m])
+          .map(m => [m, aggMes[cia][m]]);
+        return [cia, total, mesByOrder];
+      });
   };
   const ciaRankCards =
     mkRankCard(PROD_CORES.presos,   'Pessoas Presas por CIA',         aggByCia('presos',   PROD_CAMPO.presos))  +
@@ -5621,62 +5653,18 @@ function prodRender() {
     const [ciaTopo, valTopo] = ciaCompRank[0];
     const runners = ciaCompRank.slice(1, 4).map(([c, v]) =>
       `<div style="display:flex;justify-content:space-between;margin-top:12px">
-        <span style="font-size:25px;color:#ffffff">${c}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:25px;color:#ffffff;font-weight:700">${v.toLocaleString('pt-BR')}</span>
+        <span style="font-size:22px;color:#ffffff">${c}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;font-weight:700">${v.toLocaleString('pt-BR')}</span>
       </div>`).join('');
-    insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:10px;padding:22px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:25px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:12px">CIA em Destaque</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:800;color:var(--tx);line-height:1.1;margin-bottom:6px">${ciaTopo}</div>
-      <div style="font-family:'DM Mono',monospace;font-size:25px;color:#f0c040;margin-bottom:14px">${valTopo.toLocaleString('pt-BR')} ações (presos + armas + veíc.)</div>
+    insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid var(--bd2);border-radius:10px;padding:22px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:12px">CIA em Destaque</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:800;color:var(--gold2);line-height:1.1;margin-bottom:6px">${ciaTopo}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;margin-bottom:14px">${valTopo.toLocaleString('pt-BR')} ações (presos + armas + veíc.)</div>
       ${runners}
     </div>`);
   }
 
-  // Índice de Capacitação (cursos × efetivo)
-  const cursosAno = (prodRaw.cursos||[]).filter(r => {
-    if (prodSelAno && r.ano !== prodSelAno) return false;
-    if (prodSelMeses.length && !prodSelMeses.some(m => m.toLowerCase() === (r.mes||'').toLowerCase())) return false;
-    return true;
-  });
-  const pmsCapacitados = new Set(cursosAno.filter(r => r.re_pm).map(r => r.re_pm));
-  if (pmsCapacitados.size > 0) {
-    const COR_CAP = '#9de05a';
-    const totalEfetivo = p1Data.length;
-    const pct = totalEfetivo > 0 ? Math.round(pmsCapacitados.size / totalEfetivo * 100) : null;
-    const barW = pct !== null ? pct : 0;
-
-    // Breakdown por tipo de curso (cursos únicos no ano)
-    const cursosUnicosAno = new Map();
-    cursosAno.forEach(r => {
-      const key = (r.data||'') + '||' + (r.nome_curso||'');
-      if (!cursosUnicosAno.has(key)) cursosUnicosAno.set(key, tipoCurso(r.nome_curso));
-    });
-    const tipoCount = {};
-    [...cursosUnicosAno.values()].forEach(t => { tipoCount[t] = (tipoCount[t]||0) + 1; });
-    const tipoRows = TIPO_ORD.filter(t => tipoCount[t]).map(t =>
-      `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
-        <span style="font-size:25px;color:var(--tx2)">${t}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:25px;font-weight:700;color:${TIPO_COR[t]||'var(--tx)'}">${tipoCount[t]}</span>
-      </div>`
-    ).join('');
-
-    insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR_CAP};border-radius:10px;padding:22px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:25px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR_CAP};margin-bottom:12px">Índice de Capacitação</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:54px;font-weight:800;color:var(--tx);line-height:1;margin-bottom:4px">${pmsCapacitados.size}</div>
-      <div style="font-family:'DM Mono',monospace;font-size:25px;color:${COR_CAP};margin-bottom:${pct !== null ? '12' : '16'}px">PMs capacitados em ${prodSelAno||'—'}</div>
-      ${pct !== null ? `
-      <div style="margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-          <span style="font-family:'DM Mono',monospace;font-size:25px;color:var(--tx3)">do efetivo (${totalEfetivo} PMs)</span>
-          <span style="font-family:'DM Mono',monospace;font-size:25px;font-weight:700;color:${COR_CAP}">${pct}%</span>
-        </div>
-        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:8px">
-          <div style="height:100%;width:${barW}%;background:${COR_CAP};border-radius:3px;transition:width .4s"></div>
-        </div>
-      </div>` : ''}
-      <div style="border-top:1px solid rgba(255,255,255,.06);padding-top:12px">${tipoRows}</div>
-    </div>`);
-  }
+  // Índice de Capacitação removido dos insights de produtividade
 
   // Meses mais produtivos
   const mesProd = {};
@@ -5693,14 +5681,14 @@ function prodRender() {
       const pct = maxMes > 0 ? Math.round(v / maxMes * 100) : 0;
       return `<div style="margin-bottom:${i < 4 ? '16' : '0'}px">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-          <div style="font-size:25px;color:#ffffff;font-weight:${i === 0 ? '700' : '400'}">${i + 1}. ${m}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:25px;color:#ffffff;font-weight:700">${v.toLocaleString('pt-BR')}</div>
+          <div style="font-size:22px;color:#ffffff;font-weight:${i === 0 ? '700' : '400'}">${i + 1}. ${m}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;font-weight:700">${v.toLocaleString('pt-BR')}</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:3px;height:8px"><div style="height:100%;width:${pct}%;background:#f0c040;border-radius:3px"></div></div>
       </div>`;
     }).join('');
-    insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid #f0c040;border-radius:10px;padding:22px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:25px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#f0c040;margin-bottom:16px">Meses Mais Produtivos</div>
+    insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid var(--bd2);border-radius:10px;padding:22px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:16px">Meses Mais Produtivos</div>
       ${mesRows}
     </div>`);
   }
@@ -5717,15 +5705,15 @@ function prodRender() {
       const pct = Math.round(t.v / totGeral * 100);
       return `<div style="margin-bottom:18px">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-          <div style="font-size:25px;color:#ffffff;font-weight:600">${t.label}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:25px;color:#ffffff;font-weight:700">${pct}%</div>
+          <div style="font-size:22px;color:#ffffff;font-weight:600">${t.label}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;font-weight:700">${pct}%</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:3px;height:8px"><div style="height:100%;width:${pct}%;background:${t.cor};border-radius:3px"></div></div>
-        <div style="font-family:'DM Mono',monospace;font-size:25px;color:#ffffff;margin-top:5px">${t.v.toLocaleString('pt-BR')} no período</div>
+        <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;margin-top:5px">${t.v.toLocaleString('pt-BR')} no período</div>
       </div>`;
     }).join('');
     insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid var(--bd2);border-radius:10px;padding:22px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:25px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx2);margin-bottom:16px">Distribuição por Tipo</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:16px">Distribuição por Tipo</div>
       ${distRows}
     </div>`);
   }
@@ -5765,21 +5753,21 @@ function prodRender() {
       const corSeta = diff > 0 ? '#4bc87a' : diff < 0 ? '#e05555' : 'var(--tx3)';
       const diffStr = (diff > 0 ? '+' : '') + diff.toLocaleString('pt-BR');
       const pctStr  = pct !== null ? ` (${diff >= 0 ? '+' : ''}${pct}%)` : '';
-      return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:10px;padding:22px 24px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:25px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:12px">${label}</div>
+      return `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid var(--bd2);border-radius:10px;padding:22px 24px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:12px">${label}</div>
         <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px">
           <span style="font-family:'DM Mono',monospace;font-size:50px;font-weight:700;color:${corSeta};line-height:1">${seta}</span>
-          <span style="font-family:'DM Mono',monospace;font-size:25px;font-weight:700;color:${corSeta}">${diffStr}${pctStr}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:${corSeta}">${diffStr}${pctStr}</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <div style="flex:1;background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px;text-align:center">
-            <div style="font-family:'DM Mono',monospace;font-size:25px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${MES_ABREV[mesA] || mesA.slice(0,3)}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:25px;color:var(--tx2);font-weight:600">${vA.toLocaleString('pt-BR')}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${MES_ABREV[mesA] || mesA.slice(0,3)}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;font-weight:600">${vA.toLocaleString('pt-BR')}</div>
           </div>
-          <div style="color:var(--tx3);font-size:25px">›</div>
-          <div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:10px 12px;text-align:center;border:1px solid ${cor}44">
-            <div style="font-family:'DM Mono',monospace;font-size:25px;color:${cor};letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${MES_ABREV[mesB] || mesB.slice(0,3)}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:25px;color:var(--tx);font-weight:700">${vB.toLocaleString('pt-BR')}</div>
+          <div style="color:#ffffff;font-size:22px">›</div>
+          <div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:10px 12px;text-align:center;border:1px solid var(--bd2)">
+            <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${MES_ABREV[mesB] || mesB.slice(0,3)}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;font-weight:700">${vB.toLocaleString('pt-BR')}</div>
           </div>
         </div>
       </div>`;
@@ -6247,7 +6235,7 @@ function renderTRModalDetail() {
     const enc = encodeURIComponent(name);
     return `<div style="margin-bottom:12px;cursor:pointer;transition:opacity .15s" onclick="trDrillNat(this,decodeURIComponent('${enc}'),'${sortMode}')" title="Clique para ver desempenho por CIA">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;gap:8px">
-        <div style="font-size:19px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${name}">${name}<span style="font-size:13px;color:var(--tx3);margin-left:6px;vertical-align:middle;user-select:none">▾ CIA</span></div>
+        <div style="font-size:19px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${name}">${name}<span style="font-size:18px;color:var(--tx3);margin-left:6px;vertical-align:middle;user-select:none">▾ CIA</span></div>
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:${cor};font-weight:700;flex-shrink:0">${val}</div>
       </div>
       <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px"><div style="height:100%;width:${Math.min(100,barPct)}%;background:${cor};border-radius:3px"></div></div>
@@ -6424,10 +6412,10 @@ function trDrillNat(el, nat, sortMode) {
     const pctCor = d.pct >= 70 ? COR_BOM : d.pct >= 50 ? COR_MED : COR_MAU;
     return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)">
       <div style="width:8px;height:8px;border-radius:50%;background:${ciaCorByName(d.cia)};flex-shrink:0"></div>
-      <div style="flex:1;font-size:16px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.cia}</div>
-      <div style="font-family:'DM Mono',monospace;font-size:17px;color:${pctCor};font-weight:700;flex-shrink:0">${parseFloat(d.pct.toFixed(1))}%</div>
-      <div style="font-size:13px;color:var(--tx3);flex-shrink:0;min-width:58px;text-align:right">${d.taloes.toLocaleString('pt-BR')} tal.</div>
-      ${d.fora > 0 ? `<div style="font-size:13px;color:${COR_MAU};flex-shrink:0;min-width:52px;text-align:right">~${d.fora.toLocaleString('pt-BR')} fora</div>` : '<div style="min-width:52px"></div>'}
+      <div style="flex:1;font-size:18px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.cia}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:18px;color:${pctCor};font-weight:700;flex-shrink:0">${parseFloat(d.pct.toFixed(1))}%</div>
+      <div style="font-size:18px;color:var(--tx3);flex-shrink:0;min-width:58px;text-align:right">${d.taloes.toLocaleString('pt-BR')} tal.</div>
+      ${d.fora > 0 ? `<div style="font-size:18px;color:${COR_MAU};flex-shrink:0;min-width:52px;text-align:right">~${d.fora.toLocaleString('pt-BR')} fora</div>` : '<div style="min-width:52px"></div>'}
     </div>`;
   }).join('');
 
@@ -6435,9 +6423,9 @@ function trDrillNat(el, nat, sortMode) {
   panel.dataset.drill = 'tr';
   panel.style.cssText = 'background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 14px;margin:-4px 0 14px;animation:fu .15s ease';
   panel.innerHTML =
-    `<div style="font-size:13px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Desempenho por CIA — ${nat}</div>` +
+    `<div style="font-size:18px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Desempenho por CIA — ${nat}</div>` +
     ciaRows +
-    `<div style="font-size:12px;color:var(--tx3);margin-top:8px;text-align:right">clique novamente para fechar</div>`;
+    `<div style="font-size:18px;color:var(--tx3);margin-top:8px;text-align:right">clique novamente para fechar</div>`;
 
   el.insertAdjacentElement('afterend', panel);
 }
@@ -6616,7 +6604,7 @@ async function renderCursosModalDetail() {
           <div id="cursos-tipo-empty" style="display:none;color:var(--tx3);font-size:19px;text-align:center;padding:12px 0">Sem dados para o período</div>
         </div>
         <div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:16px">PMs por CIA</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:16px">PMs por CIA</div>
           ${ciaTotaisHtml}
         </div>
       </div>
@@ -6757,12 +6745,15 @@ async function renderTafTatModalDetail() {
     pm.data_eap && new Date(pm.data_eap) >= lim365 && APROV_MB.has((pm.tat||'').toLowerCase().trim())
   ).length;
 
-  const kpiMini = (lbl, val, cor, sub) =>
-    `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${cor};border-radius:8px;padding:14px 18px">
-      <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${lbl}</div>
-      <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${cor}">${val}</div>
-      ${sub ? `<div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-top:3px">${sub}</div>` : ''}
+  const kpiMini = (lbl, val, cor, sub) => {
+    const semColor = cor && cor !== 'var(--tx)' && cor !== 'var(--tx3)';
+    const valCol = semColor ? cor : 'var(--tx)';
+    return `<div style="background:var(--s1);border:1px solid var(--bd);border-top:2px solid var(--bd2);border-radius:8px;padding:18px 20px">
+      <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:600;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">${lbl}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:800;color:${valCol};line-height:1">${val}</div>
+      ${sub ? `<div style="font-family:'DM Sans',sans-serif;font-size:18px;color:var(--tx3);margin-top:5px">${sub}</div>` : ''}
     </div>`;
+  };
 
   document.getElementById('pd-kpis').innerHTML =
     kpiMini('Total Efetivo',      efetivo.length,    COR) +
@@ -6827,7 +6818,7 @@ function _renderTafTatCharts() {
   const cts    = tab === 'taf' ? tafCts    : tatCts;
   const ciaCts = tab === 'taf' ? tafCiaCts : tatCiaCts;
   const campo  = tab.toUpperCase();
-  const subTitSt = 'font-family:\'Barlow Condensed\',sans-serif;font-size:17px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:16px';
+  const subTitSt = 'font-family:\'Barlow Condensed\',sans-serif;font-size:18px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:16px';
   const titSt    = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:14px`;
   const btnSt    = active => `padding:7px 24px;border-radius:8px;border:1px solid ${active?COR:'rgba(255,255,255,.15)'};background:${active?COR+'22':'transparent'};color:${active?COR:'rgba(255,255,255,.45)'};font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .15s`;
   const legItemSt = (cor) => `display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:19px;color:rgba(255,255,255,.85)`;
@@ -6966,7 +6957,7 @@ function renderConsegModalDetail() {
       const recs = filtConseg.filter(r => r.municipio === mun && (r.mes||'').toLowerCase() === mes.toLowerCase());
       if (!recs.length) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:22px;color:#e05555">✗</td>`;
       const rec = recs.find(r => r.houve_reuniao) || recs[0];
-      if (!rec.conseg_ativo) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:15px;color:#f07878;font-weight:700">INATIVO</td>`;
+      if (!rec.conseg_ativo) return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:18px;color:#f07878;font-weight:700">INATIVO</td>`;
       return rec.houve_reuniao
         ? `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:22px;color:#4bc87a;font-weight:700">✓</td>`
         : `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:22px;color:#e05555">✗</td>`;
@@ -7193,7 +7184,7 @@ function renderPvsModalDetail() {
     if (tooltip.opacity === 0) { el.style.opacity = '0'; return; }
     let html = '';
     if (tooltip.title?.length) html += `<div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.9);margin-bottom:8px">${tooltip.title[0]}</div>`;
-    tooltip.body?.forEach(b => b.lines.forEach(l => { html += `<div style="font-family:'DM Mono',monospace;font-size:17px;color:#f4f6fc">${l.trim()}</div>`; }));
+    tooltip.body?.forEach(b => b.lines.forEach(l => { html += `<div style="font-family:'DM Mono',monospace;font-size:18px;color:#f4f6fc">${l.trim()}</div>`; }));
     if (tooltip.afterBody?.length) {
       tooltip.afterBody.forEach(l => {
         if (l === '') { html += '<div style="height:6px"></div>'; return; }
@@ -7201,7 +7192,7 @@ function renderPvsModalDetail() {
         // Colorir linha de CIA com a cor correspondente
         const ciaM = l.match(/CIA:\s*([\dºa-zA-Z ]+CIA)/i);
         if (ciaM) col = ciaCorByName(ciaM[1].trim()) || col;
-        html += `<div style="font-family:'DM Mono',monospace;font-size:17px;color:${col}">${l}</div>`;
+        html += `<div style="font-family:'DM Mono',monospace;font-size:18px;color:${col}">${l}</div>`;
       });
     }
     el.innerHTML = html;
@@ -7423,7 +7414,15 @@ function renderProdDetail() {
 
   // Ranking CIA
   const aggCia = {};
-  rows.forEach(r => { const c = r.cia ? normCiaDisplay(r.cia) : ''; if (c) aggCia[c] = (aggCia[c]||0) + (Number(r[campo])||0); });
+  const ciaBreakMap = {}; // CIA → { tipo/situacao/natureza: total }
+  const breakField = PROD_BREAK[tipo] || (tipo === 'entorpecentes' ? 'entorpecente' : 'natureza');
+  rows.forEach(r => {
+    const c = r.cia ? normCiaDisplay(r.cia) : ''; if (!c) return;
+    aggCia[c] = (aggCia[c]||0) + (Number(r[campo])||0);
+    const cat = r[breakField] || 'Não informado';
+    if (!ciaBreakMap[c]) ciaBreakMap[c] = {};
+    ciaBreakMap[c][cat] = (ciaBreakMap[c][cat]||0) + (Number(r[campo])||0);
+  });
   const topCias = Object.entries(aggCia).sort((a,b) => b[1]-a[1]);
 
   // Mês de pico
@@ -7448,7 +7447,19 @@ function renderProdDetail() {
   const ciaTitleLabel = pdSelCia
     ? (tipo === 'ocorrencias' ? `Municípios — ${pdSelCia}` : `Detalhamento — ${pdSelCia}`)
     : (tipo === 'ocorrencias' ? 'Ranking por CIA — clique para ver municípios' : 'Ranking por CIA');
-  let html = cardHtml('pd-cia', ciaTitleLabel, true);
+  const voltarBtn = pdSelCia
+    ? `<button onclick="pdSetCia('')" style="margin-left:12px;padding:4px 14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.2);color:#ffffff;border-radius:5px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:600;letter-spacing:.5px;vertical-align:middle">← Todas as CIAs</button>`
+    : '';
+  const cardHtmlWithBack = (id, label, full, extra) =>
+    `<div style="${full ? 'grid-column:1/-1;' : ''}background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="display:flex;align-items:center;margin-bottom:10px">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor}">${label}</span>
+        ${extra||''}
+      </div>
+      <canvas id="${id}"></canvas>
+      <div id="${id}-empty" style="display:none;color:var(--tx3);font-size:19px;text-align:center;padding:12px 0">Sem dados para o período</div>
+    </div>`;
+  let html = cardHtmlWithBack('pd-cia', ciaTitleLabel, true, voltarBtn);
   if (pdSelCia && tipo === 'ocorrencias') {
     html += `<div id="pd-mun-detail" style="grid-column:1/-1;display:none;background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${cor};border-radius:10px;padding:16px"></div>`;
   }
@@ -7580,8 +7591,13 @@ function renderProdDetail() {
           plugins: {
             legend: { display: false },
             tooltip: { callbacks: {
-              label: i => ` ${i.raw.toLocaleString('pt-BR')} ocorrências`,
-              afterBody: () => ['', '  ▸ clique para ver municípios']
+              label: i => ` Total: ${i.raw.toLocaleString('pt-BR')}`,
+              afterBody: items => {
+                const cia = items[0]?.label;
+                const cats = Object.entries(ciaBreakMap[cia] || {}).sort((a,b) => b[1]-a[1]).slice(0, 8);
+                const linhas = cats.length ? ['', ...cats.map(([k, v]) => `  ${k}: ${v.toLocaleString('pt-BR')}`)] : [];
+                return [...linhas, '', '  ▸ clique para ver municípios'];
+              }
             }}
           },
           onClick: (_evt, elems) => {
@@ -7594,7 +7610,36 @@ function renderProdDetail() {
       const e = document.getElementById('pd-cia-empty'); if (e) e.style.display = ''; ciaRankCtx.canvas.style.display = 'none';
     }
   } else {
-    rdBar('pd-cia', topCias.map(([k])=>k), topCias.map(([,v])=>v));
+    // Ranking CIA com tooltip mensal detalhado
+    const ciaLabels = topCias.map(([k]) => k);
+    const ciaVals   = topCias.map(([, v]) => v);
+    const ciaCtx    = document.getElementById('pd-cia')?.getContext('2d');
+    if (ciaCtx && ciaLabels.length) {
+      const h = Math.max(300, ciaLabels.length * 52 + 40);
+      ciaCtx.canvas.style.height = h + 'px';
+      ciaCtx.canvas.style.maxHeight = h + 'px';
+      pdChs.push(new Chart(ciaCtx, {
+        type: 'bar',
+        data: { labels: ciaLabels, datasets: [{ data: ciaVals, backgroundColor: ciaLabels.map(l => ciaCorByName(l) + '99'), borderColor: ciaLabels.map(l => ciaCorByName(l)), borderWidth: 1, borderRadius: 3 }] },
+        options: {
+          ...barOpts, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: {
+              label: i => ` Total: ${i.raw.toLocaleString('pt-BR')}`,
+              afterBody: items => {
+                const cia = items[0]?.label;
+                const cats = Object.entries(ciaBreakMap[cia] || {}).sort((a,b) => b[1]-a[1]).slice(0, 8);
+                if (!cats.length) return [];
+                return ['', ...cats.map(([k, v]) => `  ${k}: ${v.toLocaleString('pt-BR')}`)];
+              }
+            }}
+          }
+        }
+      }));
+    } else if (ciaCtx) {
+      const e = document.getElementById('pd-cia-empty'); if (e) e.style.display = ''; ciaCtx.canvas.style.display = 'none';
+    }
   }
 
   // --- Evolução Mensal ---
@@ -7822,10 +7867,10 @@ function renderProdDetail() {
 
     // ── HTML: mini-KPI helper ──
     const mkpi = (lbl, val, sub, c) =>
-      `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${c};border-radius:8px;padding:12px 14px;min-width:110px;flex:1">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${c};margin-bottom:5px">${lbl}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:700;color:#ffffff;line-height:1">${val}</div>
-        ${sub?`<div style="font-size:19px;color:#ffffff;margin-top:4px">${sub}</div>`:''}
+      `<div style="background:var(--s1);border:1px solid var(--bd);border-top:2px solid var(--bd2);border-radius:8px;padding:16px 18px;min-width:110px;flex:1">
+        <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);margin-bottom:8px">${lbl}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:800;color:var(--tx);line-height:1">${val}</div>
+        ${sub?`<div style="font-size:18px;color:var(--tx3);margin-top:5px">${sub}</div>`:''}
       </div>`;
 
     // ── HTML: barra de ranking ──
@@ -7950,7 +7995,7 @@ function renderProdDetail() {
             <div style="font-size:19px;color:#ffffff;margin-bottom:10px">dias entre cada etapa da visita solidária</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               ${['1ª→2ª','2ª→3ª','3ª→4ª','4ª→5ª','5ª→6ª'].map((lbl,i)=>avgIntvs[i]!==null?`<div style="text-align:center;flex:1;min-width:52px">
-                <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:#f0c040">${avgIntvs[i]}</div>
+                <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:#f0c040">${avgIntvs[i]}</div>
                 <div style="font-size:19px;color:#ffffff;margin-top:2px">dias</div>
                 <div style="font-size:19px;color:#ffffff;margin-top:1px">${lbl}</div>
               </div>`:''  ).join('')}
@@ -8545,9 +8590,9 @@ function renderDDKpi() {
     ? 'Acumulado ' + ddAnoFiltro
     : prodSelMeses.map(m => m.slice(0,3)).join(', ') + ' ' + ddAnoFiltro;
   return `<div id="dd-kpi-card" class="kpi" onclick="openDDDetail()" title="Clique para detalhes" style="cursor:pointer">
-    <div class="kpi-top" style="background:#5a9de0"></div>
+    <div class="kpi-top"></div>
     <div class="kpi-lbl">Disque Denúncia</div>
-    <div class="kpi-val" style="color:#5a9de0">${total.toLocaleString('pt-BR')}</div>
+    <div class="kpi-val">${total.toLocaleString('pt-BR')}</div>
     <div class="kpi-sub">${periodoLbl}</div>
     <div class="kpi-hint">▸ clique p/ detalhes</div>
   </div>`;
@@ -8760,7 +8805,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
           <div id="dd-donut-drill" style="display:none;flex-direction:column;align-items:center;gap:16px;padding-top:8px">
             <div style="display:flex;align-items:center;gap:12px;width:100%;flex-wrap:wrap">
               <button onclick="ddCloseDrill()" style="padding:5px 14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:6px;cursor:pointer;font-size:19px;font-family:'DM Mono',monospace">← Voltar</button>
-              <span id="dd-drill-title" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#fff"></span>
+              <span id="dd-drill-title" style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:2px;color:#fff"></span>
             </div>
             <div style="display:flex;align-items:flex-start;gap:32px;flex-wrap:wrap;justify-content:center">
               <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0">
