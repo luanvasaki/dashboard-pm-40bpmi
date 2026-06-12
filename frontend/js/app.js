@@ -99,6 +99,10 @@ async function loadDashboardConfig() {
     if (!res.ok) return;
     const cfg = await res.json();
     // P3
+    if (!cfg.periodo_texto) {
+      const lbl = document.getElementById('vis-periodo-lbl');
+      if (lbl) { lbl.textContent = 'Período não definido'; lbl.style.color = 'var(--gold2)'; }
+    }
     if (cfg.periodo_texto) {
       const lbl = document.getElementById('lbl-p3-periodo');
       const inp = document.getElementById('inp-p3-periodo');
@@ -428,7 +432,7 @@ const PAL = ['#e05555','#bf7a3d','#c8a84b','#3d7abf','#e8c96a','#3dbf7a','#7a4bb
 const CRIME_GROUPS = [
   { label: 'Roubo / Furto Veículos', crimes: ['Roubo de Veículos', 'Furto de Veículos'], color: '#5a9de0' }
 ];
-const GR  = { color: 'rgba(255,255,255,.04)' };
+const GR  = { color: 'rgba(255,255,255,.08)' };
 
 // Paleta padrão por CIA — 1ª Rosa · 2ª Verde · 3ª Azul · FT Amarelo · Total Branco
 const CIA_COR = { '1': '#e05a8a', '2': '#4bc87a', '3': '#5a9de0', 'ft': '#c8a84b', 'total': '#f4f6fc' };
@@ -781,7 +785,7 @@ async function updateSyncStatus() {
 
 async function forceSync() {
   const btn = document.getElementById('sync-btn');
-  if (btn) { btn.textContent = '↻ Sincronizando...'; btn.disabled = true; }
+  if (btn) { btn.textContent = '↻ Sincronizando...'; btn.disabled = true; btn.style.color = 'var(--gold2)'; }
   try {
     await authFetch(`${API}/sync`);
     await loadData();
@@ -793,10 +797,13 @@ async function forceSync() {
     buildHmFilter();
     renderAll();
     await updateSyncStatus();
+    if (btn) { btn.textContent = '✓ Sincronizado'; btn.style.color = 'var(--green2)'; }
+    setTimeout(() => { if (btn) { btn.textContent = '↻ Sincronizar'; btn.style.color = ''; } }, 3000);
   } catch (err) {
-    alert('Erro ao sincronizar: ' + err.message);
+    if (btn) { btn.textContent = '✕ Erro ao sincronizar'; btn.style.color = 'var(--red2)'; }
+    setTimeout(() => { if (btn) { btn.textContent = '↻ Sincronizar'; btn.style.color = ''; } }, 3000);
   } finally {
-    if (btn) { btn.textContent = '↻ Sincronizar'; btn.disabled = false; }
+    if (btn) btn.disabled = false;
   }
 }
 
@@ -836,7 +843,6 @@ async function init() {
     renderAll();
     updateSyncStatus();
     renderHome();
-    loadP1(); // carrega dados P1 em background para exibir resumo na home
     if (window.lucide) lucide.createIcons();
   } catch (err) {
     console.error('Erro ao renderizar dashboard:', err);
@@ -999,7 +1005,7 @@ function renderKPIs() {
       <div class="kpi-lbl">${cl(c)}</div>
       <div class="kpi-val">${aval}</div>
       <div class="kpi-row2">
-        <div class="kpi-sub">ant: ${ant}</div>
+        <div class="kpi-sub">Mês ant.: ${ant}</div>
         <div class="tag ${up ? 'tbad' : 'tok'}">${up ? '▲' : '▼'}${Math.abs(vp)}%</div>
       </div>
       <div class="kpi-hint">▸ clique p/ detalhes</div>
@@ -1017,7 +1023,7 @@ function renderKPIs() {
       <div class="kpi-lbl">${g.label}</div>
       <div class="kpi-val">${aval}</div>
       <div class="kpi-row2">
-        <div class="kpi-sub">ant: ${ant}</div>
+        <div class="kpi-sub">Mês ant.: ${ant}</div>
         <div class="tag ${up ? 'tbad' : 'tok'}">${up ? '▲' : '▼'}${Math.abs(vp)}%</div>
       </div>
       <div class="kpi-hint">▸ clique p/ detalhes</div>
@@ -2035,7 +2041,12 @@ function moClose() {
   document.body.style.overflow = '';
   setTimeout(moDestroy, 250);
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') moClose(); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (document.getElementById('mo')?.classList.contains('on')) moClose();
+  else if (document.getElementById('prod-detail-mo')?.classList.contains('on')) closeProdDetail();
+  else if (document.getElementById('dd-detail-mo')?.classList.contains('on')) closeDDDetail();
+});
 
 // ---------------------------------------------------------------------------
 // Upload CSV → Supabase
@@ -3829,7 +3840,7 @@ function p1ShowKpiDetail(tipo) {
     // Rankings separados por posto — Cb/Sd e Subten/Sgt são independentes
     const mkRankList = (items, cor) => items.map((r,i) => {
       const pct = r.fx > 0 ? ((r.claro/r.fx)*100).toFixed(0) : 0;
-      const bar = `<div style="height:4px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:3px"><div style="height:100%;width:${pct}%;background:${cor};border-radius:2px"></div></div>`;
+      const bar = `<div style="height:8px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:3px"><div style="height:100%;width:${pct}%;background:${cor};border-radius:2px"></div></div>`;
       return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
         <div style="flex:1;min-width:0">
           <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">${i+1}. </span>
@@ -5599,7 +5610,7 @@ function prodRender() {
           <div style="font-size:22px;color:${barCor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:68%">${i + 1}. ${cia}</div>
           <div style="font-family:'DM Mono',monospace;font-size:22px;color:${barCor};font-weight:700">${v.toLocaleString('pt-BR')}</div>
         </div>
-        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:8px;cursor:default"><div style="height:100%;width:${pct}%;background:${barCor};border-radius:3px"></div></div>
+        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:14px;cursor:default"><div style="height:100%;width:${pct}%;background:${barCor};border-radius:3px"></div></div>
         ${tooltipHtml}
       </div>`;
     }).join('');
@@ -6226,7 +6237,7 @@ function renderTRModalDetail() {
         <div style="font-size:19px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${name}">${name}</div>
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:${cor};font-weight:700;flex-shrink:0">${val}</div>
       </div>
-      <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px"><div style="height:100%;width:${Math.min(100,barPct)}%;background:${cor};border-radius:3px"></div></div>
+      <div style="background:rgba(255,255,255,.06);border-radius:3px;height:8px"><div style="height:100%;width:${Math.min(100,barPct)}%;background:${cor};border-radius:3px"></div></div>
       <div style="font-size:19px;color:var(--tx3);margin-top:2px">${sub}</div>
     </div>`;
 
@@ -6238,7 +6249,7 @@ function renderTRModalDetail() {
         <div style="font-size:19px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${name}">${name}<span style="font-size:18px;color:var(--tx3);margin-left:6px;vertical-align:middle;user-select:none">▾ CIA</span></div>
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:${cor};font-weight:700;flex-shrink:0">${val}</div>
       </div>
-      <div style="background:rgba(255,255,255,.06);border-radius:3px;height:4px"><div style="height:100%;width:${Math.min(100,barPct)}%;background:${cor};border-radius:3px"></div></div>
+      <div style="background:rgba(255,255,255,.06);border-radius:3px;height:8px"><div style="height:100%;width:${Math.min(100,barPct)}%;background:${cor};border-radius:3px"></div></div>
       <div style="font-size:19px;color:var(--tx3);margin-top:2px">${sub}</div>
     </div>`;
   };

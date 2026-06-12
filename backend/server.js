@@ -21,6 +21,7 @@
 
 require('dotenv').config();
 const express      = require('express');
+const compression  = require('compression');
 const cors         = require('cors');
 const helmet       = require('helmet');
 const rateLimit    = require('express-rate-limit');
@@ -116,6 +117,7 @@ let supabase = null;
 }
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || null;
+app.use(compression());
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
   credentials: true,
@@ -206,6 +208,7 @@ async function syncFromSupabase() {
     cache.lastSync = new Date().toISOString();
     cache.source   = 'supabase';
     cache.error    = null;
+    invalidateMetaCache();
     console.log(`✓ Supabase: ${cache.data.length} registros carregados (${cache.lastSync})`);
     return true;
   } catch (err) {
@@ -476,7 +479,7 @@ app.get('/api/sync', requireAuth, async (req, res) => {
 });
 
 // POST /api/upload — recebe registros parseados do CSV e faz upsert no Supabase
-app.post('/api/upload', requireAuth, async (req, res) => {
+app.post('/api/upload', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
   if (!supabase) {
     return res.status(400).json({
       error: 'Supabase não configurado. Preencha SUPABASE_URL e SUPABASE_KEY no server.js e reinicie o servidor.'
@@ -532,7 +535,7 @@ app.post('/api/upload', requireAuth, async (req, res) => {
 });
 
 // POST /api/upload/ocorrencias — importa CSV do InfoCrim
-app.post('/api/upload/ocorrencias', requireAuth, async (req, res) => {
+app.post('/api/upload/ocorrencias', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   const { records } = req.body;
   if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
@@ -589,17 +592,24 @@ app.get('/api/ocorrencias', requireAuth, async (req, res) => {
   }
 });
 
+let _metaCache = null;
+function invalidateMetaCache() { _metaCache = null; }
+
 app.get('/api/meta', requireAuth, (req, res) => {
-  const crimes = uniq(cache.data.map(r => r.crime));
-  const meses  = uniq(cache.data.map(r => r.mes)).sort((a, b) => MES_ORD.indexOf(a) - MES_ORD.indexOf(b));
-  const muns   = uniq(cache.data.map(r => r.mun)).sort((a, b) => {
-    const ciaA = cache.data.find(r => r.mun === a)?.cia || '';
-    const ciaB = cache.data.find(r => r.mun === b)?.cia || '';
-    return ciaA !== ciaB ? ciaA.localeCompare(ciaB) : a.localeCompare(b);
-  });
-  const cias   = uniq(cache.data.map(r => r.cia)).sort();
-  const anos   = uniq(cache.data.map(r => r.ano).filter(a => a > 0)).sort((a, b) => b - a);
-  res.json({ crimes: CRIMES_ORD.filter(c => crimes.includes(c)), meses, muns, cias, anos });
+  if (!_metaCache) {
+    const crimes = uniq(cache.data.map(r => r.crime));
+    const meses  = uniq(cache.data.map(r => r.mes)).sort((a, b) => MES_ORD.indexOf(a) - MES_ORD.indexOf(b));
+    const muns   = uniq(cache.data.map(r => r.mun)).sort((a, b) => {
+      const ciaA = cache.data.find(r => r.mun === a)?.cia || '';
+      const ciaB = cache.data.find(r => r.mun === b)?.cia || '';
+      return ciaA !== ciaB ? ciaA.localeCompare(ciaB) : a.localeCompare(b);
+    });
+    const cias   = uniq(cache.data.map(r => r.cia)).sort();
+    const anos   = uniq(cache.data.map(r => r.ano).filter(a => a > 0)).sort((a, b) => b - a);
+    _metaCache = { crimes: CRIMES_ORD.filter(c => crimes.includes(c)), meses, muns, cias, anos };
+  }
+  res.set('Cache-Control', 'private, max-age=300');
+  res.json(_metaCache);
 });
 
 app.get('/api/registros', requireAuth, (req, res) => {
