@@ -2853,13 +2853,12 @@ function renderP1() {
   const kpiCard = (label, val, sub, color, key) => {
     const semColor = color && color !== 'var(--tx)' && color !== 'var(--tx3)';
     const valClass = semColor ? (color === '#4bc87a' || color === 'var(--green2)' ? ' pos' : color === '#e05555' || color === 'var(--red2)' ? ' neg' : ' warn') : '';
-    return `<div onclick="p1ShowKpiDetail('${key}')" class="kpi" style="text-align:left;min-height:130px;display:flex;flex-direction:column;justify-content:space-between">
+    return `<div onclick="p1ShowKpiDetail('${key}')" class="kpi">
+      <div class="kpi-top"></div>
       <div class="kpi-lbl">${label}</div>
       <div class="kpi-val${valClass}">${val}</div>
-      <div>
-        ${sub ? `<div class="kpi-sub" style="margin-bottom:6px;line-height:1.4">${sub}</div>` : ''}
-        <div style="height:1px;background:var(--bd2);border-radius:1px"></div>
-      </div>
+      ${sub ? `<div class="kpi-sub" style="line-height:1.5;color:#ffffff">${sub}</div>` : ''}
+      <div class="kpi-hint">▸ clique p/ detalhes</div>
     </div>`;
   };
 
@@ -5772,13 +5771,13 @@ function prodRender() {
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <div style="flex:1;background:rgba(255,255,255,.03);border-radius:6px;padding:10px 12px;text-align:center">
-            <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${MES_ABREV[mesA] || mesA.slice(0,3)}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;font-weight:600">${vA.toLocaleString('pt-BR')}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.7);text-transform:uppercase;margin-bottom:4px">${MES_ABREV[mesA] || mesA.slice(0,3)}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:800;color:#ffffff;line-height:1">${vA.toLocaleString('pt-BR')}</div>
           </div>
-          <div style="color:#ffffff;font-size:22px">›</div>
+          <div style="color:rgba(255,255,255,.4);font-size:26px">›</div>
           <div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:10px 12px;text-align:center;border:1px solid var(--bd2)">
-            <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${MES_ABREV[mesB] || mesB.slice(0,3)}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;font-weight:700">${vB.toLocaleString('pt-BR')}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.7);text-transform:uppercase;margin-bottom:4px">${MES_ABREV[mesB] || mesB.slice(0,3)}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:800;color:#ffffff;line-height:1">${vB.toLocaleString('pt-BR')}</div>
           </div>
         </div>
       </div>`;
