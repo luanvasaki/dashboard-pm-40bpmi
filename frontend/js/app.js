@@ -2851,12 +2851,10 @@ function renderP1() {
   // ── KPI cards (clicáveis)
   kpisEl.style.gridTemplateColumns = 'repeat(auto-fill,minmax(210px,1fr))';
   const kpiCard = (label, val, sub, color, key) => {
-    const semColor = color && color !== 'var(--tx)' && color !== 'var(--tx3)';
-    const valClass = semColor ? (color === '#4bc87a' || color === 'var(--green2)' ? ' pos' : color === '#e05555' || color === 'var(--red2)' ? ' neg' : ' warn') : '';
     return `<div onclick="p1ShowKpiDetail('${key}')" class="kpi">
       <div class="kpi-top"></div>
       <div class="kpi-lbl">${label}</div>
-      <div class="kpi-val${valClass}">${val}</div>
+      <div class="kpi-val">${val}</div>
       ${sub ? `<div class="kpi-sub" style="line-height:1.5;color:#ffffff">${sub}</div>` : ''}
       <div class="kpi-hint">▸ clique p/ detalhes</div>
     </div>`;
