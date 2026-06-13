@@ -3907,49 +3907,90 @@ function p1ShowKpiDetail(tipo) {
       const rows = byCia[cia];
       const ciaCor = ciaCorByName(cia);
       bodyQ += `<tr><td colspan="8" style="padding:9px 16px 5px;background:${ciaCor}12;border-top:1px solid ${ciaCor}44;border-bottom:1px solid ${ciaCor}28;font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:${ciaCor};text-transform:uppercase;font-weight:700">${cia}</td></tr>`;
-      let cFxSub=0, cCSub=0, cFxCb=0, cCCb=0;
+      let cExSub=0, cCSub=0, cExCb=0, cCCb=0;
       rows.forEach(q => {
         const fxSub = Number(q.fx_subten_sgt)||0, exSub = Number(q.ex_subten_sgt)||0;
         const fxCb  = Number(q.fx_cb_sd)||0,      exCb  = Number(q.ex_cb_sd)||0;
-        const cS = fxSub - exSub;   // claro St/Sgt desta cidade (independente)
-        const cC = fxCb  - exCb;    // claro Cb/Sd desta cidade (independente)
-        cFxSub+=fxSub; cCSub+=cS; cFxCb+=fxCb; cCCb+=cC;
+        const cS = fxSub - exSub;
+        const cC = fxCb  - exCb;
+        cExSub+=exSub; cCSub+=cS; cExCb+=exCb; cCCb+=cC;
         bodyQ += `<tr>
           <td style="${tdcL}">${q.municipio||'—'}</td>
           <td style="${tdcL};font-weight:400;font-size:19px;color:var(--tx3)">${q.opm||'—'}</td>
-          <td style="${tdc};color:var(--tx2)">${fxSub}</td>
+          <td style="${tdc};color:#ffffff;font-weight:700">${exSub}</td>
           <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(cS)}">${cVal(cS)}</td>
           <td style="${tdc};font-size:19px;color:${cColor(cS)}">${cPct(cS,fxSub)}</td>
-          <td style="${tdc};color:var(--tx2)">${fxCb}</td>
+          <td style="${tdc};color:#ffffff;font-weight:700">${exCb}</td>
           <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(cC)}">${cVal(cC)}</td>
           <td style="${tdc};font-size:19px;color:${cColor(cC)}">${cPct(cC,fxCb)}</td>
         </tr>`;
       });
-      // Subtotal CIA — St/Sgt e Cb/Sd continuam independentes
+      // Subtotal CIA
+      const cFxSubTot = rows.reduce((a,q)=>a+(Number(q.fx_subten_sgt)||0),0);
+      const cFxCbTot  = rows.reduce((a,q)=>a+(Number(q.fx_cb_sd)||0),0);
       bodyQ += `<tr style="background:rgba(255,255,255,.03);border-top:1px solid rgba(255,255,255,.07)">
         <td style="${tdcL};color:${ciaCor};font-size:19px;letter-spacing:.5px" colspan="2">Subtotal ${cia}</td>
-        <td style="${tdc};color:#fff;font-weight:700">${cFxSub}</td>
+        <td style="${tdc};color:#fff;font-weight:700">${cExSub}</td>
         <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(cCSub)}">${cVal(cCSub)}</td>
-        <td style="${tdc};font-size:19px;color:${cColor(cCSub)}">${cPct(cCSub,cFxSub)}</td>
-        <td style="${tdc};color:#fff;font-weight:700">${cFxCb}</td>
+        <td style="${tdc};font-size:19px;color:${cColor(cCSub)}">${cPct(cCSub,cFxSubTot)}</td>
+        <td style="${tdc};color:#fff;font-weight:700">${cExCb}</td>
         <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(cCCb)}">${cVal(cCCb)}</td>
-        <td style="${tdc};font-size:19px;color:${cColor(cCCb)}">${cPct(cCCb,cFxCb)}</td>
+        <td style="${tdc};font-size:19px;color:${cColor(cCCb)}">${cPct(cCCb,cFxCbTot)}</td>
       </tr>`;
-      gtFxSub+=cFxSub; gtCSub+=cCSub; gtFxCb+=cFxCb; gtCCb+=cCCb;
+      gtFxSub+=cFxSubTot; gtCSub+=cCSub; gtFxCb+=cFxCbTot; gtCCb+=cCCb;
     });
 
     // Total geral — St/Sgt e Cb/Sd totalmente separados, sem somar entre si
     if (qRows.length) {
       bodyQ += `<tr style="border-top:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05)">
         <td style="${tdcL};text-transform:uppercase;font-size:19px;letter-spacing:1px;color:var(--tx2)" colspan="2">Total Geral</td>
-        <td style="${tdc};color:#fff;font-weight:700;font-size:19px">${gtFxSub}</td>
+        <td style="${tdc};color:#fff;font-weight:700;font-size:19px">${qRows.reduce((a,q)=>a+(Number(q.ex_subten_sgt)||0),0)}</td>
         <td style="${tdc};font-size:19px;font-weight:900;color:${cColor(gtCSub)}">${cVal(gtCSub)}</td>
         <td style="${tdc};font-size:19px;color:${cColor(gtCSub)}">${cPct(gtCSub,gtFxSub)}</td>
-        <td style="${tdc};color:#fff;font-weight:700;font-size:19px">${gtFxCb}</td>
+        <td style="${tdc};color:#fff;font-weight:700;font-size:19px">${qRows.reduce((a,q)=>a+(Number(q.ex_cb_sd)||0),0)}</td>
         <td style="${tdc};font-size:19px;font-weight:900;color:${cColor(gtCCb)}">${cVal(gtCCb)}</td>
         <td style="${tdc};font-size:19px;color:${cColor(gtCCb)}">${cPct(gtCCb,gtFxCb)}</td>
       </tr>`;
     }
+
+    // Insights automáticos por CIA ordenados por % claro Cb/Sd
+    const insightsCia = cias.map(cia => {
+      const rows = byCia[cia];
+      const fxCb  = rows.reduce((a,q)=>a+(Number(q.fx_cb_sd)||0),0);
+      const exCb  = rows.reduce((a,q)=>a+(Number(q.ex_cb_sd)||0),0);
+      const fxSub = rows.reduce((a,q)=>a+(Number(q.fx_subten_sgt)||0),0);
+      const exSub = rows.reduce((a,q)=>a+(Number(q.ex_subten_sgt)||0),0);
+      const claroCb  = fxCb  - exCb;
+      const claroSub = fxSub - exSub;
+      const pctCb  = fxCb  > 0 ? (claroCb /fxCb *100)  : 0;
+      const pctSub = fxSub > 0 ? (claroSub/fxSub*100) : 0;
+      return { cia, claroCb, claroSub, pctCb, pctSub, cor: ciaCorByName(cia) };
+    }).filter(d => d.claroCb > 0 || d.claroSub > 0).sort((a,b) => b.pctCb - a.pctCb);
+
+    const urgIcon = pct => pct >= 40 ? '🔴' : pct >= 20 ? '🟡' : '🟢';
+    const insightsHtml = insightsCia.length ? `
+      <div style="padding:16px 20px;border-bottom:1px solid var(--bd);background:rgba(255,255,255,.02)">
+        <div style="font-family:'DM Mono',monospace;font-size:18px;letter-spacing:2px;color:var(--gold2);text-transform:uppercase;margin-bottom:12px">⚡ Insights — Necessidade de Efetivo por CIA</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+          ${insightsCia.map((d,i) => {
+            const rank = i === 0 ? 'MAIOR NECESSIDADE' : i === insightsCia.length-1 ? 'MENOR NECESSIDADE' : '';
+            return `<div style="background:var(--s2);border:1px solid var(--bd);border-left:3px solid ${d.cor};border-radius:8px;padding:14px 16px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:700;color:${d.cor};text-transform:uppercase">${d.cia}</span>
+                ${rank ? `<span style="font-size:13px;font-family:'DM Mono',monospace;color:var(--gold2);letter-spacing:1px">${rank}</span>` : ''}
+              </div>
+              ${d.claroCb > 0 ? `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                <span style="color:#ffffff;font-size:17px">Cb/Sd: faltam <strong style="color:#e05555">${d.claroCb}</strong> PMs</span>
+                <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:#e05555">${urgIcon(d.pctCb)} ${d.pctCb.toFixed(0)}% claro</span>
+              </div>` : '<div style="color:#4bc87a;font-size:17px">✓ Cb/Sd dentro do fixado</div>'}
+              ${d.claroSub > 0 ? `<div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="color:#ffffff;font-size:17px">Subten/Sgt: faltam <strong style="color:#e05555">${d.claroSub}</strong> PMs</span>
+                <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:#e05555">${urgIcon(d.pctSub)} ${d.pctSub.toFixed(0)}% claro</span>
+              </div>` : '<div style="color:#4bc87a;font-size:17px">✓ Subten/Sgt dentro do fixado</div>'}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>` : '';
 
     const tableHdr = `<table style="width:100%;border-collapse:collapse;table-layout:fixed">
       <colgroup>
@@ -3960,17 +4001,17 @@ function p1ShowKpiDetail(tipo) {
       <thead><tr>
         <th style="${thHL}">Município</th>
         <th style="${thHL}">OPM</th>
-        <th style="${thH}">Subten/Sgt FX</th>
+        <th style="${thH}">Subten/Sgt EX</th>
         <th style="${thH}">Claro</th>
         <th style="${thH}">%</th>
-        <th style="${thH}">Cb/Sd FX</th>
+        <th style="${thH}">Cb/Sd EX</th>
         <th style="${thH}">Claro</th>
         <th style="${thH}">%</th>
       </tr></thead>
       <tbody>${bodyQ || '<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--tx3);font-size:19px">Nenhum dado. Importe o CSV pelo menu lateral.</td></tr>'}</tbody>
     </table>`;
 
-    html = wrapDetail('Quadro Fixado do Efetivo', null, '#4bc87a', closeBtn, rankHtml + tableHdr);
+    html = wrapDetail('Quadro Fixado do Efetivo', null, '#4bc87a', closeBtn, rankHtml + insightsHtml + tableHdr);
   }
 
   document.getElementById('p1d-body').innerHTML = html;
