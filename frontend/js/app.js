@@ -3821,8 +3821,8 @@ function p1ShowKpiDetail(tipo) {
   }
 
   else if (tipo === 'quadro') {
-    const excl = s => /cfp|uis\s*m[eé]d|uis\s*odonto/i.test(s||'');
-    const qRows = p1Quadro.filter(q => !excl(q.opm));
+    const excl = s => /cfp|uis\s*m[eé]d|uis\s*odonto|sede\s*em|\bem\b/i.test(s||'');
+    const qRows = p1Quadro.filter(q => !excl(q.opm) && !excl(q.municipio));
 
     // Inferir CIA a partir do p1Data (cruza por OPM ou municipio)
     const normStr = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[ªº°]/g,'').replace(/\s+/g,' ').trim();
