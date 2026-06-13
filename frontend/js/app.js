@@ -3862,39 +3862,46 @@ function p1ShowKpiDetail(tipo) {
     });
     const cias = Object.keys(byCia).sort();
 
-    // Rankings separados por posto — Cb/Sd e Subten/Sgt são independentes
-    const mkRankList = (items, cor) => items.map((r,i) => {
-      const pct = r.fx > 0 ? ((r.claro/r.fx)*100).toFixed(0) : 0;
+    // Rankings por CIA — inclui todas as CIAs, mesmo com 0%
+    const mkRankByCia = (items) => items.map((r,i) => {
+      const pct = r.fx > 0 ? Math.min((r.claro/r.fx)*100, 100).toFixed(0) : 0;
+      const cor = ciaCorByName(r.cia);
+      const valColor = r.claro > 0 ? '#e05555' : '#4bc87a';
       const bar = `<div style="height:8px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:3px"><div style="height:100%;width:${pct}%;background:${cor};border-radius:2px"></div></div>`;
       return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
         <div style="flex:1;min-width:0">
           <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">${i+1}. </span>
-          <span style="font-size:19px;font-weight:700;color:var(--tx)">${r.mun}</span>
-          <span style="font-size:19px;color:#5a9de0;margin-left:6px">${r.cia}</span>
+          <span style="font-size:19px;font-weight:700;color:${cor}">${r.cia}</span>
           ${bar}
         </div>
-        <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:800;color:${cor};white-space:nowrap">−${r.claro} <span style="font-size:19px;font-weight:400">(${pct}%)</span></span>
+        <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:800;color:${valColor};white-space:nowrap">${r.claro > 0 ? `−${r.claro}` : r.claro < 0 ? `+${Math.abs(r.claro)}` : '0'} <span style="font-size:17px;font-weight:400;color:#ffffff">(${pct}%)</span></span>
       </div>`;
     }).join('');
 
-    const rankCb = [...qRows]
-      .map(q => { const fx=Number(q.fx_cb_sd)||0, ex=Number(q.ex_cb_sd)||0; return { mun:q.municipio||q.opm||'—', cia:getCia(q), claro:fx-ex, fx }; })
-      .filter(r => r.claro > 0).sort((a,b) => b.claro-a.claro).slice(0,5);
+    const rankCb = cias.map(cia => {
+      const rows = byCia[cia];
+      const fx = rows.reduce((a,q)=>a+(Number(q.fx_cb_sd)||0),0);
+      const ex = rows.reduce((a,q)=>a+(Number(q.ex_cb_sd)||0),0);
+      return { cia, claro: fx-ex, fx };
+    }).sort((a,b) => b.claro-a.claro);
 
-    const rankSub = [...qRows]
-      .map(q => { const fx=Number(q.fx_subten_sgt)||0, ex=Number(q.ex_subten_sgt)||0; return { mun:q.municipio||q.opm||'—', cia:getCia(q), claro:fx-ex, fx }; })
-      .filter(r => r.claro > 0).sort((a,b) => b.claro-a.claro).slice(0,5);
+    const rankSub = cias.map(cia => {
+      const rows = byCia[cia];
+      const fx = rows.reduce((a,q)=>a+(Number(q.fx_subten_sgt)||0),0);
+      const ex = rows.reduce((a,q)=>a+(Number(q.ex_subten_sgt)||0),0);
+      return { cia, claro: fx-ex, fx };
+    }).sort((a,b) => b.claro-a.claro);
 
     let rankHtml = '';
-    if (rankCb.length || rankSub.length) {
+    if (cias.length) {
       rankHtml = `<div style="padding:14px 18px;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:1fr 1fr;gap:24px">
         <div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#e0965a;text-transform:uppercase;margin-bottom:10px">Cb / Sd — Vagas em aberto</div>
-          <div style="display:flex;flex-direction:column;gap:8px">${rankCb.length ? mkRankList(rankCb,'#e0965a') : '<span style="font-size:19px;color:var(--tx3)">Sem vagas abertas</span>'}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px">Cb / Sd — Vagas em aberto</div>
+          <div style="display:flex;flex-direction:column;gap:10px">${mkRankByCia(rankCb)}</div>
         </div>
         <div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#9b6de0;text-transform:uppercase;margin-bottom:10px">Subten / Sgt — Vagas em aberto</div>
-          <div style="display:flex;flex-direction:column;gap:8px">${rankSub.length ? mkRankList(rankSub,'#9b6de0') : '<span style="font-size:19px;color:var(--tx3)">Sem vagas abertas</span>'}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px">Subten / Sgt — Vagas em aberto</div>
+          <div style="display:flex;flex-direction:column;gap:10px">${mkRankByCia(rankSub)}</div>
         </div>
       </div>`;
     }
