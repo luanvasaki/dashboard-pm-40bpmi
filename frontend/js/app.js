@@ -2895,9 +2895,9 @@ function renderP1() {
       const estouradas = qRows.filter(q => (Number(q.fx_total)||0) - (Number(q.ex_total)||0) < 0).length;
       const cor = gtClaro < 0 ? '#e05555' : gtClaro === 0 ? '#c8a84b' : '#4bc87a';
       const sub = [
-        ...(estouradas > 0 ? [_kpiRow('Unid. estouradas', estouradas, '#e05555')] : []),
-        _kpiRow('FX Total', gtFx, 'var(--tx3)'),
-        _kpiRow('EX Total', gtEx, 'var(--tx3)'),
+        ...(estouradas > 0 ? [_kpiRow('Estouradas', estouradas, '#e05555')] : []),
+        _kpiRow('FX Total', gtFx, '#ffffff'),
+        _kpiRow('EX Total', gtEx, '#ffffff'),
         ...(gtPct !== '—' && !estouradas ? [_kpiRow('Vagas abertas', gtPct, cor)] : [])
       ].join('');
       return kpiCard('Quadro Fixado', `${gtClaro >= 0 ? '−' : '+'}${Math.abs(gtClaro)}`, sub, cor, 'quadro');
