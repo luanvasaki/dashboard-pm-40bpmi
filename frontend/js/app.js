@@ -6026,8 +6026,8 @@ function switchEntorpUnit(u, origem) {
     indexAxis: 'y', responsive: true,
     plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
     scales: {
-      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 22 } } },
-      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 22 } } }
+      x: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } } },
+      y: { grid: { display: false }, ticks: { color: '#ffffff', font: { size: 22 } } }
     }
   });
   renderEntorpCatChart(u, filt, PROD_CORES.entorpecentes, barOpts);
@@ -6331,8 +6331,8 @@ function renderTRModalDetail() {
             },
           },
           scales: {
-            x: { grid: GR, min: 0, max: 100, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 22 }, callback: v => v + '%' } },
-            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 22 } } },
+            x: { grid: GR, min: 0, max: 100, ticks: { color: '#ffffff', font: { size: 22 }, callback: v => v + '%' } },
+            y: { grid: { display: false }, ticks: { color: '#ffffff', font: { size: 22 } } },
           },
         },
       }));
@@ -6388,8 +6388,8 @@ function renderTRModalDetail() {
             },
           },
           scales: {
-            x: { grid: GR, min: 0, max: 100, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 22 }, callback: v => v + '%' } },
-            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 22 } } },
+            x: { grid: GR, min: 0, max: 100, ticks: { color: '#ffffff', font: { size: 22 }, callback: v => v + '%' } },
+            y: { grid: { display: false }, ticks: { color: '#ffffff', font: { size: 22 } } },
           },
         },
       }));
@@ -6572,12 +6572,12 @@ async function renderCursosModalDetail() {
   document.getElementById('pd-sub').textContent = periodoLbl.toUpperCase();
   document.getElementById('pd-kpis').innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:8px;padding:14px 18px">
-      <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Cursos Realizados</div>
-      <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${COR}">${cursosList.length}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Cursos Realizados</div>
+      <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:var(--gold2)">${cursosList.length}</div>
     </div>
     <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:8px;padding:14px 18px">
-      <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">PMs Capacitados</div>
-      <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${COR}">${pmsUnicos.size}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">PMs Capacitados</div>
+      <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:var(--gold2)">${pmsUnicos.size}</div>
     </div>`;
 
   const fmtD = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
@@ -6611,26 +6611,22 @@ async function renderCursosModalDetail() {
 
   const chartsEl = document.getElementById('pd-charts');
   chartsEl.innerHTML = `
-    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:10px">Evolução Mensal</div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${COR};border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:10px">Evolução Mensal</div>
       <canvas id="cursos-evo"></canvas>
       <div id="cursos-evo-empty" style="display:none;color:var(--tx3);font-size:19px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>
-    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:14px">Distribuição por Tipo</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start">
-        <div>
-          <canvas id="cursos-tipo" style="height:340px;max-height:340px"></canvas>
-          <div id="cursos-tipo-empty" style="display:none;color:var(--tx3);font-size:19px;text-align:center;padding:12px 0">Sem dados para o período</div>
-        </div>
-        <div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:16px">PMs por CIA</div>
-          ${ciaTotaisHtml}
-        </div>
-      </div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${COR};border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:14px">Distribuição por Tipo</div>
+      <canvas id="cursos-tipo" style="height:340px;max-height:340px"></canvas>
+      <div id="cursos-tipo-empty" style="display:none;color:var(--tx3);font-size:19px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>
-    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:12px">Lista de Cursos</div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${COR};border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:16px">PMs por CIA</div>
+      ${ciaTotaisHtml}
+    </div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${COR};border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:12px">Lista de Cursos</div>
       ${!cursosList.length ? `<div style="color:var(--tx3);font-size:19px;text-align:center;padding:12px 0">Sem dados para o período</div>` : `
       <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
         <table style="width:100%;border-collapse:collapse">
@@ -6679,8 +6675,8 @@ async function renderCursosModalDetail() {
             tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw} PM${i.raw !== 1 ? 's' : ''}` } }
           },
           scales: {
-            x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 22 } } },
-            y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 22 } } }
+            x: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } } },
+            y: { grid: GR, beginAtZero: true, ticks: { color: '#ffffff', font: { size: 22 } } }
           }
         }
       }));
@@ -6701,7 +6697,7 @@ async function renderCursosModalDetail() {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.7)', font: { size: 22 }, padding: 16, boxWidth: 14 } },
+            legend: { position: 'bottom', labels: { color: '#ffffff', font: { size: 22 }, padding: 16, boxWidth: 14 } },
             tooltip: { callbacks: {
               label: i => ` ${i.label}: ${i.raw} PM${i.raw !== 1 ? 's' : ''}`,
               afterBody: items => {
@@ -6920,7 +6916,7 @@ function renderConsegModalDetail() {
   const subTitSt = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.9);margin-bottom:16px`;
   const mkMini  = (label, val, cor) =>
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:3px solid ${cor};border-radius:10px;padding:16px 20px;flex:1;min-width:120px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.65);margin-bottom:6px">${label}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:6px">${label}</div>
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${cor}">${val}</div>
     </div>`;
 
@@ -7229,13 +7225,13 @@ function renderPvsModalDetail() {
     });
   };
 
-  const titSt     = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${COR};margin-bottom:14px`;
-  const subTitSt  = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.9);margin-bottom:16px`;
+  const titSt     = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:14px`;
+  const subTitSt  = `font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:16px`;
   const legItemSt = `display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:19px;color:rgba(255,255,255,.85)`;
   const legDot    = cor => `<span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:${cor};flex-shrink:0"></span>`;
   const mkMini    = (label, val, cor) =>
     `<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:3px solid ${cor};border-radius:10px;padding:16px 20px;flex:1;min-width:120px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.65);margin-bottom:6px">${label}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:6px">${label}</div>
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:${cor}">${val}</div>
     </div>`;
 
@@ -7250,33 +7246,23 @@ function renderPvsModalDetail() {
       ${mkMini('PM no WhatsApp', `${pctWhatsapp}%`, '#4bc87a')}
       ${mkMini('Visita Solidária', `${pctVisitas}%`, '#e0965a')}
     </div>
-    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="${titSt}">Modalidades e Indicadores Operacionais</div>
-      <div style="display:flex;gap:28px">
-        <div style="flex:1;min-width:0">
-          <div style="${subTitSt}">Modalidades Ativas</div>
-          <div style="position:relative;height:280px"><canvas id="pvs-modal-chart"></canvas></div>
-          <div id="pvs-modal-leg" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
-        </div>
-        <div style="flex:1;min-width:0">
-          <div style="${subTitSt}">Indicadores por CIA</div>
-          <div style="position:relative;height:280px"><canvas id="pvs-ind-chart"></canvas></div>
-          <div id="pvs-ind-leg" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
-        </div>
-      </div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${COR};border-radius:10px;padding:16px">
+      <div style="${titSt}">Modalidades Ativas</div>
+      <div style="position:relative;height:280px"><canvas id="pvs-modal-chart"></canvas></div>
+      <div id="pvs-modal-leg" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
     </div>
-    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="${titSt}">Famílias Atendidas por CIA e Município</div>
-      <div style="display:flex;gap:28px">
-        <div style="flex:1;min-width:0">
-          <div style="${subTitSt}">Por CIA</div>
-          <div style="position:relative;height:${Math.max(160, cias.length * 52)}px"><canvas id="pvs-fam-cia-chart"></canvas></div>
-        </div>
-        <div style="flex:1;min-width:0">
-          <div style="${subTitSt}">Por Município</div>
-          <div style="position:relative;height:${Math.max(160, munsSorted.length * 72)}px"><canvas id="pvs-fam-mun-chart"></canvas></div>
-        </div>
-      </div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${COR};border-radius:10px;padding:16px">
+      <div style="${titSt}">Indicadores por CIA</div>
+      <div style="position:relative;height:${Math.max(180, cias.length * 64)}px"><canvas id="pvs-ind-chart"></canvas></div>
+      <div id="pvs-ind-leg" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
+    </div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${COR};border-radius:10px;padding:16px">
+      <div style="${titSt}">Famílias Atendidas por CIA</div>
+      <div style="position:relative;height:${Math.max(160, cias.length * 52)}px"><canvas id="pvs-fam-cia-chart"></canvas></div>
+    </div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${COR};border-radius:10px;padding:16px">
+      <div style="${titSt}">Famílias Atendidas por Município</div>
+      <div style="position:relative;height:${Math.max(160, munsSorted.length * 52)}px"><canvas id="pvs-fam-mun-chart"></canvas></div>
     </div>`;
 
   // Doughnut — modalidades
@@ -7354,8 +7340,8 @@ function renderPvsModalDetail() {
             }
           } } },
           scales: {
-            x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 22 }, callback: v => `${v}%` }, beginAtZero: true, max: 100 },
-            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 22 } } }
+            x: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 }, callback: v => `${v}%` }, beginAtZero: true, max: 100 },
+            y: { grid: { display: false }, ticks: { color: '#ffffff', font: { size: 22 } } }
           }
         }
       }));
@@ -7379,7 +7365,7 @@ function renderPvsModalDetail() {
             const muns = pvsData.filter(r => r.cia === cia && (r.familias_atendidas || 0) > 0).sort((a, b) => (b.familias_atendidas||0) - (a.familias_atendidas||0));
             return muns.length ? [''].concat(muns.map(r => `• ${r.municipio}: ${(r.familias_atendidas||0).toLocaleString('pt-BR')}`)) : [];
           }
-        } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 22 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 22 } } } } }
+        } } }, scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: '#ffffff', font: { size: 22 } } } } }
       }));
     }
   }
@@ -7398,7 +7384,7 @@ function renderPvsModalDetail() {
             const r = pvsData.find(d => d.municipio === mun);
             return r ? [`• CIA: ${r.cia}`] : [];
           }
-        } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 22 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 22 }, autoSkip: false } } } }
+        } } }, scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: '#ffffff', font: { size: 22 }, autoSkip: false } } } }
       }));
     }
   }
@@ -7498,8 +7484,8 @@ function renderProdDetail() {
     indexAxis: 'y', responsive: true,
     plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
     scales: {
-      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 22 } } },
-      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.80)', font: { size: 22 } } }
+      x: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } } },
+      y: { grid: { display: false }, ticks: { color: '#ffffff', font: { size: 22 } } }
     }
   };
 
@@ -7707,7 +7693,7 @@ function renderProdDetail() {
             legend: { display: true, position: 'top', labels: { color: '#f4f6fc', font: { size: 19, family: "'DM Sans',sans-serif" }, padding: 18, usePointStyle: true, pointStyleWidth: 10 } },
             tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw.toLocaleString('pt-BR')}` } }
           },
-          scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 22 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 22 } } } }
+          scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: '#ffffff', font: { size: 22 } } } }
         }
       }));
     }
