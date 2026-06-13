@@ -835,7 +835,7 @@ async function init() {
     Chart.defaults.color       = '#e0ecf8';
     Chart.defaults.borderColor = '#1c2235';
     Chart.defaults.font.family = "'DM Mono', monospace";
-    Chart.defaults.font.size   = 19;
+    Chart.defaults.font.size   = 22;
 
     buildSbMes();
     buildHmFilter();
@@ -1136,7 +1136,7 @@ function renderVisao() {
       },
       scales: {
         x: { grid: GR, ticks: { display: false } },
-        y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff', font: { size: 19 } }, suggestedMin: -30, suggestedMax: 30 }
+        y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff', font: { size: 22 } }, suggestedMin: -30, suggestedMax: 30 }
       },
       onClick: (evt, elements) => {
         if (elements.length) moOpen(CRIMES[elements[0].index], PAL[elements[0].index]);
@@ -1233,11 +1233,11 @@ function renderEvolMuns() {
     options: {
       responsive: true,
       plugins: {
-        legend: { position: 'bottom', labels: { boxWidth: 20, padding: 18, font: { size: 19 }, usePointStyle: true, color: '#ffffff' } }
+        legend: { position: 'bottom', labels: { boxWidth: 20, padding: 18, font: { size: 22 }, usePointStyle: true, color: '#ffffff' } }
       },
       scales: {
-        x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } },
-        y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1, color: '#ffffff', font: { size: 19 } } }
+        x: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } } },
+        y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1, color: '#ffffff', font: { size: 22 } } }
       }
     }
   });
@@ -1544,8 +1544,8 @@ function renderEvolucao() {
     },
     options: {
       responsive: true,
-      plugins: { legend: { labels: { boxWidth: 20, padding: 16, font: { size: 19 }, color: '#ffffff' } } },
-      scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: '#ffffff', font: { size: 19 } } } }
+      plugins: { legend: { labels: { boxWidth: 20, padding: 16, font: { size: 22 }, color: '#ffffff' } } },
+      scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: '#ffffff', font: { size: 22 } } } }
     }
   });
 
@@ -1778,11 +1778,11 @@ function moRender() {
         plugins: {
           legend: {
             labels: {
-              boxWidth: 18, padding: 24, font: { size: 19 }, color: '#ffffff',
+              boxWidth: 18, padding: 24, font: { size: 22 }, color: '#ffffff',
               generateLabels: () => [
-                { text: 'Dentro da meta',                         fillStyle: 'rgba(61,191,122,.75)',  strokeStyle: 'rgba(61,191,122,.75)',  lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff', font: { size: 19 } },
-                { text: 'Acima da meta, melhor que mês anterior', fillStyle: 'rgba(191,122,61,.85)', strokeStyle: 'rgba(191,122,61,.85)', lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff', font: { size: 19 } },
-                { text: 'Acima da meta',                          fillStyle: 'rgba(230,100,100,.80)',  strokeStyle: 'rgba(230,100,100,.80)',  lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff', font: { size: 19 } }
+                { text: 'Dentro da meta',                         fillStyle: 'rgba(61,191,122,.75)',  strokeStyle: 'rgba(61,191,122,.75)',  lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff', font: { size: 22 } },
+                { text: 'Acima da meta, melhor que mês anterior', fillStyle: 'rgba(191,122,61,.85)', strokeStyle: 'rgba(191,122,61,.85)', lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff', font: { size: 22 } },
+                { text: 'Acima da meta',                          fillStyle: 'rgba(230,100,100,.80)',  strokeStyle: 'rgba(230,100,100,.80)',  lineWidth: 0, hidden: false, fontColor: '#ffffff', color: '#ffffff', font: { size: 22 } }
               ]
             }
           },
@@ -1808,8 +1808,8 @@ function moRender() {
         },
         layout: { padding: { bottom: 40 } },
         scales: {
-          x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } },
-          y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff', font: { size: 19 } }, suggestedMin: -20, suggestedMax: 20 }
+          x: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } } },
+          y: { grid: GR, ticks: { callback: v => v + '%', color: '#ffffff', font: { size: 22 } }, suggestedMin: -20, suggestedMax: 20 }
         }
       }
     }));
@@ -1846,7 +1846,7 @@ function moRender() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { boxWidth: 15, padding: 32, font: { size: 19 }, usePointStyle: true, color: '#ffffff' } },
+        legend: { labels: { boxWidth: 15, padding: 32, font: { size: 22 }, usePointStyle: true, color: '#ffffff' } },
         tooltip: {
           usePointStyle: true,
           callbacks: {
@@ -1868,7 +1868,7 @@ function moRender() {
           }
         }
       },
-      scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1, color: '#ffffff', font: { size: 19 } } } }
+      scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } } }, y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1, color: '#ffffff', font: { size: 22 } } } }
     }
   }));
 
@@ -1953,9 +1953,9 @@ function moRender() {
         type: 'line',
         data: { labels: MES_ORD, datasets: yrDatasets },
         options: { responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { labels: { boxWidth: 15, padding: 28, font: { size: 19 }, color: '#ffffff' } },
+          plugins: { legend: { labels: { boxWidth: 15, padding: 28, font: { size: 22 }, color: '#ffffff' } },
             tooltip: { callbacks: { title: items => MES_ORD[items[0].dataIndex] } } },
-          scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: '#ffffff', font: { size: 19 } } } } }
+          scales: { x: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: '#ffffff', font: { size: 22 } } } } }
       }));
 
       // Texto explicativo — Gráfico 1
@@ -2595,7 +2595,7 @@ function renderTipoLocal(data) {
   safeChart('mo-tipolocal', {
     type: 'doughnut',
     data: { labels: top.map(([k])=>k), datasets: [{ data: top.map(([,v])=>v), backgroundColor: colors.slice(0,top.length), borderWidth:0 }] },
-    options: { responsive:true, cutout:'60%', plugins:{ legend:{ position:'bottom', labels:{ boxWidth:14, font:{size:19}, padding:20, color:'#ffffff' } } } }
+    options: { responsive:true, cutout:'60%', plugins:{ legend:{ position:'bottom', labels:{ boxWidth:14, font:{size:22}, padding:20, color:'#ffffff' } } } }
   });
 }
 
@@ -2626,8 +2626,8 @@ function renderBairros(data) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: GR, ticks: { stepSize: 1, color: '#ffffff', font: { size: 19 } } },
-        y: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 }, autoSkip: false } }
+        x: { grid: GR, ticks: { stepSize: 1, color: '#ffffff', font: { size: 22 } } },
+        y: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 }, autoSkip: false } }
       }
     }
   });
@@ -2644,7 +2644,7 @@ function renderRubrica(data) {
   moIntelChs.push(new Chart(ctx, {
     type: 'bar',
     data: { labels: sorted.map(([k])=>k), datasets: [{ label:'Ocorrências', data: sorted.map(([,v])=>v), backgroundColor: sorted.map((_,i)=>colors[i%colors.length]), borderRadius:4 }] },
-    options: { indexAxis:'y', responsive:true, plugins:{ legend:{display:false} }, scales:{ x:{ grid:GR, ticks:{stepSize:1, color:'#ffffff', font:{size:19}} }, y:{ grid:GR, ticks:{color:'#ffffff', font:{size:19}, autoSkip:false} } } }
+    options: { indexAxis:'y', responsive:true, plugins:{ legend:{display:false} }, scales:{ x:{ grid:GR, ticks:{stepSize:1, color:'#ffffff', font:{size:22}} }, y:{ grid:GR, ticks:{color:'#ffffff', font:{size:22}, autoSkip:false} } } }
   }));
 }
 
@@ -6026,8 +6026,8 @@ function switchEntorpUnit(u, origem) {
     indexAxis: 'y', responsive: true,
     plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
     scales: {
-      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } } },
-      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 19 } } }
+      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 22 } } },
+      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 22 } } }
     }
   });
   renderEntorpCatChart(u, filt, PROD_CORES.entorpecentes, barOpts);
@@ -6331,8 +6331,8 @@ function renderTRModalDetail() {
             },
           },
           scales: {
-            x: { grid: GR, min: 0, max: 100, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 }, callback: v => v + '%' } },
-            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 19 } } },
+            x: { grid: GR, min: 0, max: 100, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 22 }, callback: v => v + '%' } },
+            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 22 } } },
           },
         },
       }));
@@ -6388,8 +6388,8 @@ function renderTRModalDetail() {
             },
           },
           scales: {
-            x: { grid: GR, min: 0, max: 100, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 }, callback: v => v + '%' } },
-            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 19 } } },
+            x: { grid: GR, min: 0, max: 100, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 22 }, callback: v => v + '%' } },
+            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 22 } } },
           },
         },
       }));
@@ -6679,8 +6679,8 @@ async function renderCursosModalDetail() {
             tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw} PM${i.raw !== 1 ? 's' : ''}` } }
           },
           scales: {
-            x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 19 } } },
-            y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } } }
+            x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 22 } } },
+            y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 22 } } }
           }
         }
       }));
@@ -6701,7 +6701,7 @@ async function renderCursosModalDetail() {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.7)', font: { size: 19 }, padding: 16, boxWidth: 14 } },
+            legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.7)', font: { size: 22 }, padding: 16, boxWidth: 14 } },
             tooltip: { callbacks: {
               label: i => ` ${i.label}: ${i.raw} PM${i.raw !== 1 ? 's' : ''}`,
               afterBody: items => {
@@ -6903,7 +6903,7 @@ function _renderTafTatCharts() {
   const datasets = CONCS_ORD.map(conc=>({ label:conc, data:cias.map(cia=>ciaConcMap[cia]?.[conc]||0), backgroundColor:(CONC_COR[conc]||'#607090')+'cc', borderColor:CONC_COR[conc]||'#607090', borderWidth:1 })).filter(d=>d.data.some(v=>v>0));
   const ctxCia = document.getElementById('taftat-cia')?.getContext('2d');
   if (ctxCia && cias.length) {
-    pdChs.push(new Chart(ctxCia, { type:'bar', data:{ labels:cias, datasets }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: i=>` ${i.dataset.label}: ${i.raw} PM${i.raw!==1?'s':''}` } } }, scales:{ x:{ stacked:true, grid:GR, ticks:{ color:'rgba(255,255,255,.45)', font:{size:19} }, beginAtZero:true }, y:{ stacked:true, grid:{ display:false }, ticks:{ color:'rgba(255,255,255,.8)', font:{size:19} } } } } }));
+    pdChs.push(new Chart(ctxCia, { type:'bar', data:{ labels:cias, datasets }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: i=>` ${i.dataset.label}: ${i.raw} PM${i.raw!==1?'s':''}` } } }, scales:{ x:{ stacked:true, grid:GR, ticks:{ color:'rgba(255,255,255,.45)', font:{size:22} }, beginAtZero:true }, y:{ stacked:true, grid:{ display:false }, ticks:{ color:'rgba(255,255,255,.8)', font:{size:22} } } } } }));
     // legenda HTML vertical (conceitos presentes)
     const legEl2 = document.getElementById('taftat-cia-leg');
     if (legEl2) legEl2.innerHTML = datasets.map(d =>
@@ -7091,8 +7091,8 @@ function renderConsegModalDetail() {
           tooltip: { callbacks: { label: i => ` ${ciaItems[i.dataIndex].reunioes}/${ciaItems[i.dataIndex].total} possíveis (${i.raw}%)` } }
         },
         scales: {
-          x: { min: 0, max: 100, grid: GR, ticks: { color: '#ffffff', font: { size: 20, weight: '700' }, callback: v => v + '%' } },
-          y: { grid: { display: false }, ticks: { color: '#ffffff', font: { size: 20, weight: '700' } } }
+          x: { min: 0, max: 100, grid: GR, ticks: { color: '#ffffff', font: { size: 22, weight: '700' }, callback: v => v + '%' } },
+          y: { grid: { display: false }, ticks: { color: '#ffffff', font: { size: 22, weight: '700' } } }
         }
       }
     }));
@@ -7118,8 +7118,8 @@ function renderConsegModalDetail() {
           tooltip: { callbacks: { label: i => ` ${munFreq[i.dataIndex].reunioes}/${nMeses} meses (${i.raw}%)` } }
         },
         scales: {
-          x: { min: 0, max: 100, grid: GR, ticks: { color: '#ffffff', font: { size: 20, weight: '700' }, callback: v => v + '%' } },
-          y: { grid: { display: false }, ticks: { color: '#ffffff', font: { size: 20, weight: '700' } } }
+          x: { min: 0, max: 100, grid: GR, ticks: { color: '#ffffff', font: { size: 22, weight: '700' }, callback: v => v + '%' } },
+          y: { grid: { display: false }, ticks: { color: '#ffffff', font: { size: 22, weight: '700' } } }
         }
       }
     }));
@@ -7354,8 +7354,8 @@ function renderPvsModalDetail() {
             }
           } } },
           scales: {
-            x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 }, callback: v => `${v}%` }, beginAtZero: true, max: 100 },
-            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 } } }
+            x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 22 }, callback: v => `${v}%` }, beginAtZero: true, max: 100 },
+            y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 22 } } }
           }
         }
       }));
@@ -7379,7 +7379,7 @@ function renderPvsModalDetail() {
             const muns = pvsData.filter(r => r.cia === cia && (r.familias_atendidas || 0) > 0).sort((a, b) => (b.familias_atendidas||0) - (a.familias_atendidas||0));
             return muns.length ? [''].concat(muns.map(r => `• ${r.municipio}: ${(r.familias_atendidas||0).toLocaleString('pt-BR')}`)) : [];
           }
-        } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 19 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 } } } } }
+        } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 22 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 22 } } } } }
       }));
     }
   }
@@ -7398,7 +7398,7 @@ function renderPvsModalDetail() {
             const r = pvsData.find(d => d.municipio === mun);
             return r ? [`• CIA: ${r.cia}`] : [];
           }
-        } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 19 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 19 }, autoSkip: false } } } }
+        } } }, scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.75)', font: { size: 22 } }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.8)', font: { size: 22 }, autoSkip: false } } } }
       }));
     }
   }
@@ -7498,8 +7498,8 @@ function renderProdDetail() {
     indexAxis: 'y', responsive: true,
     plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${i.raw.toLocaleString('pt-BR')}` } } },
     scales: {
-      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } } },
-      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.80)', font: { size: 19 } } }
+      x: { grid: GR, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 22 } } },
+      y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,.80)', font: { size: 22 } } }
     }
   };
 
@@ -7702,7 +7702,7 @@ function renderProdDetail() {
             legend: { display: true, position: 'top', labels: { color: '#f4f6fc', font: { size: 19, family: "'DM Sans',sans-serif" }, padding: 18, usePointStyle: true, pointStyleWidth: 10 } },
             tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw.toLocaleString('pt-BR')}` } }
           },
-          scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 19 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 19 } } } }
+          scales: { x: { grid: GR, ticks: { color: 'rgba(255,255,255,.55)', font: { size: 22 } } }, y: { grid: GR, beginAtZero: true, ticks: { color: 'rgba(255,255,255,.45)', font: { size: 22 } } } }
         }
       }));
     }
@@ -8052,12 +8052,12 @@ function renderProdDetail() {
           options: {
             responsive:true, maintainAspectRatio:false,
             plugins: {
-              legend: { display:true, labels:{ color:'#ffffff', font:{size:19}, boxWidth:14, padding:18 } },
+              legend: { display:true, labels:{ color:'#ffffff', font:{size:22}, boxWidth:14, padding:18 } },
               tooltip: { callbacks:{ label: i => ` ${i.dataset.label}: ${i.raw.toLocaleString('pt-BR')}` } }
             },
             scales: {
-              x: { grid:GR, ticks:{ color:'#ffffff', font:{size:19} } },
-              y: { grid:GR, beginAtZero:true, ticks:{ color:'#ffffff', font:{size:19} } }
+              x: { grid:GR, ticks:{ color:'#ffffff', font:{size:22} } },
+              y: { grid:GR, beginAtZero:true, ticks:{ color:'#ffffff', font:{size:22} } }
             }
           }
         }));
@@ -8210,8 +8210,8 @@ function renderIqHistorico() {
       borderColor: c.cor, backgroundColor: 'transparent', tension: 0.3, pointRadius: 5, borderWidth: 2
     }))},
     options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#fff', font: { size: 19 }, boxWidth: 14, padding: 16 } } },
-      scales: { x: { grid: GR, ticks: { color: '#fff', font: { size: 19 } } }, y: { grid: GR, ticks: { color: '#fff', font: { size: 19 } }, beginAtZero: true } }
+      plugins: { legend: { labels: { color: '#fff', font: { size: 22 }, boxWidth: 14, padding: 16 } } },
+      scales: { x: { grid: GR, ticks: { color: '#fff', font: { size: 22 } } }, y: { grid: GR, ticks: { color: '#fff', font: { size: 22 } }, beginAtZero: true } }
     }
   }));
 
@@ -8224,8 +8224,8 @@ function renderIqHistorico() {
       backgroundColor: c.cor + 'aa', borderColor: c.cor, borderWidth: 1, borderRadius: 3
     }))},
     options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#fff', font: { size: 19 }, boxWidth: 14, padding: 16 } } },
-      scales: { x: { grid: GR, ticks: { color: '#fff', font: { size: 19 } } }, y: { grid: GR, ticks: { color: '#fff', font: { size: 19 } }, beginAtZero: true } }
+      plugins: { legend: { labels: { color: '#fff', font: { size: 22 }, boxWidth: 14, padding: 16 } } },
+      scales: { x: { grid: GR, ticks: { color: '#fff', font: { size: 22 } } }, y: { grid: GR, ticks: { color: '#fff', font: { size: 22 } }, beginAtZero: true } }
     }
   }));
 }
@@ -8300,8 +8300,8 @@ function renderIndicadoresP3() {
     }
     const valStr = val != null ? val.toLocaleString('pt-BR') + (c.unit ? ' ' + c.unit : '') : '—';
     return `<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${c.cor};border-radius:8px;padding:14px">
-      <div style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;line-height:1.3">${c.label}</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${c.cor};line-height:1">${valStr}</div>
+      <div style="font-size:19px;color:#ffffff;font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;line-height:1.3">${c.label}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:var(--gold2);line-height:1">${valStr}</div>
       <div style="margin-top:6px;min-height:18px">${tendHtml}</div>
     </div>`;
   }).join('');
@@ -8363,10 +8363,10 @@ function renderIqLinha(dados) {
     data: { labels: mesesOrdenados.map(m => m.slice(0,3)), datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#ffffff', font: { size: 19 }, boxWidth: 12, padding: 14 } } },
+      plugins: { legend: { labels: { color: '#ffffff', font: { size: 22 }, boxWidth: 12, padding: 14 } } },
       scales: {
-        x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } },
-        y: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } }, beginAtZero: true }
+        x: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } } },
+        y: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } }, beginAtZero: true }
       }
     }
   }));
@@ -8390,10 +8390,10 @@ function renderIqBarra(dados) {
     data: { labels: mesesOrdenados.map(m => m.slice(0,3)), datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#ffffff', font: { size: 19 }, boxWidth: 12, padding: 12 } } },
+      plugins: { legend: { labels: { color: '#ffffff', font: { size: 22 }, boxWidth: 12, padding: 12 } } },
       scales: {
-        x: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } } },
-        y: { grid: GR, ticks: { color: '#ffffff', font: { size: 19 } }, beginAtZero: true }
+        x: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } } },
+        y: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } }, beginAtZero: true }
       }
     }
   }));
@@ -8424,12 +8424,12 @@ function renderIqRadar(dados, mesAtual) {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#ffffff', font: { size: 19 } } } },
+      plugins: { legend: { labels: { color: '#ffffff', font: { size: 22 } } } },
       scales: {
         r: {
           grid: { color: 'rgba(255,255,255,.10)' },
           angleLines: { color: 'rgba(255,255,255,.10)' },
-          pointLabels: { color: '#ffffff', font: { size: 19 } },
+          pointLabels: { color: '#ffffff', font: { size: 22 } },
           ticks: { display: false, beginAtZero: true, max: 100 }
         }
       }
@@ -9058,7 +9058,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend: { labels: { color: '#fff', font: { size: 19 }, boxWidth: 14, padding: 16 } },
+          legend: { labels: { color: '#fff', font: { size: 22 }, boxWidth: 14, padding: 16 } },
           tooltip: {
             mode: 'index',
             intersect: false,
@@ -9068,8 +9068,8 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
           },
         },
         scales: {
-          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 19 } } },
-          y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 19 } }, beginAtZero: true },
+          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 22 } } },
+          y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 22 } }, beginAtZero: true },
         },
       }
     });
@@ -9115,10 +9115,10 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       options: {
         indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#fff', font: { size: 19 }, boxWidth: 12, padding: 14 } } },
+        plugins: { legend: { labels: { color: '#fff', font: { size: 22 }, boxWidth: 12, padding: 14 } } },
         scales: {
-          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 19 } }, beginAtZero: true },
-          y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 19 } } }
+          x: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 22 } }, beginAtZero: true },
+          y: { stacked: true, grid: GR, ticks: { color: '#fff', font: { size: 22 } } }
         }
       }
     });
@@ -9154,8 +9154,8 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
           tooltip: { callbacks: { label: ctx => ctx.raw !== null ? ` ${ctx.raw} dias (média)` : ' Sem dados' } }
         },
         scales: {
-          x: { grid: GR, ticks: { color: '#fff', font: { size: 19 } } },
-          y: { grid: GR, ticks: { color: '#fff', font: { size: 19 } }, beginAtZero: true }
+          x: { grid: GR, ticks: { color: '#fff', font: { size: 22 } } },
+          y: { grid: GR, ticks: { color: '#fff', font: { size: 22 } }, beginAtZero: true }
         }
       }
     });
