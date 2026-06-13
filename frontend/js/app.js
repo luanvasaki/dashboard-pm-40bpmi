@@ -7458,8 +7458,8 @@ function renderProdDetail() {
   // Charts HTML
   const chartsEl = document.getElementById('pd-charts');
   const cardHtml = (id, label, full) =>
-    `<div style="${full ? 'grid-column:1/-1;' : ''}background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:10px">${label}</div>
+    `<div style="${full ? 'grid-column:1/-1;' : ''}background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${cor};border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:10px">${label}</div>
       <canvas id="${id}"></canvas>
       <div id="${id}-empty" style="display:none;color:var(--tx3);font-size:19px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>`;
@@ -7471,9 +7471,9 @@ function renderProdDetail() {
     ? `<button onclick="pdSetCia('')" style="margin-left:12px;padding:4px 14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.2);color:#ffffff;border-radius:5px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:600;letter-spacing:.5px;vertical-align:middle">← Todas as CIAs</button>`
     : '';
   const cardHtmlWithBack = (id, label, full, extra) =>
-    `<div style="${full ? 'grid-column:1/-1;' : ''}background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+    `<div style="${full ? 'grid-column:1/-1;' : ''}background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${cor};border-radius:10px;padding:16px">
       <div style="display:flex;align-items:center;margin-bottom:10px">
-        <span style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor}">${label}</span>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff">${label}</span>
         ${extra||''}
       </div>
       <canvas id="${id}"></canvas>
@@ -7486,8 +7486,8 @@ function renderProdDetail() {
   html += cardHtml('pd-evo', 'Evolução Mensal', true);
   if (!pdNatFilter) html += cardHtml('pd-cat', 'Detalhamento por Categoria', true);
   if (tipo === 'ocorrencias') {
-    html += `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:12px">Natureza × Mês</div>
+    html += `<div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${cor};border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:12px">Natureza × Mês</div>
       <div id="pd-matriz" style="overflow-x:auto;font-size:19px"></div>
     </div>`;
   }
@@ -7563,7 +7563,7 @@ function renderProdDetail() {
               const det = document.getElementById('pd-mun-detail');
               if (!det) return;
               det.style.display = '';
-              det.innerHTML = `<div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${cor};margin-bottom:10px">Naturezas — ${mun}</div><canvas id="pd-mun-nat-ch"></canvas>`;
+              det.innerHTML = `<div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:10px">Naturezas — ${mun}</div><canvas id="pd-mun-nat-ch"></canvas>`;
               if (munDetChart) { munDetChart.destroy(); munDetChart = null; }
               const natCtx = document.getElementById('pd-mun-nat-ch')?.getContext('2d');
               if (natCtx && nats.length) {
@@ -7638,6 +7638,7 @@ function renderProdDetail() {
       const h = Math.max(300, ciaLabels.length * 52 + 40);
       ciaCtx.canvas.style.height = h + 'px';
       ciaCtx.canvas.style.maxHeight = h + 'px';
+      ciaCtx.canvas.style.cursor = 'pointer';
       pdChs.push(new Chart(ciaCtx, {
         type: 'bar',
         data: { labels: ciaLabels, datasets: [{ data: ciaVals, backgroundColor: ciaLabels.map(l => ciaCorByName(l) + '99'), borderColor: ciaLabels.map(l => ciaCorByName(l)), borderWidth: 1, borderRadius: 3 }] },
@@ -7650,10 +7651,14 @@ function renderProdDetail() {
               afterBody: items => {
                 const cia = items[0]?.label;
                 const cats = Object.entries(ciaBreakMap[cia] || {}).sort((a,b) => b[1]-a[1]).slice(0, 8);
-                if (!cats.length) return [];
-                return ['', ...cats.map(([k, v]) => `  ${k}: ${v.toLocaleString('pt-BR')}`)];
+                const linhas = cats.length ? ['', ...cats.map(([k, v]) => `  ${k}: ${v.toLocaleString('pt-BR')}`)] : [];
+                return [...linhas, '', '  ▸ clique para filtrar'];
               }
             }}
+          },
+          onClick: (_evt, elems) => {
+            if (!elems.length) return;
+            pdSetCia(ciaLabels[elems[0].index]);
           }
         }
       }));
