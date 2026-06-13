@@ -3894,16 +3894,54 @@ function p1ShowKpiDetail(tipo) {
 
     let rankHtml = '';
     if (cias.length) {
-      rankHtml = `<div style="padding:14px 18px;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:1fr 1fr;gap:24px">
-        <div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px">Cb / Sd — Vagas em aberto</div>
-          <div style="display:flex;flex-direction:column;gap:10px">${mkRankByCia(rankCb)}</div>
+      // Rankings por município
+      const mkRankByMun = (items) => items.map((r,i) => {
+        const pct = r.fx > 0 ? Math.min((r.claro/r.fx)*100,100).toFixed(0) : 0;
+        const cor = ciaCorByName(r.cia);
+        const valColor = r.claro > 0 ? '#e05555' : '#4bc87a';
+        const bar = `<div style="height:6px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:3px"><div style="height:100%;width:${Math.max(0,pct)}%;background:${cor};border-radius:2px"></div></div>`;
+        return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div style="flex:1;min-width:0">
+            <span style="font-family:'DM Mono',monospace;font-size:17px;color:var(--tx3)">${i+1}. </span>
+            <span style="font-size:17px;font-weight:700;color:#ffffff">${r.mun}</span>
+            <span style="font-size:15px;color:${cor};margin-left:5px">${r.cia}</span>
+            ${bar}
+          </div>
+          <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:800;color:${valColor};white-space:nowrap">${r.claro>0?`−${r.claro}`:r.claro<0?`+${Math.abs(r.claro)}`:'0'} <span style="font-size:15px;font-weight:400;color:#ffffff">(${pct}%)</span></span>
+        </div>`;
+      }).join('');
+
+      const rankMunCb = [...qRows].map(q => {
+        const fx=Number(q.fx_cb_sd)||0, ex=Number(q.ex_cb_sd)||0;
+        return { mun:q.municipio||q.opm||'—', cia:getCia(q), claro:fx-ex, fx };
+      }).sort((a,b)=>(b.fx>0?b.claro/b.fx:0)-(a.fx>0?a.claro/a.fx:0));
+
+      const rankMunSub = [...qRows].map(q => {
+        const fx=Number(q.fx_subten_sgt)||0, ex=Number(q.ex_subten_sgt)||0;
+        return { mun:q.municipio||q.opm||'—', cia:getCia(q), claro:fx-ex, fx };
+      }).sort((a,b)=>(b.fx>0?b.claro/b.fx:0)-(a.fx>0?a.claro/a.fx:0));
+
+      rankHtml = `
+        <div style="padding:14px 18px;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:1fr 1fr;gap:24px">
+          <div>
+            <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px">Cb / Sd — Por CIA</div>
+            <div style="display:flex;flex-direction:column;gap:10px">${mkRankByCia(rankCb)}</div>
+          </div>
+          <div>
+            <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px">Subten / Sgt — Por CIA</div>
+            <div style="display:flex;flex-direction:column;gap:10px">${mkRankByCia(rankSub)}</div>
+          </div>
         </div>
-        <div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px">Subten / Sgt — Vagas em aberto</div>
-          <div style="display:flex;flex-direction:column;gap:10px">${mkRankByCia(rankSub)}</div>
-        </div>
-      </div>`;
+        <div style="padding:14px 18px;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:1fr 1fr;gap:24px">
+          <div>
+            <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px">Cb / Sd — Por Cidade</div>
+            <div style="display:flex;flex-direction:column;gap:8px">${mkRankByMun(rankMunCb)}</div>
+          </div>
+          <div>
+            <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px">Subten / Sgt — Por Cidade</div>
+            <div style="display:flex;flex-direction:column;gap:8px">${mkRankByMun(rankMunSub)}</div>
+          </div>
+        </div>`;
     }
 
     let bodyQ = '';
