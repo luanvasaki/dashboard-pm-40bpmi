@@ -2895,7 +2895,7 @@ function renderP1() {
       const estouradas = qRows.filter(q => (Number(q.fx_total)||0) - (Number(q.ex_total)||0) < 0).length;
       const cor = gtClaro < 0 ? '#e05555' : gtClaro === 0 ? '#c8a84b' : '#4bc87a';
       const sub = [
-        ...(estouradas > 0 ? [_kpiRow('Excedentes', estouradas, '#e05555')] : []),
+        ...(estouradas > 0 ? [_kpiRow('Cias Excedentes', estouradas, '#e05555')] : []),
         _kpiRow('FX Total', gtFx, '#ffffff'),
         _kpiRow('EX Total', gtEx, '#ffffff'),
         ...(gtPct !== '—' && !estouradas ? [_kpiRow('Vagas abertas', gtPct, cor)] : [])
