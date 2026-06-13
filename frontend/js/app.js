@@ -3848,9 +3848,9 @@ function p1ShowKpiDetail(tipo) {
     const cVal   = c => c < 0 ? `+${Math.abs(c)}` : c === 0 ? '0' : `−${c}`;
     const cPct   = (c, fx) => fx > 0 ? ((c / fx) * 100).toFixed(1) + '%' : '—';
 
-    const thH  = 'padding:8px 14px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:19px;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);text-align:right;white-space:nowrap';
+    const thH  = 'padding:8px 14px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:19px;letter-spacing:1px;text-transform:uppercase;color:#ffffff;text-align:center;white-space:nowrap';
     const thHL = thH + ';text-align:left';
-    const tdc  = 'padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:19px;text-align:right;white-space:nowrap';
+    const tdc  = 'padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:19px;text-align:center;white-space:nowrap';
     const tdcL = 'padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx);white-space:nowrap';
 
     // Agrupa por CIA inferida
@@ -3905,7 +3905,8 @@ function p1ShowKpiDetail(tipo) {
 
     cias.forEach(cia => {
       const rows = byCia[cia];
-      bodyQ += `<tr><td colspan="8" style="padding:9px 16px 5px;background:rgba(90,157,224,.07);border-top:1px solid rgba(90,157,224,.2);border-bottom:1px solid rgba(90,157,224,.12);font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#5a9de0;text-transform:uppercase;font-weight:700">${cia}</td></tr>`;
+      const ciaCor = ciaCorByName(cia);
+      bodyQ += `<tr><td colspan="8" style="padding:9px 16px 5px;background:${ciaCor}12;border-top:1px solid ${ciaCor}44;border-bottom:1px solid ${ciaCor}28;font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:${ciaCor};text-transform:uppercase;font-weight:700">${cia}</td></tr>`;
       let cFxSub=0, cCSub=0, cFxCb=0, cCCb=0;
       rows.forEach(q => {
         const fxSub = Number(q.fx_subten_sgt)||0, exSub = Number(q.ex_subten_sgt)||0;
@@ -3926,7 +3927,7 @@ function p1ShowKpiDetail(tipo) {
       });
       // Subtotal CIA — St/Sgt e Cb/Sd continuam independentes
       bodyQ += `<tr style="background:rgba(255,255,255,.03);border-top:1px solid rgba(255,255,255,.07)">
-        <td style="${tdcL};color:var(--tx3);font-size:19px;letter-spacing:.5px" colspan="2">Subtotal ${cia}</td>
+        <td style="${tdcL};color:${ciaCor};font-size:19px;letter-spacing:.5px" colspan="2">Subtotal ${cia}</td>
         <td style="${tdc};color:#fff;font-weight:700">${cFxSub}</td>
         <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(cCSub)}">${cVal(cCSub)}</td>
         <td style="${tdc};font-size:19px;color:${cColor(cCSub)}">${cPct(cCSub,cFxSub)}</td>
