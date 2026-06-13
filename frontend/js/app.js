@@ -3951,11 +3951,16 @@ function p1ShowKpiDetail(tipo) {
       </tr>`;
     }
 
-    const tableHdr = `<table style="width:100%;border-collapse:collapse">
+    const tableHdr = `<table style="width:100%;border-collapse:collapse;table-layout:fixed">
+      <colgroup>
+        <col style="width:18%"><col style="width:10%">
+        <col style="width:10%"><col style="width:9%"><col style="width:8%">
+        <col style="width:10%"><col style="width:9%"><col style="width:8%">
+      </colgroup>
       <thead><tr>
         <th style="${thHL}">Município</th>
         <th style="${thHL}">OPM</th>
-        <th style="${thH}">St/Sgt FX</th>
+        <th style="${thH}">Subten/Sgt FX</th>
         <th style="${thH}">Claro</th>
         <th style="${thH}">%</th>
         <th style="${thH}">Cb/Sd FX</th>
