@@ -2863,7 +2863,7 @@ function renderP1() {
   // Tipos de afastamento agrupados
   const tiposCount = {};
   pmAfastados.forEach(r => { (afastHoje[r.re] || []).forEach(a => { tiposCount[a.tipo_afastamento] = (tiposCount[a.tipo_afastamento] || 0) + 1; }); });
-  const _kpiRow = (label, val, color) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:#ffffff;font-size:17px;opacity:.75">${label}</span><span style="color:${color};font-weight:700;font-size:20px">${val}</span></div>`;
+  const _kpiRow = (label, val, color) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:#ffffff;font-size:17px">${label}</span><span style="color:${color};font-weight:700;font-size:20px">${val}</span></div>`;
   const tiposSub = Object.entries(tiposCount).map(([t,n]) => _kpiRow(t, n, '#e05555')).join('') || '—';
 
   kpisEl.innerHTML =
