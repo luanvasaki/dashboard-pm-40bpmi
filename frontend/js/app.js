@@ -2855,7 +2855,7 @@ function renderP1() {
       <div class="kpi-top"></div>
       <div class="kpi-lbl">${label}</div>
       <div class="kpi-val">${val}</div>
-      ${sub ? `<div class="kpi-sub" style="line-height:1.5;width:100%">${sub}</div>` : ''}
+      ${sub ? `<div class="kpi-sub" style="line-height:1.7;width:100%">${sub}</div>` : ''}
       <div class="kpi-hint">▸ clique p/ detalhes</div>
     </div>`;
   };
@@ -2863,7 +2863,7 @@ function renderP1() {
   // Tipos de afastamento agrupados
   const tiposCount = {};
   pmAfastados.forEach(r => { (afastHoje[r.re] || []).forEach(a => { tiposCount[a.tipo_afastamento] = (tiposCount[a.tipo_afastamento] || 0) + 1; }); });
-  const _kpiRow = (label, val, color) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="color:var(--tx3);font-size:18px">${label}</span><span style="color:${color};font-weight:700;font-size:19px">${val}</span></div>`;
+  const _kpiRow = (label, val, color) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:#ffffff;font-size:17px;opacity:.75">${label}</span><span style="color:${color};font-weight:700;font-size:20px">${val}</span></div>`;
   const tiposSub = Object.entries(tiposCount).map(([t,n]) => _kpiRow(t, n, '#e05555')).join('') || '—';
 
   kpisEl.innerHTML =
