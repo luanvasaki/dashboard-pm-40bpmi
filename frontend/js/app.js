@@ -5464,8 +5464,8 @@ function prodRender() {
       return `<div class="kpi" onclick="openProdDetail('entorpecentes',prodEntorpUnit)" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top"></div>
         <div class="kpi-lbl">${PROD_LABELS.entorpecentes}</div>
-        <div style="display:flex;gap:3px;flex-wrap:wrap;margin:5px 0">${pills}</div>
         <div class="kpi-val" id="entorp-kpi-val">${totAtivo.toLocaleString('pt-BR')}</div>
+        <div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:center;margin:6px 0">${pills}</div>
         <div class="kpi-sub">${periodoLbl}</div>
         <div class="kpi-hint">▸ clique p/ detalhes</div>
       </div>`;
@@ -5541,10 +5541,8 @@ function prodRender() {
       return `<div class="kpi" onclick="openProdDetail('taftat')" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top"></div>
         <div class="kpi-lbl">TAF / TAT</div>
+        <div class="kpi-val">${pctAptos}%</div>
         <div class="kpi-sub" style="margin-top:4px">${aptosMB365}/${comTaf.length} aptos MB+</div>
-        <div class="kpi-val" style="margin-top:4px">${pctAptos}%</div>
-        ${inaptosTafN > 0 ? `<div class="kpi-sub neg" style="margin-top:6px;color:var(--red2)">${inaptosTafN} inapto${inaptosTafN > 1 ? 's' : ''} TAF</div>` : ''}
-        ${vencidos > 0 ? `<div class="kpi-sub" style="margin-top:4px;color:var(--gold2)">${vencidos} vencido${vencidos > 1 ? 's' : ''}</div>` : ''}
         <div class="kpi-hint" style="margin-top:10px">▸ clique p/ detalhes</div>
       </div>`;
     })() +
@@ -5559,10 +5557,9 @@ function prodRender() {
       return `<div class="kpi" onclick="openProdDetail('pvs')" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top"></div>
         <div class="kpi-lbl">PVS — Vig. Solidária</div>
-        <div class="kpi-sub" style="margin-top:4px">${totalMuns} município${totalMuns !== 1 ? 's' : ''}</div>
-        <div class="kpi-val" style="margin-top:4px">${totalFamilias.toLocaleString('pt-BR')}</div>
-        <div class="kpi-sub" style="margin-top:2px">famílias atendidas</div>
-        ${mediaNota ? `<div class="kpi-sub pos" style="margin-top:6px;color:var(--green2)">nota eficácia: ${mediaNota}/10</div>` : ''}
+        <div class="kpi-val">${totalFamilias.toLocaleString('pt-BR')}</div>
+        <div class="kpi-sub" style="margin-top:4px">famílias atendidas</div>
+        ${mediaNota ? `<div class="kpi-sub" style="margin-top:4px;color:var(--green2)">nota eficácia: ${mediaNota}/10</div>` : ''}
         <div class="kpi-hint" style="margin-top:10px">▸ clique p/ detalhes</div>
       </div>`;
     })() +
@@ -5585,12 +5582,8 @@ function prodRender() {
       return `<div class="kpi" onclick="openProdDetail('conseg')" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top"></div>
         <div class="kpi-lbl">CONSEG</div>
+        <div class="kpi-val${consegCls}">${taxa}%</div>
         <div class="kpi-sub" style="margin-top:4px">${ativosCount}/${totalConseg} ativos</div>
-        <div class="kpi-val${consegCls}" style="margin-top:4px">${taxa}%</div>
-        ${inativosMuns.length
-          ? `<div class="kpi-sub" style="margin-top:6px;color:var(--red2);line-height:1.4">Inativos: ${inativosMuns.join(', ')}</div>`
-          : `<div class="kpi-sub" style="margin-top:6px;color:var(--green2)">Todos ativos ✓</div>`
-        }
         <div class="kpi-hint" style="margin-top:10px">▸ clique p/ detalhes</div>
       </div>`;
     })();
