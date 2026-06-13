@@ -2892,14 +2892,23 @@ function renderP1() {
       const gtEx = qRows.reduce((a,q) => a + (Number(q.ex_total)||0), 0);
       const gtClaro = gtFx - gtEx;
       const gtPct = gtFx > 0 ? ((gtClaro/gtFx)*100).toFixed(1)+'%' : '—';
-      const estouradas = qRows.filter(q => (Number(q.fx_total)||0) - (Number(q.ex_total)||0) < 0).length;
       const cor = gtClaro < 0 ? '#e05555' : gtClaro === 0 ? '#c8a84b' : '#4bc87a';
-      const sub = [
-        ...(estouradas > 0 ? [_kpiRow('Cias Excedentes', estouradas, '#e05555')] : []),
-        _kpiRow('FX Total', gtFx, '#ffffff'),
-        _kpiRow('EX Total', gtEx, '#ffffff'),
-        ...(gtPct !== '—' && !estouradas ? [_kpiRow('Vagas abertas', gtPct, cor)] : [])
-      ].join('');
+      // Agrupa por CIA e calcula saldo
+      const byCiaKpi = {};
+      qRows.forEach(q => {
+        const c = (q.cia||'').trim() || '—';
+        if (!byCiaKpi[c]) byCiaKpi[c] = { fx: 0, ex: 0 };
+        byCiaKpi[c].fx += Number(q.fx_total)||0;
+        byCiaKpi[c].ex += Number(q.ex_total)||0;
+      });
+      const ciaStatusRows = Object.entries(byCiaKpi).sort(([a],[b])=>a.localeCompare(b)).map(([cia, d]) => {
+        const saldo = d.fx - d.ex;
+        const statusCor = saldo < 0 ? '#e05555' : '#4bc87a';
+        const statusTxt = saldo < 0 ? `+${Math.abs(saldo)} exc.` : saldo === 0 ? 'OK' : `−${saldo} vgs`;
+        const ciaCor = ciaCorByName(cia);
+        return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:${ciaCor};font-size:17px;font-weight:700">${cia}</span><span style="color:${statusCor};font-weight:700;font-size:18px">${statusTxt}</span></div>`;
+      }).join('');
+      const sub = ciaStatusRows + `<div style="margin-top:6px">${_kpiRow('FX Total', gtFx, '#ffffff')}${_kpiRow('EX Total', gtEx, '#ffffff')}</div>`;
       return kpiCard('Quadro Fixado', `${gtClaro >= 0 ? '−' : '+'}${Math.abs(gtClaro)}`, sub, cor, 'quadro');
     })();
 
