@@ -3883,14 +3883,14 @@ function p1ShowKpiDetail(tipo) {
       const fx = rows.reduce((a,q)=>a+(Number(q.fx_cb_sd)||0),0);
       const ex = rows.reduce((a,q)=>a+(Number(q.ex_cb_sd)||0),0);
       return { cia, claro: fx-ex, fx };
-    }).sort((a,b) => b.claro-a.claro);
+    }).sort((a,b) => (b.fx>0?b.claro/b.fx:0) - (a.fx>0?a.claro/a.fx:0));
 
     const rankSub = cias.map(cia => {
       const rows = byCia[cia];
       const fx = rows.reduce((a,q)=>a+(Number(q.fx_subten_sgt)||0),0);
       const ex = rows.reduce((a,q)=>a+(Number(q.ex_subten_sgt)||0),0);
       return { cia, claro: fx-ex, fx };
-    }).sort((a,b) => b.claro-a.claro);
+    }).sort((a,b) => (b.fx>0?b.claro/b.fx:0) - (a.fx>0?a.claro/a.fx:0));
 
     let rankHtml = '';
     if (cias.length) {
