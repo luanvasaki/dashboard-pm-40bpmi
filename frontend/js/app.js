@@ -4013,28 +4013,50 @@ function p1ShowKpiDetail(tipo) {
     }).filter(d => d.claroCb > 0 || d.claroSub > 0).sort((a,b) => b.pctCb - a.pctCb);
 
     const urgIcon = pct => pct >= 40 ? '🔴' : pct >= 20 ? '🟡' : '🟢';
-    const insightsHtml = insightsCia.length ? `
+
+    // Insights por cidade
+    const insightsMun = qRows.map(q => {
+      const fxCb  = Number(q.fx_cb_sd)||0,      exCb  = Number(q.ex_cb_sd)||0;
+      const fxSub = Number(q.fx_subten_sgt)||0, exSub = Number(q.ex_subten_sgt)||0;
+      const claroCb  = fxCb  - exCb;
+      const claroSub = fxSub - exSub;
+      const pctCb  = fxCb  > 0 ? (claroCb /fxCb *100)  : 0;
+      const pctSub = fxSub > 0 ? (claroSub/fxSub*100) : 0;
+      return { mun: q.municipio||q.opm||'—', cia: getCia(q), claroCb, claroSub, pctCb, pctSub };
+    }).filter(d => d.claroCb > 0 || d.claroSub > 0).sort((a,b) => b.pctCb - a.pctCb);
+
+    const mkInsightCard = (d, i, total, isCia) => {
+      const cor = isCia ? ciaCorByName(d.cia||d.mun) : ciaCorByName(d.cia);
+      const nome = isCia ? d.cia : d.mun;
+      const sub  = isCia ? '' : `<span style="font-size:14px;color:${cor};margin-left:6px">${d.cia}</span>`;
+      const rank = i === 0 ? 'MAIOR NECESSIDADE' : i === total-1 ? 'MENOR NECESSIDADE' : '';
+      return `<div style="background:var(--s2);border:1px solid var(--bd);border-left:3px solid ${cor};border-radius:8px;padding:14px 16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:700;color:${cor};text-transform:uppercase">${nome}</span>${sub}
+          ${rank ? `<span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--gold2);letter-spacing:1px">${rank}</span>` : ''}
+        </div>
+        ${d.claroCb > 0 ? `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="color:#ffffff;font-size:16px">Cb/Sd: faltam <strong style="color:#e05555">${d.claroCb}</strong> PMs</span>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;color:#e05555">${urgIcon(d.pctCb)} ${d.pctCb.toFixed(0)}% claro</span>
+        </div>` : '<div style="color:#4bc87a;font-size:16px;margin-bottom:4px">✓ Cb/Sd dentro do fixado</div>'}
+        ${d.claroSub > 0 ? `<div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="color:#ffffff;font-size:16px">Subten/Sgt: faltam <strong style="color:#e05555">${d.claroSub}</strong> PMs</span>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;color:#e05555">${urgIcon(d.pctSub)} ${d.pctSub.toFixed(0)}% claro</span>
+        </div>` : '<div style="color:#4bc87a;font-size:16px">✓ Subten/Sgt dentro do fixado</div>'}
+      </div>`;
+    };
+
+    const insightsHtml = (insightsCia.length || insightsMun.length) ? `
       <div style="padding:16px 20px;border-bottom:1px solid var(--bd);background:rgba(255,255,255,.02)">
         <div style="font-family:'DM Mono',monospace;font-size:18px;letter-spacing:2px;color:var(--gold2);text-transform:uppercase;margin-bottom:12px">⚡ Insights — Necessidade de Efetivo por CIA</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
-          ${insightsCia.map((d,i) => {
-            const rank = i === 0 ? 'MAIOR NECESSIDADE' : i === insightsCia.length-1 ? 'MENOR NECESSIDADE' : '';
-            return `<div style="background:var(--s2);border:1px solid var(--bd);border-left:3px solid ${d.cor};border-radius:8px;padding:14px 16px">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-                <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:700;color:${d.cor};text-transform:uppercase">${d.cia}</span>
-                ${rank ? `<span style="font-size:13px;font-family:'DM Mono',monospace;color:var(--gold2);letter-spacing:1px">${rank}</span>` : ''}
-              </div>
-              ${d.claroCb > 0 ? `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                <span style="color:#ffffff;font-size:17px">Cb/Sd: faltam <strong style="color:#e05555">${d.claroCb}</strong> PMs</span>
-                <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:#e05555">${urgIcon(d.pctCb)} ${d.pctCb.toFixed(0)}% claro</span>
-              </div>` : '<div style="color:#4bc87a;font-size:17px">✓ Cb/Sd dentro do fixado</div>'}
-              ${d.claroSub > 0 ? `<div style="display:flex;justify-content:space-between;align-items:center">
-                <span style="color:#ffffff;font-size:17px">Subten/Sgt: faltam <strong style="color:#e05555">${d.claroSub}</strong> PMs</span>
-                <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:#e05555">${urgIcon(d.pctSub)} ${d.pctSub.toFixed(0)}% claro</span>
-              </div>` : '<div style="color:#4bc87a;font-size:17px">✓ Subten/Sgt dentro do fixado</div>'}
-            </div>`;
-          }).join('')}
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:20px">
+          ${insightsCia.map((d,i) => mkInsightCard(d, i, insightsCia.length, true)).join('')}
         </div>
+        ${insightsMun.length ? `
+        <div style="font-family:'DM Mono',monospace;font-size:18px;letter-spacing:2px;color:var(--gold2);text-transform:uppercase;margin-bottom:12px">⚡ Insights — Necessidade de Efetivo por Cidade</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+          ${insightsMun.map((d,i) => mkInsightCard(d, i, insightsMun.length, false)).join('')}
+        </div>` : ''}
       </div>` : '';
 
     const tableHdr = `<table style="width:100%;border-collapse:collapse;table-layout:fixed">
