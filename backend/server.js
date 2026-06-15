@@ -1156,9 +1156,18 @@ app.get('/api/prod/:tipo', requireAuth, async (req, res) => {
   const tab = PROD_TABS[req.params.tipo];
   if (!tab) return res.status(400).json({ error: 'Tipo inválido' });
   try {
-    const { data, error } = await supabase.from(tab).select('*').limit(50000);
-    if (error) throw new Error(error.message);
-    res.json(data || []);
+    // Pagina em lotes de 1000 — Supabase limita 1000 linhas por query
+    const PAGE = 1000;
+    let all = [], from = 0;
+    while (true) {
+      const { data, error } = await supabase.from(tab).select('*').range(from, from + PAGE - 1);
+      if (error) throw new Error(error.message);
+      if (!data?.length) break;
+      all = all.concat(data);
+      if (data.length < PAGE) break;
+      from += PAGE;
+    }
+    res.json(all);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
