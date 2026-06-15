@@ -184,6 +184,26 @@ function fromSupabase(r) {
 }
 
 // ---------------------------------------------------------------------------
+// Helper: busca todas as linhas paginando em lotes de 1000 (limite Supabase)
+// ---------------------------------------------------------------------------
+async function fetchAll(table, { select = '*', filters = [], order = [] } = {}) {
+  const PAGE = 1000;
+  let all = [], from = 0;
+  while (true) {
+    let q = supabase.from(table).select(select).range(from, from + PAGE - 1);
+    filters.forEach(([method, ...args]) => { q = q[method](...args); });
+    order.forEach(([col, opts]) => { q = q.order(col, opts); });
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    if (!data?.length) break;
+    all = all.concat(data);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
+// ---------------------------------------------------------------------------
 // Sincronização de fontes
 // ---------------------------------------------------------------------------
 async function syncFromSupabase() {
@@ -575,18 +595,14 @@ app.post('/api/upload/ocorrencias', requireAuth, requireRole('admin', 'p3', 'ti'
 // GET /api/ocorrencias — consulta ocorrências com filtros
 app.get('/api/ocorrencias', requireAuth, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
-  const { rubrica, cia, municipio, limit = 2000 } = req.query;
+  const { rubrica, cia, municipio } = req.query;
   try {
-    const safeLimit = Math.min(parseInt(limit) || 2000, 5000);
-    let q = supabase.from(OCORRENCIAS_TABLE).select('*')
-      .order('data_ocorrencia', { ascending: false })
-      .limit(safeLimit);
-    if (rubrica)    q = q.ilike('rubrica', `%${rubrica}%`);
-    if (cia)        q = q.eq('cia', cia);
-    if (municipio)  q = q.eq('municipio', municipio);
-    const { data, error } = await q;
-    if (error) throw new Error(error.message);
-    res.json(data || []);
+    const filters = [];
+    if (rubrica)   filters.push(['ilike', 'rubrica', `%${rubrica}%`]);
+    if (cia)       filters.push(['eq', 'cia', cia]);
+    if (municipio) filters.push(['eq', 'municipio', municipio]);
+    const data = await fetchAll(OCORRENCIAS_TABLE, { filters, order: [['data_ocorrencia', { ascending: false }]] });
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -732,9 +748,8 @@ const EFETIVO_TABLE = 'efetivo_pm';
 app.get('/api/efetivo', requireAuth, async (req, res) => {
   try {
     if (!supabase) return res.json([]);
-    const { data, error } = await supabase.from(EFETIVO_TABLE).select('*');
-    if (error) throw new Error(error.message);
-    res.json(data || []);
+    const data = await fetchAll(EFETIVO_TABLE);
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -795,9 +810,8 @@ const AFASTAMENTOS_TABLE = 'afastamentos_pm';
 app.get('/api/afastamentos', requireAuth, async (req, res) => {
   try {
     if (!supabase) return res.json([]);
-    const { data, error } = await supabase.from(AFASTAMENTOS_TABLE).select('*');
-    if (error) throw new Error(error.message);
-    res.json(data || []);
+    const data = await fetchAll(AFASTAMENTOS_TABLE);
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1216,11 +1230,9 @@ app.post('/api/upload/prod/:tipo', requireAuth, requireRole('admin', 'p3'), asyn
 app.get('/api/pvs', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
   try {
-    let q = supabase.from('pvs').select('*').limit(5000);
-    if (req.query.ano) q = q.eq('ano', parseInt(req.query.ano));
-    const { data, error } = await q;
-    if (error) throw new Error(error.message);
-    res.json(data || []);
+    const filters = req.query.ano ? [['eq', 'ano', parseInt(req.query.ano)]] : [];
+    const data = await fetchAll('pvs', { filters });
+    res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -1351,15 +1363,15 @@ app.get('/api/indicadores-p3/calculado', requireAuth, async (req, res) => {
   const POP_SEADE = 44539225;
   const r3 = v => Math.round(v * 1000) / 1000;
   try {
-    const [racRes, presosRes, armasRes, efetivoRes] = await Promise.all([
-      supabase.from(TABLE_NAME).select('Ano,Crime,Avaliado'),
-      supabase.from('prod_pessoas_presas').select('ano,situacao,quantidade'),
-      supabase.from('prod_armas').select('ano,quantidade'),
-      supabase.from('efetivo_pm').select('re', { count: 'exact', head: true })
+    const efetivoRes = await supabase.from('efetivo_pm').select('re', { count: 'exact', head: true });
+    const [racData, presosData, armasData] = await Promise.all([
+      fetchAll(TABLE_NAME, { select: 'Ano,Crime,Avaliado' }),
+      fetchAll('prod_pessoas_presas', { select: 'ano,situacao,quantidade' }),
+      fetchAll('prod_armas', { select: 'ano,quantidade' }),
     ]);
-    if (racRes.error) throw new Error(racRes.error.message);
-    if (presosRes.error) throw new Error(presosRes.error.message);
-    if (armasRes.error) throw new Error(armasRes.error.message);
+    const racRes = { data: racData };
+    const presosRes = { data: presosData };
+    const armasRes = { data: armasData };
 
     const efetivo = efetivoRes.count || 1;
     const racData    = racRes.data    || [];
@@ -1433,10 +1445,8 @@ app.get('/api/disque-denuncia', requireAuth, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
   const { ano } = req.query;
   try {
-    let query = supabase.from('disque_denuncia_registros').select('*').order('data', { ascending: false });
-    if (ano) query = query.gte('data', `${ano}-01-01`).lte('data', `${ano}-12-31`);
-    const { data, error } = await query;
-    if (error) throw new Error(error.message);
+    const filters = ano ? [['gte', 'data', `${ano}-01-01`], ['lte', 'data', `${ano}-12-31`]] : [];
+    const data = await fetchAll('disque_denuncia_registros', { filters, order: [['data', { ascending: false }]] });
     res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
