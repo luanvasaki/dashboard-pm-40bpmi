@@ -1369,14 +1369,8 @@ app.get('/api/indicadores-p3/calculado', requireAuth, async (req, res) => {
       fetchAll('prod_pessoas_presas', { select: 'ano,situacao,quantidade' }),
       fetchAll('prod_armas', { select: 'ano,quantidade' }),
     ]);
-    const racRes = { data: racData };
-    const presosRes = { data: presosData };
-    const armasRes = { data: armasData };
 
     const efetivo = efetivoRes.count || 1;
-    const racData    = racRes.data    || [];
-    const presosData = presosRes.data || [];
-    const armasData  = armasRes.data  || [];
 
     const anos = [...new Set([
       ...racData.map(r => r.Ano),
