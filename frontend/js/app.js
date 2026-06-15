@@ -7102,8 +7102,8 @@ function renderConsegModalDetail() {
         : `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:22px;color:#e05555">✗</td>`;
     }).join('');
     return `<tr style="border-bottom:1px solid var(--bd2)">
-      <td style="padding:9px 12px;font-size:19px;color:var(--tx2);font-weight:600;white-space:nowrap">${mun}</td>
-      <td style="padding:9px 12px;font-size:19px;color:var(--tx3)">${cia}</td>
+      <td style="padding:9px 12px;font-size:22px;color:#ffffff;font-weight:600;white-space:nowrap">${mun}</td>
+      <td style="padding:9px 12px;font-size:22px;color:#ffffff">${cia}</td>
       ${cells}
     </tr>`;
   }).join('');
@@ -7142,8 +7142,8 @@ function renderConsegModalDetail() {
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;min-width:360px">
           <thead><tr style="border-bottom:2px solid var(--bd2)">
-            <th style="padding:6px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);font-weight:400">Município</th>
-            <th style="padding:6px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);font-weight:400">CIA</th>
+            <th style="padding:6px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;font-weight:600">Município</th>
+            <th style="padding:6px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;font-weight:600">CIA</th>
             ${gridHeaders}
           </tr></thead>
           <tbody>${gridRows}</tbody>
