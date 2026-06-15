@@ -31,14 +31,25 @@ const fmtDateBR  = s => { if (!s) return '—'; const [y, m, d] = s.split('-'); 
 // ---------------------------------------------------------------------------
 function authFetch(url, options = {}) {
   options.credentials = 'same-origin';
-  return fetch(url, options).then(r => {
-    if (r.status === 401) {
-      localStorage.removeItem('auth_user');
-      window.location.replace('/login.html');
-      throw new Error('Sessão expirada');
-    }
-    return r;
-  });
+  const isGet = !options.method || options.method === 'GET';
+  const timeout = isGet ? 30000 : 60000;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeout);
+  return fetch(url, { ...options, signal: ctrl.signal })
+    .then(r => {
+      clearTimeout(timer);
+      if (r.status === 401) {
+        localStorage.removeItem('auth_user');
+        window.location.replace('/login.html');
+        throw new Error('Sessão expirada');
+      }
+      return r;
+    })
+    .catch(err => {
+      clearTimeout(timer);
+      if (err.name === 'AbortError') throw new Error('Tempo de conexão esgotado. Verifique sua internet e tente novamente.');
+      throw err;
+    });
 }
 
 async function doLogout() {
@@ -825,8 +836,10 @@ async function init() {
     return;
   }
 
-  // Etapa 2: inicializar e renderizar (erros aqui não bloqueiam a página)
+  // Etapa 2: inicializar e renderizar
   try {
+    if (!window.Chart) throw new Error('Biblioteca de gráficos (Chart.js) não carregou. Verifique sua conexão e recarregue.');
+
     selAno   = ANOS[0] || new Date().getFullYear();
     MESES    = getMesForAno(selAno);
     selMeses = [...MESES];
@@ -846,6 +859,13 @@ async function init() {
     if (window.lucide) lucide.createIcons();
   } catch (err) {
     console.error('Erro ao renderizar dashboard:', err);
+    document.querySelector('main').innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px;text-align:center;padding:20px">
+        <div style="font-size:36px">⚠️</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--tx)">Erro ao inicializar</div>
+        <div style="font-size:19px;color:var(--tx3);max-width:480px">${err.message}</div>
+        <button onclick="location.reload()" style="margin-top:8px;padding:12px 28px;background:rgba(61,122,191,.15);border:1px solid rgba(61,122,191,.3);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:19px;font-weight:600">↻ Recarregar</button>
+      </div>`;
   }
 }
 
@@ -5367,7 +5387,7 @@ function goSection(id, btn) {
     p1FiltroOpm = '';
     loadP1();
   }
-  setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
 }
 
 function goPage(id, btn) {
@@ -5381,7 +5401,7 @@ function goPage(id, btn) {
   document.getElementById('page-' + id).classList.add('on');
   btn.classList.add('on');
   updateSidebarImports('p3');
-  setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
 }
 
 // ---------------------------------------------------------------------------
