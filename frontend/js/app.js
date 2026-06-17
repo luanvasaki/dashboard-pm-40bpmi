@@ -94,10 +94,8 @@ function initUserBlock() {
       if (btnEdit) btnEdit.style.display = 'inline-block';
       const btnFonte = document.getElementById('btn-edit-fonte');
       if (btnFonte) btnFonte.style.display = 'inline-block';
-      const btnP3prodPer = document.getElementById('btn-edit-p3prod-periodo');
-      if (btnP3prodPer) btnP3prodPer.style.display = 'inline-block';
-      const btnP3prodFonte = document.getElementById('btn-edit-p3prod-fonte');
-      if (btnP3prodFonte) btnP3prodFonte.style.display = 'inline-block';
+      const btnSicoordop = document.getElementById('btn-edit-sicoordop');
+      if (btnSicoordop) btnSicoordop.style.display = 'inline-block';
     }
     if (['p1', 'ti'].includes(u.role)) {
       // Botão de edição de 'Última Atualização' do P1 — visível só para p1/ti
@@ -142,21 +140,13 @@ async function loadDashboardConfig() {
       const ts = new Date(cfg.last_upload).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
       const el = document.getElementById('sync-time');
       if (el) el.textContent = ts;
-      const el2 = document.getElementById('sync-time-p3prod');
-      if (el2) el2.textContent = ts;
     }
-    // P3 Produtividade (espelho)
-    if (cfg.periodo_texto) {
-      const lbl = document.getElementById('lbl-p3prod-periodo');
-      const inp = document.getElementById('inp-p3prod-periodo');
-      if (lbl) lbl.textContent = cfg.periodo_texto;
-      if (inp) inp.value = cfg.periodo_texto;
-    }
-    if (cfg.fonte_texto) {
-      const lbl = document.getElementById('lbl-p3prod-fonte');
-      const inp = document.getElementById('inp-p3prod-fonte');
-      if (lbl) lbl.textContent = cfg.fonte_texto;
-      if (inp) inp.value = cfg.fonte_texto;
+    // P3 Produtividade — SICOORDOP (campo independente)
+    if (cfg.sicoordop_texto) {
+      const lbl = document.getElementById('lbl-sicoordop');
+      const inp = document.getElementById('inp-sicoordop');
+      if (lbl) lbl.textContent = cfg.sicoordop_texto;
+      if (inp) inp.value = cfg.sicoordop_texto;
     }
   } catch (_) {}
 }
@@ -177,8 +167,6 @@ async function registraUpload() {
   const fmt = new Date(ts).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
   const el = document.getElementById('sync-time');
   if (el) el.textContent = fmt;
-  const el2 = document.getElementById('sync-time-p3prod');
-  if (el2) el2.textContent = fmt;
 }
 
 function toggleEditPeriodo() {
@@ -236,20 +224,15 @@ function toggleEditP1Periodo() {
   }
 }
 
-function savePeriodoProd(val) {
-  const lbl = document.getElementById('lbl-p3prod-periodo');
+function saveSicoordop(val) {
+  const lbl = document.getElementById('lbl-sicoordop');
   if (lbl) lbl.textContent = val || '—';
 }
 
-function saveFonteProd(val) {
-  const lbl = document.getElementById('lbl-p3prod-fonte');
-  if (lbl) lbl.textContent = val || '—';
-}
-
-function toggleEditP3prodPeriodo() {
-  const inp  = document.getElementById('inp-p3prod-periodo');
-  const lbl  = document.getElementById('lbl-p3prod-periodo');
-  const btn  = document.getElementById('btn-edit-p3prod-periodo');
+function toggleEditSicoordop() {
+  const inp  = document.getElementById('inp-sicoordop');
+  const lbl  = document.getElementById('lbl-sicoordop');
+  const btn  = document.getElementById('btn-edit-sicoordop');
   const open = inp.style.display === 'none' || inp.style.display === '';
   inp.style.display = open ? 'inline-block' : 'none';
   lbl.style.display = open ? 'none' : 'inline-block';
@@ -257,30 +240,7 @@ function toggleEditP3prodPeriodo() {
   if (!open) {
     const val = inp.value.trim();
     lbl.textContent = val || '—';
-    const lblV = document.getElementById('lbl-p3-periodo');
-    const inpV = document.getElementById('inp-p3-periodo');
-    if (lblV) lblV.textContent = val || '—';
-    if (inpV) inpV.value = val;
-    saveConfig('periodo_texto', val);
-  }
-}
-
-function toggleEditP3prodFonte() {
-  const inp = document.getElementById('inp-p3prod-fonte');
-  const lbl = document.getElementById('lbl-p3prod-fonte');
-  const btn = document.getElementById('btn-edit-p3prod-fonte');
-  const open = inp.style.display === 'none' || inp.style.display === '';
-  inp.style.display = open ? 'inline-block' : 'none';
-  lbl.style.display = open ? 'none' : 'inline-block';
-  btn.textContent   = open ? '✔ Salvar' : '✎ Editar';
-  if (!open) {
-    const val = inp.value.trim();
-    lbl.textContent = val || '—';
-    const lblV = document.getElementById('lbl-fonte');
-    const inpV = document.getElementById('inp-fonte');
-    if (lblV) lblV.textContent = val || '—';
-    if (inpV) inpV.value = val;
-    saveConfig('fonte_texto', val);
+    saveConfig('sicoordop_texto', val);
   }
 }
 
