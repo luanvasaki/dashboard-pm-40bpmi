@@ -5646,7 +5646,7 @@ function prodRender() {
     })() +
     `<div class="kpi" onclick="openProdDetail('ocorrencias',null,'${VD_NAT}')" title="Clique para detalhes" style="cursor:pointer">
       <div class="kpi-top"></div>
-      <div class="kpi-lbl">Violência Doméstica</div>
+      <div class="kpi-lbl">Visita Solidária</div>
       <div class="kpi-val">${totVD.toLocaleString('pt-BR')}</div>
       <div class="kpi-sub">${periodoLbl}</div>
       <div class="kpi-hint">▸ clique p/ detalhes</div>
