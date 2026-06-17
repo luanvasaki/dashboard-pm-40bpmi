@@ -9300,32 +9300,41 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       const dias = recs.map(r => Math.max(0, (new Date(r.data_atendimento) - new Date(r.data)) / 86400000));
       return +(dias.reduce((a, b) => a + b, 0) / dias.length).toFixed(1);
     });
-    const donutCors2 = [CIA_COR['1'], CIA_COR['2'], CIA_COR['3'], CIA_COR.ft];
-    ddChart3 = new Chart(cTempo.getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: DD_CIAS,
-        datasets: [{
-          label: 'Dias (média)',
-          data: tempoMedias,
-          backgroundColor: donutCors2.map(c => c + 'bb'),
-          borderColor: donutCors2,
-          borderWidth: 2,
-          borderRadius: 4,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: ctx => ctx.raw !== null ? ` ${ctx.raw} dias (média)` : ' Sem dados' } }
+    const semDados = tempoMedias.every(v => v === null);
+    if (semDados) {
+      cTempo.style.display = 'none';
+      const msg = document.createElement('div');
+      msg.style.cssText = 'color:var(--tx3);font-size:19px;padding:24px 0;text-align:center';
+      msg.textContent = 'Sem dados de atendimento — preencha a coluna "Data do Atendimento" no CSV';
+      cTempo.parentElement.appendChild(msg);
+    } else {
+      const donutCors2 = [CIA_COR['1'], CIA_COR['2'], CIA_COR['3'], CIA_COR.ft];
+      ddChart3 = new Chart(cTempo.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: DD_CIAS,
+          datasets: [{
+            label: 'Dias (média)',
+            data: tempoMedias,
+            backgroundColor: donutCors2.map(c => c + 'bb'),
+            borderColor: donutCors2,
+            borderWidth: 2,
+            borderRadius: 4,
+          }]
         },
-        scales: {
-          x: { grid: GR, ticks: { color: '#fff', font: { size: 22 } } },
-          y: { grid: GR, ticks: { color: '#fff', font: { size: 22 } }, beginAtZero: true }
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ctx.raw !== null ? ` ${ctx.raw} dias (média)` : ' Sem dados' } }
+          },
+          scales: {
+            x: { grid: GR, ticks: { color: '#fff', font: { size: 22 } } },
+            y: { grid: GR, ticks: { color: '#fff', font: { size: 22 } }, beginAtZero: true }
+          }
         }
-      }
-    });
+      });
+    }
   }
 
 

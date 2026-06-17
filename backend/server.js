@@ -1512,9 +1512,9 @@ app.post('/api/disque-denuncia/upload', requireAuth, requireRole('admin', 'p3', 
         const key = Object.keys(r).find(x => x.toLowerCase().trim().includes(k));
         return key ? String(r[key]).trim() : '';
       };
-      const data = parseDate(col('data do atend') ? col('data do atend') : col('data'));
-      const dataAtend = parseDate(col('data do atend'));
       const dataBase  = parseDate(col('data'));
+      // Busca a coluna de data de atendimento com várias grafias possíveis do CSV
+      const dataAtend = parseDate(col('data do atend') || col('data de atend') || col('data atend') || col('dataatend'));
       if (!dataBase) return null;
       const cia = col('cia');
       const numero_dd = col('disque') || col('nº') || col('numero');
