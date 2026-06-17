@@ -1,22 +1,36 @@
 /**
- * server.js — API REST do Dashboard 40 BPM/I
- * Porta: 3001
+ * server.js — API REST do Dashboard 40º BPM/I
+ * ─────────────────────────────────────────────
+ * Arquivo único com toda a lógica do backend:
+ *   - Autenticação JWT em cookie httpOnly (8h)
+ *   - Cache em memória do banco RAC/SSP (TTL 5 min)
+ *   - Todas as rotas da API
+ *   - Servir o frontend estático (express.static)
  *
- * Fontes de dados (em ordem de prioridade):
- *   1. Supabase (configure SUPABASE_URL e SUPABASE_KEY abaixo)
- *   2. Google Sheets publicado como CSV (configure SHEETS_URL abaixo)
- *   3. raw_data.json local (fallback automático)
+ * Fonte de dados (ordem de prioridade):
+ *   1. Supabase via service_role key (SUPABASE_URL + SUPABASE_KEY)
+ *   2. raw_data.json local (fallback automático se Supabase não configurado)
  *
- * IMPORTANTE — para o upload funcionar, crie no Supabase uma restrição UNIQUE:
+ * Estrutura de rotas:
+ *   Autenticação:   POST /api/auth/login|register|logout|change-password
+ *   Dados RAC/SSP:  GET  /api/registros, /api/meta, /api/sync, /api/status
+ *                   POST /api/upload
+ *   InfoCrim:       GET  /api/ocorrencias
+ *                   POST /api/upload/ocorrencias
+ *   Configuração:   GET/PUT /api/config
+ *   Efetivo P1:     GET  /api/efetivo, /api/afastamentos, /api/p1/vagas, /api/p1/quadro
+ *                   POST /api/efetivo/upload, /api/afastamentos/upload
+ *                   GET/PUT /api/efetivo/:re/foto
+ *   Produtividade:  GET  /api/prod/:tipo
+ *                   POST /api/prod/:tipo/upload
+ *   Disque Denúncia:GET/POST/PUT/DELETE /api/disque-denuncia
+ *                   POST /api/disque-denuncia/upload
+ *   Indicadores P3: GET/PUT /api/indicadores-p3
+ *   Admin:          GET/PATCH/DELETE /api/admin/users
+ *
+ * Restrição UNIQUE necessária no Supabase para upsert:
  *   ALTER TABLE "Base de Dados RAC PM"
  *   ADD CONSTRAINT rac_pm_unique UNIQUE ("Ano","Mes","Cia","Municipio","Crime");
- *
- * Rotas disponíveis:
- *   GET  /api/registros   → todos os registros (com filtros opcionais)
- *   GET  /api/meta        → crimes, meses, municípios e CIAs disponíveis
- *   GET  /api/sync        → força resincronização imediata
- *   GET  /api/status      → última sincronização e total de registros
- *   POST /api/upload      → recebe registros do CSV e faz upsert no Supabase
  */
 
 require('dotenv').config();
@@ -34,10 +48,12 @@ const cookieParser = require('cookie-parser');
 const app  = express();
 const PORT = 3001;
 
-// ============================================================
-// AUTENTICAÇÃO — JWT
-// Defina JWT_SECRET como variável de ambiente — nunca hardcode
-// ============================================================
+// ══════════════════════════════════════════════════════════════
+// AUTENTICAÇÃO — JWT + bcrypt
+// Cookie httpOnly 'auth_token' (8h). requireAuth() valida o
+// token e injeta req.user. requireRole() restringe por role.
+// JWT_SECRET: string ≥ 64 chars em .env — obrigatório.
+// ══════════════════════════════════════════════════════════════
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) { console.error('FATAL: variável JWT_SECRET não definida'); process.exit(1); }
 const USUARIOS_TABLE     = 'usuarios';
@@ -93,11 +109,11 @@ function requireRole(...roles) {
   };
 }
 
-// ============================================================
-// Supabase — credenciais via variáveis de ambiente OBRIGATÓRIAS
-// Use a service_role key (não a anon/publishable key)
+// ══════════════════════════════════════════════════════════════
+// SUPABASE — credenciais via variáveis de ambiente OBRIGATÓRIAS
+// Usa service_role key (bypassa RLS). Todas as tabelas têm RLS.
 // Vercel: Settings → Environment Variables
-// Local:  arquivo .env (nunca comitar)
+// Local:  arquivo backend/.env (nunca commitar)
 // ============================================================
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
@@ -137,12 +153,22 @@ const loginLimiter = rateLimit({
 const MES_ORD    = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const CRIMES_ORD = ['Homicídio','Estupro','Estupro de Vulnerável','Roubo','Furto','Roubo de Veículos','Furto de Veículos'];
 
-// Cache em memória
+// Cache em memória — sincronizado a cada CACHE_TTL (5 min) com Supabase.
+// Toda a lógica de filtro opera sobre cache.data[], sem consultar o banco.
 let cache = { data: [], lastSync: null, source: null, error: null };
 
-// ---------------------------------------------------------------------------
-// Parser de CSV simples (suporta campos com aspas)
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════
+// HELPERS DE NORMALIZAÇÃO
+// parseCSVLine():  parseia uma linha CSV respeitando aspas.
+// fromSupabase():  converte linha da tabela RAC PM → formato interno.
+// fetchAll():      pagina Supabase em lotes de 1000 (limite da API).
+// normCia():       "3ª CIA PM" → "3ª CIA" (canonicaliza o nome da CIA).
+// normMes():       aceita número (1–12) ou nome abreviado → nome completo.
+// titleCase():     caixa alta em cada palavra (usado em nomes de bairro).
+// parseDateBR():   "DD/MM/AAAA" → "AAAA-MM-DD".
+// parseHora():     normaliza hora para "HH:MM".
+// parsePMsField(): parseia campo "Posto RE Nome; ..." do CSV de ocorrências.
+// ══════════════════════════════════════════════════════════════
 function parseCSVLine(line) {
   const result = [];
   let cur = '', inQuote = false;
@@ -183,9 +209,7 @@ function fromSupabase(r) {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Helper: busca todas as linhas paginando em lotes de 1000 (limite Supabase)
-// ---------------------------------------------------------------------------
+// Helper genérico de paginação Supabase (limite de 1000 linhas por request).
 async function fetchAll(table, { select = '*', filters = [], order = [] } = {}) {
   const PAGE = 1000;
   let all = [], from = 0;
@@ -203,9 +227,12 @@ async function fetchAll(table, { select = '*', filters = [], order = [] } = {}) 
   return all;
 }
 
-// ---------------------------------------------------------------------------
-// Sincronização de fontes
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════
+// SINCRONIZAÇÃO DE DADOS
+// syncFromSupabase(): pagina a tabela RAC PM e popula cache.data[].
+// loadLocalFallback(): carrega raw_data.json se Supabase não disponível.
+// Chamado na inicialização e via GET /api/sync (forceSync).
+// ══════════════════════════════════════════════════════════════
 async function syncFromSupabase() {
   if (!supabase) return false;
   try {
@@ -283,14 +310,13 @@ function filtrar({ mes, crime, mun, cia }) {
 
 function uniq(arr) { return [...new Set(arr)]; }
 
-// ---------------------------------------------------------------------------
-// Rotas
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════
+// ROTAS DA API
+// Todas as rotas exigem requireAuth() exceto /api/auth/register e /api/auth/login.
+// A maioria das rotas de escrita exige requireRole('admin','p3','ti') ou equivalente.
+// ══════════════════════════════════════════════════════════════
 
-// ---------------------------------------------------------------------------
-// Rotas de autenticação
-// ---------------------------------------------------------------------------
-
+// ── AUTENTICAÇÃO ──────────────────────────────────────────────
 // POST /api/auth/register — cadastro (fica pendente até aprovação)
 app.post('/api/auth/register', async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
@@ -387,9 +413,12 @@ app.post('/api/auth/nova-senha', requireAuth, async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
-// Rotas de administração de usuários (somente p3)
-// ---------------------------------------------------------------------------
+// ── ADMIN — USUÁRIOS ──────────────────────────────────────────
+// GET  /api/admin/users        — lista todos (role ≥ p3)
+// PATCH /api/admin/users/:id   — altera status, role ou seção
+// PATCH /api/admin/users/:id/posto — altera posto/grad (role ≥ p1)
+// POST  /api/admin/users/:id/reset-senha — senha temp = matrícula
+// DELETE /api/admin/users/:id  — exclui permanentemente
 
 // GET /api/admin/users — lista todos os usuários
 app.get('/api/admin/users', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
@@ -478,9 +507,14 @@ app.delete('/api/admin/users/:id', requireAuth, requireRole('admin', 'p3'), asyn
   }
 });
 
-// ---------------------------------------------------------------------------
-// Rotas de dados (protegidas por autenticação)
-// ---------------------------------------------------------------------------
+// ── DADOS RAC/SSP ─────────────────────────────────────────────
+// GET  /api/status    — estado do cache (lastSync, source, records)
+// GET  /api/sync      — força resincronização imediata do cache
+// POST /api/upload    — importa CSV RAC/SSP (apaga anos presentes, re-insere)
+// POST /api/upload/ocorrencias — importa CSV InfoCrim
+// GET  /api/ocorrencias — busca ocorrências com ilike na rubrica
+// GET  /api/meta      — lista crimes, meses, municípios e CIAs do cache
+// GET  /api/registros — retorna todos os registros do cache (filtros opcionais)
 
 app.get('/api/status', requireAuth, (req, res) => {
   res.json({
@@ -648,9 +682,15 @@ app.get('/api/registros/cias', requireAuth, (req, res) => {
   res.json(uniq(cache.data.map(r => r.cia)).sort());
 });
 
-// ---------------------------------------------------------------------------
-// Analytics — módulos
-// ---------------------------------------------------------------------------
+// ── ANALYTICS ─────────────────────────────────────────────────
+// Módulos auxiliares em backend/analytics/:
+//   crimePressureIndex.js — Índice de Pressão Criminal (CIA)
+//   trendAnalysis.js      — Tendência por cidade
+//   targetDeviation.js    — Desvio vs meta por cidade
+//   cityRanking.js        — Ranking de CIAs por critérios
+//   priorityScore.js      — Score de prioridade
+//   insightGenerator.js   — Geração de insights automáticos
+// Rotas: GET /api/analytics/pressure|trends|priority-ranking|insights|deviation
 const { pressureByCity }               = require('./analytics/crimePressureIndex');
 const { trendByCity }                  = require('./analytics/trendAnalysis');
 const { deviationSummaryByCity }       = require('./analytics/targetDeviation');
@@ -1165,6 +1205,11 @@ function mapProdRow(tipo, r) {
   return null;
 }
 
+// ── PRODUTIVIDADE P3 ──────────────────────────────────────────
+// GET  /api/prod/:tipo         — retorna registros paginados da tabela de produtividade
+// POST /api/upload/prod/:tipo  — importa CSV de produtividade
+// Tipos: ocorrencias | presos | armas | veiculos | entorpecentes |
+//        visitaSolidaria | tempoResposta | cursos | pvs | conseg
 app.get('/api/prod/:tipo', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
   const tab = PROD_TABS[req.params.tipo];
@@ -1304,6 +1349,12 @@ app.put('/api/config', requireAuth, requireRole('admin', 'p3'), async (req, res)
   }
 });
 
+// ── INDICADORES DE QUALIDADE P3 ───────────────────────────────
+// GET  /api/indicadores-p3            — todos os registros históricos
+// POST /api/indicadores-p3            — insere/atualiza mês (upsert por ano+mes)
+// GET  /api/indicadores-p3/calculado  — valores derivados de RAC e produtividade
+// POST /api/indicadores-p3/desbloquear — libera edição de período bloqueado
+
 // GET /api/indicadores-p3 — qualquer usuário autenticado
 app.get('/api/indicadores-p3', requireAuth, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
@@ -1429,9 +1480,12 @@ app.post('/api/indicadores-p3/desbloquear', requireAuth, requireRole('admin', 'p
   }
 });
 
-// ---------------------------------------------------------------------------
-// Disque Denúncia
-// ---------------------------------------------------------------------------
+// ── DISQUE DENÚNCIA ───────────────────────────────────────────
+// GET    /api/disque-denuncia          — todos os registros
+// POST   /api/disque-denuncia          — cria registro (role ≥ p3)
+// PUT    /api/disque-denuncia/:id      — edita registro
+// DELETE /api/disque-denuncia/:id      — exclui registro
+// POST   /api/disque-denuncia/upload   — importa CSV (apaga/reinsere por ano)
 const DD_CIAS = ['1ª Cia PM', '2ª Cia PM', '3ª Cia PM', 'FT'];
 const DD_STATUS = ['Andamento', 'Averiguada com Êxito', 'Averiguada sem Êxito', 'Sem Averiguação'];
 
@@ -1621,13 +1675,14 @@ app.get('/api/pm/:re/cursos', requireAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Catch-all: serve index.html para qualquer rota não-API (SPA)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });
 
-// ---------------------------------------------------------------------------
-// Start
-// ---------------------------------------------------------------------------
+// ── INICIALIZAÇÃO ──────────────────────────────────────────────
+// init(): sincroniza cache com Supabase (ou fallback local), depois agenda
+//         resincronização automática a cada CACHE_TTL (5 min).
 init().then(() => {
   app.listen(PORT, () => {
     console.log(`✓ API rodando em http://localhost:${PORT}`);

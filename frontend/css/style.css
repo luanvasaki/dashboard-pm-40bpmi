@@ -1,9 +1,19 @@
+/* ══════════════════════════════════════════════════════════════
+   VARIÁVEIS GLOBAIS — paleta de cores e escala tipográfica
+   Tons escuros (--bg, --s1..s3) para fundo; --gold é a cor
+   institucional do 40º BPM/I. Fontes grandes otimizadas para
+   exibição em projetor/telão.
+══════════════════════════════════════════════════════════════ */
 :root{
+  /* Camadas de fundo: bg → s1 → s2 → s3 (mais claro) */
   --bg:#07090f;--s1:#0d1018;--s2:#121620;--s3:#181d28;
+  /* Bordas sutis em dois pesos */
   --bd:#252d40;--bd2:#2e3850;
+  /* Cor institucional ouro + cores semânticas */
   --gold:#c8a84b;--gold2:#e8c96a;
   --blue:#3d7abf;--red:#e05555;--green:#3dbf7a;--orange:#bf7a3d;--purple:#7a4bbf;
   --red2:#f07878;--green2:#5ae09a;--blue2:#5a9de0;
+  /* Tons de texto: tx (mais brilhante) → tx3 (mais apagado) */
   --tx:#f4f6fc;--tx2:#deeaf8;--tx3:#ccd8e8;
   --bg2:#121620;--bg3:#181d28;--tx1:#f4f6fc;--border:#252d40;
   /* Escala tipográfica — otimizada para projeção */
@@ -13,14 +23,28 @@
   --fs-body:22px;        /* texto geral, tabelas, subtextos */
   --fs-label:20px;       /* labels uppercase, hints, meta */
 }
+/* ── Reset e base ──────────────────────────────────────────── */
 *{margin:0;padding:0;box-sizing:border-box}
+/* overflow-x:auto no html permite scroll horizontal quando o
+   conteúdo ultrapassa o min-width do body, evitando compressão */
 html{overflow-x:auto}
+/* Layout raiz: sidebar fixa à esquerda + área principal flexível.
+   min-width:1100px garante que o dashboard nunca fique "espremido"
+   em janelas estreitas — aparece scroll horizontal em vez disso. */
 body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-size:var(--fs-body);display:flex;min-height:100vh;min-width:1100px}
+
+/* ── Sidebar ───────────────────────────────────────────────── */
+/* position:sticky + height:100vh mantém a sidebar visível
+   enquanto o conteúdo principal rola independentemente */
 aside{width:240px;min-width:240px;background:var(--s1);border-right:1px solid var(--bd);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;transition:width .25s ease,min-width .25s ease}
+/* Quando colapsada, a sidebar vai a zero com transição suave */
 body.sidebar-collapsed aside{width:0;min-width:0;border:none;overflow:hidden}
+/* Seta de toggle fixada na borda da sidebar; z-index:600 fica
+   acima do conteúdo mas abaixo dos modais (z-index:9999) */
 .sb-toggle{position:fixed;top:50%;left:240px;transform:translateY(-50%);z-index:600;background:var(--s1);border:1px solid var(--bd);border-left:none;border-radius:0 6px 6px 0;width:18px;height:48px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx3);transition:left .25s ease,color .15s;padding:0}
 .sb-toggle:hover{color:var(--tx)}
 body.sidebar-collapsed .sb-toggle{left:0;border-left:1px solid var(--bd);border-radius:6px}
+/* ── Logo e identidade visual na sidebar ───────────────────── */
 .logo{padding:18px 14px;border-bottom:1px solid var(--bd)}
 .logo-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
 .logo-row img{width:78px;height:78px;object-fit:contain;border-radius:50%;border:2px solid var(--gold);box-shadow:0 0 0 3px rgba(200,168,75,.15),0 0 12px rgba(200,168,75,.12);background:#fff;padding:3px}
@@ -29,17 +53,28 @@ body.sidebar-collapsed .sb-toggle{left:0;border-left:1px solid var(--bd);border-
 .logo-title span{color:var(--gold)}
 .logo-sub{font-family:'DM Mono',monospace;font-size:var(--fs-label);color:var(--tx3);letter-spacing:2px;text-transform:uppercase}
 .sidebar-label{font-family:'DM Mono',monospace;font-size:var(--fs-label);color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+/* ── Navegação principal (botões de seção na sidebar) ──────── */
 nav{padding:12px 8px;flex:1}
 .nav-sec{font-family:'DM Mono',monospace;font-size:var(--fs-label);color:var(--tx3);letter-spacing:2px;text-transform:uppercase;padding:8px 8px 5px;margin-top:6px}
+/* Botão de navegação genérico; .on marca a seção ativa com
+   realce dourado e borda esquerda de 2px */
 .nav-btn{display:flex;align-items:center;gap:9px;width:100%;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:var(--fs-body);color:var(--tx2);border:none;background:none;text-align:left;transition:all .15s;margin-bottom:2px}
 .nav-btn:hover{background:var(--s3);color:var(--tx)}
 .nav-btn.on{background:rgba(200,168,75,.12);color:var(--gold);border-left:2px solid var(--gold)}
 .nav-ic{font-size:var(--fs-label);width:18px;text-align:center}
+/* Rodapé da sidebar: informações do usuário logado */
 .sidebar-foot{padding:12px 14px;border-top:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:var(--fs-label);color:var(--tx3);letter-spacing:1px;line-height:2}
+/* ── Área de conteúdo principal ────────────────────────────── */
+/* min-width:0 permite que o flex item encolha abaixo do seu
+   conteúdo natural sem quebrar o layout ao lado da sidebar */
 main{flex:1;overflow-y:auto;padding:26px 26px 60px;min-width:0}
+/* Páginas são ocultas por padrão; classe .on as exibe com
+   animação de entrada (fade + slide up) para transição suave */
 .page{display:none}
 .page.on{display:block;animation:fu .25s ease}
 @keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+/* ── Cabeçalho de página (.ph = page header) ───────────────── */
+/* Contém título à esquerda e metadados (período/fonte) à direita */
 .ph{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--bd);flex-wrap:wrap;gap:10px}
 .ph-tag{font-family:'DM Mono',monospace;font-size:var(--fs-body);color:#f4f6fc;letter-spacing:2px;margin-bottom:5px}
 .ph-title{font-family:'Barlow Condensed',sans-serif;font-size:var(--fs-subheading);font-weight:800;letter-spacing:2px;line-height:1}
@@ -48,6 +83,8 @@ main{flex:1;overflow-y:auto;padding:26px 26px 60px;min-width:0}
 .ph-meta b{color:var(--gold2)}
 .badge-live{display:inline-flex;align-items:center;gap:6px;background:rgba(61,191,122,.1);border:1px solid rgba(61,191,122,.25);border-radius:20px;padding:5px 14px;font-family:'DM Mono',monospace;font-size:var(--fs-body);color:var(--green2);letter-spacing:1px;margin-bottom:18px}
 .badge-live::before{content:'●';font-size:var(--fs-label)}
+/* ── Cards KPI (indicadores principais) ────────────────────── */
+/* Grid de 6 colunas iguais; cai para 2 colunas no mobile */
 .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-bottom:20px}
 .kpi{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:22px 18px 18px;cursor:pointer;transition:border-color .2s,transform .15s;position:relative;text-align:center;display:flex;flex-direction:column;align-items:center}
 .kpi:hover{border-color:rgba(255,255,255,.25);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.4)}
@@ -67,6 +104,8 @@ main{flex:1;overflow-y:auto;padding:26px 26px 60px;min-width:0}
 .g1{margin-bottom:14px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .g21{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
+/* ── Painel de filtros (.pf = page filter) ─────────────────── */
+/* Barra horizontal com seletores de ANO, MÊS e CIA */
 .pf{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:18px;padding:10px 16px;background:var(--s2);border:1px solid var(--bd);border-radius:8px}
 .pf-row{display:flex;gap:10px;align-items:center;width:100%}
 .pf-label{font-family:'DM Mono',monospace;font-size:var(--fs-body);color:#f4f6fc;letter-spacing:2px;text-transform:uppercase;white-space:nowrap}
@@ -79,22 +118,27 @@ main{flex:1;overflow-y:auto;padding:26px 26px 60px;min-width:0}
 .pf-select:focus{outline:none;border-color:var(--gold)}
 .pf-select option{background:var(--s2);color:var(--tx)}
 .pf-sep{width:1px;height:22px;background:var(--bd2);margin:0 2px;flex-shrink:0}
+/* ── Card genérico (seção de conteúdo com borda) ───────────── */
 .card{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:18px}
 .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .card-title{font-family:'DM Mono',monospace;font-size:var(--fs-body);letter-spacing:2px;color:#ffffff;text-transform:uppercase}
 .card-badge{font-family:'DM Mono',monospace;font-size:var(--fs-body);padding:4px 11px;border-radius:20px;background:var(--s3);color:var(--tx2)}
 canvas{max-height:320px}
+/* ── Tabelas de dados ──────────────────────────────────────── */
 .tbl{width:100%;border-collapse:collapse}
 .tbl th{font-family:'DM Mono',monospace;font-size:var(--fs-body);letter-spacing:1.5px;color:var(--tx3);text-transform:uppercase;padding:10px 12px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}
 .tbl td{padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:var(--fs-body)}
 .tbl tr:last-child td{border-bottom:none}
 .tbl tr:hover td{background:rgba(255,255,255,.02)}
 .num{font-family:'DM Mono',monospace;font-size:var(--fs-body)}
+/* ── Pills de status (metas SSP) ───────────────────────────── */
+/* p-ok = Ótimo/Meta | p-warn = Na Meta | p-bad = Acima | p-evol = Em Evolução */
 .pill{display:inline-flex;padding:4px 12px;border-radius:20px;font-family:'DM Mono',monospace;font-size:var(--fs-body)}
 .p-ok{background:rgba(61,191,122,.12);color:var(--green2)}
 .p-warn{background:rgba(200,168,75,.12);color:var(--gold2)}
 .p-bad{background:rgba(240,120,120,.12);color:var(--red2)}
 .p-evol{background:rgba(191,122,61,.15);color:#e8965a}
+/* ── Ranking items (barras horizontais de ranking) ─────────── */
 .ri{display:flex;align-items:center;gap:9px;margin-bottom:9px}
 .ri-n{font-family:'Barlow Condensed',sans-serif;font-size:var(--fs-body);color:var(--tx3);width:22px;text-align:center;flex-shrink:0}
 .ri-n.top{color:var(--gold)}
@@ -102,6 +146,7 @@ canvas{max-height:320px}
 .ri-bg{flex:1;height:20px;background:var(--s3);border-radius:3px;overflow:hidden}
 .ri-fill{height:100%;border-radius:3px;display:flex;align-items:center;justify-content:flex-end;padding-right:7px;transition:width 1s cubic-bezier(.16,1,.3,1)}
 .ri-fill span{font-family:'DM Mono',monospace;font-size:var(--fs-label);color:#000;font-weight:700}
+/* ── Heatmap de crimes por município × crime ───────────────── */
 .hm-wrap{overflow-x:auto}
 .hm-tbl{border-collapse:collapse;width:100%}
 .hm-tbl th{font-family:'DM Mono',monospace;font-size:var(--fs-body);letter-spacing:1px;color:#ffffff;text-transform:uppercase;padding:12px 8px;border-bottom:1px solid var(--bd);white-space:normal;text-align:center;line-height:1.3}
@@ -116,8 +161,11 @@ canvas{max-height:320px}
 .hm-mbtn{padding:7px 16px;border-radius:20px;border:1px solid var(--bd2);background:none;color:var(--tx2);font-family:'DM Mono',monospace;font-size:var(--fs-body);cursor:pointer;transition:all .15s}
 .hm-mbtn:hover{border-color:var(--gold);color:var(--gold)}
 .hm-mbtn.on{background:rgba(200,168,75,.15);border-color:var(--gold);color:var(--gold);font-weight:600}
+/* ── Grid de insights de inteligência criminal ─────────────── */
+/* .ig = insight grid (3 colunas); .ins-grid = cards de análise (2 colunas) */
 .ig{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
 .ins-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:4px}
+/* Borda esquerda colorida indica severidade: gold=padrão, red=alerta, green=positivo */
 .ins{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:24px 22px;border-left:4px solid var(--gold)}
 .ins.red{border-left-color:var(--red2)}
 .ins.green{border-left-color:var(--green)}
@@ -128,6 +176,9 @@ canvas{max-height:320px}
 .ins.blue .ins-val{color:var(--blue2)}
 .ins-title{font-family:'Barlow Condensed',sans-serif;font-size:var(--fs-heading);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
 .ins-body{font-size:var(--fs-body);color:#f4f6fc;line-height:1.6}
+/* ── Modais de detalhe ─────────────────────────────────────── */
+/* z-index:9999 fica acima de tudo; opacity+pointer-events
+   controlam visibilidade sem remover o elemento do DOM */
 .mo{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
 .mo.on{opacity:1;pointer-events:all}
 .mo-box{background:var(--s1);border:1px solid var(--bd2);border-radius:12px;width:100%;max-width:1500px;max-height:96vh;overflow-y:auto;transform:translateY(16px);transition:transform .2s}
@@ -190,7 +241,7 @@ canvas{max-height:320px}
 .upl-btn.confirm.on{display:inline-block}
 .upl-btn.confirm:hover{background:var(--gold2)}
 .upl-btn:disabled{opacity:.45;cursor:default}
-/* ── Navegação por Seção ───────────────────────────────────── */
+/* ── Botões de seção (sidebar expandida com submenu P3) ────── */
 .p1-uc.sel{border-color:var(--gold)!important;background:rgba(200,168,75,.07)!important;transform:translateY(-2px)!important;box-shadow:0 4px 20px rgba(200,168,75,.15)!important}
 .p1-ubtn.sel{font-weight:600}
 .sec-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border-radius:6px;cursor:pointer;border:none;background:none;text-align:left;transition:all .2s cubic-bezier(.25,.8,.25,1);margin-bottom:2px;color:var(--tx2);transform:translateX(0)}

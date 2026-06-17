@@ -1,4 +1,20 @@
 <!DOCTYPE html>
+<!--
+  index.html — SPA principal do Dashboard 40º BPM/I
+  ─────────────────────────────────────────────────
+  Estrutura geral:
+    <aside>         Sidebar de navegação (seções P1, P3, P4, P5, PJMD)
+    <main>          Área de conteúdo — uma <div id="page-*"> por tela
+    Modais          Todos os modais de detalhe, upload e edição são
+                    definidos aqui e controlados via JS (app.js)
+
+  Dependências externas (CDN):
+    Chart.js 4.4.1  — gráficos de linha, barra, radar, donut
+    PapaParse 5.4.1 — parsing de CSVs no browser (upload P1/P3)
+    Lucide Icons    — ícones SVG via data-lucide="..."
+
+  Sem framework: HTML/CSS/JS puro. Toda lógica em js/app.js.
+-->
 <html lang="pt-BR">
 <head>
 <!-- Auth guard: redireciona para login se não autenticado -->
@@ -87,7 +103,12 @@
   </div>
 </aside>
 
-<!-- MODAL ADMIN USUÁRIOS -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL ADMIN USUÁRIOS
+     Gerenciamento de usuários (aprovar, editar role, excluir).
+     Visível apenas para roles: admin, p3, ti.
+     Preenchido dinamicamente por openAdminModal() em app.js.
+     ══════════════════════════════════════════════════════ -->
 <div id="adm-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;overflow-y:auto;padding:30px 16px" onclick="admClickOut(event)">
   <div id="adm-box" style="max-width:1100px;margin:0 auto;background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:28px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid var(--bd)">
@@ -111,7 +132,13 @@
   </div>
 </div>
 
-<!-- MODAL DE DETALHES -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL DE DETALHES — PAINEL DE INTELIGÊNCIA CRIMINAL
+     Abre ao clicar em um KPI card. Exibe evolução por município,
+     análise temporal, tabela InfoCrim, heatmap de padrão temporal,
+     tipo de local e bairros mais afetados.
+     Controlado por openModal() / moClose() em app.js.
+     ══════════════════════════════════════════════════════ -->
 <div class="mo" id="mo" onclick="moClickOut(event)">
   <div class="mo-box">
     <div class="mo-head">
@@ -180,7 +207,12 @@
   </div>
 </div>
 
-<!-- MODAL DE UPLOAD CSV -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL DE UPLOAD CSV — BANCO DE DADOS RAC (SSP)
+     Importa dados de crimes (Ano/Mes/Cia/Municipio/Crime/
+     Anterior/Meta/Avaliado) via PapaParse + POST /api/upload.
+     Controlado por openUploadModal() / confirmUpload() em app.js.
+     ══════════════════════════════════════════════════════ -->
 <div class="upl-mo" id="upl-mo" onclick="uplClickOut(event)">
   <div class="upl-box">
     <div class="upl-head">
@@ -214,7 +246,15 @@
   </div>
 </div>
 
-<!-- MODAL UPLOAD OCORRÊNCIAS INFOCRIM -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL UPLOAD OCORRÊNCIAS INFOCRIM
+     Importa CSV exportado do InfoCrim (sistema estadual).
+     Campos: DataOcorrencia, Rubrica, CompanhiaCircunscricao,
+     MunicipioCircunscricao, Bairro, TipoLocal, etc.
+     A CIA de cada ocorrência vem diretamente do campo
+     CompanhiaCircunscricao — não há remapeamento no código.
+     Controlado por openOcorrModal() / confirmOcorrUpload().
+     ══════════════════════════════════════════════════════ -->
 <div id="ocorr-upl-mo" class="upl-mo" onclick="ocorrClickOut(event)">
   <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:12px;width:min(540px,95vw);padding:28px;display:flex;flex-direction:column;gap:18px">
     <div style="display:flex;justify-content:space-between;align-items:center">
@@ -244,11 +284,22 @@
 </div>
 
 <main>
-<!-- P1 EFETIVO -->
+<!-- ══════════════════════════════════════════════════════
+     PÁGINA INICIAL (HOME)
+     Conteúdo gerado dinamicamente por renderHome() em app.js.
+     Exibe resumo executivo das seções ativas.
+     ══════════════════════════════════════════════════════ -->
 <div id="page-home" class="page on">
   <div id="home-content" style="min-height:60vh"></div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════
+     PÁGINA P1 — SEÇÃO DE PESSOAL
+     Exibe KPIs de efetivo, quadro de claros, afastamentos
+     e TAF/TAT. Busca por RE/Nome com autocomplete.
+     Dados: tabelas efetivo_pm, afastamentos_pm, vagas_pm,
+     p1_quadro_fixado no Supabase.
+     ══════════════════════════════════════════════════════ -->
 <div id="page-p1" class="page">
   <div class="ph" style="position:relative">
     <!-- Última Atualização — canto superior direito, visível a todos -->
@@ -282,7 +333,12 @@
   <div id="p1-body"></div>
 </div>
 
-<!-- MODAL UPLOAD EFETIVO P1 -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL UPLOAD EFETIVO P1
+     Importa planilha CSV com o efetivo atual (OPM, Posto/Grad,
+     RE, Nome). Substitui todos os registros anteriores.
+     Role mínimo: p1 ou ti.
+     ══════════════════════════════════════════════════════ -->
 <div id="p1-upl-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;align-items:center;justify-content:center;padding:20px" onclick="p1UplClickOut(event)">
   <div id="p1-upl-box" style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:28px;width:100%;max-width:520px">
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px;margin-bottom:6px">IMPORTAR <span style="color:#c8a84b">EFETIVO</span></div>
@@ -301,7 +357,11 @@
   </div>
 </div>
 
-<!-- MODAL UPLOAD AFASTAMENTOS P1 -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL UPLOAD AFASTAMENTOS P1
+     Importa afastamentos (licença médica, férias, etc.).
+     Campos obrigatórios: RE, Tipo de Afastamento, Início, Término.
+     ══════════════════════════════════════════════════════ -->
 <div id="af-upl-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;align-items:center;justify-content:center;padding:20px" onclick="afUplClickOut(event)">
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:28px;width:100%;max-width:520px">
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px;margin-bottom:6px">IMPORTAR <span style="color:#5a9de0">AFASTAMENTOS</span></div>
@@ -321,7 +381,12 @@
   </div>
 </div>
 
-<!-- MODAL PRONTUÁRIO PM -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL PRONTUÁRIO PM
+     Ficha individual de cada policial: foto, dados cadastrais,
+     extrato de afastamentos e cursos institucionais.
+     A área de edição de foto é exibida apenas para roles p1/admin.
+     ══════════════════════════════════════════════════════ -->
 <div id="pronto-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:10500;align-items:center;justify-content:center;padding:20px;overflow-y:auto" onclick="prontoClickOut(event)">
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:26px;width:100%;max-width:600px;margin:auto">
     <div style="display:flex;align-items:flex-start;gap:18px;margin-bottom:20px">
@@ -420,7 +485,11 @@
   </div>
 </div>
 
-<!-- MODAL UPLOAD QUADRO FIXADO -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL UPLOAD QUADRO FIXADO
+     Importa o quadro de claros (postos fixados por OPM).
+     Usado para calcular o déficit operacional em p1_quadro_fixado.
+     ══════════════════════════════════════════════════════ -->
 <div id="quadro-upl-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;align-items:center;justify-content:center;padding:20px" onclick="quadroUplClickOut(event)">
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:28px;width:100%;max-width:520px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
@@ -438,7 +507,11 @@
   </div>
 </div>
 
-<!-- MODAL VAGAS (EFETIVO FIXADO) -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL VAGAS (EFETIVO FIXADO)
+     Permite definir/editar o número de vagas autorizadas
+     por unidade operacional (OPM). Usado no cálculo de claro.
+     ══════════════════════════════════════════════════════ -->
 <div id="vagas-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:2050;align-items:center;justify-content:center;padding:20px" onclick="vagasClickOut(event)">
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:26px;width:100%;max-width:480px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -454,7 +527,11 @@
   </div>
 </div>
 
-<!-- MODAL FOTO PM -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL FOTO PM
+     Exibe e gerencia a foto do policial (base64 em fotos_pm).
+     Edição restrita a roles p1/admin.
+     ══════════════════════════════════════════════════════ -->
 <div id="foto-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:2100;align-items:center;justify-content:center;padding:20px" onclick="fotoClickOut(event)">
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:26px;width:100%;max-width:360px">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px">
@@ -490,7 +567,15 @@
   </div>
 </div>
 
-<!-- P3 PRODUTIVIDADE -->
+<!-- ══════════════════════════════════════════════════════
+     PÁGINA P3 PRODUTIVIDADE
+     KPIs de produtividade policial: ocorrências, presos, armas,
+     veículos, entorpecentes, Visita Solidária (VD), Disque Denúncia,
+     CONSEG, PVS, tempo de resposta, cursos.
+     Filtros: Ano, Mês, CIA. Clicar em KPI abre modal de detalhe.
+     Campo SICOORDOP: texto livre editável por admin/p3/ti,
+     salvo em config_dashboard com chave 'sicoordop_texto'.
+     ══════════════════════════════════════════════════════ -->
 <div id="page-p3prod" class="page">
   <div class="ph">
     <div>
@@ -516,7 +601,12 @@
 
 </div>
 
-<!-- Modal Upload Disque Denúncia -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL UPLOAD DISQUE DENÚNCIA
+     Importa registros do programa Disque Denúncia (197).
+     Campos: Data, CIA, Nº DD, Data Atendimento, Status,
+     Flagrante, Quant. Presos.
+     ══════════════════════════════════════════════════════ -->
 <div id="dd-upl-mo" onclick="ddUplClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;align-items:center;justify-content:center">
   <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:10px;padding:24px;width:min(440px,92vw);max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:6px">Importar Disque Denúncia</div>
@@ -531,7 +621,11 @@
   </div>
 </div>
 
-<!-- Modal Disque Denúncia -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL FORMULÁRIO DISQUE DENÚNCIA
+     Criação/edição de registro individual de DD.
+     Renderizado por openDDMo() em app.js.
+     ══════════════════════════════════════════════════════ -->
 <div id="dd-mo" onclick="ddMoClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;align-items:center;justify-content:center">
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:24px;width:min(500px,95vw);max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
     <div id="dd-mo-title" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:18px">Novo Registro</div>
@@ -544,7 +638,11 @@
   </div>
 </div>
 
-<!-- Modal Indicadores de Qualidade -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL INDICADORES DE QUALIDADE P3
+     Formulário de preenchimento/edição dos 13 indicadores
+     de qualidade mensais (tabela indicadores_qualidade_p3).
+     ══════════════════════════════════════════════════════ -->
 <div id="iq-mo" onclick="iqMoClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;align-items:center;justify-content:center">
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:24px;width:min(540px,95vw);max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
     <div id="iq-mo-title" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:18px">Preencher Indicadores</div>
@@ -557,7 +655,13 @@
   </div>
 </div>
 
-<!-- Modal upload Produtividade (genérico) -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL UPLOAD PRODUTIVIDADE (GENÉRICO)
+     Modal reutilizado por todos os tipos de produtividade:
+     ocorrências, presos, armas, veículos, entorpecentes,
+     visita solidária, tempo resposta, cursos, PVS, CONSEG.
+     O título e hint são atualizados dinamicamente em openProdUpl().
+     ══════════════════════════════════════════════════════ -->
 <div id="prod-upl-mo" onclick="prodUplClickOut(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;align-items:center;justify-content:center">
   <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:10px;padding:24px;width:min(420px,92vw);max-height:90vh;overflow-y:auto">
     <div id="prod-upl-title" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx);margin-bottom:6px">Importar</div>
@@ -572,7 +676,11 @@
   </div>
 </div>
 
-<!-- MODAL DETALHE DISQUE DENÚNCIA -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL DETALHE DISQUE DENÚNCIA
+     Análise completa do DD: ranking por CIA, evolução mensal,
+     taxa de êxito, tempo médio de atendimento.
+     ══════════════════════════════════════════════════════ -->
 <div class="mo" id="dd-detail-mo" onclick="ddDetailClickOut(event)">
   <div class="mo-box">
     <div class="mo-head">
@@ -591,7 +699,12 @@
   </div>
 </div>
 
-<!-- MODAL DETALHE P1 -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL DETALHE P1
+     Detalhe de indicadores P1 (afastamentos por tipo,
+     evolução temporal, comparativo de OPMs).
+     Compartilha estrutura .mo/.mo-box com outros modais de detalhe.
+     ══════════════════════════════════════════════════════ -->
 <div class="mo" id="p1-detail-mo" onclick="p1DetailClickOut(event)">
   <div class="mo-box">
     <div class="mo-head">
@@ -608,7 +721,12 @@
   </div>
 </div>
 
-<!-- MODAL DETALHE PRODUTIVIDADE -->
+<!-- ══════════════════════════════════════════════════════
+     MODAL DETALHE PRODUTIVIDADE
+     Análise detalhada de qualquer métrica de produtividade:
+     evolução mensal, comparativo entre CIAs, ranking.
+     Controlado por openProdDetail() em app.js.
+     ══════════════════════════════════════════════════════ -->
 <div class="mo" id="prod-detail-mo" onclick="prodDetailClickOut(event)">
   <div class="mo-box">
     <div class="mo-head">
@@ -629,7 +747,11 @@
   </div>
 </div>
 
-<!-- P5 EM BREVE -->
+<!-- ══════════════════════════════════════════════════════
+     PÁGINAS "EM BREVE" — P5, P4, PJMD
+     Seções ainda não implementadas. Exibem placeholder
+     com ícone, título e descrição do módulo futuro.
+     ══════════════════════════════════════════════════════ -->
 <div id="page-p2" class="page">
   <div class="ph">
     <div><div class="ph-tag">SEÇÃO P5</div><div class="ph-title">COMUNICAÇÃO <span>SOCIAL</span></div></div>
@@ -668,7 +790,21 @@
   </div>
 </div>
 
-<!-- VISÃO GERAL -->
+<!-- ══════════════════════════════════════════════════════
+     PÁGINA VISÃO GERAL — PAINEL DE INTELIGÊNCIA CRIMINAL
+     Tela principal do módulo P3 criminal (RAC/SSP).
+     Conteúdo:
+       - Barra de filtro por mês (#vis-mes-bar)
+       - Legenda AVALIADO × ANTERIOR
+       - Grid de KPI cards (#kpi-row) — um por tipo de crime
+       - Análise Automática de Inteligência (#ins-grid)
+       - Gráfico Meta vs Avaliado (#c-var)
+       - Segunda barra de filtro (#vis-mes-bar-2)
+       - Mapa de Calor municipio×crime (#vis-hm-tbl)
+       - Evolução por município (#c-evol-muns)
+     Campos editáveis (salvo em config_dashboard):
+       SSP = periodo_texto; INFOCRIM = fonte_texto; UPLOAD = last_upload
+     ══════════════════════════════════════════════════════ -->
 <div id="page-visao" class="page">
   <div class="ph">
     <div>
@@ -753,7 +889,11 @@
 
 </div>
 
-<!-- METAS -->
+<!-- ══════════════════════════════════════════════════════
+     PÁGINA METAS × REALIZADO
+     Tabela comparativa de todos os crimes × municípios
+     com meta SSP e resultado avaliado do período filtrado.
+     ══════════════════════════════════════════════════════ -->
 <div id="page-metas" class="page">
   <div class="ph">
     <div><div class="ph-tag">CONTROLE</div><div class="ph-title">METAS × <span>REALIZADO</span></div></div>
@@ -764,7 +904,12 @@
 </div>
 
 
-<!-- HEATMAP -->
+<!-- ══════════════════════════════════════════════════════
+     PÁGINA MAPA DE CALOR
+     Visão dedicada do heatmap município × crime, com filtro
+     de crime individualizado. Complementa o heatmap da
+     página Visão Geral (que não tem filtro de crime isolado).
+     ══════════════════════════════════════════════════════ -->
 <div id="page-heatmap" class="page">
   <div class="ph">
     <div><div class="ph-tag">DISTRIBUIÇÃO</div><div class="ph-title">MAPA DE <span>CALOR</span></div></div>
@@ -787,9 +932,12 @@
   </div>
 </div>
 
-<!-- INSIGHTS -->
-
-<!-- EVOLUÇÃO -->
+<!-- ══════════════════════════════════════════════════════
+     PÁGINA EVOLUÇÃO MENSAL
+     Gráfico de linha + tabela mostrando a variação histórica
+     de um crime selecionado por município ao longo dos meses.
+     Filtro de crime via <select id="evol-crime-sel">.
+     ══════════════════════════════════════════════════════ -->
 <div id="page-evolucao" class="page">
   <div class="ph">
     <div><div class="ph-tag">HISTÓRICO</div><div class="ph-title">EVOLUÇÃO <span>MENSAL</span></div></div>

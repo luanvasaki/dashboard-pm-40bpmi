@@ -1,6 +1,23 @@
 ﻿/**
- * app.js — Frontend do Dashboard 40 BPM/I
- * Busca os dados via API REST (backend Node.js + Supabase).
+ * app.js — Frontend do Dashboard 40º BPM/I
+ * ─────────────────────────────────────────
+ * SPA sem framework. Toda a lógica de UI, gráficos e chamadas
+ * à API REST (Express + Supabase) está aqui.
+ *
+ * Estrutura do arquivo (por seção):
+ *   1. Constantes globais e helpers (escHtml, authFetch)
+ *   2. Autenticação / sessão (initUserBlock, loadDashboardConfig)
+ *   3. Modal de administração de usuários
+ *   4. Paletas de cores e constantes de domínio
+ *   5. Estado global e filtros (RAW, CRIMES, MESES, pageFilters)
+ *   6. Navegação (goPage, goSection, sidebar)
+ *   7. Carregamento de dados (fetchData, DOMContentLoaded)
+ *   8. Painel de Inteligência Criminal P3 (renderVisao, renderKPIs, renderMetas, renderEvolucao, renderHeatmap)
+ *   9. Modal de detalhe (openModal, renderModal*)
+ *  10. Upload CSV — RAC/SSP e InfoCrim
+ *  11. P1 Efetivo (renderP1, prontuário, fotos, afastamentos, quadro)
+ *  12. P3 Produtividade (renderProd, prodDetail, Disque Denúncia, IQ)
+ *  13. Indicadores de Qualidade P3 (renderIQ, iqSave, iqMo*)
  */
 
 const API = `${window.location.origin}/api`;
@@ -8,27 +25,30 @@ const API = `${window.location.origin}/api`;
 // flag: indica se fonte_texto foi carregado do banco (impede updateSyncStatus de sobrescrever)
 let _fonteFromConfig = false;
 
-// ---------------------------------------------------------------------------
-// Segurança — escape HTML para evitar XSS em innerHTML
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 1. HELPERS GLOBAIS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Escape HTML para evitar XSS em qualquer innerHTML construído dinamicamente
 function escHtml(s) {
   return (s == null ? '' : String(s))
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-// ---------------------------------------------------------------------------
-// Helpers globais reutilizáveis
-// ---------------------------------------------------------------------------
+// Helpers de conveniência
 function currentRole() {
   try { return JSON.parse(localStorage.getItem('auth_user') || '{}').role || ''; } catch { return ''; }
 }
 const isFer      = t => /f[eé]rias/i.test(t || '');
 const fmtDateBR  = s => { if (!s) return '—'; const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
 
-// ---------------------------------------------------------------------------
-// Autenticação — helpers
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 2. AUTENTICAÇÃO E SESSÃO
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Wrapper de fetch com cookie httpOnly (credentials:same-origin), timeout
+// configurável (30s GET / 60s POST) e redirecionamento automático ao 401.
 function authFetch(url, options = {}) {
   options.credentials = 'same-origin';
   const isGet = !options.method || options.method === 'GET';
@@ -259,9 +279,11 @@ async function checkPendingUsers() {
   } catch (_) {}
 }
 
-// ---------------------------------------------------------------------------
-// Modal de administração de usuários
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 3. MODAL DE ADMINISTRAÇÃO DE USUÁRIOS
+// Aprovação de cadastros pendentes, alteração de role/seção/posto,
+// redefinição de senha e exclusão. Visível apenas para admin/p3/ti.
+// ══════════════════════════════════════════════════════════════════════════════
 function admClickOut(e) { if (e.target.id === 'adm-mo') closeAdminModal(); }
 function closeAdminModal() { document.getElementById('adm-mo').style.display = 'none'; }
 
@@ -467,6 +489,10 @@ function showAdmMsg(text, type) {
   setTimeout(() => { el.style.display = 'none'; }, 4000);
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// 4. PALETAS DE CORES E CONSTANTES DE DOMÍNIO
+// ══════════════════════════════════════════════════════════════════════════════
+
 // Paleta de cores por crime (mesma ordem da API)
 const PAL = ['#e05555','#bf7a3d','#c8a84b','#3d7abf','#e8c96a','#3dbf7a','#7a4bbf'];
 
@@ -540,6 +566,13 @@ const MES_ORD = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const MES_ABREV = { Janeiro:'JAN', Fevereiro:'FEV', Março:'MAR', Abril:'ABR', Maio:'MAI', Junho:'JUN', Julho:'JUL', Agosto:'AGO', Setembro:'SET', Outubro:'OUT', Novembro:'NOV', Dezembro:'DEZ' };
 
+// ══════════════════════════════════════════════════════════════════════════════
+// 5. ESTADO GLOBAL
+// RAW: todos os registros da API /api/data (cache em memória).
+// CRIMES/MESES/MUNS/CIAS/ANOS: listas únicas extraídas de RAW.
+// selMeses/selAno: filtro ativo do usuário.
+// ══════════════════════════════════════════════════════════════════════════════
+
 // Estado global preenchido após o fetch inicial
 let RAW      = [];
 let CRIMES   = [];
@@ -611,9 +644,11 @@ let moMeses  = [];
 let moScopeType = 'btl';
 let moScopeVal  = null;
 
-// ---------------------------------------------------------------------------
-// Filtros por página
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 6. FILTROS POR PÁGINA
+// pageFilters mantém o escopo ativo (batalhão/CIA/município) por página.
+// scope(key) retorna o objeto de filtro para a função q() de consulta.
+// ══════════════════════════════════════════════════════════════════════════════
 
 const pageFilters = {
   visao:    { type: 'btl', value: null },
@@ -777,9 +812,15 @@ function buildPageFilters() {
   buildPageFilter('pf-evolucao','evolucao', renderEvolucao);
 }
 
-// ---------------------------------------------------------------------------
-// Utilitários (idênticos ao original)
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 7. UTILITÁRIOS DE CONSULTA E RENDERIZAÇÃO
+// q(filtro): filtra RAW pelo ano selecionado + campos extras (suporta array).
+// sf(arr, campo): soma o campo (padrão: avaliado) nos registros filtrados.
+// pLbl(meses): formata lista de meses para exibição no cabeçalho.
+// hcol(aval, meta, ant): retorna cor RGBA conforme posição vs meta/anterior.
+// mk(id, cfg): destrói Chart existente e cria novo no <canvas id>.
+// cl(crime): abrevia nome longo de crime para caber nos cards.
+// ══════════════════════════════════════════════════════════════════════════════
 
 const q    = f => RAW.filter(r => (!selAno || r.ano === selAno) && Object.entries(f).every(([k,v]) => Array.isArray(v) ? v.includes(r[k]) : r[k] === v));
 const sf   = (arr, field = 'avaliado') => arr.reduce((s, r) => s + (r[field] || 0), 0);
@@ -794,9 +835,12 @@ const hcol = (aval, meta, ant) => {
 const mk  = (id, cfg) => { if (charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), cfg); };
 const cl  = c => c === 'Homicídio' ? 'Vítimas de Letalidade Violenta' : c.replace(' Vulnerável', ' Vuln.').replace(' Veículos', ' Veíc.');
 
-// ---------------------------------------------------------------------------
-// Inicialização — busca dados da API
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 8. INICIALIZAÇÃO — CARREGAMENTO E BOOTSTRAP
+// loadData(): busca /api/meta + /api/registros e popula RAW/CRIMES/MESES/MUNS.
+// init(): ponto de entrada chamado no DOMContentLoaded — carrega dados e
+//   chama renderAll() + renderHome(). Exibe mensagem de erro legível se falhar.
+// ══════════════════════════════════════════════════════════════════════════════
 
 async function loadData() {
   const [meta, registros] = await Promise.all([
@@ -900,9 +944,13 @@ async function init() {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Sidebar de meses
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 9. BARRA DE FILTRO — MESES, ANO, CIA, CIDADE
+// Dois tipos de barra:
+//  buildSbMes()      — barra da Visão Geral (vis-mes-bar) com botões por mês
+//  buildPageFilter() — barra genérica com selects CIA/Cidade/Crime
+//  buildHmFilter()   — botões de mês do Mapa de Calor dedicado
+// ══════════════════════════════════════════════════════════════════════════════
 
 function buildSbMes() {
   const pf = pageFilters.visao;
@@ -1014,9 +1062,9 @@ function hmTog(mes, btn) {
   renderHeatmap();
 }
 
-// ---------------------------------------------------------------------------
-// Render geral
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 10. RENDERIZAÇÃO GERAL (orquestra todas as páginas P3 criminal)
+// ══════════════════════════════════════════════════════════════════════════════
 
 function renderAll() {
   const p = pLbl(selMeses);
@@ -1035,9 +1083,11 @@ function renderAll() {
   renderEvolucao();
 }
 
-// ---------------------------------------------------------------------------
-// KPIs
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 11. KPI CARDS — PAINEL DE INTELIGÊNCIA CRIMINAL
+// Um card por crime (+ cards agrupados definidos em CRIME_GROUPS).
+// Clicar em qualquer card abre o modal de detalhe (moOpen).
+// ══════════════════════════════════════════════════════════════════════════════
 
 function renderKPIs() {
   const sc = scope('visao');
@@ -1089,9 +1139,11 @@ function moOpenGroup(label) {
   if (g) moOpen(g.crimes, g.color, g.label);
 }
 
-// ---------------------------------------------------------------------------
-// Visão Geral
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 12. VISÃO GERAL — PAINEL CRIMINAL
+// Gráfico Meta vs Avaliado (barra, deviation %), heatmap município×crime,
+// evolução por município (linha) e análise de insights.
+// ══════════════════════════════════════════════════════════════════════════════
 
 function renderVisao() {
   const sc  = scope('visao');
@@ -1294,9 +1346,12 @@ function renderEvolMuns() {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Metas
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 16.2 METAS × REALIZADO (tabela)
+// ciaSepRow(): linha de separação de CIA dentro de tabelas de metas e heatmap.
+// munCia(): retorna o nome da CIA a partir do município (lookup estático).
+// renderMetas(): tabela crime × município com avaliado vs meta.
+// ══════════════════════════════════════════════════════════════════════════════
 
 function ciaSepRow(cia, cols) {
   const cor = ciaCorByName(cia);
@@ -1351,9 +1406,12 @@ function renderMetas() {
 // ---------------------------------------------------------------------------
 
 
-// ---------------------------------------------------------------------------
-// Heatmap
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 13. HEATMAP — MUNICÍPIO × CRIME
+// renderVisaoHeatmap(): embutido na Visão Geral (usa selMeses, escopo visao).
+// renderHeatmap(): página dedicada (usa hmMeses, sem filtro de escopo).
+// ciaSepRow(): insere linha separadora por CIA na tabela.
+// ══════════════════════════════════════════════════════════════════════════════
 
 function renderVisaoHeatmap() {
   const tbl = document.getElementById('vis-hm-tbl');
@@ -1411,9 +1469,16 @@ function renderHeatmap() {
   document.getElementById('hm-tbl').innerHTML = h + '</tbody>';
 }
 
-// ---------------------------------------------------------------------------
-// Insights
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 14. ANÁLISE AUTOMÁTICA DE INTELIGÊNCIA (INSIGHTS)
+// Gera 6 cards de análise automática a partir dos dados RAW:
+//  1. Crime com maior crescimento vs anterior
+//  2. Crime mais crítico (maior desvio sobre a meta)
+//  3. Melhor desempenho (maior queda abaixo da meta)
+//  4. Resumo de metas (ok/total)
+//  5. Município em alerta (mais crimes acima da meta)
+//  6. Município destaque (melhor score geral)
+// ══════════════════════════════════════════════════════════════════════════════
 
 function renderInsights() {
   const pf   = pageFilters.visao;
@@ -1539,9 +1604,11 @@ function renderInsights() {
 
 }
 
-// ---------------------------------------------------------------------------
-// Evolução
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 15. EVOLUÇÃO MENSAL
+// Gráfico de linha (todos os meses disponíveis) + tabela município × mês.
+// O select de crime controla qual série é exibida.
+// ══════════════════════════════════════════════════════════════════════════════
 
 function renderEvolucao() {
   const sel = document.getElementById('evol-crime-sel');
@@ -1654,9 +1721,15 @@ function renderEvolucao() {
   document.getElementById('tbl-evol').innerHTML = h + '</tbody>';
 }
 
-// ---------------------------------------------------------------------------
-// Modal de detalhes
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 16. MODAL DE DETALHES — INTELIGÊNCIA CRIMINAL
+// Abre ao clicar em qualquer KPI card. Exibe:
+//  - KPIs resumidos (total avaliado, var %, municípios fora da meta, status)
+//  - Gráfico % desvio vs meta por município (moRender → renderMetaChart)
+//  - Evolução mensal por município (linha)
+//  - Tabela InfoCrim (ocorrências individuais)
+//  - Seção de inteligência operacional (ocorrências, bairros, heatmap temporal)
+// ══════════════════════════════════════════════════════════════════════════════
 
 let moIntelChs = [];
 function moDestroy() {
@@ -2099,9 +2172,11 @@ document.addEventListener('keydown', e => {
   else if (document.getElementById('dd-detail-mo')?.classList.contains('on')) closeDDDetail();
 });
 
-// ---------------------------------------------------------------------------
-// Upload CSV → Supabase
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 18. UPLOAD CSV — BANCO DE DADOS RAC/SSP
+// Fluxo: openUploadModal → fileChange (PapaParse) → confirmUpload → POST /api/upload
+// O backend apaga os registros dos anos presentes no CSV antes de inserir.
+// ══════════════════════════════════════════════════════════════════════════════
 
 let uploadData = null;
 
@@ -2234,9 +2309,11 @@ async function confirmUpload() {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Upload de Ocorrências InfoCrim
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 19. UPLOAD CSV — OCORRÊNCIAS INFOCRIM
+// Fluxo análogo ao RAC/SSP. Campos mapeados case-insensitive.
+// moFemData: subset dos homicídios que são feminicídios (carregado junto).
+// ══════════════════════════════════════════════════════════════════════════════
 
 let ocorrData  = null;
 let moOcorrAll = [];
@@ -2382,9 +2459,12 @@ async function confirmOcorrUpload() {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Ocorrências InfoCrim no Modal de Crime
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 20. OCORRÊNCIAS INFOCRIM NO MODAL DE DETALHE
+// loadMoOcorr(): busca ocorrências do crime ativo (/api/ocorrencias?rubrica=...).
+// applyOcorrFilters(): filtra por mês/CIA/município e atualiza tabela + inteligência.
+// renderMoIntel(): renderiza heatmap dia×hora, tipo de local e bairros.
+// ══════════════════════════════════════════════════════════════════════════════
 
 // Extrai o número da CIA para comparação fuzzy (ex: "1ª CIA PM" e "1ª CIA" → "1")
 function normCiaKey(s) {
@@ -2532,9 +2612,12 @@ function renderOcorrTable(data) {
   el.innerHTML = h;
 }
 
-// ---------------------------------------------------------------------------
-// Inteligência Operacional — InfoCrim
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 20.1 INTELIGÊNCIA OPERACIONAL — INFOCRIM
+// renderMoIntel(): orquestra heatmap dia/hora, tipo de local, bairros e conduta.
+// renderOcorrHeatmap(): cards pico de ocorrências e dia mais crítico.
+// renderTipoLocal(), renderBairros(), renderRubrica(): gráficos de barras.
+// ══════════════════════════════════════════════════════════════════════════════
 
 function normDia(s) {
   const key = (s || '').toLowerCase().replace(/-feira/, '').trim();
@@ -2700,9 +2783,14 @@ function renderRubrica(data) {
 }
 
 
-// ---------------------------------------------------------------------------
-// Navegação entre páginas
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 21. NAVEGAÇÃO ENTRE PÁGINAS
+// goPage(id): troca o <div id="page-*"> ativo (remove classe 'on' de todas e
+//   adiciona na nova). Carrega dados lazy (P1, produtividade, DD, IQ) quando
+//   a seção é visitada pela primeira vez.
+// goSection(sec): trata o clique na sidebar — redireciona para sub-páginas P3.
+// currentP3Page: guarda a última sub-página P3 visitada (visao/metas/heatmap/…).
+// ══════════════════════════════════════════════════════════════════════════════
 
 let currentP3Page = 'visao';
 
@@ -2714,9 +2802,14 @@ function closeSidebarMobile() {
   }
 }
 
-// ---------------------------------------------------------------------------
-// P1 — Gestão de Efetivo
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 17. P1 — GESTÃO DE EFETIVO
+// Carrega efetivo_pm, afastamentos_pm, vagas_pm e p1_quadro_fixado.
+// CIA_STRUCT: estrutura orgânica do 40º BPM/I (CIAs, unidades, keys de OPM).
+// renderP1(): KPI cards clicáveis + tabela de efetivo por unidade.
+// Prontuário: abre ficha individual (foto, cursos, afastamentos, restrições).
+// Upload: confirmUplEfetivo() e confirmUplAfastamentos() (PapaParse → API).
+// ══════════════════════════════════════════════════════════════════════════════
 
 let p1Data       = [];
 let p1Afasts     = [];   // afastamentos carregados do Supabase
@@ -5435,9 +5528,15 @@ function goPage(id, btn) {
   setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
 }
 
-// ---------------------------------------------------------------------------
-// PRODUTIVIDADE P3
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 22. PRODUTIVIDADE P3
+// 10+ tipos de produtividade carregados de tabelas separadas no Supabase:
+//   ocorrencias, presos, armas, veiculos, entorpecentes, visitaSolidaria,
+//   tempoResposta, cursos, pvs, conseg.
+// Cada tipo tem: KPI card (renderProd), detalhe em modal (renderProdDetail),
+//   e upload CSV via modal genérico (prod-upl-mo).
+// prodSelAno/prodSelMeses/prodSelCia: estado do filtro de produtividade.
+// ══════════════════════════════════════════════════════════════════════════════
 let prodRaw = { ocorrencias: [], presos: [], armas: [], veiculos: [], entorpecentes: [], visitaSolidaria: [], tempoResposta: [], cursos: [], pvs: [], conseg: [], loaded: false };
 let _trNatCiaData = {}; // { natureza: [{cia, pct, taloes, fora}, ...] } — populado em renderTRModalDetail
 let _taftatData   = null;
@@ -6156,9 +6255,11 @@ async function prodUplConfirm() {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Produtividade — Entorpecentes: card único com troca de unidade
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 22.1 PRODUTIVIDADE — ENTORPECENTES
+// Card único com seletor de unidade (Quilograma, Unidade, Litro…).
+// renderEntorpCatChart(): gráfico de barras com top-10 por tipo de entorpecente.
+// ══════════════════════════════════════════════════════════════════════════════
 
 function renderEntorpCatChart(u, rows, cor, barOpts) {
   if (prodEntorpCatCh) { try { prodEntorpCatCh.destroy(); } catch(e){} prodEntorpCatCh = null; }
@@ -6207,9 +6308,12 @@ function switchEntorpUnit(u, origem) {
   renderEntorpCatChart(u, filt, PROD_CORES.entorpecentes, barOpts);
 }
 
-// ---------------------------------------------------------------------------
-// Produtividade — Detalhe (modal drill-down por card)
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 22.2 PRODUTIVIDADE — MODAL DE DETALHE (DRILL-DOWN)
+// openProdDetail(tipo, unidade, natFilter): abre modal com evolução mensal,
+//   KPIs por CIA e gráficos para o tipo específico de produtividade.
+// Cada tipo tem lógica de renderização própria (renderProdDetail_*).
+// ══════════════════════════════════════════════════════════════════════════════
 
 function pdDestroy() {
   pdChs.forEach(c => { try { c.destroy(); } catch(e){} });
@@ -8230,9 +8334,15 @@ function renderProdDetail() {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Indicadores de Qualidade P3
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 23. INDICADORES DE QUALIDADE P3
+// 13 indicadores mensais (IQ_AUTO_CAMPOS + IQ_CAMPOS).
+// loadIndicadoresP3(): busca tabela indicadores_qualidade_p3 + dados calculados.
+// loadIqCalculado(): busca os valores automáticos derivados de RAC e produtividade.
+// renderIndicadoresP3(): grid de KPI cards por indicador, com histórico anual
+//   2021-2024 (IQ_HISTORICO) e tendência do ano atual.
+// Formulário de edição: iqSave() → PUT /api/indicadores-p3.
+// ══════════════════════════════════════════════════════════════════════════════
 
 async function loadIndicadoresP3() {
   try {
@@ -8706,9 +8816,15 @@ async function iqSave() {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Disque Denúncia
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 24. DISQUE DENÚNCIA (DD)
+// Módulo completo: lista, inserção, edição e detalhe.
+// loadDD(): busca /api/disque-denuncia, preenche estado ddRaw.
+// renderDD(): KPI cards (total, êxito, pendentes, flagrantes) + tabela.
+// openDDDetail(): abre modal de análise completa (evolução, ranking por CIA,
+//   taxa de êxito, tempo médio de atendimento).
+// ddSave(): cria/edita registro via POST/PUT /api/disque-denuncia.
+// ══════════════════════════════════════════════════════════════════════════════
 
 const DD_CIAS    = ['1ª Cia PM', '2ª Cia PM', '3ª Cia PM', 'FT'];
 const DD_STATUS  = ['Andamento', 'Averiguada com Êxito', 'Averiguada sem Êxito', 'Sem Averiguação'];
@@ -9443,9 +9559,10 @@ async function deleteDDRecord(id) {
   } catch(e) { alert('Erro de conexão.'); }
 }
 
-// ---------------------------------------------------------------------------
-// Disque Denúncia — Upload CSV
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 24.1 DISQUE DENÚNCIA — UPLOAD CSV
+// Fluxo: openDDUpl → ddUplFileChange (PapaParse) → ddUplConfirm → POST /api/disque-denuncia/upload
+// ══════════════════════════════════════════════════════════════════════════════
 
 let ddUplParsed = [];
 
@@ -9518,9 +9635,11 @@ async function ddUplConfirm() {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Modo Inspetor (apenas admin / ti)
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// 25. MODO INSPETOR (admin / ti)
+// Ativa highlight de IDs de elementos ao passar o mouse — facilita depuração.
+// Acessível pelo ícone de inspetor na sidebar.
+// ══════════════════════════════════════════════════════════════════════════════
 
 function initInspector() {
   const role = currentRole();
@@ -9705,9 +9824,11 @@ function initInspector() {
   document.addEventListener('mouseleave', () => { popup.style.display = 'none'; });
 }
 
-// ---------------------------------------------------------------------------
-// Inicia a aplicação
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════════════════
+// PONTO DE ENTRADA
+// init() e initInspector() são chamados ao carregar o script (após o DOM estar pronto,
+// pois o <script> está no final do <body> em index.html).
+// ══════════════════════════════════════════════════════════════════════════════
 
 init();
 initInspector();
