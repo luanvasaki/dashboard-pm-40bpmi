@@ -2482,8 +2482,11 @@ async function loadMoOcorr() {
 
 function applyOcorrFilters() {
   let filtered = moOcorrAll.filter(r => {
-    if (!r.data_ocorrencia) return true;
-    const m = parseInt(r.data_ocorrencia.split('-')[1]) - 1;
+    if (!r.data_ocorrencia) return false;
+    const parts = r.data_ocorrencia.split('-');
+    const ano = parseInt(parts[0]);
+    const m   = parseInt(parts[1]) - 1;
+    if (selAno && ano !== selAno) return false;
     return moMeses.includes(MES_ORD[m]);
   });
   if (moScopeType === 'cia' && moScopeVal)
