@@ -498,6 +498,28 @@
       <div class="ph-tag">PRODUTIVIDADE</div>
       <div class="ph-title">INDICADORES DE <span>PRODUTIVIDADE</span></div>
     </div>
+    <div class="ph-meta">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">SSP</span>
+        <input id="inp-p3prod-periodo" type="text" placeholder="Ex: Jan – Mar 2026"
+          style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:19px;outline:none;width:180px;display:none"
+          oninput="savePeriodoProd(this.value)">
+        <span id="lbl-p3prod-periodo" style="font-weight:700;font-size:19px">—</span>
+        <button id="btn-edit-p3prod-periodo" onclick="toggleEditP3prodPeriodo()" style="display:none;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:14px;font-family:'DM Mono',monospace">✎ Editar</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">INFOCRIM</span>
+        <input id="inp-p3prod-fonte" type="text" placeholder="Ex: Banco de Dados RAC"
+          style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:19px;outline:none;width:220px;display:none"
+          oninput="saveFonteProd(this.value)">
+        <span id="lbl-p3prod-fonte" style="font-size:19px;font-weight:600;color:var(--tx2)">—</span>
+        <button id="btn-edit-p3prod-fonte" onclick="toggleEditP3prodFonte()" style="display:none;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:14px;font-family:'DM Mono',monospace">✎ Editar</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+        <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">UPLOAD</span>
+        <span id="sync-time-p3prod" style="font-size:19px;color:var(--tx3)">—</span>
+      </div>
+    </div>
   </div>
   <div id="prod-filter" class="pf" style="margin-bottom:16px"></div>
   <div id="prod-kpis" class="kpi-row" style="margin-bottom:20px;grid-auto-rows:minmax(265px,auto)"></div>
