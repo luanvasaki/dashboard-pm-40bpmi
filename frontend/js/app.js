@@ -8097,8 +8097,7 @@ function renderProdDetail() {
         }).join('');
         return `<div style="background:rgba(155,109,224,.07);border:1px solid rgba(155,109,224,.25);border-radius:8px;padding:12px;margin-bottom:10px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <div style="font-size:19px;font-weight:700;color:#fff">${titleNome(normNome(v.nome))}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:19px;color:#9b6de0;font-weight:700">${ocorrs.length}x</div>
+            <div style="font-family:'DM Mono',monospace;font-size:19px;color:#9b6de0;font-weight:700">${ocorrs.length}x ocorrências</div>
             <div style="font-size:19px;color:${mesmoCal?'#f0c040':'#4bc87a'};margin-left:auto">${mesmoCal?'⚠ mesmo local':'locais diferentes'}</div>
           </div>
           <table style="width:100%;border-collapse:collapse;table-layout:fixed">
