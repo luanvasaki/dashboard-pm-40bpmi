@@ -1775,7 +1775,8 @@ function moRender() {
   const aval = sf(q({ crime, mes: moMeses, ...sc }));
   const meta = sf(q({ crime, mes: moMeses, ...sc }), 'meta');
   const ant  = sf(q({ crime, mes: moMeses, ...sc }), 'anterior');
-  const vp   = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : 0;
+  // % desvio em relação à meta (igual ao KPI card)
+  const vp   = meta > 0 ? ((aval - meta) / meta * 100).toFixed(0) : (aval > 0 ? 100 : 0);
 
   const munDesvio   = muns.map(m => {
     const v  = sf(q({ crime, mun: m, mes: moMeses, ...sc }));
@@ -1792,9 +1793,9 @@ function moRender() {
 
   document.getElementById('mo-kpis').innerHTML = `
     <div class="mk"><div class="mk-lbl">Total Avaliado</div><div class="mk-val" style="color:${color}">${aval}</div><div class="mk-sub">${pLbl(moMeses)}</div></div>
-    <div class="mk"><div class="mk-lbl">Var vs Anterior</div><div class="mk-val" style="color:${vc}">${parseFloat(vp) <= 0 ? '▼' : '▲'}${Math.abs(vp)}%</div><div class="mk-sub" style="font-size:22px">Ant: ${ant}</div></div>
+    <div class="mk"><div class="mk-lbl">Avaliado × Meta</div><div class="mk-val" style="color:${vc}">${parseFloat(vp) <= 0 ? '▼' : '▲'}${Math.abs(vp)}%</div><div class="mk-sub" style="font-size:22px">Meta: ${meta}</div></div>
     <div class="mk"><div class="mk-lbl">Municípios Fora da Meta (${acimaDoMeta.length})</div>${munCriticoHtml}</div>
-    <div class="mk"><div class="mk-lbl">Meta</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:22px;padding-top:6px">${mok?'✓ Ok':'✗ Acima'}</div><div class="mk-sub" style="font-size:22px">Meta:${meta} | Real:${aval}</div></div>
+    <div class="mk"><div class="mk-lbl">Status</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:22px;padding-top:6px">${mok?'✓ Na meta':'✗ Acima'}</div><div class="mk-sub" style="font-size:22px">Meta: ${meta} | Real: ${aval}</div></div>
     `;
   if (crime === 'Homicídio') updateFemKpi();
 
