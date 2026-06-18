@@ -1470,28 +1470,18 @@ function renderInsights() {
   const crimeMaisCresceu = [...crimesVar].sort((a, b) => b.varP - a.varP)[0];
   const crimeMaisReduciu = [...crimesVar].sort((a, b) => a.varP - b.varP)[0];
 
-  // Crime mais crítico: pior município individual (máximo desvio por município)
-  const crimesDesvio = CRIMES.map(c => {
-    let maxDesvio = -Infinity, maxA = 0, maxM = 0;
-    muns.forEach(mun => {
-      const a = sf(q({ crime: c, mun, mes: selMeses, ...sc }));
-      const m = sf(q({ crime: c, mun, mes: selMeses, ...sc }), 'meta');
-      if (m > 0) {
-        const d = (a - m) / m * 100;
-        if (d > maxDesvio) { maxDesvio = d; maxA = a; maxM = m; }
-      }
-    });
-    return { c, a: maxA, m: maxM, desvio: maxDesvio };
-  });
-  const crimeCritico = [...crimesDesvio].sort((a, b) => b.desvio - a.desvio)[0];
-
-  // Totais agregados — mesma lógica dos KPI cards (usada para contagens e melhor desempenho)
+  // Totais agregados — mesma lógica dos KPI cards
   const crimesTotais = CRIMES.map(c => {
     const a = sf(qsc({ crime: c }));
     const m = sf(qsc({ crime: c }), 'meta');
     const desvio = m > 0 ? (a - m) / m * 100 : (a > 0 ? 100 : -Infinity);
     return { c, a, m, desvio };
   });
+
+  // Crime mais crítico: maior desvio sobre a meta nos totais do batalhão (coerente com KPI cards)
+  const crimeCritico = [...crimesTotais]
+    .filter(x => x.m > 0 && x.a > x.m)
+    .sort((a, b) => b.desvio - a.desvio)[0] || null;
 
   // Crime melhor desempenho: maior redução sobre a meta (totais agregados)
   const crimeMelhor = crimesTotais
@@ -1533,9 +1523,9 @@ function renderInsights() {
       : crimeMaisReduciu
         ? { t: 'green', v: `▼${Math.abs(crimeMaisReduciu.varP)}%`, title: `Maior redução — ${crimeMaisReduciu.c}`, body: `Passou de ${crimeMaisReduciu.ant} para ${crimeMaisReduciu.a} ocorrências. Nenhum crime em alta no período — destaque para a maior queda. Escopo: ${lbl}.` }
         : { t: '', v: '—', title: 'Sem variação', body: 'Não há dados suficientes para calcular variação entre períodos.' },
-    // 2. Crime mais crítico
-    crimeCritico.desvio > 0
-      ? { t: 'red', v: `+${crimeCritico.desvio.toFixed(0)}%`, title: `Crítico — ${crimeCritico.c}`, body: `${crimeCritico.a} ocorrências contra meta de ${crimeCritico.m}. Desvio de ${crimeCritico.desvio.toFixed(0)}% acima do permitido. Escopo: ${lbl}.` }
+    // 2. Crime mais crítico (totais do batalhão, igual ao KPI card)
+    crimeCritico
+      ? { t: 'red', v: `+${crimeCritico.desvio.toFixed(0)}%`, title: `Crítico — ${crimeCritico.c}`, body: `${crimeCritico.a} ocorrências contra meta de ${crimeCritico.m}. Desvio de ${crimeCritico.desvio.toFixed(0)}% acima da meta no batalhão. Escopo: ${lbl}.` }
       : { t: 'green', v: '✓', title: 'Todos dentro da meta', body: `Nenhum crime acima da meta no período. Escopo: ${lbl}.` },
     // 3. Melhor desempenho
     crimeMelhor
