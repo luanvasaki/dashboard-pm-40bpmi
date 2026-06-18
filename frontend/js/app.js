@@ -1669,7 +1669,11 @@ function moOpen(crime, color, displayLabel) {
   moDestroy();
   moCrime = crime; moColor = color;
   moMeses = [...selMeses];
-  moScopeType = 'btl'; moScopeVal = null;
+  // Herda o filtro de CIA/cidade ativo no painel de inteligência
+  const _sc = scope('visao');
+  if (_sc.cia)      { moScopeType = 'cia'; moScopeVal = _sc.cia; }
+  else if (_sc.mun) { moScopeType = 'mun'; moScopeVal = _sc.mun; }
+  else              { moScopeType = 'btl'; moScopeVal = null; }
   moOcorrAll = [];
   moFemData = [];
   const femSec = document.getElementById('mo-fem-section');
