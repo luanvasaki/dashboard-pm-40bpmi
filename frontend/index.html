@@ -105,6 +105,8 @@
     </div>
     <div>
       <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">TODOS OS USUÁRIOS</div>
+      <input id="adm-search" type="text" placeholder="Buscar por nome, RE, posto ou função..." oninput="admSearch(this.value)"
+        style="width:100%;box-sizing:border-box;background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:8px 12px;border-radius:6px;font-size:19px;outline:none;margin-bottom:12px">
       <div id="adm-users" style="overflow-x:auto"></div>
     </div>
     <div id="adm-msg" style="margin-top:14px;padding:10px 14px;border-radius:6px;font-size:19px;display:none"></div>

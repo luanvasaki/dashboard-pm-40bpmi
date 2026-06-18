@@ -265,11 +265,40 @@ async function checkPendingUsers() {
 function admClickOut(e) { if (e.target.id === 'adm-mo') closeAdminModal(); }
 function closeAdminModal() { document.getElementById('adm-mo').style.display = 'none'; }
 
+let _admAllUsers = []; // cache para busca sem re-fetch
+
+// Ordem de posto do menor ao maior — índice maior = posto mais alto
+const POSTO_ORDER = ['Sd PM','Cb PM','3º Sgt PM','2º Sgt PM','1º Sgt PM','Subten PM','Asp Of PM','2º Ten PM','1º Ten PM','Cap PM','Maj PM','Ten Cel PM','Cel PM'];
+function _postoRank(posto) { const i = POSTO_ORDER.indexOf(posto||''); return i === -1 ? -1 : i; }
+function _sortHierarquia(users) {
+  return [...users].sort((a, b) => {
+    const dr = _postoRank(b.posto) - _postoRank(a.posto); // mais alto primeiro
+    if (dr !== 0) return dr;
+    const ma = parseInt((a.matricula||'').replace(/\D/g,'')) || 999999;
+    const mb = parseInt((b.matricula||'').replace(/\D/g,'')) || 999999;
+    return ma - mb; // RE menor = mais antigo = primeiro
+  });
+}
+function admSearch(q) {
+  const me = JSON.parse(localStorage.getItem('auth_user') || '{}');
+  const term = (q||'').toLowerCase().trim();
+  const filtered = !term ? _admAllUsers : _admAllUsers.filter(u =>
+    (u.nome    ||'').toLowerCase().includes(term) ||
+    (u.matricula||'').toLowerCase().includes(term) ||
+    (u.posto   ||'').toLowerCase().includes(term) ||
+    (u.secao   ||'').toLowerCase().includes(term)
+  );
+  document.getElementById('adm-users').innerHTML = buildUserTable(filtered, me);
+}
+
 async function openAdminModal() {
   document.getElementById('adm-mo').style.display = 'block';
   document.getElementById('adm-msg').style.display = 'none';
   const badge = document.getElementById('pending-badge');
   if (badge) badge.style.display = 'none';
+  const searchEl = document.getElementById('adm-search');
+  if (searchEl) searchEl.value = '';
+  _admAllUsers = [];
   document.getElementById('adm-users').innerHTML = '<div style="color:var(--tx3);font-size:19px;padding:10px 0">Carregando...</div>';
   document.getElementById('adm-pending').innerHTML = '';
   document.getElementById('adm-pending-section').style.display = 'none';
@@ -285,8 +314,9 @@ async function openAdminModal() {
 
 function renderAdminUsers(users) {
   const me = JSON.parse(localStorage.getItem('auth_user') || '{}');
-  const pending = users.filter(u => u.status === 'pending');
-  const others  = users.filter(u => u.status !== 'pending');
+  const pending = _sortHierarquia(users.filter(u => u.status === 'pending'));
+  const others  = _sortHierarquia(users.filter(u => u.status !== 'pending'));
+  _admAllUsers  = others;
 
   if (pending.length) {
     document.getElementById('adm-pending-section').style.display = 'block';
