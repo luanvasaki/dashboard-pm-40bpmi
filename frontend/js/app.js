@@ -1074,20 +1074,27 @@ function renderKPIs() {
   const groupedCrimes = CRIME_GROUPS.flatMap(g => g.crimes);
   let html = '';
 
+  const _kpiTag = (aval, meta) => {
+    if (meta <= 0) return meta === 0 && aval === 0
+      ? `<div class="tag tok">— sem meta</div>`
+      : `<div class="tag tbad">▲ sem meta</div>`;
+    const vp  = ((aval - meta) / meta * 100).toFixed(0);
+    const up  = parseFloat(vp) > 0;
+    return `<div class="tag ${up ? 'tbad' : 'tok'}">${up ? '▲' : '▼'}${Math.abs(vp)}% meta</div>`;
+  };
+
   // Cards individuais (pula os que fazem parte de um grupo)
   CRIMES.forEach((c, i) => {
     if (groupedCrimes.includes(c)) return;
     const aval = sf(q({ crime: c, mes: selMeses, ...sc }));
-    const ant  = sf(q({ crime: c, mes: selMeses, ...sc }), 'anterior');
-    const vp   = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : 0;
-    const up   = parseFloat(vp) > 0;
+    const meta = sf(q({ crime: c, mes: selMeses, ...sc }), 'meta');
     html += `<div class="kpi" onclick="moOpen('${c}','${PAL[i]}')" title="Clique para detalhes">
       <div class="kpi-top"></div>
       <div class="kpi-lbl">${cl(c)}</div>
       <div class="kpi-val">${aval}</div>
       <div class="kpi-row2">
-        <div class="kpi-sub">Mês ant.: ${ant}</div>
-        <div class="tag ${up ? 'tbad' : 'tok'}">${up ? '▲' : '▼'}${Math.abs(vp)}%</div>
+        <div class="kpi-sub">Meta: ${meta}</div>
+        ${_kpiTag(aval, meta)}
       </div>
       <div class="kpi-hint">▸ clique p/ detalhes</div>
     </div>`;
@@ -1096,16 +1103,14 @@ function renderKPIs() {
   // Cards agrupados
   CRIME_GROUPS.forEach(g => {
     const aval = sf(q({ crime: g.crimes, mes: selMeses, ...sc }));
-    const ant  = sf(q({ crime: g.crimes, mes: selMeses, ...sc }), 'anterior');
-    const vp   = ant > 0 ? ((aval - ant) / ant * 100).toFixed(0) : 0;
-    const up   = parseFloat(vp) > 0;
+    const meta = sf(q({ crime: g.crimes, mes: selMeses, ...sc }), 'meta');
     html += `<div class="kpi" onclick="moOpenGroup('${g.label}')" title="Clique para detalhes">
       <div class="kpi-top"></div>
       <div class="kpi-lbl">${g.label}</div>
       <div class="kpi-val">${aval}</div>
       <div class="kpi-row2">
-        <div class="kpi-sub">Mês ant.: ${ant}</div>
-        <div class="tag ${up ? 'tbad' : 'tok'}">${up ? '▲' : '▼'}${Math.abs(vp)}%</div>
+        <div class="kpi-sub">Meta: ${meta}</div>
+        ${_kpiTag(aval, meta)}
       </div>
       <div class="kpi-hint">▸ clique p/ detalhes</div>
     </div>`;
