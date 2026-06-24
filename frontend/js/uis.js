@@ -429,7 +429,20 @@ function renderUisPmContent(restricoes) {
 // Retorna HTML do badge se o PM tiver restrição ativa, ou '' se não tiver.
 // O backend já filtra somente registros com termino >= hoje.
 // ═══════════════════════════════════════════════════════════════
-let _uisRestMap = null; // cache: { re → array de restrições ATIVAS }
+let _uisRestMap = null; // cache: { reNorm → array de restrições ATIVAS }
+
+// Normaliza RE para chave de lookup — cobre todos os formatos do PM-SP:
+//   "180673-4"  (6 dígitos + hífen + dígito verificador) → "180673"
+//   "1806734"   (7 dígitos sem hífen = base + verificador) → "180673"
+//   "180673"    (6 dígitos sem verificador)               → "180673"
+//   "98098-3"   (5 dígitos + hífen + verificador)         → "98098"
+//   "98098"     (5 dígitos sem verificador)               → "98098"
+function uisNormRE(re) {
+  const s = String(re || '');
+  if (s.includes('-')) return s.split('-')[0].replace(/\D/g, '');
+  const d = s.replace(/\D/g, '');
+  return d.length === 7 ? d.slice(0, 6) : d; // 7 dígitos = base(6) + verificador(1)
+}
 
 async function loadUisRestricoes() {
   _uisRestMap = {};
@@ -440,13 +453,13 @@ async function loadUisRestricoes() {
     if (!Array.isArray(allRecs)) { console.warn('[UIS] /mapa não retornou array:', allRecs); return; }
     console.log(`[UIS] /mapa: ${allRecs.length} restrições ativas`);
     for (const r of allRecs) {
-      const key = String(r.re || '').replace(/\D/g,'');
+      const key = uisNormRE(r.re);
       if (!key) continue;
       if (!_uisRestMap[key]) _uisRestMap[key] = [];
       _uisRestMap[key].push(r);
     }
     const total = Object.keys(_uisRestMap).length;
-    console.log(`[UIS] mapa pronto: ${total} PMs com restrição ativa. Ex:`, Object.keys(_uisRestMap).slice(0,5));
+    console.log(`[UIS] mapa pronto: ${total} PMs. Chaves:`, Object.keys(_uisRestMap).slice(0, 8));
   } catch (e) { console.warn('[UIS] loadUisRestricoes erro:', e.message); }
 }
 
@@ -465,9 +478,9 @@ window.debugUis = async function() {
   console.log('p1Data:', dados.length, 'PMs');
   if (!dados.length) { console.warn('p1Data vazio — navegue para P1 primeiro'); return; }
 
-  console.log('Primeiros 10 REs do efetivo (RE → matchKey → achou?):');
+  console.log('Primeiros 10 REs do efetivo (RE → normKey → achou?):');
   dados.slice(0,10).forEach(r => {
-    const mk = String(r.re||'').split('-')[0].replace(/\D/g,'');
+    const mk = uisNormRE(r.re);
     const recs = _uisRestMap[mk];
     const terminos = recs ? recs.map(x=>x.termino).join(', ') : '—';
     console.log(`  "${r.re}" → "${mk}" → ${recs ? `✓ ${recs.length} reg, termino: ${terminos}` : '✗'}`);
@@ -477,22 +490,20 @@ window.debugUis = async function() {
   console.log(`\nCom badge ativo: ${comBadge.length} de ${dados.length}`);
   if (comBadge.length) console.log('Exemplos:', comBadge.slice(0,5).map(r=>`${r.re} (${r.nome_guerra||r.nome})`));
   else {
-    const comKey = dados.filter(r => { const mk = String(r.re||'').split('-')[0].replace(/\D/g,''); return !!_uisRestMap[mk]; });
+    const comKey = dados.filter(r => !!_uisRestMap[uisNormRE(r.re)]);
     console.log(`PMs com RE no mapa mas sem badge: ${comKey.length} (verificar datas de término)`);
     comKey.slice(0,5).forEach(r => {
-      const mk = String(r.re||'').split('-')[0].replace(/\D/g,'');
-      console.log('  ', r.re, '→', _uisRestMap[mk]?.map(x=>x.termino));
+      console.log('  ', r.re, '→ normKey:', uisNormRE(r.re), '→ terminos:', _uisRestMap[uisNormRE(r.re)]?.map(x=>x.termino));
     });
   }
   console.log('=== FIM DEBUG ===');
 };
 
 // Retorna badge HTML para um RE ('' se sem restrição ativa).
-// Efetivo armazena RE como "180673-4"; corta no hífen → "180673" (sem dígito verificador).
-// O backend já garantiu que _uisRestMap só contém restrições com termino >= hoje.
+// Usa uisNormRE para normalizar o RE do efetivo antes de buscar no mapa.
 function uisBadge(re) {
   if (!_uisRestMap || !re) return '';
-  const matchKey = String(re).split('-')[0].replace(/\D/g,'');
+  const matchKey = uisNormRE(re);
   const recs = _uisRestMap[matchKey];
   if (!recs?.length) return '';
   const codigos = recs.flatMap(r => uisExtrairCodigos(r.codigos));
