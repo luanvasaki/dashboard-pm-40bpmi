@@ -344,8 +344,8 @@ async function loadUisRestricoes() {
     const allRecs = await authFetch(`${API}/uis/mapa`).then(r => r.json());
     if (!Array.isArray(allRecs)) return;
     for (const r of allRecs) {
-      // Chave = primeiros 6 dígitos (sem dígito verificador) para cruzar com efetivo_pm
-      const key = String(r.re || '').replace(/\D/g,'').slice(0, 6);
+      // Guarda pelo RE exato como veio da planilha (somente dígitos)
+      const key = String(r.re || '').replace(/\D/g,'');
       if (!key) continue;
       if (!_uisRestMap[key]) _uisRestMap[key] = [];
       _uisRestMap[key].push(r);
@@ -354,11 +354,20 @@ async function loadUisRestricoes() {
 }
 
 // Retorna badge HTML para um RE ('' se sem restrição ativa).
-// Normaliza para 6 dígitos para corresponder à planilha UIS (sem dígito verificador).
+// Tenta o RE completo do efetivo e vai removendo o último dígito (verificador)
+// até encontrar correspondência no mapa UIS (que tem 5 ou 6 dígitos, sem verificador).
 function uisBadge(re) {
   if (!_uisRestMap || !re) return '';
-  const key  = String(re).replace(/\D/g,'').slice(0, 6);
-  const recs = _uisRestMap[key];
+  const reStr = String(re).replace(/\D/g,'');
+  // Tenta: RE completo → sem 1 dígito → sem 2 dígitos
+  const recs = _uisRestMap[reStr]
+            || _uisRestMap[reStr.slice(0,-1)]
+            || _uisRestMap[reStr.slice(0,-2)]
+            || null;
+  const matchKey = _uisRestMap[reStr] ? reStr
+                 : _uisRestMap[reStr.slice(0,-1)] ? reStr.slice(0,-1)
+                 : _uisRestMap[reStr.slice(0,-2)] ? reStr.slice(0,-2)
+                 : reStr;
   if (!recs?.length) return '';
   const today = new Date().toISOString().slice(0,10);
   const ativas = recs.filter(r => r.termino && r.termino >= today);
@@ -369,5 +378,5 @@ function uisBadge(re) {
   const cor = gInfo ? gInfo.cor : '#c8a84b';
   const diasMin = Math.min(...ativas.filter(r=>r.termino).map(r => Math.ceil((new Date(r.termino)-new Date(today))/86400000)));
   const alerta = diasMin <= 30 ? ` ⚠ ${diasMin}d` : '';
-  return `<span onclick="event.stopPropagation();openUisPmModal('${key}')" title="Restrição UIS — clique para ver" style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;background:${cor}18;border:1px solid ${cor}55;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;color:${cor};margin-left:6px">🏥 UIS${alerta}</span>`;
+  return `<span onclick="event.stopPropagation();openUisPmModal('${matchKey}')" title="Restrição UIS — clique para ver" style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;background:${cor}18;border:1px solid ${cor}55;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;color:${cor};margin-left:6px">🏥 UIS${alerta}</span>`;
 }

@@ -1871,15 +1871,23 @@ app.get('/api/uis/mapa', requireAuth, async (req, res) => {
 });
 
 // [GET /api/uis/restricoes/:re] — restrições de um PM pelo RE (para integração com P1).
-// Aceita RE com ou sem dígito verificador: compara os primeiros 6 dígitos.
+// O RE passado pode ter dígito verificador (7 digits, efetivo) ou não (5-6, planilha UIS).
+// Busca por match exato primeiro; se não achar, tenta sem o último dígito.
 app.get('/api/uis/restricoes/:re', requireAuth, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
-    const reBase = req.params.re.replace(/\D/g,'').slice(0, 6);
-    const data = await fetchAll('uis_restricoes', {
-      filters: [['ilike', 're', `${reBase}%`]],
+    const reDigits = req.params.re.replace(/\D/g,'');
+    // Tenta busca exata; se vazio, remove 1 dígito (verificador) e tenta de novo
+    let data = await fetchAll('uis_restricoes', {
+      filters: [['eq', 're', reDigits]],
       order:   [['termino', { ascending: false }]]
     });
+    if (!data.length && reDigits.length > 5) {
+      data = await fetchAll('uis_restricoes', {
+        filters: [['eq', 're', reDigits.slice(0,-1)]],
+        order:   [['termino', { ascending: false }]]
+      });
+    }
     res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
