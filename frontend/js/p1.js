@@ -117,10 +117,9 @@ async function loadP1() {
     p1Vagas  = Array.isArray(vagasRaw) ? vagasRaw : [];
     const quadroRaw = await r4.json();
     p1Quadro = Array.isArray(quadroRaw) ? quadroRaw : [];
-    // Carrega mapa de restrições UIS em paralelo — não bloqueia a renderização do P1.
-    // PMs sem efetivo correspondente são ignorados automaticamente (badge só aparece
-    // para REs que existam na lista do P1).
-    loadUisRestricoes().then(() => { if (renderingP1) renderP1(); });
+    // Carrega restrições UIS em paralelo com o restante, mas aguarda antes de renderizar
+    // para que os badges já apareçam na primeira passagem (sem segundo render).
+    await loadUisRestricoes().catch(() => {});
     if (renderingP1) renderP1();
     renderHome();
   } catch (err) {
