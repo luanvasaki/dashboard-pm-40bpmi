@@ -159,16 +159,18 @@ function _uisTipGet() {
 
 function _uisTipShow(e, opm, cor, topCods) {
   const tip = _uisTipGet();
+  // Para OPMs sem CIA (cor branco), usa rgba visível como cor de texto secundário
+  const descCor = cor === '#ffffff' ? '#ffffff' : 'rgba(255,255,255,.75)';
   const codsHtml = topCods.map(([cod, cnt, desc]) => `
-    <div style="display:flex;align-items:baseline;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05)">
-      <span style="font-weight:700;color:${cor};min-width:28px">${cod}</span>
-      <span style="color:rgba(255,255,255,.65);flex:1;font-size:12px">${desc}</span>
-      <span style="font-weight:700;color:#ffffff;margin-left:8px">${cnt}×</span>
+    <div style="display:flex;align-items:baseline;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.07)">
+      <span style="font-weight:700;color:${cor};min-width:34px;font-size:16px">${cod}</span>
+      <span style="color:${descCor};flex:1;font-size:15px">${desc}</span>
+      <span style="font-weight:700;color:#ffffff;margin-left:10px;font-size:16px">${cnt}×</span>
     </div>`).join('');
   tip.innerHTML = `
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:${cor};letter-spacing:.5px;margin-bottom:8px;text-transform:uppercase">${escHtml(opm)}</div>
-    <div style="font-size:11px;color:rgba(255,255,255,.4);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Códigos mais frequentes</div>
-    ${codsHtml || '<div style="color:rgba(255,255,255,.35);font-size:12px">Sem detalhes</div>'}`;
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${cor};letter-spacing:.5px;margin-bottom:10px;text-transform:uppercase">${escHtml(opm)}</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.45);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">Códigos mais frequentes</div>
+    ${codsHtml || '<div style="color:rgba(255,255,255,.35);font-size:15px">Sem detalhes</div>'}`;
   tip.style.display = 'block';
   _uisTipMove(e);
 }
