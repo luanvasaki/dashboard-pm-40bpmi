@@ -567,7 +567,7 @@ function renderP1() {
         ${badge(tipo.split(',')[0].trim().toUpperCase(), '#e05555')}
         <div>
           <span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${r.posto||''}</span>
-          <span style="font-size:20px;font-weight:700;color:var(--tx);margin-left:6px;cursor:pointer" onclick="openProntuario('${_esc2(r.re)}')">${r.nome_guerra||r.nome}</span>
+          <span style="font-size:20px;font-weight:700;color:var(--tx);margin-left:6px;cursor:pointer" onclick="openProntuario('${_esc2(r.re)}')">${r.nome_guerra||r.nome}</span>${uisBadge(r.re)}
           ${r.opm ? `<div style="font-size:17px;color:var(--tx3);margin-top:2px">${r.opm}</div>` : ''}
         </div>
         <div style="font-size:19px;color:var(--tx3);text-align:right;white-space:nowrap">${retStr}</div>
@@ -979,7 +979,7 @@ function p1ShowKpiDetail(tipo) {
       const dias = r.restricao_termino ? Math.ceil((new Date(r.restricao_termino) - new Date(hoje)) / 86400000) : null;
       const cor  = dias === null ? 'var(--tx3)' : dias <= 0 ? '#e05555' : dias <= 30 ? '#c8a84b' : '#4bc87a';
       return `<tr>
-        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
         <td style="${tdS}">${r.posto||'—'}</td>
         <td style="${tdS}">${r.opm||'—'}</td>
         <td style="${tdS};color:var(--tx2)">${r.tipos_restricao||'—'}</td>
@@ -1033,7 +1033,7 @@ function p1ShowKpiDetail(tipo) {
     const mkRow7 = r => `<tr>
       <td style="${pC};${cS}">${r.posto||'—'}</td>
       <td style="${pC};${cS}">${r.re}</td>
-      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
       <td style="${pC};${cS}">${r.opm||'—'}</td>
       <td style="${pC};${cS};color:#4bc87a">${fmtEap(r.data_eap)}</td>
       <td style="${pC};text-align:center">${notaBadge(r.taf)}</td>
@@ -1042,7 +1042,7 @@ function p1ShowKpiDetail(tipo) {
     const mkRow5nota = (r, campo, notaFn) => `<tr>
       <td style="${pC};${cS}">${r.posto||'—'}</td>
       <td style="${pC};${cS}">${r.re}</td>
-      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
       <td style="${pC};${cS}">${r.opm||'—'}</td>
       <td style="${pC};text-align:center">${notaBadge(r[campo])}</td>
     </tr>`;
@@ -1068,7 +1068,7 @@ function p1ShowKpiDetail(tipo) {
           return `<tr>
             <td style="${pC};${cS}">${r.posto||'—'}</td>
             <td style="${pC};${cS}">${r.re}</td>
-            <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+            <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
             <td style="${pC};${cS}">${r.opm||'—'}</td>
             <td style="${pC}">${sit}</td>
             <td style="${pC};text-align:center">${notaBadge(r.taf)}</td>
@@ -1177,7 +1177,7 @@ function p1ShowKpiDetail(tipo) {
     if (semFer.length) {
       const rows = semFer.map(r => `<tr>
         <td style="${tdS}">${r.re}</td>
-        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
         <td style="${tdS}">${r.posto||'—'}</td>
         <td style="${tdS}">${r.opm||'—'}</td>
       </tr>`).join('');
@@ -2277,7 +2277,10 @@ function p1ShowPmList(pms, label) {
       <div style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:2px">${r.posto || '—'}</div>
       <div style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace">RE ${r.re}</div>
       <div style="font-size:19px;font-weight:700;color:var(--tx);line-height:1.3;word-break:break-word">${r.nome_guerra || r.nome}</div>
-      <div style="font-size:19px;padding:2px 8px;border-radius:10px;background:${statusColor}22;color:${statusColor};font-family:'DM Mono',monospace;margin-top:2px">${statusTxt}</div>
+      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:2px">
+        <div style="font-size:19px;padding:2px 8px;border-radius:10px;background:${statusColor}22;color:${statusColor};font-family:'DM Mono',monospace">${statusTxt}</div>
+        ${uisBadge(r.re)}
+      </div>
     </div>`;
   }).join('');
 
