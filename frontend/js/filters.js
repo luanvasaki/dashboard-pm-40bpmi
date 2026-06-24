@@ -328,7 +328,7 @@ function buildSbMes() {
   // Linha 1: Período + ANO + meses
   let row1 = `<div class="pf-row">`;
   row1 += `<span class="pf-label">Período</span>`;
-  row1 += `<div class="pf-field"><span class="pf-label">ANO</span><select class="pf-select pf-ano-sel" onchange="sbSetAno(this.value ? parseInt(this.value) : null)">`;
+  row1 += `<div class="pf-field"><span class="pf-label">ANO</span><select name="filtro-ano" autocomplete="off" class="pf-select pf-ano-sel" onchange="sbSetAno(this.value ? parseInt(this.value) : null)">`;
   row1 += `<option value="" ${!selAno ? 'selected' : ''}>Todos</option>`;
   ANOS.forEach(a => row1 += `<option value="${a}" ${a === selAno ? 'selected' : ''}>${a}</option>`);
   row1 += `</select></div>`;

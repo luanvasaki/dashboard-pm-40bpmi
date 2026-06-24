@@ -124,7 +124,7 @@ function buildUserTable(users, me) {
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:#d8dce8">${escHtml(u.nome)}</td>
       <td style="padding:4px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
         ${canEditPosto
-          ? `<select onchange="admChangePosto('${u.id}',this.value)" style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:4px 8px;border-radius:4px;font-size:19px;cursor:pointer">
+          ? `<select name="adm-posto-${u.id}" autocomplete="off" onchange="admChangePosto('${u.id}',this.value)" style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:4px 8px;border-radius:4px;font-size:19px;cursor:pointer">
               ${ ['Sd PM','Cb PM','3º Sgt PM','2º Sgt PM','1º Sgt PM','Subten PM','Asp Of PM','2º Ten PM','1º Ten PM','Cap PM','Maj PM','Ten Cel PM','Cel PM']
                 .map(p => `<option value="${p}" ${(u.posto||'')=== p?'selected':''}>${p}</option>`).join('') }
             </select>`
@@ -132,11 +132,11 @@ function buildUserTable(users, me) {
       </td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-family:'DM Mono',monospace;color:var(--tx3)">${escHtml(u.matricula)}</td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
-        <select onchange="admChangeSecao('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:4px 8px;border-radius:4px;font-size:19px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${secaoOpts}</select>
+        <select name="adm-secao-${u.id}" autocomplete="off" onchange="admChangeSecao('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:4px 8px;border-radius:4px;font-size:19px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${secaoOpts}</select>
       </td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)"><span style="padding:3px 10px;border-radius:20px;font-family:'DM Mono',monospace;font-size:19px;${sStyle}">${STATUS_LABEL[u.status]||u.status}</span></td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
-        <select onchange="admChangeRole('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:4px 8px;border-radius:4px;font-size:19px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${roleOpts}</select>
+        <select name="adm-role-${u.id}" autocomplete="off" onchange="admChangeRole('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:4px 8px;border-radius:4px;font-size:19px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${roleOpts}</select>
       </td>
       <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);white-space:nowrap">
         ${actions}

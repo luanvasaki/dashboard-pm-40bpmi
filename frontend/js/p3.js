@@ -114,7 +114,7 @@ function prodBuildFilter() {
   const allSel = prodSelMeses.length === mesesDisp.length;
   let h = `<div class="pf-row">`;
   // Ano
-  h += `<div class="pf-field"><span class="pf-label">ANO</span><select class="pf-select" onchange="prodSetAno(+this.value)">`;
+  h += `<div class="pf-field"><span class="pf-label">ANO</span><select name="prod-ano" autocomplete="off" class="pf-select" onchange="prodSetAno(+this.value)">`;
   if (!anos.length) h += `<option>Sem dados</option>`;
   anos.forEach(a => h += `<option value="${a}"${a===prodSelAno?' selected':''}>${a}</option>`);
   h += `</select></div>`;
@@ -128,7 +128,7 @@ function prodBuildFilter() {
   });
   h += `</div></div>`;
   // CIA
-  h += `<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" onchange="prodSetCia(this.value)">`;
+  h += `<div class="pf-field"><span class="pf-label">CIA</span><select name="prod-cia" autocomplete="off" class="pf-select" onchange="prodSetCia(this.value)">`;
   h += `<option value="">Todas</option>`;
   cias.forEach(c => h += `<option value="${c}"${normCiaDisp(c)===normCiaDisp(prodSelCia||'')?' selected':''}>${c}</option>`);
   h += `</select></div>`;
@@ -861,7 +861,7 @@ function buildPdFilter() {
   });
   if (cias.length) {
     h += '<span class="pf-sep"></span>';
-    h += '<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" onchange="pdSetCia(this.value)"><option value="">Todas</option>';
+    h += '<div class="pf-field"><span class="pf-label">CIA</span><select name="pd-cia" autocomplete="off" class="pf-select" onchange="pdSetCia(this.value)"><option value="">Todas</option>';
     cias.forEach(c => h += `<option value="${c}"${normCiaDisp(c) === normCiaDisp(pdSelCia) ? ' selected' : ''}>${c}</option>`);
     h += '</select></div>';
   }
@@ -2905,13 +2905,13 @@ function renderIqHistorico() {
   const CRIMES_ATIVOS = iqCrimeFiltro ? CRIMES_CAMPOS.filter(c => c.key === iqCrimeFiltro) : CRIMES_CAMPOS;
   const PROD_ATIVOS = iqProdFiltro ? PROD_CAMPOS.filter(c => c.key === iqProdFiltro) : PROD_CAMPOS;
 
-  const crimeFiltroHtml = `<select onchange="toggleIqCrimeFiltro(this.value)"
+  const crimeFiltroHtml = `<select name="iq-crime-filtro" autocomplete="off" onchange="toggleIqCrimeFiltro(this.value)"
     style="background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:6px;padding:5px 10px;font-size:19px;font-family:'DM Mono',monospace;cursor:pointer">
     <option value="" style="background:#111;color:#fff">Todas as ocorrências</option>
     ${CRIMES_CAMPOS.map(c => `<option value="${c.key}"${iqCrimeFiltro === c.key ? ' selected' : ''} style="background:#111;color:#fff">${c.label}</option>`).join('')}
   </select>`;
 
-  const prodFiltroHtml = `<select onchange="toggleIqProdFiltro(this.value)"
+  const prodFiltroHtml = `<select name="iq-prod-filtro" autocomplete="off" onchange="toggleIqProdFiltro(this.value)"
     style="background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:6px;padding:5px 10px;font-size:19px;font-family:'DM Mono',monospace;cursor:pointer">
     <option value="" style="background:#111;color:#fff">Todas as ocorrências</option>
     ${PROD_CAMPOS.map(c => `<option value="${c.key}"${iqProdFiltro === c.key ? ' selected' : ''} style="background:#111;color:#fff">${c.label}</option>`).join('')}
@@ -3526,14 +3526,14 @@ function renderDDSection() {
 const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Date(r.data + 'T00:00:00').getMonth()] === m)));
   const allMeses = ddMesFiltro.length === 0;
   let filtrosHtml = `<div class="pf" style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">`;
-  filtrosHtml += `<div class="pf-field"><span class="pf-label">ANO</span><select class="pf-select" onchange="ddSetFiltro('ano',this.value)">`;
+  filtrosHtml += `<div class="pf-field"><span class="pf-label">ANO</span><select name="dd-ano" autocomplete="off" class="pf-select" onchange="ddSetFiltro('ano',this.value)">`;
   [2024,2025,2026,2027].forEach(a => filtrosHtml += `<option value="${a}"${ddAnoFiltro==a?' selected':''}>${a}</option>`);
   filtrosHtml += `</select></div>`;
   filtrosHtml += `<div class="pf-field"><span class="pf-label">MÊS</span><div style="display:flex;gap:4px;flex-wrap:wrap">`;
   filtrosHtml += `<button onclick="ddSetFiltro('mes','__all__')" class="pf-btn${allMeses?' on':''}">Todos</button>`;
   MES_ORD.forEach(m => { const ok = mesesComDados.has(m); filtrosHtml += `<button onclick="ddTogMes('${m}')" class="pf-btn${(allMeses || ddMesFiltro.includes(m))?' on':''}"${ok ? '' : ' style="opacity:.35" title="Sem dados"'}>${m.slice(0,3)}</button>`; });
   filtrosHtml += `</div></div>`;
-  filtrosHtml += `<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" onchange="ddSetFiltro('cia',this.value)">`;
+  filtrosHtml += `<div class="pf-field"><span class="pf-label">CIA</span><select name="dd-cia" autocomplete="off" class="pf-select" onchange="ddSetFiltro('cia',this.value)">`;
   filtrosHtml += `<option value="">Todas</option>`;
   DD_CIAS.forEach(c => filtrosHtml += `<option value="${c}"${ddCiaFiltro===c?' selected':''}>${c}</option>`);
   filtrosHtml += `</select></div>`;
@@ -3978,28 +3978,28 @@ function openDDMo(id) {
 
   document.getElementById('dd-mo-body').innerHTML = `
     <label style="${labelStyle}">Data</label>
-    <input type="date" id="dd-f-data" value="${fmtDate(rec?.data)}" style="${inputStyle}">
+    <input type="date" name="dd-edit-data" id="dd-edit-data" autocomplete="off" value="${fmtDate(rec?.data)}" style="${inputStyle}">
     <label style="${labelStyle}">Cia</label>
-    <select id="dd-f-cia" style="${selectStyle}">
+    <select name="dd-edit-cia" id="dd-edit-cia" autocomplete="off" style="${selectStyle}">
       ${DD_CIAS.map(c => `<option value="${c}"${rec?.cia===c?' selected':''}>${c}</option>`).join('')}
     </select>
     <label style="${labelStyle}">Nº Disque Denúncia</label>
-    <input type="text" id="dd-f-numero" value="${rec?.numero_dd||''}" placeholder="Ex: DD-2026-0001" style="${inputStyle}">
+    <input type="text" name="dd-edit-numero" id="dd-edit-numero" autocomplete="off" value="${rec?.numero_dd||''}" placeholder="Ex: DD-2026-0001" style="${inputStyle}">
     <label style="${labelStyle}">Data do Atendimento</label>
-    <input type="date" id="dd-f-dtatend" value="${fmtDate(rec?.data_atendimento)}" style="${inputStyle}">
+    <input type="date" name="dd-edit-dtatend" id="dd-edit-dtatend" autocomplete="off" value="${fmtDate(rec?.data_atendimento)}" style="${inputStyle}">
     <label style="${labelStyle}">Status</label>
-    <select id="dd-f-status" style="${selectStyle}">
+    <select name="dd-edit-status" id="dd-edit-status" autocomplete="off" style="${selectStyle}">
       ${DD_STATUS.map(s => `<option value="${s}"${(rec?.status||'Andamento')===s?' selected':''}>${s}</option>`).join('')}
     </select>
     <label style="${labelStyle}">Flagrante</label>
-    <select id="dd-f-flagrante" style="${selectStyle}">
+    <select name="dd-edit-flagrante" id="dd-edit-flagrante" autocomplete="off" style="${selectStyle}">
       <option value="false"${!rec?.flagrante?' selected':''}>Não</option>
       <option value="true"${rec?.flagrante?' selected':''}>Sim</option>
     </select>
     <label style="${labelStyle}">Qtd. Presos</label>
-    <input type="number" id="dd-f-presos" value="${rec?.quant_presos||0}" min="0" style="${inputStyle}">
+    <input type="number" name="dd-edit-presos" id="dd-edit-presos" autocomplete="off" value="${rec?.quant_presos||0}" min="0" style="${inputStyle}">
     <label style="${labelStyle}">Município</label>
-    <input type="text" id="dd-f-municipio" value="${rec?.municipio||''}" placeholder="Ex: São Paulo" style="${inputStyle}">
+    <input type="text" name="dd-edit-municipio" id="dd-edit-municipio" autocomplete="off" value="${rec?.municipio||''}" placeholder="Ex: São Paulo" style="${inputStyle}">
   `;
 
   const mo = document.getElementById('dd-mo');
@@ -4018,14 +4018,14 @@ function ddMoClickOut(e) {
 async function ddSave() {
   const msg = document.getElementById('dd-mo-msg');
   const body = {
-    data:              document.getElementById('dd-f-data').value,
-    cia:               document.getElementById('dd-f-cia').value,
-    numero_dd:         document.getElementById('dd-f-numero').value.trim(),
-    data_atendimento:  document.getElementById('dd-f-dtatend').value || null,
-    status:            document.getElementById('dd-f-status').value,
-    flagrante:         document.getElementById('dd-f-flagrante').value === 'true',
-    quant_presos:      Number(document.getElementById('dd-f-presos').value) || 0,
-    municipio:         document.getElementById('dd-f-municipio').value.trim() || null,
+    data:              document.getElementById('dd-edit-data').value,
+    cia:               document.getElementById('dd-edit-cia').value,
+    numero_dd:         document.getElementById('dd-edit-numero').value.trim(),
+    data_atendimento:  document.getElementById('dd-edit-dtatend').value || null,
+    status:            document.getElementById('dd-edit-status').value,
+    flagrante:         document.getElementById('dd-edit-flagrante').value === 'true',
+    quant_presos:      Number(document.getElementById('dd-edit-presos').value) || 0,
+    municipio:         document.getElementById('dd-edit-municipio').value.trim() || null,
   };
   if (!body.data || !body.numero_dd) { msg.textContent = 'Preencha Data e Nº DD.'; return; }
   try {
