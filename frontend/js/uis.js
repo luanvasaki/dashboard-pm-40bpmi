@@ -98,7 +98,6 @@ async function loadUisSection() {
   } catch (e) {
     document.getElementById('uis-kpis').innerHTML = `<div style="color:#f07878;font-size:13px">Erro ao carregar dados UIS: ${e.message}</div>`;
   }
-  renderUisTabelaCodigos();
 
   const role = currentRole();
   const wrap = document.getElementById('uis-upload-btn-wrap');
@@ -146,10 +145,10 @@ function renderUisPorCodigo(porCodigo) {
       const info  = UIS_CODIGOS[cod];
       const grupo = info ? UIS_GRUPOS[info.grupo] : null;
       const cor   = grupo ? grupo.cor : '#aaa';
-      return `<div title="${info ? info.desc : cod}" style="background:var(--s2);border:1px solid ${cor}44;border-radius:6px;padding:6px 12px;display:flex;align-items:center;gap:8px;cursor:default">
-        <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${cor}">${cod}</span>
-        <span style="font-size:12px;color:var(--tx3)">${info ? info.desc : '—'}</span>
-        <span style="font-size:13px;font-weight:700;color:var(--tx)">${n}</span>
+      return `<div title="${info ? info.desc : cod}" style="background:var(--s2);border:1px solid ${cor}44;border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:10px;cursor:default">
+        <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:700;color:${cor}">${cod}</span>
+        <span style="font-size:14px;color:var(--tx3)">${info ? info.desc : '—'}</span>
+        <span style="font-size:18px;font-weight:800;color:var(--tx);margin-left:4px">${n}</span>
       </div>`;
     }).join('')
   }</div>`;
@@ -340,23 +339,18 @@ function renderUisPmContent(restricoes) {
 let _uisRestMap = null; // cache: { re → array de restrições }
 
 async function loadUisRestricoes() {
+  _uisRestMap = {};
   try {
-    // Busca todas as restrições de uma vez (via stats não tem nomes — usamos endpoint direto)
-    // Para a lista do P1 usamos um cache por sessão
-    _uisRestMap = {};
-    const all = await authFetch(`${API}/uis/stats`).then(r => r.json()).catch(() => null);
-    // Nota: /api/uis/stats não retorna REs, só totais.
-    // O badge individual é carregado ao clicar. Aqui marcamos somente os REs com restrição ativa.
-    const allRecs = await authFetch(`${API}/uis/restricoes/all`).then(r => r.json()).catch(() => []);
-    if (Array.isArray(allRecs)) {
-      for (const r of allRecs) {
-        // Chave = primeiros 6 dígitos (sem dígito verificador)
-        const key = String(r.re).replace(/\D/g,'').slice(0, 6);
-        if (!_uisRestMap[key]) _uisRestMap[key] = [];
-        _uisRestMap[key].push(r);
-      }
+    const allRecs = await authFetch(`${API}/uis/mapa`).then(r => r.json());
+    if (!Array.isArray(allRecs)) return;
+    for (const r of allRecs) {
+      // Chave = primeiros 6 dígitos (sem dígito verificador) para cruzar com efetivo_pm
+      const key = String(r.re || '').replace(/\D/g,'').slice(0, 6);
+      if (!key) continue;
+      if (!_uisRestMap[key]) _uisRestMap[key] = [];
+      _uisRestMap[key].push(r);
     }
-  } catch (_) { _uisRestMap = {}; }
+  } catch (_) { /* falha silenciosa — badges simplesmente não aparecem */ }
 }
 
 // Retorna badge HTML para um RE ('' se sem restrição ativa).

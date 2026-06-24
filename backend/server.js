@@ -1860,9 +1860,9 @@ app.get('/api/uis/stats', requireAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// [GET /api/uis/restricoes/all] — todas as restrições (para montar badges no P1).
-// ⚠ Esta rota deve vir ANTES de /api/uis/restricoes/:re para não ser capturada como re='all'.
-app.get('/api/uis/restricoes/all', requireAuth, async (req, res) => {
+// [GET /api/uis/mapa] — todas as restrições ativas, para montar badges no P1.
+// URL separada (não usa /:re) para evitar conflito de roteamento.
+app.get('/api/uis/mapa', requireAuth, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
     const data = await fetchAll('uis_restricoes', { order: [['termino', { ascending: false }]] });
