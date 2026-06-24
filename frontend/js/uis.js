@@ -342,16 +342,32 @@ async function loadUisRestricoes() {
   _uisRestMap = {};
   try {
     const allRecs = await authFetch(`${API}/uis/mapa`).then(r => r.json());
+    console.log('[UIS] /mapa retornou:', Array.isArray(allRecs) ? `${allRecs.length} registros` : allRecs);
     if (!Array.isArray(allRecs)) return;
     for (const r of allRecs) {
-      // Guarda pelo RE exato como veio da planilha (somente dígitos)
       const key = String(r.re || '').replace(/\D/g,'');
       if (!key) continue;
       if (!_uisRestMap[key]) _uisRestMap[key] = [];
       _uisRestMap[key].push(r);
     }
-  } catch (_) { /* falha silenciosa — badges simplesmente não aparecem */ }
+    console.log('[UIS] mapa montado, chaves:', Object.keys(_uisRestMap).slice(0,5));
+  } catch (e) { console.warn('[UIS] loadUisRestricoes falhou:', e.message); }
 }
+
+// Diagnóstico: chame debugUis() no console do browser para ver o estado atual
+window.debugUis = function() {
+  console.log('=== DEBUG UIS ===');
+  console.log('_uisRestMap total chaves:', Object.keys(_uisRestMap || {}).length);
+  console.log('Primeiras chaves UIS:', Object.keys(_uisRestMap || {}).slice(0,8));
+  const pm = (window.p1Data || [])[0];
+  if (pm) {
+    console.log('Primeiro RE do efetivo (raw):', pm.re);
+    console.log('matchKey calculado:', String(pm.re).split('-')[0].replace(/\D/g,''));
+    console.log('uisBadge resultado:', uisBadge(pm.re) ? 'TEM BADGE' : 'sem badge');
+  } else {
+    console.log('p1Data vazio ou não carregado');
+  }
+};
 
 // Retorna badge HTML para um RE ('' se sem restrição ativa).
 // Efetivo armazena RE como "180673-4" — corta no hífen para obter "180673",
