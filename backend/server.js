@@ -1851,12 +1851,20 @@ app.get('/api/uis/stats', requireAuth, async (req, res) => {
       (r.codigos||'').split(/[,\s]+/).map(c => c.trim().toUpperCase()).filter(c => /^[A-Z]{2,3}$/.test(c))
         .forEach(c => { porCodigo[c] = (porCodigo[c]||0) + 1; });
     });
+    // Breakdown por código de restrição agrupado por OPM (para tooltip no gráfico)
+    const porOpmCodigos = {};
+    ativas.forEach(r => {
+      const opm = r.opm || 'Outros';
+      if (!porOpmCodigos[opm]) porOpmCodigos[opm] = {};
+      (r.codigos||'').split(/[,\s]+/).map(c => c.trim().toUpperCase()).filter(c => /^[A-Z]{2,3}$/.test(c))
+        .forEach(c => { porOpmCodigos[opm][c] = (porOpmCodigos[opm][c]||0) + 1; });
+    });
     // PMs que ficam somente em serviço administrativo (BG PM 166/2006, itens 5.2.2, 5.2.5, 5.2.6, 5.2.7)
     const ADMIN_CODES = ['AU','EP','ES','LR','PT','VP','UA','UU','CC','CB','UB','UC','US'];
     const soAdm = ativas.filter(r =>
       (r.codigos||'').split(/[,\s]+/).map(c => c.trim().toUpperCase()).some(c => ADMIN_CODES.includes(c))
     );
-    res.json({ total_ativas: ativas.length, total_vencidas: vencidas.length, total_vencendo: vencendo.length, total_admin_only: soAdm.length, por_opm: porOpm, por_codigo: porCodigo });
+    res.json({ total_ativas: ativas.length, total_vencidas: vencidas.length, total_vencendo: vencendo.length, total_admin_only: soAdm.length, por_opm: porOpm, por_codigo: porCodigo, por_opm_codigos: porOpmCodigos });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

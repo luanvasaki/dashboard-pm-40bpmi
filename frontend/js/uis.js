@@ -93,7 +93,7 @@ async function loadUisSection() {
   try {
     const stats = await authFetch(`${API}/uis/stats`).then(r => r.json());
     renderUisKpis(stats);
-    renderUisPorOpm(stats.por_opm || {});
+    renderUisPorOpm(stats.por_opm || {}, stats.por_opm_codigos || {});
     renderUisPorCodigo(stats.por_codigo || {});
   } catch (e) {
     document.getElementById('uis-kpis').innerHTML = `<div style="color:#f07878;font-size:13px">Erro ao carregar dados UIS: ${e.message}</div>`;
@@ -107,33 +107,51 @@ async function loadUisSection() {
 }
 
 function renderUisKpis(stats) {
-  const today = new Date().toISOString().slice(0,10);
   const cards = [
-    { label: 'Com Restrição Ativa',    val: stats.total_ativas,     cor: '#5ae09a', icon: '🟢' },
-    { label: 'Somente Administrativo', val: stats.total_admin_only,  cor: '#f07878', icon: '🔴' },
-    { label: 'Vencendo em 30 dias',    val: stats.total_vencendo,    cor: '#c8a84b', icon: '⚠️' },
-    { label: 'Restrição Vencida',      val: stats.total_vencidas,    cor: '#808080', icon: '⛔' },
+    { label: 'COM RESTRIÇÃO ATIVA',    val: stats.total_ativas,    cor: '#5ae09a' },
+    { label: 'SOMENTE ADMINISTRATIVO', val: stats.total_admin_only, cor: '#f07878' },
+    { label: 'VENCENDO EM 30 DIAS',    val: stats.total_vencendo,   cor: '#c8a84b' },
+    { label: 'RESTRIÇÃO VENCIDA',      val: stats.total_vencidas,   cor: '#e05555' },
   ];
-  document.getElementById('uis-kpis').innerHTML = cards.map(c => `
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:18px 16px;display:flex;flex-direction:column;gap:6px">
-      <div style="font-size:22px">${c.icon}</div>
-      <div style="font-size:32px;font-weight:800;color:${c.cor};font-family:'Barlow Condensed',sans-serif">${c.val ?? '—'}</div>
-      <div style="font-size:12px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase">${c.label}</div>
+  const el = document.getElementById('uis-kpis');
+  el.style.gridTemplateColumns = 'repeat(auto-fill,minmax(210px,1fr))';
+  el.innerHTML = cards.map(c => `
+    <div class="kpi" style="cursor:default">
+      <div class="kpi-top" style="background:${c.cor}"></div>
+      <div class="kpi-lbl">${c.label}</div>
+      <div class="kpi-val" style="color:${c.cor}">${c.val ?? '—'}</div>
     </div>`).join('');
 }
 
-function renderUisPorOpm(porOpm) {
+// Mapeia OPM para a cor da CIA correspondente (usa CIA_COR de users.js)
+function uisCiaColor(opm) {
+  const s = (opm || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  if (/\b1[\s_-]?cia\b|alumin|votorantim/.test(s)) return CIA_COR['1'];
+  if (/\b2[\s_-]?cia\b|ibiun|pied|tapir/.test(s))  return CIA_COR['2'];
+  if (/\b3[\s_-]?cia\b|salto|aracoiab|pilar|ipero/.test(s)) return CIA_COR['3'];
+  if (/\bft\b|forca|forca tatica/.test(s))          return CIA_COR.ft;
+  return '#a0a8c0';
+}
+
+function renderUisPorOpm(porOpm, porOpmCodigos) {
   const entries = Object.entries(porOpm).sort((a,b) => b[1]-a[1]);
   if (!entries.length) { document.getElementById('uis-por-opm').innerHTML = '<div style="color:var(--tx3);font-size:13px;padding:8px">Sem dados</div>'; return; }
   const max = entries[0][1];
-  document.getElementById('uis-por-opm').innerHTML = entries.map(([opm, n]) => `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-      <div style="width:90px;font-size:13px;color:var(--tx);font-weight:600;flex-shrink:0">${escHtml(opm)}</div>
-      <div style="flex:1;background:var(--s3);border-radius:4px;height:18px;overflow:hidden">
-        <div style="height:100%;width:${Math.round(n/max*100)}%;background:#5ae09a;border-radius:4px;transition:width .4s"></div>
+  document.getElementById('uis-por-opm').innerHTML = entries.map(([opm, n]) => {
+    const cor     = uisCiaColor(opm);
+    const codMap  = (porOpmCodigos || {})[opm] || {};
+    const topCods = Object.entries(codMap).sort((a,b) => b[1]-a[1]).slice(0,5)
+      .map(([cod, cnt]) => { const info = UIS_CODIGOS[cod]; return info ? `${cod}: ${info.desc} (${cnt}×)` : `${cod} (${cnt}×)`; });
+    const tooltip = topCods.length ? `Códigos mais frequentes:\n${topCods.join('\n')}` : '';
+    return `
+    <div title="${tooltip}" style="display:flex;align-items:center;gap:12px;margin-bottom:10px;${tooltip ? 'cursor:help' : ''}">
+      <div style="width:130px;font-size:17px;color:${cor};font-weight:700;flex-shrink:0;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;line-height:1.2">${escHtml(opm)}</div>
+      <div style="flex:1;background:var(--s3);border-radius:5px;height:26px;overflow:hidden">
+        <div style="height:100%;width:${Math.round(n/max*100)}%;background:${cor};border-radius:5px;transition:width .4s;opacity:.85"></div>
       </div>
-      <div style="width:28px;text-align:right;font-size:13px;font-weight:700;color:#5ae09a">${n}</div>
-    </div>`).join('');
+      <div style="width:32px;text-align:right;font-size:17px;font-weight:700;color:${cor}">${n}</div>
+    </div>`;
+  }).join('');
 }
 
 function renderUisPorCodigo(porCodigo) {
