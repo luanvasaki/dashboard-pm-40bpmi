@@ -1868,13 +1868,17 @@ app.get('/api/uis/stats', requireAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// [GET /api/uis/mapa] — todas as restrições ativas, para montar badges no P1.
-// URL separada (não usa /:re) para evitar conflito de roteamento.
+// [GET /api/uis/mapa] — restrições ATIVAS (termino >= hoje), para montar badges no P1.
+// Filtra no backend para garantir comparação correta de datas.
+// Retorna array de { re, codigos, termino, opm } — um registro por RE (o mais recente).
 app.get('/api/uis/mapa', requireAuth, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
-    const data = await fetchAll('uis_restricoes', { order: [['termino', { ascending: false }]] });
-    res.json(data);
+    const today = new Date().toISOString().slice(0, 10);
+    const all   = await fetchAll('uis_restricoes', { order: [['termino', { ascending: false }]] });
+    // Mantém todos os registros ativos (termino existe e é >= hoje)
+    const ativas = all.filter(r => r.termino && r.termino >= today);
+    res.json(ativas);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

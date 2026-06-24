@@ -357,68 +357,80 @@ function renderUisPmContent(restricoes) {
 // ═══════════════════════════════════════════════════════════════
 // BADGE DE RESTRIÇÃO para a lista do P1
 // Retorna HTML do badge se o PM tiver restrição ativa, ou '' se não tiver.
-// Chamado por renderP1 ao montar cada linha da tabela de efetivo.
+// O backend já filtra somente registros com termino >= hoje.
 // ═══════════════════════════════════════════════════════════════
-let _uisRestMap = null; // cache: { re → array de restrições }
+let _uisRestMap = null; // cache: { re → array de restrições ATIVAS }
 
 async function loadUisRestricoes() {
   _uisRestMap = {};
   try {
-    const allRecs = await authFetch(`${API}/uis/mapa`).then(r => r.json());
-    console.log('[UIS] /mapa retornou:', Array.isArray(allRecs) ? `${allRecs.length} registros` : allRecs);
-    if (!Array.isArray(allRecs)) return;
+    const resp = await authFetch(`${API}/uis/mapa`);
+    if (!resp.ok) { console.warn('[UIS] /mapa status:', resp.status); return; }
+    const allRecs = await resp.json();
+    if (!Array.isArray(allRecs)) { console.warn('[UIS] /mapa não retornou array:', allRecs); return; }
+    console.log(`[UIS] /mapa: ${allRecs.length} restrições ativas`);
     for (const r of allRecs) {
       const key = String(r.re || '').replace(/\D/g,'');
       if (!key) continue;
       if (!_uisRestMap[key]) _uisRestMap[key] = [];
       _uisRestMap[key].push(r);
     }
-    console.log('[UIS] mapa montado, chaves:', Object.keys(_uisRestMap).slice(0,5));
-  } catch (e) { console.warn('[UIS] loadUisRestricoes falhou:', e.message); }
+    const total = Object.keys(_uisRestMap).length;
+    console.log(`[UIS] mapa pronto: ${total} PMs com restrição ativa. Ex:`, Object.keys(_uisRestMap).slice(0,5));
+  } catch (e) { console.warn('[UIS] loadUisRestricoes erro:', e.message); }
 }
 
-// Diagnóstico: chame debugUis() no console do browser (estando na seção P1)
-window.debugUis = function() {
+// Diagnóstico completo: chame debugUis() no console do browser
+window.debugUis = async function() {
   console.log('=== DEBUG UIS ===');
+  console.log('_uisRestMap:', _uisRestMap === null ? 'null (não carregado)' : `${Object.keys(_uisRestMap).length} chaves`);
+  if (_uisRestMap === null || Object.keys(_uisRestMap).length === 0) {
+    console.log('Recarregando...');
+    await loadUisRestricoes();
+  }
   const uisKeys = Object.keys(_uisRestMap || {});
-  console.log('UIS chaves total:', uisKeys.length);
-  console.log('Primeiras chaves UIS:', uisKeys.slice(0,8));
+  console.log('Chaves UIS (primeiras 10):', uisKeys.slice(0,10));
 
-  // p1Data é let em p1.js — acessível diretamente (não via window)
   const dados = typeof p1Data !== 'undefined' ? p1Data : [];
-  console.log('p1Data length:', dados.length);
+  console.log('p1Data:', dados.length, 'PMs');
   if (!dados.length) { console.warn('p1Data vazio — navegue para P1 primeiro'); return; }
 
-  // Mostra os primeiros REs do efetivo e o matchKey calculado
-  console.log('Primeiros REs do efetivo:');
-  dados.slice(0,8).forEach(r => {
-    const mk = String(r.re).split('-')[0].replace(/\D/g,'');
-    const achou = !!_uisRestMap[mk];
-    console.log(`  efetivo="${r.re}" → matchKey="${mk}" → ${achou ? '✓ ACHOU' : '✗ não encontrado'}`);
+  console.log('Primeiros 10 REs do efetivo (RE → matchKey → achou?):');
+  dados.slice(0,10).forEach(r => {
+    const mk = String(r.re||'').split('-')[0].replace(/\D/g,'');
+    const recs = _uisRestMap[mk];
+    const terminos = recs ? recs.map(x=>x.termino).join(', ') : '—';
+    console.log(`  "${r.re}" → "${mk}" → ${recs ? `✓ ${recs.length} reg, termino: ${terminos}` : '✗'}`);
   });
 
-  // Quantos PMs do efetivo têm match no UIS
   const comBadge = dados.filter(r => uisBadge(r.re));
-  console.log(`\nTotal com badge: ${comBadge.length} de ${dados.length} PMs`);
-  if (comBadge.length) console.log('Exemplos com badge:', comBadge.slice(0,3).map(r=>r.re));
+  console.log(`\nCom badge ativo: ${comBadge.length} de ${dados.length}`);
+  if (comBadge.length) console.log('Exemplos:', comBadge.slice(0,5).map(r=>`${r.re} (${r.nome_guerra||r.nome})`));
+  else {
+    const comKey = dados.filter(r => { const mk = String(r.re||'').split('-')[0].replace(/\D/g,''); return !!_uisRestMap[mk]; });
+    console.log(`PMs com RE no mapa mas sem badge: ${comKey.length} (verificar datas de término)`);
+    comKey.slice(0,5).forEach(r => {
+      const mk = String(r.re||'').split('-')[0].replace(/\D/g,'');
+      console.log('  ', r.re, '→', _uisRestMap[mk]?.map(x=>x.termino));
+    });
+  }
+  console.log('=== FIM DEBUG ===');
 };
 
 // Retorna badge HTML para um RE ('' se sem restrição ativa).
-// Efetivo armazena RE como "180673-4" — corta no hífen para obter "180673",
-// que é o formato da planilha UIS (sem dígito verificador).
+// Efetivo armazena RE como "180673-4"; corta no hífen → "180673" (sem dígito verificador).
+// O backend já garantiu que _uisRestMap só contém restrições com termino >= hoje.
 function uisBadge(re) {
   if (!_uisRestMap || !re) return '';
   const matchKey = String(re).split('-')[0].replace(/\D/g,'');
   const recs = _uisRestMap[matchKey];
   if (!recs?.length) return '';
-  const today = new Date().toISOString().slice(0,10);
-  const ativas = recs.filter(r => r.termino && r.termino >= today);
-  if (!ativas.length) return '';
-  const codigos = ativas.flatMap(r => uisExtrairCodigos(r.codigos));
+  const codigos = recs.flatMap(r => uisExtrairCodigos(r.codigos));
   const grupo = uisGrupoMaisRestritivo(codigos);
   const gInfo = grupo ? UIS_GRUPOS[grupo] : null;
   const cor = gInfo ? gInfo.cor : '#c8a84b';
-  const diasMin = Math.min(...ativas.filter(r=>r.termino).map(r => Math.ceil((new Date(r.termino)-new Date(today))/86400000)));
-  const alerta = diasMin <= 30 ? ` ⚠ ${diasMin}d` : '';
+  const today = new Date().toISOString().slice(0,10);
+  const diasMin = Math.min(...recs.filter(r=>r.termino).map(r => Math.ceil((new Date(r.termino)-new Date(today))/86400000)));
+  const alerta = isFinite(diasMin) && diasMin <= 30 ? ` ⚠ ${diasMin}d` : '';
   return `<span onclick="event.stopPropagation();openUisPmModal('${matchKey}')" title="Restrição UIS — clique para ver" style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;background:${cor}18;border:1px solid ${cor}55;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;color:${cor};margin-left:6px">🏥 UIS${alerta}</span>`;
 }
