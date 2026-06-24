@@ -138,18 +138,75 @@ function uisCiaColor(opm) {
   return '#ffffff';
 }
 
+// ─── Tooltip custom (estilo dashboard) para o gráfico por CIA/OPM ──────────
+let _uisTipEl = null;
+
+function _uisTipGet() {
+  if (_uisTipEl) return _uisTipEl;
+  _uisTipEl = document.createElement('div');
+  _uisTipEl.id = 'uis-bar-tip';
+  Object.assign(_uisTipEl.style, {
+    position: 'fixed', pointerEvents: 'none', zIndex: '9999',
+    display: 'none', maxWidth: '340px',
+    background: '#0f1319', border: '1px solid rgba(255,255,255,.15)',
+    borderRadius: '8px', padding: '12px 16px',
+    boxShadow: '0 8px 32px rgba(0,0,0,.6)',
+    fontFamily: "'DM Mono',monospace", fontSize: '13px', lineHeight: '1.6',
+  });
+  document.body.appendChild(_uisTipEl);
+  return _uisTipEl;
+}
+
+function _uisTipShow(e, opm, cor, topCods) {
+  const tip = _uisTipGet();
+  const codsHtml = topCods.map(([cod, cnt, desc]) => `
+    <div style="display:flex;align-items:baseline;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <span style="font-weight:700;color:${cor};min-width:28px">${cod}</span>
+      <span style="color:rgba(255,255,255,.65);flex:1;font-size:12px">${desc}</span>
+      <span style="font-weight:700;color:#ffffff;margin-left:8px">${cnt}×</span>
+    </div>`).join('');
+  tip.innerHTML = `
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:${cor};letter-spacing:.5px;margin-bottom:8px;text-transform:uppercase">${escHtml(opm)}</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.4);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Códigos mais frequentes</div>
+    ${codsHtml || '<div style="color:rgba(255,255,255,.35);font-size:12px">Sem detalhes</div>'}`;
+  tip.style.display = 'block';
+  _uisTipMove(e);
+}
+
+function _uisTipMove(e) {
+  const tip = _uisTipEl; if (!tip) return;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const tw = tip.offsetWidth || 300, th = tip.offsetHeight || 140;
+  let x = e.clientX + 18, y = e.clientY - 20;
+  if (x + tw > vw - 10) x = e.clientX - tw - 10;
+  if (y + th > vh - 10) y = vh - th - 10;
+  tip.style.left = x + 'px';
+  tip.style.top  = y + 'px';
+}
+
+function _uisTipHide() {
+  if (_uisTipEl) _uisTipEl.style.display = 'none';
+}
+
 function renderUisPorOpm(porOpm, porOpmCodigos) {
   const entries = Object.entries(porOpm).sort((a,b) => b[1]-a[1]);
-  if (!entries.length) { document.getElementById('uis-por-opm').innerHTML = '<div style="color:var(--tx3);font-size:13px;padding:8px">Sem dados</div>'; return; }
+  const container = document.getElementById('uis-por-opm');
+  if (!entries.length) { container.innerHTML = '<div style="color:var(--tx3);font-size:13px;padding:8px">Sem dados</div>'; return; }
   const max = entries[0][1];
-  document.getElementById('uis-por-opm').innerHTML = entries.map(([opm, n]) => {
-    const cor     = uisCiaColor(opm);
-    const codMap  = (porOpmCodigos || {})[opm] || {};
-    const topCods = Object.entries(codMap).sort((a,b) => b[1]-a[1]).slice(0,5)
-      .map(([cod, cnt]) => { const info = UIS_CODIGOS[cod]; return info ? `${cod}: ${info.desc} (${cnt}×)` : `${cod} (${cnt}×)`; });
-    const tooltip = topCods.length ? `Códigos mais frequentes:\n${topCods.join('\n')}` : '';
+
+  // Pré-processa os dados de tooltip por OPM (armazena no elemento via dataset)
+  const tipData = {};
+  entries.forEach(([opm]) => {
+    const codMap = (porOpmCodigos || {})[opm] || {};
+    tipData[opm] = Object.entries(codMap).sort((a,b) => b[1]-a[1]).slice(0,6)
+      .map(([cod, cnt]) => { const info = UIS_CODIGOS[cod]; return [cod, cnt, info ? info.desc : '—']; });
+  });
+
+  container.innerHTML = entries.map(([opm, n]) => {
+    const cor  = uisCiaColor(opm);
+    const hasTip = tipData[opm]?.length > 0;
     return `
-    <div title="${tooltip}" style="display:flex;align-items:center;gap:12px;margin-bottom:10px;${tooltip ? 'cursor:help' : ''}">
+    <div data-uis-opm="${escHtml(opm)}" style="display:flex;align-items:center;gap:12px;margin-bottom:10px;${hasTip ? 'cursor:pointer' : ''}">
       <div style="width:160px;font-size:22px;color:${cor};font-weight:700;flex-shrink:0;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;line-height:1.2">${escHtml(opm)}</div>
       <div style="flex:1;background:var(--s3);border-radius:5px;height:26px;overflow:hidden">
         <div style="height:100%;width:${Math.round(n/max*100)}%;background:${cor};border-radius:5px;transition:width .4s;opacity:.85"></div>
@@ -157,6 +214,17 @@ function renderUisPorOpm(porOpm, porOpmCodigos) {
       <div style="width:32px;text-align:right;font-size:17px;font-weight:700;color:${cor}">${n}</div>
     </div>`;
   }).join('');
+
+  // Delegação de eventos para o tooltip custom
+  container.onmouseover = e => {
+    const row = e.target.closest('[data-uis-opm]');
+    if (!row) return;
+    const opm = row.dataset.uisOpm;
+    const cor = uisCiaColor(opm);
+    _uisTipShow(e, opm, cor, tipData[opm] || []);
+  };
+  container.onmousemove = e => { if (e.target.closest('[data-uis-opm]')) _uisTipMove(e); };
+  container.onmouseout  = e => { if (!e.target.closest('[data-uis-opm]')) _uisTipHide(); };
 }
 
 function renderUisPorCodigo(porCodigo) {
