@@ -3239,11 +3239,11 @@ function openIqMo(mes, ano) {
     `<div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--bd)">
       <div>
         <label style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace;display:block;margin-bottom:4px;text-transform:uppercase">Mês</label>
-        <select id="iq-sel-mes" onchange="iqMoMes=this.value;iqMoFillCampos()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:6px 10px;border-radius:5px;font-size:19px;cursor:pointer">${mesOpts}</select>
+        <select id="iq-sel-mes" name="iq-sel-mes" autocomplete="off" onchange="iqMoMes=this.value;iqMoFillCampos()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:6px 10px;border-radius:5px;font-size:19px;cursor:pointer">${mesOpts}</select>
       </div>
       <div>
         <label style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace;display:block;margin-bottom:4px;text-transform:uppercase">Ano</label>
-        <select id="iq-sel-ano" onchange="iqMoAno=+this.value;iqMoFillCampos()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:6px 10px;border-radius:5px;font-size:19px;cursor:pointer">${anoOpts}</select>
+        <select id="iq-sel-ano" name="iq-sel-ano" autocomplete="off" onchange="iqMoAno=+this.value;iqMoFillCampos()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:6px 10px;border-radius:5px;font-size:19px;cursor:pointer">${anoOpts}</select>
       </div>
       <div id="iq-mo-badge" style="margin-top:18px;font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace"></div>
     </div>
@@ -3251,7 +3251,7 @@ function openIqMo(mes, ano) {
     IQ_CAMPOS.map(c => `
       <div>
         <label style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">${c.label}${c.unit ? ' (' + c.unit + ')' : ''}</label>
-        <input id="iq-inp-${c.key}" type="number" min="0" step="any"
+        <input id="iq-inp-${c.key}" name="iq-inp-${c.key}" autocomplete="off" type="number" min="0" step="any"
           style="width:100%;background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:7px 10px;border-radius:5px;font-size:19px;box-sizing:border-box">
       </div>`).join('') +
     `</div>`;

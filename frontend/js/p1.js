@@ -1993,7 +1993,7 @@ function renderVagasTable() {
         <td style="padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.03);font-size:19px;color:var(--tx)">${opm}</td>
         <td style="padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.03);text-align:right;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">${atual}</td>
         <td style="padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.03);text-align:right">
-          <input type="number" min="0" value="${vagas}" onchange="saveVaga('${opm.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}', this.value, this)"
+          <input type="number" name="vaga-opm" autocomplete="off" min="0" value="${vagas}" onchange="saveVaga('${opm.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}', this.value, this)"
             style="width:90px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:4px;padding:5px 8px;font-size:19px;text-align:right;font-family:'DM Mono',monospace">
         </td>
       </tr>`;

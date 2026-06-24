@@ -343,11 +343,11 @@ function buildSbMes() {
   // Linha 2: CIA + Cidade
   const munList = pf.type === 'cia' && pf.value ? MUNS.filter(m => RAW.some(r => r.mun === m && r.cia === pf.value)) : MUNS;
   let row2 = `<div class="pf-row">`;
-  row2 += `<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" id="sb-cia-sel" onchange="sbSetScope('cia',this.value)">`;
+  row2 += `<div class="pf-field"><span class="pf-label">CIA</span><select class="pf-select" name="sb-cia-sel" autocomplete="off" onchange="sbSetScope('cia',this.value)">`;
   row2 += `<option value="">Todas</option>`;
   CIAS.forEach(c => row2 += `<option value="${c}" ${pf.type==='cia'&&pf.value===c?'selected':''}>${c}</option>`);
   row2 += `</select></div>`;
-  row2 += `<div class="pf-field"><span class="pf-label">Cidade</span><select class="pf-select" id="sb-mun-sel" onchange="sbSetScope('mun',this.value)">`;
+  row2 += `<div class="pf-field"><span class="pf-label">Cidade</span><select class="pf-select" name="sb-mun-sel" autocomplete="off" onchange="sbSetScope('mun',this.value)">`;
   row2 += `<option value="">Todas</option>`;
   munList.forEach(m => row2 += `<option value="${m}" ${pf.type==='mun'&&pf.value===m?'selected':''}>${m}</option>`);
   row2 += `</select></div>`;
