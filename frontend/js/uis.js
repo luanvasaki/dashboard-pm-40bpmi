@@ -135,7 +135,7 @@ function uisCiaColor(opm) {
   if (s.includes('ibiun') || s.includes('pied') || s.includes('tapir')) return CIA_COR['2'];
   if (s.includes('salto') || s.includes('aracoiab') || s.includes('pilar') || s.includes('ipero')) return CIA_COR['3'];
   if (/\bft\b|forca|forca tatica/.test(s)) return CIA_COR.ft;
-  return '#a0a8c0';
+  return '#ffffff';
 }
 
 function renderUisPorOpm(porOpm, porOpmCodigos) {
