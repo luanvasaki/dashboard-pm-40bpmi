@@ -1876,18 +1876,12 @@ app.get('/api/uis/mapa', requireAuth, async (req, res) => {
 app.get('/api/uis/restricoes/:re', requireAuth, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
-    const reDigits = req.params.re.replace(/\D/g,'');
-    // Tenta busca exata; se vazio, remove 1 dígito (verificador) e tenta de novo
-    let data = await fetchAll('uis_restricoes', {
-      filters: [['eq', 're', reDigits]],
+    // RE do efetivo vem como "180673-4" — corta no hífen para obter "180673"
+    const reBase = req.params.re.split('-')[0].replace(/\D/g,'');
+    const data = await fetchAll('uis_restricoes', {
+      filters: [['eq', 're', reBase]],
       order:   [['termino', { ascending: false }]]
     });
-    if (!data.length && reDigits.length > 5) {
-      data = await fetchAll('uis_restricoes', {
-        filters: [['eq', 're', reDigits.slice(0,-1)]],
-        order:   [['termino', { ascending: false }]]
-      });
-    }
     res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

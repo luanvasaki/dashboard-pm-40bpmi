@@ -354,20 +354,12 @@ async function loadUisRestricoes() {
 }
 
 // Retorna badge HTML para um RE ('' se sem restrição ativa).
-// Tenta o RE completo do efetivo e vai removendo o último dígito (verificador)
-// até encontrar correspondência no mapa UIS (que tem 5 ou 6 dígitos, sem verificador).
+// Efetivo armazena RE como "180673-4" — corta no hífen para obter "180673",
+// que é o formato da planilha UIS (sem dígito verificador).
 function uisBadge(re) {
   if (!_uisRestMap || !re) return '';
-  const reStr = String(re).replace(/\D/g,'');
-  // Tenta: RE completo → sem 1 dígito → sem 2 dígitos
-  const recs = _uisRestMap[reStr]
-            || _uisRestMap[reStr.slice(0,-1)]
-            || _uisRestMap[reStr.slice(0,-2)]
-            || null;
-  const matchKey = _uisRestMap[reStr] ? reStr
-                 : _uisRestMap[reStr.slice(0,-1)] ? reStr.slice(0,-1)
-                 : _uisRestMap[reStr.slice(0,-2)] ? reStr.slice(0,-2)
-                 : reStr;
+  const matchKey = String(re).split('-')[0].replace(/\D/g,'');
+  const recs = _uisRestMap[matchKey];
   if (!recs?.length) return '';
   const today = new Date().toISOString().slice(0,10);
   const ativas = recs.filter(r => r.termino && r.termino >= today);
