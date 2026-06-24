@@ -123,13 +123,18 @@ function renderUisKpis(stats) {
     </div>`).join('');
 }
 
-// Mapeia OPM para a cor da CIA correspondente (usa CIA_COR de users.js)
+// Mapeia OPM para a cor da CIA correspondente (usa CIA_COR de users.js).
+// Usa extração do dígito antes de "cia" para lidar com "1ª CIA", "1 CIA", "1CIA", etc.
 function uisCiaColor(opm) {
-  const s = (opm || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-  if (/\b1[\s_-]?cia\b|alumin|votorantim/.test(s)) return CIA_COR['1'];
-  if (/\b2[\s_-]?cia\b|ibiun|pied|tapir/.test(s))  return CIA_COR['2'];
-  if (/\b3[\s_-]?cia\b|salto|aracoiab|pilar|ipero/.test(s)) return CIA_COR['3'];
-  if (/\bft\b|forca|forca tatica/.test(s))          return CIA_COR.ft;
+  const s = (opm || '').toLowerCase();
+  // Extrai o dígito antes de "cia" (com qualquer char entre, ex: "1ª cia", "1 cia", "1.cia")
+  const m = s.match(/(\d)\s*.?\s*cia/);
+  if (m && CIA_COR[m[1]]) return CIA_COR[m[1]];
+  // Fallback por município-sede
+  if (s.includes('alumin') || s.includes('votorantim')) return CIA_COR['1'];
+  if (s.includes('ibiun') || s.includes('pied') || s.includes('tapir')) return CIA_COR['2'];
+  if (s.includes('salto') || s.includes('aracoiab') || s.includes('pilar') || s.includes('ipero')) return CIA_COR['3'];
+  if (/\bft\b|forca|forca tatica/.test(s)) return CIA_COR.ft;
   return '#a0a8c0';
 }
 
@@ -145,7 +150,7 @@ function renderUisPorOpm(porOpm, porOpmCodigos) {
     const tooltip = topCods.length ? `Códigos mais frequentes:\n${topCods.join('\n')}` : '';
     return `
     <div title="${tooltip}" style="display:flex;align-items:center;gap:12px;margin-bottom:10px;${tooltip ? 'cursor:help' : ''}">
-      <div style="width:130px;font-size:17px;color:${cor};font-weight:700;flex-shrink:0;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;line-height:1.2">${escHtml(opm)}</div>
+      <div style="width:160px;font-size:22px;color:${cor};font-weight:700;flex-shrink:0;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;line-height:1.2">${escHtml(opm)}</div>
       <div style="flex:1;background:var(--s3);border-radius:5px;height:26px;overflow:hidden">
         <div style="height:100%;width:${Math.round(n/max*100)}%;background:${cor};border-radius:5px;transition:width .4s;opacity:.85"></div>
       </div>
