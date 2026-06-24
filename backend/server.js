@@ -1,22 +1,51 @@
 /**
- * server.js — API REST do Dashboard 40 BPM/I
- * Porta: 3001
+ * server.js — Servidor único do Dashboard 40º BPM/I (PM-SP)
+ * ─────────────────────────────────────────────────────────────
+ * Tecnologias: Node.js · Express · Supabase (PostgreSQL) · JWT · bcrypt
+ * Porta padrão: 3001
+ * Deploy: Vercel (vercel.json roteia tudo para este arquivo)
  *
- * Fontes de dados (em ordem de prioridade):
- *   1. Supabase (configure SUPABASE_URL e SUPABASE_KEY abaixo)
- *   2. Google Sheets publicado como CSV (configure SHEETS_URL abaixo)
- *   3. raw_data.json local (fallback automático)
+ * ARQUITETURA GERAL
+ * ─────────────────
+ * - Todos os dados criminais (RAC PM) ficam em cache em memória (objeto `cache`)
+ *   e são sincronizados com o Supabase a cada 5 minutos (CACHE_TTL).
+ * - Toda lógica de filtro (KPIs, gráficos, analytics) opera sobre esse cache,
+ *   sem consultar o banco diretamente — isso garante baixa latência nas leituras.
+ * - O frontend é servido como arquivos estáticos por este mesmo servidor
+ *   (pasta ../frontend) via express.static.
  *
- * IMPORTANTE — para o upload funcionar, crie no Supabase uma restrição UNIQUE:
+ * AUTENTICAÇÃO
+ * ────────────
+ * - JWT armazenado em cookie httpOnly (auth_token) com expiração de 8h.
+ * - Middleware `requireAuth` valida o token em todas as rotas protegidas.
+ * - Middleware `requireRole` restringe rotas por perfil de acesso.
+ *
+ * PERFIS (roles)
+ * ──────────────
+ *   admin          → acesso total; conta protegida contra exclusão
+ *   p3             → gerencia usuários + acesso a P3/analytics
+ *   p1             → efetivo PM + upload de fotos
+ *   ti             → acesso amplo (equivalente a p3 em quase todas as rotas)
+ *   viewer         → somente leitura (padrão para novos usuários)
+ *   comandante     → somente leitura
+ *   comandante_cia → somente leitura por CIA
+ *
+ * TABELAS PRINCIPAIS no Supabase
+ * ────────────────────────────────
+ *   "Base de Dados RAC PM"  → dados criminais (Ano, Mes, Cia, Municipio, Crime, Anterior, Meta, Avaliado, Tendencia)
+ *   usuarios                → autenticação própria
+ *   ocorrencias             → ocorrências InfoCrim
+ *   efetivo_pm              → efetivo P1
+ *   afastamentos_pm         → afastamentos
+ *   fotos_pm                → fotos em base64
+ *   prod_*                  → produtividade P3 (vários subtipos)
+ *   indicadores_qualidade_p3→ indicadores manuais P3
+ *   disque_denuncia_registros → registros Disque Denúncia
+ *   config_dashboard        → configurações chave/valor
+ *
+ * ⚠ CRÍTICO — para o upload RAC funcionar, o Supabase precisa da constraint:
  *   ALTER TABLE "Base de Dados RAC PM"
  *   ADD CONSTRAINT rac_pm_unique UNIQUE ("Ano","Mes","Cia","Municipio","Crime");
- *
- * Rotas disponíveis:
- *   GET  /api/registros   → todos os registros (com filtros opcionais)
- *   GET  /api/meta        → crimes, meses, municípios e CIAs disponíveis
- *   GET  /api/sync        → força resincronização imediata
- *   GET  /api/status      → última sincronização e total de registros
- *   POST /api/upload      → recebe registros do CSV e faz upsert no Supabase
  */
 
 require('dotenv').config();
@@ -43,14 +72,23 @@ if (!JWT_SECRET) { console.error('FATAL: variável JWT_SECRET não definida'); p
 const USUARIOS_TABLE     = 'usuarios';
 const OCORRENCIAS_TABLE  = 'ocorrencias';
 
-// Helpers de normalização para dados InfoCrim
+// ═══════════════════════════════════════════════════════════════
+// FUNÇÕES UTILITÁRIAS — normalização e parse de dados
+// ═══════════════════════════════════════════════════════════════
+
+// Padroniza o nome da CIA: "1a CIA PM" → "1ª CIA", "2ª CIPM" → "2ª CIA", etc.
+// Strings que não batem o padrão numérico são devolvidas sem alteração (ex: "FT").
 function normCia(s) {
   if (!s) return '';
   const m = s.trim().match(/^(\d+)[ªa°]?\s*cia/i);
   if (m) return m[1] + 'ª CIA';
   return s.trim();
 }
+
+// Array de referência com os meses em português na ordem correta (índice 0 = Janeiro).
 const _MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+// Converte número de mês (1-12) ou string abreviada ("jan", "fev"…) para nome completo.
 function normMes(s) {
   const v = (s||'').trim();
   if (!v) return '';
@@ -59,10 +97,18 @@ function normMes(s) {
   const found = _MESES_PT.find(m => m.toLowerCase().startsWith(v.slice(0,3).toLowerCase()));
   return found || (v.charAt(0).toUpperCase() + v.slice(1).toLowerCase());
 }
+
+// Capitaliza cada palavra de uma string (usado em nomes de bairros e municípios).
 function titleCase(s){ return (s||'').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()); }
+
+// Converte data no formato brasileiro DD/MM/YYYY para ISO YYYY-MM-DD (exigido pelo Supabase).
 function parseDateBR(s){ if(!s)return null; const[d,m,y]=(s||'').split('/'); if(!d||!m||!y)return null; return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; }
+
+// Converte string de hora "H:MM" ou "HH:MM:SS" para "HH:MM" com zero à esquerda.
 function parseHora(s){ if(!s||!s.trim())return null; const p=s.trim().split(':'); return p.length<2?null:`${p[0].padStart(2,'0')}:${p[1].padStart(2,'0')}`; }
 
+// Faz parse do campo de PMs de cursos, que tem formato "Posto PM RE Nome; Posto PM RE Nome".
+// Retorna array de objetos { posto_pm, re_pm, nome_pm } — um por PM separado por ';'.
 function parsePMsField(pmField) {
   if (!pmField || !pmField.trim()) return [];
   return pmField.split(';').map(s => s.trim()).filter(Boolean).map(entry => {
@@ -72,6 +118,13 @@ function parsePMsField(pmField) {
   }).filter(Boolean);
 }
 
+// ═══════════════════════════════════════════════════════════════
+// MIDDLEWARES DE AUTENTICAÇÃO E AUTORIZAÇÃO
+// ═══════════════════════════════════════════════════════════════
+
+// Verifica se a requisição possui um JWT válido.
+// Aceita token via cookie httpOnly (auth_token) ou header Authorization: Bearer <token>.
+// Em caso de sucesso, popula req.user com { id, nome, matricula, role, secao, resetSenha }.
 function requireAuth(req, res, next) {
   const cookieToken  = req.cookies?.auth_token;
   const auth         = req.headers.authorization;
@@ -86,6 +139,9 @@ function requireAuth(req, res, next) {
   }
 }
 
+// Fábrica de middleware: restringe a rota aos roles informados.
+// ⚠ O perfil 'ti' sempre passa — equivale a admin em quase todas as rotas exceto exclusões críticas.
+// Uso: requireRole('admin', 'p3') — bloqueia viewer, comandante, etc.
 function requireRole(...roles) {
   return (req, res, next) => {
     if (req.user?.role === 'ti' || roles.includes(req.user?.role)) return next();
@@ -106,9 +162,16 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
   process.exit(1);
 }
 
+// ═══════════════════════════════════════════════════════════════
+// CONFIGURAÇÕES GLOBAIS
+// ═══════════════════════════════════════════════════════════════
+
+// Tempo de vida do cache em memória: 5 minutos. Após esse prazo, syncFromSupabase() é chamado automaticamente.
 const CACHE_TTL  = 5 * 60 * 1000;
+// ⚠ CRÍTICO: nome exato da tabela no Supabase — sensível a maiúsculas e espaços.
 const TABLE_NAME = 'Base de Dados RAC PM';
 
+// Inicializa o cliente Supabase usando a service_role key (bypassa RLS).
 let supabase = null;
 {
   const { createClient } = require('@supabase/supabase-js');
@@ -116,33 +179,44 @@ let supabase = null;
   console.log('✓ Supabase client inicializado');
 }
 
+// CORS: em produção aceita apenas ALLOWED_ORIGIN; em dev aceita qualquer origem.
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || null;
 app.use(compression());
+// contentSecurityPolicy desativado para permitir que o frontend carregue CDNs (Chart.js, Lucide, etc.)
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
   credentials: true,
   origin: ALLOWED_ORIGIN ? ALLOWED_ORIGIN : (origin, cb) => cb(null, true)
 }));
 app.use(cookieParser());
+// Limite de 10 MB para suportar uploads de CSVs grandes via JSON
 app.use(express.json({ limit: '10mb' }));
+// Serve o frontend como arquivos estáticos — index.html é o ponto de entrada da SPA
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
+// Rate limiting específico para /api/auth/login: bloqueia após 20 tentativas em 15 min
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' }
 });
 
-// Ordem canônica
+// Ordem canônica dos meses — usada para ordenar listas no frontend e nos KPIs.
 const MES_ORD    = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+// Ordem canônica dos crimes — determina a sequência dos cards de KPI no dashboard.
+// ⚠ CRÍTICO: não alterar sem verificar o frontend — a ordem impacta o layout visual.
 const CRIMES_ORD = ['Homicídio','Estupro','Estupro de Vulnerável','Roubo','Furto','Roubo de Veículos','Furto de Veículos'];
 
-// Cache em memória
+// Cache em memória: toda a API de leitura opera sobre este objeto, não consulta o banco.
+// { data: registro[], lastSync: ISO string, source: 'supabase'|'local', error: string|null }
 let cache = { data: [], lastSync: null, source: null, error: null };
 
-// ---------------------------------------------------------------------------
-// Parser de CSV simples (suporta campos com aspas)
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════
+// PARSER CSV E MAPEAMENTO DE DADOS
+// ═══════════════════════════════════════════════════════════════
+
+// Parser CSV manual que respeita aspas duplas (campos com vírgula dentro).
+// Usado como fallback — o upload principal usa PapaParse no frontend.
 function parseCSVLine(line) {
   const result = [];
   let cur = '', inQuote = false;
@@ -156,7 +230,10 @@ function parseCSVLine(line) {
   return result;
 }
 
-// Mapeia linha do Supabase → formato interno (busca case-insensitive)
+// Converte um registro bruto do Supabase para o formato interno do cache.
+// A busca de chaves é case-insensitive para tolerar variações nos nomes de colunas.
+// Campos numéricos são convertidos com parseFloat — valores inválidos viram 0.
+// O campo `crime` é canonicalizado para garantir que a grafia bata com CRIMES_ORD.
 function fromSupabase(r) {
   const keys = Object.keys(r);
   const get = (...names) => {
@@ -203,9 +280,13 @@ async function fetchAll(table, { select = '*', filters = [], order = [] } = {}) 
   return all;
 }
 
-// ---------------------------------------------------------------------------
-// Sincronização de fontes
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════
+// CACHE E SINCRONIZAÇÃO COM SUPABASE
+// ═══════════════════════════════════════════════════════════════
+
+// Busca todos os registros da tabela RAC PM do Supabase e atualiza o cache em memória.
+// É chamada na inicialização e repetida automaticamente a cada CACHE_TTL (5 min).
+// Retorna true em caso de sucesso, false em caso de erro (cache não é limpo no erro).
 async function syncFromSupabase() {
   if (!supabase) return false;
   try {
@@ -239,6 +320,8 @@ async function syncFromSupabase() {
 }
 
 
+// Carrega raw_data.json como fallback quando o Supabase não está disponível.
+// O arquivo raw_data.json está na raiz do projeto e contém dados de exemplo ou exportação anterior.
 function loadLocalFallback() {
   const DATA_PATH = path.join(__dirname, '..', 'raw_data.json');
   try {
@@ -252,9 +335,12 @@ function loadLocalFallback() {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Inicialização e auto-refresh
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════
+// INICIALIZAÇÃO DO SERVIDOR
+// ═══════════════════════════════════════════════════════════════
+
+// Sequência de inicialização: tenta Supabase → fallback para arquivo local.
+// Após carregar, agenda sincronização periódica a cada CACHE_TTL.
 async function init() {
   if (supabase) {
     const ok = await syncFromSupabase();
@@ -269,9 +355,12 @@ async function init() {
   }, CACHE_TTL);
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════
+// HELPERS DE FILTRO
+// ═══════════════════════════════════════════════════════════════
+
+// Filtra o cache em memória pelos parâmetros fornecidos.
+// Qualquer parâmetro omitido (null/undefined/'') é ignorado — funciona como AND entre os presentes.
 function filtrar({ mes, crime, mun, cia }) {
   return cache.data.filter(r =>
     (!mes   || r.mes   === mes)   &&
@@ -281,17 +370,16 @@ function filtrar({ mes, crime, mun, cia }) {
   );
 }
 
+// Remove duplicatas de um array (equivalente a [...new Set(arr)]).
 function uniq(arr) { return [...new Set(arr)]; }
 
-// ---------------------------------------------------------------------------
-// Rotas
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════
+// ROTAS DE AUTENTICAÇÃO
+// ═══════════════════════════════════════════════════════════════
 
-// ---------------------------------------------------------------------------
-// Rotas de autenticação
-// ---------------------------------------------------------------------------
-
-// POST /api/auth/register — cadastro (fica pendente até aprovação)
+// [POST /api/auth/register] — cadastro de novo usuário (aberto, sem auth)
+// O usuário fica com status 'pending' até aprovação manual pelo P3.
+// Role atribuído automaticamente: P1 → 'p1', qualquer outra seção → 'viewer'.
 app.post('/api/auth/register', async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { nome, posto, matricula, senha, secao } = req.body;
@@ -324,7 +412,9 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-// POST /api/auth/login
+// [POST /api/auth/login] — autenticação por matrícula + senha
+// Limitado a 20 tentativas por 15 min (loginLimiter) para evitar força bruta.
+// Em caso de sucesso, emite JWT em cookie httpOnly com expiração de 8h.
 app.post('/api/auth/login', loginLimiter, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { matricula, senha } = req.body;
@@ -361,18 +451,21 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
   }
 });
 
-// GET /api/auth/me
+// [GET /api/auth/me] — retorna os dados do usuário logado (decodificados do JWT).
+// Usado pelo frontend para checar role/permissões sem fazer nova chamada de login.
 app.get('/api/auth/me', requireAuth, (req, res) => {
   res.json(req.user);
 });
 
-// POST /api/auth/logout
+// [POST /api/auth/logout] — invalida o cookie de sessão no cliente.
+// O JWT não é revogado no servidor (stateless) — o cookie simplesmente é apagado.
 app.post('/api/auth/logout', (req, res) => {
   res.clearCookie('auth_token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' });
   res.json({ ok: true });
 });
 
-// POST /api/auth/nova-senha — define nova senha após reset obrigatório
+// [POST /api/auth/nova-senha] — define nova senha quando reset_senha=true no JWT.
+// O P3 pode forçar um reset; na próxima vez que o usuário logar, o frontend redireciona para esta rota.
 app.post('/api/auth/nova-senha', requireAuth, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
   const { senha } = req.body;
@@ -387,11 +480,11 @@ app.post('/api/auth/nova-senha', requireAuth, async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
-// Rotas de administração de usuários (somente p3)
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════
+// ROTAS DE ADMINISTRAÇÃO DE USUÁRIOS (admin / p3)
+// ═══════════════════════════════════════════════════════════════
 
-// GET /api/admin/users — lista todos os usuários
+// [GET /api/admin/users] — lista todos os usuários (sem senha_hash), ordenados por criação.
 app.get('/api/admin/users', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
   try {
@@ -406,7 +499,8 @@ app.get('/api/admin/users', requireAuth, requireRole('admin', 'p3'), async (req,
   }
 });
 
-// PATCH /api/admin/users/:id — aprova/rejeita/altera role
+// [PATCH /api/admin/users/:id] — aprova (status: 'approved'), rejeita (status: 'rejected') ou altera role/seção.
+// Usuários com role 'admin' são protegidos contra qualquer alteração.
 app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { status, role, secao } = req.body;
@@ -430,7 +524,7 @@ app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'p3'), async
   }
 });
 
-// PATCH /api/admin/users/:id/posto — altera posto/graduação (admin, p1, p3, ti)
+// [PATCH /api/admin/users/:id/posto] — atualiza posto/graduação do usuário (mais permissivo que alterar role).
 app.patch('/api/admin/users/:id/posto', requireAuth, requireRole('admin', 'p1', 'p3', 'ti'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { posto } = req.body;
@@ -447,7 +541,8 @@ app.patch('/api/admin/users/:id/posto', requireAuth, requireRole('admin', 'p1', 
   }
 });
 
-// POST /api/admin/users/:id/reset-senha — define matrícula como senha temporária (apenas p3)
+// [POST /api/admin/users/:id/reset-senha] — redefine a senha do usuário para sua própria matrícula.
+// Marca reset_senha=true: o frontend obriga troca de senha no próximo login.
 app.post('/api/admin/users/:id/reset-senha', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
   try {
@@ -463,7 +558,7 @@ app.post('/api/admin/users/:id/reset-senha', requireAuth, requireRole('admin', '
   }
 });
 
-// DELETE /api/admin/users/:id — exclui usuário definitivamente (apenas p3)
+// [DELETE /api/admin/users/:id] — exclusão permanente de usuário. Role 'admin' é protegido.
 app.delete('/api/admin/users/:id', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
   try {
@@ -478,10 +573,11 @@ app.delete('/api/admin/users/:id', requireAuth, requireRole('admin', 'p3'), asyn
   }
 });
 
-// ---------------------------------------------------------------------------
-// Rotas de dados (protegidas por autenticação)
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════
+// ROTAS DE DADOS — STATUS E SINCRONIZAÇÃO
+// ═══════════════════════════════════════════════════════════════
 
+// [GET /api/status] — retorna estado atual do cache: última sync, fonte, total de registros, erros.
 app.get('/api/status', requireAuth, (req, res) => {
   res.json({
     lastSync:           cache.lastSync,
@@ -492,13 +588,21 @@ app.get('/api/status', requireAuth, (req, res) => {
   });
 });
 
+// [GET /api/sync] — força sincronização imediata com o Supabase, sem esperar o TTL.
+// Útil após um upload manual para ver os dados atualizados antes dos 5 min.
 app.get('/api/sync', requireAuth, async (req, res) => {
   if (!supabase) return res.status(400).json({ error: 'Supabase não configurado no server.js' });
   let ok = await syncFromSupabase();
   res.json({ ok, lastSync: cache.lastSync, source: cache.source, records: cache.data.length, error: cache.error });
 });
 
-// POST /api/upload — recebe registros parseados do CSV e faz upsert no Supabase
+// ═══════════════════════════════════════════════════════════════
+// ROTAS DE UPLOAD — BANCO RAC PM
+// ═══════════════════════════════════════════════════════════════
+
+// [POST /api/upload] — importa CSV do Banco RAC PM (crimes, metas, avaliados).
+// Fluxo: recebe records[] do frontend → valida → apaga anos presentes → upsert → sincroniza cache.
+// Requer role: admin, p3 ou ti.
 app.post('/api/upload', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
   if (!supabase) {
     return res.status(400).json({
@@ -554,13 +658,22 @@ app.post('/api/upload', requireAuth, requireRole('admin', 'p3', 'ti'), async (re
   }
 });
 
-// POST /api/upload/ocorrencias — importa CSV do InfoCrim
+// ═══════════════════════════════════════════════════════════════
+// ROTAS DE UPLOAD — OCORRÊNCIAS INFOCRIM
+// ═══════════════════════════════════════════════════════════════
+
+// [POST /api/upload/ocorrencias] — importa CSV do InfoCrim (boletins de ocorrência detalhados).
+// Fluxo: recebe records[] pré-filtrados pelo frontend (deduplicação por NumeroBO já resolvida)
+//        → mapeia campos → apaga TODOS os registros existentes → insere em lotes de 500.
+// ⚠ Esta rota apaga toda a tabela 'ocorrencias' antes de inserir — não é incremental.
+// Requer role: admin, p3 ou ti.
 app.post('/api/upload/ocorrencias', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   const { records } = req.body;
   if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
   try {
     const rows = records.map(r => ({
+      numero_bo:       (r.NumeroBO || '').trim(),
       data_ocorrencia: parseDateBR(r.DataOcorrencia),
       hora_ocorrencia: parseHora(r.HoraOcorrencia),
       periodo:         (r.PeriodoEstimado || '').trim(),
@@ -592,7 +705,9 @@ app.post('/api/upload/ocorrencias', requireAuth, requireRole('admin', 'p3', 'ti'
   }
 });
 
-// GET /api/ocorrencias — consulta ocorrências com filtros
+// [GET /api/ocorrencias] — consulta ocorrências InfoCrim com filtros opcionais.
+// Query params: rubrica (ilike), cia (eq), municipio (eq).
+// Usado pelo modal de crime no frontend para exibir detalhes de BO por rubrica/CIA.
 app.get('/api/ocorrencias', requireAuth, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   const { rubrica, cia, municipio } = req.query;
@@ -608,9 +723,18 @@ app.get('/api/ocorrencias', requireAuth, async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════════
+// ROTAS DE METADADOS E LISTAS DE FILTRO
+// ═══════════════════════════════════════════════════════════════
+
+// Cache extra para /api/meta — evita recomputar os valores únicos a cada requisição.
+// É invalidado pelo invalidateMetaCache() sempre que o cache principal é atualizado.
 let _metaCache = null;
 function invalidateMetaCache() { _metaCache = null; }
 
+// [GET /api/meta] — retorna listas únicas de crimes, meses, municípios, CIAs e anos.
+// Municípios são ordenados por CIA primeiro, depois alfabeticamente dentro da CIA.
+// Resultado fica em cache por 5 min no cliente (Cache-Control: private, max-age=300).
 app.get('/api/meta', requireAuth, (req, res) => {
   if (!_metaCache) {
     const crimes = uniq(cache.data.map(r => r.crime));
@@ -628,10 +752,13 @@ app.get('/api/meta', requireAuth, (req, res) => {
   res.json(_metaCache);
 });
 
+// [GET /api/registros] — retorna registros RAC filtrados por mes, crime, mun, cia (query params).
+// Opera 100% sobre o cache em memória — sem consulta ao banco.
 app.get('/api/registros', requireAuth, (req, res) => {
   res.json(filtrar(req.query));
 });
 
+// [GET /api/registros/crimes|meses|muns|cias] — listas únicas para popular filtros no frontend.
 app.get('/api/registros/crimes', requireAuth, (req, res) => {
   res.json(CRIMES_ORD.filter(c => uniq(cache.data.map(r => r.crime)).includes(c)));
 });
@@ -648,9 +775,11 @@ app.get('/api/registros/cias', requireAuth, (req, res) => {
   res.json(uniq(cache.data.map(r => r.cia)).sort());
 });
 
-// ---------------------------------------------------------------------------
-// Analytics — módulos
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════
+// ROTAS DE ANALYTICS
+// Cada módulo recebe cache.data[] e retorna resultados computados.
+// Nenhum módulo faz consulta ao banco — operam sobre o cache em memória.
+// ═══════════════════════════════════════════════════════════════
 const { pressureByCity }               = require('./analytics/crimePressureIndex');
 const { trendByCity }                  = require('./analytics/trendAnalysis');
 const { deviationSummaryByCity }       = require('./analytics/targetDeviation');
@@ -658,7 +787,7 @@ const { fullRanking, rankingByPressure, rankingByPriority } = require('./analyti
 const { priorityRanking }              = require('./analytics/priorityScore');
 const { generateInsights }             = require('./analytics/insightGenerator');
 
-// Helper: extrai filtros de query aceitos pelos módulos analíticos
+// Extrai os parâmetros de filtro da query string aceitos pelos módulos analíticos.
 function analyticsFilters(query) {
   const { mes, crime, cia } = query;
   return { mes, crime, cia };
@@ -742,9 +871,13 @@ app.get('/api/analytics/deviation', requireAuth, (req, res) => {
   }
 });
 
-// ── EFETIVO P1 ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// ROTAS P1 — EFETIVO
+// Gerencia o quadro de pessoal (efetivo_pm): listagem e upload CSV.
+// ═══════════════════════════════════════════════════════════════
 const EFETIVO_TABLE = 'efetivo_pm';
 
+// [GET /api/efetivo] — retorna todos os PMs cadastrados. Qualquer usuário autenticado pode consultar.
 app.get('/api/efetivo', requireAuth, async (req, res) => {
   try {
     if (!supabase) return res.json([]);
@@ -755,6 +888,9 @@ app.get('/api/efetivo', requireAuth, async (req, res) => {
   }
 });
 
+// [POST /api/efetivo/upload] — substitui todo o efetivo pelo CSV enviado.
+// Apaga todos os registros existentes (delete where nome is not null) antes de inserir.
+// A busca de colunas é case-insensitive e aceita variações de nome (ex: "Posto / Grad" ou "Posto").
 app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
@@ -804,9 +940,13 @@ app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3'), async (
   }
 });
 
-// ── AFASTAMENTOS P1 ─────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// ROTAS P1 — AFASTAMENTOS
+// Gerencia afastamentos de PMs (férias, licenças, etc.)
+// ═══════════════════════════════════════════════════════════════
 const AFASTAMENTOS_TABLE = 'afastamentos_pm';
 
+// [GET /api/afastamentos] — retorna todos os afastamentos. Qualquer usuário autenticado pode consultar.
 app.get('/api/afastamentos', requireAuth, async (req, res) => {
   try {
     if (!supabase) return res.json([]);
@@ -817,6 +957,8 @@ app.get('/api/afastamentos', requireAuth, async (req, res) => {
   }
 });
 
+// [POST /api/afastamentos/upload] — substitui todos os afastamentos pelo CSV enviado.
+// Requer RE, Tipo, Início e Término para considerar o registro válido.
 app.post('/api/afastamentos/upload', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
@@ -876,10 +1018,14 @@ app.post('/api/afastamentos/upload', requireAuth, requireRole('admin', 'p3'), as
   }
 });
 
-// ── FOTOS PM ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// ROTAS P1 — FOTOS DE PMs
+// Fotos armazenadas em base64 na tabela fotos_pm (PK = RE do PM).
+// Limite de 800 KB por imagem após compressão no frontend.
+// ═══════════════════════════════════════════════════════════════
 const FOTOS_TABLE = 'fotos_pm';
 
-// GET /api/p1/foto/:re — qualquer usuário autenticado pode visualizar
+// [GET /api/p1/foto/:re] — retorna foto_base64 do PM identificado pelo RE. Leitura pública (qualquer role).
 app.get('/api/p1/foto/:re', requireAuth, async (req, res) => {
   try {
     if (!supabase) return res.json({ foto_base64: null });
@@ -895,7 +1041,7 @@ app.get('/api/p1/foto/:re', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/p1/foto/:re — somente perfil 'p1' ou 'admin' pode fazer upload/alterar
+// [POST /api/p1/foto/:re] — faz upsert da foto (insert ou update pelo RE). Requer role p1 ou admin.
 app.post('/api/p1/foto/:re', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
@@ -915,7 +1061,7 @@ app.post('/api/p1/foto/:re', requireAuth, requireRole('admin', 'p1'), async (req
   }
 });
 
-// DELETE /api/p1/foto/:re — somente perfil 'p1' ou 'admin' pode remover
+// [DELETE /api/p1/foto/:re] — remove a foto do PM. Requer role p1 ou admin.
 app.delete('/api/p1/foto/:re', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
@@ -927,7 +1073,10 @@ app.delete('/api/p1/foto/:re', requireAuth, requireRole('admin', 'p1'), async (r
   }
 });
 
-// ── VAGAS PM (EFETIVO FIXADO) ────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// ROTAS P1 — VAGAS (EFETIVO FIXADO POR OPM)
+// Número de vagas autorizadas por OPM — comparado ao efetivo existente.
+// ═══════════════════════════════════════════════════════════════
 const VAGAS_TABLE = 'vagas_pm';
 
 app.get('/api/p1/vagas', requireAuth, async (req, res) => {
@@ -958,7 +1107,10 @@ app.post('/api/p1/vagas', requireAuth, requireRole('admin', 'p1'), async (req, r
   }
 });
 
-// ── QUADRO FIXADO DO EFETIVO ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// ROTAS P1 — QUADRO FIXADO POR POSTO E OPM
+// Tabela com efetivo fixado e existente por posto/graduação por OPM (p1_quadro_fixado).
+// ═══════════════════════════════════════════════════════════════
 const QUADRO_TABLE = 'p1_quadro_fixado';
 
 app.get('/api/p1/quadro', requireAuth, async (req, res) => {
@@ -1025,9 +1177,11 @@ app.post('/api/p1/quadro/upload', requireAuth, requireRole('admin', 'p1'), async
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════
 // PRODUTIVIDADE P3
-// ---------------------------------------------------------------------------
+// Mapeamento de tipo (URL) → nome da tabela no Supabase.
+// Usado pelas rotas genéricas GET /api/prod/:tipo e POST /api/upload/prod/:tipo.
+// ═══════════════════════════════════════════════════════════════
 const PROD_TABS = {
   ocorrencias:        'prod_ocorrencias',
   presos:             'prod_pessoas_presas',
@@ -1040,6 +1194,10 @@ const PROD_TABS = {
   'conseg':           'prod_conseg'
 };
 
+// Converte uma linha bruta de CSV de produtividade para o formato da tabela correspondente.
+// O parâmetro `tipo` determina qual conjunto de campos será extraído.
+// A busca de chaves é case-insensitive e sem acento (nk = normalize key).
+// Tipos suportados: ocorrencias, presos, armas, veiculos, entorpecentes, visita-solidaria, tempo-resposta, conseg.
 function mapProdRow(tipo, r) {
   // Case-insensitive, accent-insensitive key lookup
   const _nk = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
@@ -1165,6 +1323,8 @@ function mapProdRow(tipo, r) {
   return null;
 }
 
+// [GET /api/prod/:tipo] — retorna todos os registros de produtividade do tipo informado.
+// Tipos válidos: ocorrencias, presos, armas, veiculos, entorpecentes, visita-solidaria, tempo-resposta, conseg.
 app.get('/api/prod/:tipo', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
   const tab = PROD_TABS[req.params.tipo];
@@ -1187,6 +1347,9 @@ app.get('/api/prod/:tipo', requireAuth, async (req, res) => {
   }
 });
 
+// [POST /api/upload/prod/:tipo] — importa CSV de produtividade do tipo informado.
+// Apaga apenas os registros dos anos presentes no CSV (não limpa anos anteriores).
+// CONSEG: deduplicação especial — mantém houve_reuniao=true quando há duplicatas no mesmo mês/município.
 app.post('/api/upload/prod/:tipo', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
   const tab = PROD_TABS[req.params.tipo];
@@ -1224,9 +1387,10 @@ app.post('/api/upload/prod/:tipo', requireAuth, requireRole('admin', 'p3'), asyn
   }
 });
 
-// ---------------------------------------------------------------------------
-// PVS — Programa de Vigilância Solidária
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════
+// ROTAS P3 — PVS (Programa de Vigilância Solidária)
+// Dados por CIA/município: bairros, núcleos, famílias, modais, eficácia.
+// ═══════════════════════════════════════════════════════════════
 app.get('/api/pvs', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
   try {
@@ -1278,7 +1442,12 @@ app.post('/api/pvs', requireAuth, requireRole('admin', 'p3'), async (req, res) =
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// GET /api/config — configurações globais do dashboard (período, fonte, etc.)
+// ═══════════════════════════════════════════════════════════════
+// ROTAS DE CONFIGURAÇÃO DO DASHBOARD
+// Chave/valor na tabela config_dashboard — ex: período de referência, fonte dos dados.
+// ═══════════════════════════════════════════════════════════════
+
+// [GET /api/config] — retorna todas as configurações como objeto { chave: valor }.
 app.get('/api/config', requireAuth, async (req, res) => {
   if (!supabase) return res.json({});
   try {
@@ -1290,7 +1459,7 @@ app.get('/api/config', requireAuth, async (req, res) => {
   } catch { res.json({}); }
 });
 
-// PUT /api/config — salva configuração (somente admin/p3)
+// [PUT /api/config] — cria ou atualiza (upsert) uma chave de configuração. Requer admin ou p3.
 app.put('/api/config', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
   const { chave, valor } = req.body;
@@ -1304,7 +1473,14 @@ app.put('/api/config', requireAuth, requireRole('admin', 'p3'), async (req, res)
   }
 });
 
-// GET /api/indicadores-p3 — qualquer usuário autenticado
+// ═══════════════════════════════════════════════════════════════
+// ROTAS P3 — INDICADORES DE QUALIDADE
+// 13 indicadores mensais (manual + automático) em indicadores_qualidade_p3.
+// Registros de meses anteriores são bloqueados após serem preenchidos,
+// podendo ser desbloqueados por 24h via /desbloquear.
+// ═══════════════════════════════════════════════════════════════
+
+// [GET /api/indicadores-p3] — lista todos os indicadores, ordenados por ano/mês. Leitura pública (qualquer role).
 app.get('/api/indicadores-p3', requireAuth, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
   try {
@@ -1320,7 +1496,8 @@ app.get('/api/indicadores-p3', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/indicadores-p3 — upsert (somente admin/p3/ti)
+// [POST /api/indicadores-p3] — salva/atualiza indicadores do mês informado.
+// Meses passados exigem que desbloqueado_ate seja futuro (bloqueio de edição retroativa).
 app.post('/api/indicadores-p3', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
   const { mes, ano, disque_denuncia, tempo_resposta, cursos_pm, alunos_proerd, atendimento_vitima, conseg_ativo, bairros_pvs } = req.body;
@@ -1357,7 +1534,9 @@ app.post('/api/indicadores-p3', requireAuth, requireRole('admin', 'p3', 'ti'), a
   }
 });
 
-// GET /api/indicadores-p3/calculado — agrega indicadores automáticos dos dados existentes
+// [GET /api/indicadores-p3/calculado] — calcula indicadores automáticos (homicídio, presos, armas…)
+// cruzando as tabelas RAC PM, prod_pessoas_presas e prod_armas, por ano.
+// POP_SEADE = população da área do 40º BPM/I usada para índices per capita.
 app.get('/api/indicadores-p3/calculado', requireAuth, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
   const POP_SEADE = 44539225;
@@ -1412,7 +1591,8 @@ app.get('/api/indicadores-p3/calculado', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/indicadores-p3/desbloquear — libera edição por 24h (somente p3/ti/admin)
+// [POST /api/indicadores-p3/desbloquear] — libera edição de um mês bloqueado por 24 horas.
+// Atualiza o campo desbloqueado_ate = agora + 24h. Requer admin, p3 ou ti.
 app.post('/api/indicadores-p3/desbloquear', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
   const { mes, ano } = req.body;
@@ -1429,12 +1609,18 @@ app.post('/api/indicadores-p3/desbloquear', requireAuth, requireRole('admin', 'p
   }
 });
 
-// ---------------------------------------------------------------------------
-// Disque Denúncia
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════
+// ROTAS P3 — DISQUE DENÚNCIA
+// Registros de denúncias por CIA — CRUD completo + upload CSV.
+// Status e CIAs válidos são listas fechadas para garantir integridade dos dados.
+// ═══════════════════════════════════════════════════════════════
+
+// CIAs válidas para registros de Disque Denúncia.
 const DD_CIAS = ['1ª Cia PM', '2ª Cia PM', '3ª Cia PM', 'FT'];
+// Status válidos — qualquer outro valor é rejeitado com erro 400.
 const DD_STATUS = ['Andamento', 'Averiguada com Êxito', 'Averiguada sem Êxito', 'Sem Averiguação'];
 
+// [GET /api/disque-denuncia] — lista denúncias, opcionalmente filtradas por ano (query: ?ano=2025).
 app.get('/api/disque-denuncia', requireAuth, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
   const { ano } = req.query;
@@ -1445,6 +1631,7 @@ app.get('/api/disque-denuncia', requireAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// [POST /api/disque-denuncia] — cria um novo registro de denúncia.
 app.post('/api/disque-denuncia', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
   const { data, cia, numero_dd, data_atendimento, status, flagrante, quant_presos, municipio } = req.body;
@@ -1465,6 +1652,7 @@ app.post('/api/disque-denuncia', requireAuth, requireRole('admin', 'p3', 'ti'), 
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// [PUT /api/disque-denuncia/:id] — atualiza um registro de denúncia existente pelo ID.
 app.put('/api/disque-denuncia/:id', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
   const { data, cia, numero_dd, data_atendimento, status, flagrante, quant_presos, municipio } = req.body;
@@ -1482,6 +1670,7 @@ app.put('/api/disque-denuncia/:id', requireAuth, requireRole('admin', 'p3', 'ti'
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// [DELETE /api/disque-denuncia/:id] — exclui um registro de denúncia. Requer admin ou p3.
 app.delete('/api/disque-denuncia/:id', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
   try {
@@ -1491,6 +1680,9 @@ app.delete('/api/disque-denuncia/:id', requireAuth, requireRole('admin', 'p3'), 
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// [POST /api/disque-denuncia/upload] — importa CSV de Disque Denúncia.
+// Apaga registros dos anos presentes no CSV antes de inserir (não é incremental).
+// Normaliza status com tolerância a variações de grafia e acento.
 app.post('/api/disque-denuncia/upload', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
   const { records } = req.body;
@@ -1554,9 +1746,152 @@ app.post('/api/disque-denuncia/upload', requireAuth, requireRole('admin', 'p3', 
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ---------------------------------------------------------------------------
-// CURSOS INSTITUCIONAIS
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════
+// UIS — UNIDADE DE INSPETORIA DE SAÚDE
+// Restrições médicas/odontológicas dos PMs conforme BG PM 166/2006.
+// Tabela: uis_restricoes (re, nome, posto, opm, codigos, inicio, termino, dias, observacao)
+// ═══════════════════════════════════════════════════════════════
+
+// Extrai a unidade (OPM) do campo que pode vir como "01-09JANEM" → "EM",
+// "01-09JAN1ª CIA" → "1ª CIA", ou já limpo como "FT", "EM", etc.
+function normUISopm(s) {
+  s = (s || '').trim();
+  const m = s.match(/\d{2}[-\s]\d{2}\s*(?:JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)(.*)/i);
+  if (m && m[1].trim()) return m[1].trim();
+  return s;
+}
+
+// [POST /api/upload/uis-restricoes] — importa CSV de restrições médicas.
+// Colunas esperadas: OPM, Posto/Grad, RE, Nome, Código de restrição, Início, Término, Dias, Verificar
+// Estratégia: substitui tudo e insere deduplicado por RE+Início+Término+Códigos.
+app.post('/api/upload/uis-restricoes', requireAuth, requireRole('admin', 'p1', 'ti'), async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  const { records } = req.body;
+  if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
+  const nk = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+  const gf = (r, ...keys) => {
+    for (const k of keys) {
+      const hit = Object.entries(r).find(([ck]) => nk(ck) === nk(k));
+      if (hit && hit[1] != null) return String(hit[1]).trim();
+    }
+    const frags = keys.map(nk);
+    const hit2 = Object.entries(r).find(([ck]) => frags.some(f => nk(ck).includes(f)));
+    return hit2 ? String(hit2[1]||'').trim() : '';
+  };
+  try {
+    const seen = new Set();
+    const rows = [];
+    for (const r of records) {
+      // RE na planilha UIS tem 5-6 dígitos (sem dígito verificador).
+      // Se vier com 7, remove o último (dígito verificador) para padronizar.
+      const reRaw = gf(r, 're').replace(/\D/g, '');
+      const re = reRaw.length === 7 ? reRaw.slice(0, 6) : reRaw;
+      if (!re) continue;
+      const codigos_raw = gf(r, 'codigo de restricao', 'codigo', 'código', 'codigos', 'restricao', 'restrição');
+      if (!codigos_raw) continue;
+      const codigos = codigos_raw.toUpperCase().replace(/\s+/g, ' ').trim();
+      const inicio  = parseDateBR(gf(r, 'inicio', 'início'));
+      const termino = parseDateBR(gf(r, 'termino', 'término'));
+      const key = `${re}|${inicio}|${termino}|${codigos}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push({
+        re,
+        nome:       gf(r, 'nome'),
+        posto:      gf(r, 'posto', 'posto/grad', 'grad'),
+        opm:        normUISopm(gf(r, 'opm')),
+        codigos,
+        inicio,
+        termino,
+        dias:       parseInt(gf(r, 'dias')) || null,
+        observacao: gf(r, 'verificar'),
+      });
+    }
+    if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
+    const { error: delErr } = await supabase.from('uis_restricoes').delete().not('re', 'is', null);
+    if (delErr) throw new Error('Erro ao limpar tabela: ' + delErr.message);
+    const BATCH = 500;
+    let total = 0;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const { error } = await supabase.from('uis_restricoes').insert(rows.slice(i, i + BATCH));
+      if (error) throw new Error(error.message);
+      total += Math.min(BATCH, rows.length - i);
+    }
+    res.json({ ok: true, inserted: total });
+  } catch (err) {
+    console.error('UIS upload error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// [GET /api/uis/stats] — estatísticas gerais para a seção UIS (somente números, sem nomes).
+// Para cada RE, considera apenas a restrição mais recente (maior término).
+app.get('/api/uis/stats', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const em30  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    const all   = await fetchAll('uis_restricoes', {});
+    // Para cada RE, mantém apenas o registro com termino mais recente
+    const byRe = {};
+    for (const r of all) {
+      const prev = byRe[r.re];
+      if (!prev || (r.termino || '') > (prev.termino || '')) byRe[r.re] = r;
+    }
+    const latest  = Object.values(byRe);
+    const ativas  = latest.filter(r => r.termino && r.termino >= today);
+    const vencidas = latest.filter(r => !r.termino || r.termino < today);
+    const vencendo = ativas.filter(r => r.termino <= em30);
+    // Breakdown por OPM
+    const porOpm = {};
+    ativas.forEach(r => { const k = r.opm || 'Outros'; porOpm[k] = (porOpm[k]||0) + 1; });
+    // Breakdown por código de restrição
+    const porCodigo = {};
+    ativas.forEach(r => {
+      (r.codigos||'').split(/[,\s]+/).map(c => c.trim().toUpperCase()).filter(c => /^[A-Z]{2,3}$/.test(c))
+        .forEach(c => { porCodigo[c] = (porCodigo[c]||0) + 1; });
+    });
+    // PMs que ficam somente em serviço administrativo (BG PM 166/2006, itens 5.2.2, 5.2.5, 5.2.6, 5.2.7)
+    const ADMIN_CODES = ['AU','EP','ES','LR','PT','VP','UA','UU','CC','CB','UB','UC','US'];
+    const soAdm = ativas.filter(r =>
+      (r.codigos||'').split(/[,\s]+/).map(c => c.trim().toUpperCase()).some(c => ADMIN_CODES.includes(c))
+    );
+    res.json({ total_ativas: ativas.length, total_vencidas: vencidas.length, total_vencendo: vencendo.length, total_admin_only: soAdm.length, por_opm: porOpm, por_codigo: porCodigo });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// [GET /api/uis/restricoes/all] — todas as restrições (para montar badges no P1).
+// ⚠ Esta rota deve vir ANTES de /api/uis/restricoes/:re para não ser capturada como re='all'.
+app.get('/api/uis/restricoes/all', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  try {
+    const data = await fetchAll('uis_restricoes', { order: [['termino', { ascending: false }]] });
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// [GET /api/uis/restricoes/:re] — restrições de um PM pelo RE (para integração com P1).
+// Aceita RE com ou sem dígito verificador: compara os primeiros 6 dígitos.
+app.get('/api/uis/restricoes/:re', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  try {
+    const reBase = req.params.re.replace(/\D/g,'').slice(0, 6);
+    const data = await fetchAll('uis_restricoes', {
+      filters: [['ilike', 're', `${reBase}%`]],
+      order:   [['termino', { ascending: false }]]
+    });
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// ROTAS P3 — CURSOS INSTITUCIONAIS
+// Histórico de cursos por PM: ofício, data, nome do curso, posto e RE.
+// O campo PM é um texto com vários PMs separados por ';' (parsePMsField).
+// ═══════════════════════════════════════════════════════════════
+
+// [POST /api/upload/cursos] — importa CSV de cursos. Apaga os anos presentes antes de inserir.
+// Um curso pode gerar N linhas na tabela — uma por PM listado no campo PM/interessados.
 app.post('/api/upload/cursos', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
   const { records } = req.body;
@@ -1612,6 +1947,7 @@ app.post('/api/upload/cursos', requireAuth, requireRole('admin', 'p3'), async (r
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// [GET /api/pm/:re/cursos] — lista todos os cursos de um PM específico (pelo RE), em ordem decrescente por data.
 app.get('/api/pm/:re/cursos', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
   try {
@@ -1621,13 +1957,17 @@ app.get('/api/pm/:re/cursos', requireAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Catch-all: qualquer rota não mapeada acima retorna o index.html (SPA — Single Page Application).
+// O frontend trata a navegação internamente via JavaScript.
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });
 
-// ---------------------------------------------------------------------------
-// Start
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════
+// START — inicializa dados e sobe o servidor
+// ═══════════════════════════════════════════════════════════════
+// init() faz a primeira carga do cache (Supabase ou fallback local),
+// depois o servidor começa a escutar na porta 3001.
 init().then(() => {
   app.listen(PORT, () => {
     console.log(`✓ API rodando em http://localhost:${PORT}`);

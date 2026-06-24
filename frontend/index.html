@@ -57,6 +57,10 @@
         <i data-lucide="trending-up" style="width:14px;height:14px;flex-shrink:0"></i> Produtividade
       </button>
     </div>
+    <button class="sec-btn" id="sec-uis" onclick="goSection('uis',this)">
+      <i data-lucide="heart-pulse" class="sec-ic"></i>
+      <div class="sec-info"><div class="sec-name">UIS · Inspetoria de Saúde</div></div>
+    </button>
     <button class="sec-btn" id="sec-p4" onclick="goSection('p4',this)">
       <i data-lucide="package" class="sec-ic"></i>
       <div class="sec-info"><div class="sec-name">P4 · Seção de Materiais</div><span class="sec-badge-soon">Em breve</span></div>
@@ -218,7 +222,7 @@
 
 <!-- MODAL UPLOAD OCORRÊNCIAS INFOCRIM -->
 <div id="ocorr-upl-mo" class="upl-mo" onclick="ocorrClickOut(event)">
-  <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:12px;width:min(540px,95vw);padding:28px;display:flex;flex-direction:column;gap:18px">
+  <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:12px;width:min(680px,95vw);padding:28px;display:flex;flex-direction:column;gap:18px">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div>
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">IMPORTAÇÃO</div>
@@ -230,12 +234,26 @@
       <input type="file" id="ocorr-file" accept=".csv" style="display:none" onchange="handleOcorrFile(this)">
       <div style="font-size:28px;margin-bottom:8px">📂</div>
       <div style="font-weight:600;color:var(--tx);margin-bottom:4px">Selecione o CSV exportado do InfoCrim</div>
-      <div style="font-size:19px;color:var(--tx3)">Colunas: DataOcorrencia · HoraOcorrencia · PeriodoEstimado · DiaSemana · Flagrante · Rubrica · Conduta · BatalhaoCircunscricao · CompanhiaCircunscricao · MunicipioCircunscricao · Bairro · TipoLocal</div>
+      <div style="font-size:19px;color:var(--tx3)">Colunas: <b style="color:#5a9de0">NumeroBO</b> · DataOcorrencia · HoraOcorrencia · PeriodoEstimado · DiaSemana · Flagrante · Rubrica · Conduta · BatalhaoCircunscricao · CompanhiaCircunscricao · MunicipioCircunscricao · Bairro · TipoLocal</div>
       <div style="margin-top:8px;font-size:19px;color:#c8a84b">⚠ O upload substitui todas as ocorrências anteriores.</div>
     </label>
     <div id="ocorr-preview" style="display:none;background:var(--s2);border-radius:6px;padding:12px;font-size:19px">
       <b id="ocorr-fn" style="color:var(--tx)">—</b><br>
       <span style="color:var(--tx3)">Registros válidos: </span><b id="ocorr-rows" style="color:var(--gold)">—</b>
+    </div>
+    <!-- Painel de deduplicação por NumeroBO -->
+    <div id="ocorr-dedupe" style="display:none;background:var(--s2);border-radius:8px;padding:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <span style="color:#f07878;font-size:16px;font-weight:700">⚠</span>
+        <span style="font-size:14px"><b id="ocorr-dup-count" style="color:#f07878"></b> <span style="color:var(--tx3)">BOs com registros duplicados — selecione qual manter em cada grupo:</span></span>
+        <span id="ocorr-dup-total" style="font-size:12px;color:var(--tx3);margin-left:auto"></span>
+      </div>
+      <div id="ocorr-dedupe-list" style="max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:4px"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center">
+        <button onclick="ocorrDedupeAutoSelect()" style="padding:7px 14px;border-radius:6px;border:1px solid var(--bd2);background:none;color:var(--tx2);cursor:pointer;font-size:13px">↺ Manter último de cada BO</button>
+        <button onclick="ocorrDedupeImportAll()" style="padding:7px 14px;border-radius:6px;border:1px solid var(--bd2);background:none;color:var(--tx3);cursor:pointer;font-size:13px">Importar todos sem filtrar</button>
+        <button onclick="ocorrDedupeApply()" style="margin-left:auto;padding:8px 22px;border-radius:6px;border:none;background:#3d7abf;color:#fff;cursor:pointer;font-size:14px;font-weight:600">Aplicar e Importar</button>
+      </div>
     </div>
     <div id="ocorr-msg" style="font-size:19px;display:none"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -807,7 +825,96 @@
   </div>
   <div class="card"><div class="card-head"><div class="card-title" id="evol-tbl-title">Tabela — Municípios × Meses</div></div><div style="overflow-x:auto"><table class="tbl" id="tbl-evol"></table></div></div>
 </div>
+<!-- UIS — UNIDADE DE INSPETORIA DE SAÚDE -->
+<div id="page-uis" class="page">
+  <div class="ph" style="position:relative">
+    <div>
+      <div style="font-size:19px;color:var(--tx3);letter-spacing:2px;font-weight:600;margin-bottom:2px">UIS · SAÚDE</div>
+      <div class="ph-tag">RESTRIÇÕES MÉDICAS</div>
+      <div class="ph-title">INSPETORIA DE <span style="color:#5ae09a">SAÚDE</span></div>
+    </div>
+    <div class="ph-meta" id="uis-updated">—</div>
+  </div>
+  <!-- Botão de upload (somente admin/p1/ti) -->
+  <div id="uis-upload-btn-wrap"></div>
+  <!-- KPI cards -->
+  <div id="uis-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px"></div>
+  <!-- Breakdown por CIA/OPM -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-head"><div class="card-title">Restrições Ativas por CIA</div></div>
+    <div id="uis-por-opm"></div>
+  </div>
+  <!-- Breakdown por código -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-head"><div class="card-title">Códigos mais frequentes</div><div style="font-size:13px;color:var(--tx3)">BG PM 166/2006</div></div>
+    <div id="uis-por-codigo"></div>
+  </div>
+  <!-- Tabela códigos × emprego (referência) -->
+  <div class="card">
+    <div class="card-head"><div class="card-title">Tabela de Restrições — BG PM 166/2006</div></div>
+    <div id="uis-tabela-codigos" style="overflow-x:auto"></div>
+  </div>
+</div>
+
+<!-- MODAL UPLOAD UIS RESTRIÇÕES -->
+<div id="uis-upl-mo" class="upl-mo" onclick="if(event.target===this)closeUisModal()">
+  <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:12px;width:min(540px,95vw);padding:28px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">IMPORTAÇÃO</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800">RESTRIÇÕES <span style="color:#5ae09a">UIS</span></div>
+      </div>
+      <button onclick="closeUisModal()" style="background:var(--s3);border:1px solid var(--bd);color:var(--tx2);border-radius:4px;padding:6px 14px;cursor:pointer;font-size:19px">✕</button>
+    </div>
+    <label style="border:2px dashed var(--bd2);border-radius:8px;padding:24px;text-align:center;cursor:pointer;display:block" onclick="document.getElementById('uis-file').click()">
+      <input type="file" id="uis-file" accept=".csv" style="display:none" onchange="handleUisFile(this)">
+      <div style="font-size:28px;margin-bottom:8px">📂</div>
+      <div style="font-weight:600;color:var(--tx);margin-bottom:4px">Selecione a planilha de restrições</div>
+      <div style="font-size:19px;color:var(--tx3)">Colunas: OPM · Posto/Grad · <b style="color:#5ae09a">RE</b> · Nome · <b style="color:#5ae09a">Código de restrição</b> · Início · Término · Dias · Verificar</div>
+      <div style="margin-top:8px;font-size:19px;color:#c8a84b">⚠ O upload substitui todas as restrições anteriores.</div>
+    </label>
+    <div id="uis-preview" style="display:none;background:var(--s2);border-radius:6px;padding:12px;font-size:19px">
+      <b id="uis-fn" style="color:var(--tx)">—</b><br>
+      <span style="color:var(--tx3)">Registros válidos: </span><b id="uis-rows" style="color:#5ae09a">—</b>
+    </div>
+    <div id="uis-msg" style="font-size:19px;display:none"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeUisModal()" style="padding:9px 20px;border-radius:6px;border:1px solid var(--bd2);background:none;color:var(--tx2);cursor:pointer;font-size:19px">Cancelar</button>
+      <button id="uis-confirm" onclick="confirmUisUpload()" disabled style="padding:9px 20px;border-radius:6px;border:none;background:#2d8a5e;color:#fff;cursor:pointer;font-size:19px;font-weight:600">Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RESTRIÇÕES DO PM (aberto ao clicar no PM no P1) -->
+<div id="uis-pm-mo" class="upl-mo" onclick="if(event.target===this)closeUisPmModal()">
+  <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:12px;width:min(600px,95vw);padding:28px;display:flex;flex-direction:column;gap:16px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">UIS · SAÚDE</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800">RESTRIÇÕES MÉDICAS</div>
+        <div id="uis-pm-nome" style="font-size:13px;color:var(--tx3);margin-top:2px"></div>
+      </div>
+      <button onclick="closeUisPmModal()" style="background:var(--s3);border:1px solid var(--bd);color:var(--tx2);border-radius:4px;padding:6px 14px;cursor:pointer;font-size:19px;flex-shrink:0">✕</button>
+    </div>
+    <div id="uis-pm-content"></div>
+    <div style="font-size:11px;color:var(--tx3);border-top:1px solid var(--bd);padding-top:10px">Fonte: BG PM 166, de 30 de agosto de 2006 — Emprego de PMs com restrições médicas/odontológicas</div>
+  </div>
+</div>
 </main>
-<script src="js/app.js?v=20260608e"></script>
+<!-- Módulos do dashboard — ordem de carregamento importa -->
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/users.js"></script>
+<script src="js/filters.js"></script>
+<script src="js/kpi.js"></script>
+<script src="js/modal-crime.js"></script>
+<script src="js/upload.js"></script>
+<script src="js/ocorr-modal.js"></script>
+<script src="js/intel.js"></script>
+<script src="js/p1.js"></script>
+<script src="js/p3.js"></script>
+<script src="js/uis.js"></script>
+<script src="js/init.js"></script>
 </body>
 </html>
