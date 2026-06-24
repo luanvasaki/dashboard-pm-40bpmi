@@ -354,19 +354,30 @@ async function loadUisRestricoes() {
   } catch (e) { console.warn('[UIS] loadUisRestricoes falhou:', e.message); }
 }
 
-// Diagnóstico: chame debugUis() no console do browser para ver o estado atual
+// Diagnóstico: chame debugUis() no console do browser (estando na seção P1)
 window.debugUis = function() {
   console.log('=== DEBUG UIS ===');
-  console.log('_uisRestMap total chaves:', Object.keys(_uisRestMap || {}).length);
-  console.log('Primeiras chaves UIS:', Object.keys(_uisRestMap || {}).slice(0,8));
-  const pm = (window.p1Data || [])[0];
-  if (pm) {
-    console.log('Primeiro RE do efetivo (raw):', pm.re);
-    console.log('matchKey calculado:', String(pm.re).split('-')[0].replace(/\D/g,''));
-    console.log('uisBadge resultado:', uisBadge(pm.re) ? 'TEM BADGE' : 'sem badge');
-  } else {
-    console.log('p1Data vazio ou não carregado');
-  }
+  const uisKeys = Object.keys(_uisRestMap || {});
+  console.log('UIS chaves total:', uisKeys.length);
+  console.log('Primeiras chaves UIS:', uisKeys.slice(0,8));
+
+  // p1Data é let em p1.js — acessível diretamente (não via window)
+  const dados = typeof p1Data !== 'undefined' ? p1Data : [];
+  console.log('p1Data length:', dados.length);
+  if (!dados.length) { console.warn('p1Data vazio — navegue para P1 primeiro'); return; }
+
+  // Mostra os primeiros REs do efetivo e o matchKey calculado
+  console.log('Primeiros REs do efetivo:');
+  dados.slice(0,8).forEach(r => {
+    const mk = String(r.re).split('-')[0].replace(/\D/g,'');
+    const achou = !!_uisRestMap[mk];
+    console.log(`  efetivo="${r.re}" → matchKey="${mk}" → ${achou ? '✓ ACHOU' : '✗ não encontrado'}`);
+  });
+
+  // Quantos PMs do efetivo têm match no UIS
+  const comBadge = dados.filter(r => uisBadge(r.re));
+  console.log(`\nTotal com badge: ${comBadge.length} de ${dados.length} PMs`);
+  if (comBadge.length) console.log('Exemplos com badge:', comBadge.slice(0,3).map(r=>r.re));
 };
 
 // Retorna badge HTML para um RE ('' se sem restrição ativa).
