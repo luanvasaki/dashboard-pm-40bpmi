@@ -189,6 +189,8 @@ function _uisTipMove(e) {
 function _uisTipHide() {
   if (_uisTipEl) _uisTipEl.style.display = 'none';
 }
+window.addEventListener('blur', _uisTipHide);
+document.addEventListener('mouseleave', _uisTipHide);
 
 function renderUisPorOpm(porOpm, porOpmCodigos) {
   const entries = Object.entries(porOpm).sort((a,b) => b[1]-a[1]);
@@ -226,7 +228,7 @@ function renderUisPorOpm(porOpm, porOpmCodigos) {
     _uisTipShow(e, opm, cor, tipData[opm] || []);
   };
   container.onmousemove = e => { if (e.target.closest('[data-uis-opm]')) _uisTipMove(e); };
-  container.onmouseout  = e => { if (!e.target.closest('[data-uis-opm]')) _uisTipHide(); };
+  container.onmouseout  = e => { if (!e.relatedTarget?.closest('[data-uis-opm]')) _uisTipHide(); };
 }
 
 function renderUisPorCodigo(porCodigo) {

@@ -165,7 +165,7 @@ function renderP1() {
   // Status de cada PM
   const pmAfastados    = dataF.filter(r => afastHoje[r.re]);
   const pmAptos        = dataF.filter(r => !afastHoje[r.re]);
-  const hasUisRestr = re => typeof uisNormRE === 'function' && !!window._uisRestMap?.[uisNormRE(re)]?.length;
+  const hasUisRestr = re => typeof uisNormRE === 'function' && !!_uisRestMap?.[uisNormRE(re)]?.length;
   const pmComRestricaoEfetivo = dataF.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s'));
   const pmComRestricaoUis = dataF.filter(r => !(r.possui_restricao||'').toLowerCase().startsWith('s') && hasUisRestr(r.re));
   const pmComRestricao = dataF.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s') || hasUisRestr(r.re));
@@ -989,7 +989,7 @@ function p1ShowKpiDetail(tipo) {
       let termino = r.restricao_termino || null;
       let tipoR = r.tipos_restricao || '—';
       if (isUisOnly) {
-        const uisRecs = (window._uisRestMap || {})[uisNormRE(r.re)] || [];
+        const uisRecs = (_uisRestMap || {})[uisNormRE(r.re)] || [];
         termino = uisRecs.map(x => x.termino).filter(Boolean).sort().pop() || null;
         tipoR = 'Restrição UIS';
       }
