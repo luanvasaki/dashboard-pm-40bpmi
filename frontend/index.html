@@ -109,7 +109,7 @@
     </div>
     <div>
       <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">TODOS OS USUÁRIOS</div>
-      <input id="adm-search" type="text" placeholder="Buscar por nome, RE, posto ou função..." oninput="admSearch(this.value)"
+      <input id="adm-search" name="adm-search" autocomplete="off" type="text" placeholder="Buscar por nome, RE, posto ou função..." oninput="admSearch(this.value)"
         style="width:100%;box-sizing:border-box;background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:8px 12px;border-radius:6px;font-size:19px;outline:none;margin-bottom:12px">
       <div id="adm-users" style="overflow-x:auto"></div>
     </div>
@@ -201,7 +201,7 @@
     </label>
     <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(61,122,191,.08);border:1px solid rgba(61,122,191,.2);border-radius:8px">
       <span style="font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;white-space:nowrap">ANO DOS DADOS</span>
-      <input type="number" id="upl-ano" min="2020" max="2035" placeholder="ex: 2025"
+      <input type="number" id="upl-ano" name="upl-ano" autocomplete="off" min="2020" max="2035" placeholder="ex: 2025"
         style="width:90px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:6px 10px;color:var(--tx);font-family:'DM Mono',monospace;font-size:19px;outline:none">
       <span style="font-size:19px;color:var(--tx3);line-height:1.4">Opcional — preencha só se o CSV tiver o<br>ano errado. Deixe em branco para usar a<br>coluna Ano do próprio arquivo.</span>
     </div>
@@ -275,7 +275,7 @@
     <div style="position:absolute;top:0;right:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px">
       <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1.5px">ÚLTIMA ATUALIZAÇÃO</span>
       <div style="display:flex;align-items:center;gap:6px">
-        <input id="inp-p1-periodo" type="text" placeholder="Ex: Mar 2026"
+        <input id="inp-p1-periodo" name="inp-p1-periodo" autocomplete="off" type="text" placeholder="Ex: Mar 2026"
           style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:19px;outline:none;width:160px;display:none">
         <span id="lbl-p1-periodo" style="font-weight:700;font-size:19px;color:var(--tx)">—</span>
         <button id="btn-p1-edit-periodo" onclick="toggleEditP1Periodo()" style="display:none;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:14px;font-family:'DM Mono',monospace">✎ Editar</button>
@@ -288,7 +288,7 @@
       <div class="ph-title">INDICADORES DE <span>PESSOAL</span></div>
     </div>
     <div style="position:relative">
-      <input id="p1-search" type="text" placeholder="Buscar RE ou Nome..." autocomplete="off"
+      <input id="p1-search" name="p1-search" type="text" placeholder="Buscar RE ou Nome..." autocomplete="off"
         oninput="p1SearchInput(this.value)"
         onkeydown="p1SearchKey(event)"
         onfocus="p1SearchInput(this.value)"
@@ -522,7 +522,7 @@
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">SICOORDOP</span>
         <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">—</span>
-        <input id="inp-sicoordop" type="text" placeholder="Ex: JAN25 até ABR26"
+        <input id="inp-sicoordop" name="inp-sicoordop" autocomplete="off" type="text" placeholder="Ex: JAN25 até ABR26"
           style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:19px;outline:none;width:200px;display:none"
           oninput="saveSicoordop(this.value)">
         <span id="lbl-sicoordop" style="font-weight:700;font-size:19px">—</span>
@@ -699,7 +699,7 @@
     <div class="ph-meta">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
         <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">SSP</span>
-        <input id="inp-p3-periodo" type="text" placeholder="Ex: Jan – Mar 2026"
+        <input id="inp-p3-periodo" name="inp-p3-periodo" autocomplete="off" type="text" placeholder="Ex: Jan – Mar 2026"
           style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:19px;outline:none;width:180px;display:none"
           oninput="savePeriodo(this.value)">
         <span id="lbl-p3-periodo" style="font-weight:700;font-size:19px">—</span>
@@ -707,7 +707,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">INFOCRIM</span>
-        <input id="inp-fonte" type="text" placeholder="Ex: Banco de Dados RAC"
+        <input id="inp-fonte" name="inp-fonte" autocomplete="off" type="text" placeholder="Ex: Banco de Dados RAC"
           style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:19px;outline:none;width:220px;display:none"
           oninput="saveFonte(this.value)">
         <span id="lbl-fonte" style="font-size:19px;font-weight:600;color:var(--tx2)">—</span>
@@ -765,7 +765,7 @@
     <div class="card-head">
       <div class="card-title" style="display:flex;align-items:center;gap:12px;font-size:19px;font-weight:700">
         Evolução por Município
-        <select id="evol-mun-crime" onchange="renderEvolMuns()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-size:20px;font-weight:700;cursor:pointer"></select>
+        <select id="evol-mun-crime" name="evol-mun-crime" autocomplete="off" onchange="renderEvolMuns()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-size:20px;font-weight:700;cursor:pointer"></select>
       </div>
     </div>
     <canvas id="c-evol-muns" style="height:400px;max-height:400px"></canvas>
@@ -819,7 +819,7 @@
   <div class="card" style="margin-bottom:14px">
     <div class="card-head">
       <div class="card-title">Evolução por Crime</div>
-      <select id="evol-crime-sel" class="pf-select" style="min-width:180px" onchange="renderEvolucao()"></select>
+      <select id="evol-crime-sel" name="evol-crime-sel" autocomplete="off" class="pf-select" style="min-width:180px" onchange="renderEvolucao()"></select>
     </div>
     <canvas id="c-evol-main" style="max-height:260px"></canvas>
   </div>
