@@ -172,6 +172,17 @@ function renderP1() {
   const pmComRestricaoEfetivo = dataF.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s'));
   const pmComRestricaoUis = dataF.filter(r => !(r.possui_restricao||'').toLowerCase().startsWith('s') && hasUisRestr(r.re));
   const pmComRestricao = dataF.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s') || hasUisRestr(r.re));
+  const isAdmRestr = re => {
+    const temEf = pmComRestricaoEfetivo.find(r => r.re === re);
+    if (temEf && /admin/i.test(temEf.tipos_restricao||'')) return true;
+    if (!hasUisRestr(re)) return false;
+    const recs = (_uisRestMap||{})[uisNormRE(re)] || [];
+    const cods = typeof uisExtrairCodigos === 'function' ? recs.flatMap(r => uisExtrairCodigos(r.codigos)) : [];
+    const g = typeof uisGrupoMaisRestritivo === 'function' ? uisGrupoMaisRestritivo(cods) : null;
+    return g === 'admin_only' || g === 'admin_apoio';
+  };
+  const pmRestAdm    = pmComRestricao.filter(r => isAdmRestr(r.re));
+  const pmRestOutros = pmComRestricao.filter(r => !isAdmRestr(r.re));
   const pmEapPendente  = dataF.filter(r => {
     if (!r.data_eap) return true;
     const d = new Date(r.data_eap);
@@ -248,9 +259,9 @@ function renderP1() {
       'var(--tx)', 'total') +
     kpiCard('Aptos', pmAptos.length, total > 0 ? `${Math.round(pmAptos.length/total*100)}% do efetivo` : '—', '#4bc87a', 'aptos') +
     kpiCard('Afastamentos', pmAfastados.length, tiposSub, pmAfastados.length > 0 ? '#e05555' : 'var(--tx3)', 'afastados') +
-    kpiCard('Em Restrição', pmComRestricao.length,
-      [pmComRestricaoEfetivo.length ? _kpiRow('Planilha P1', pmComRestricaoEfetivo.length, '#c8a84b') : '',
-       pmComRestricaoUis.length ? _kpiRow('Restrição UIS', pmComRestricaoUis.length, '#5a9de0') : '',
+    kpiCard('Restrições', pmComRestricao.length,
+      [pmRestAdm.length ? _kpiRow('Administrativa', pmRestAdm.length, '#f07878') : '',
+       pmRestOutros.length ? _kpiRow('Outros tipos', pmRestOutros.length, '#c8a84b') : '',
        vencendoRestricao.length ? `<div style="color:#e05555;font-size:17px;padding:4px 0">⚠ ${vencendoRestricao.length} vencem em 30d</div>` : ''].filter(Boolean).join('') || '—',
       pmComRestricao.length > 0 ? '#c8a84b' : 'var(--tx3)', 'restricao') +
     kpiCard(`EAP / TAF / TAT ${anoAtual}`, pmEapFeito.length,
@@ -1013,7 +1024,8 @@ function p1ShowKpiDetail(tipo) {
         if (!termino && uisRecs.length) termino = uisRecs.map(x=>x.termino).filter(Boolean).sort().pop() || null;
         const dias = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : null;
         const corD = dias === null ? 'var(--tx3)' : dias <= 0 ? '#e05555' : dias <= 30 ? '#c8a84b' : '#4bc87a';
-        inner += `<tr>
+        const hasTip = hasUisRestr(r.re);
+        inner += `<tr${hasTip ? ` onmouseover="uisTipPmOver(event,'${esc(r.re)}')" onmouseleave="_uisTipHide()"` : ''}>
           <td style="${tdS}">${r.posto||'—'}</td>
           <td style="${tdS}">${r.re}</td>
           <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
@@ -1661,6 +1673,18 @@ async function openProntuario(re) {
       return `<div style="font-size:19px;color:#5a9de0;margin-top:${restrHtml?'6px':'0'}">🏥 ${codDesc}</div>
               <div style="font-size:19px;color:var(--tx3)">${fmtD(u.inicio)} → ${fmtD(u.termino)}</div>`;
     }).join('');
+    // Resumo: tipo de emprego permitido
+    if (typeof uisExtrairCodigos === 'function' && typeof uisGrupoMaisRestritivo === 'function') {
+      const allCods = [...new Set(uisRecs.flatMap(u => uisExtrairCodigos(u.codigos)))];
+      const grupo = uisGrupoMaisRestritivo(allCods);
+      const gInfo = grupo && typeof UIS_GRUPOS !== 'undefined' ? UIS_GRUPOS[grupo] : null;
+      if (gInfo) {
+        restrHtml += `<div style="margin-top:10px;padding:8px 12px;border-radius:6px;background:${gInfo.bg};border:1px solid ${gInfo.cor}44">
+          <div style="font-size:17px;color:var(--tx3);margin-bottom:2px">Tipo de emprego permitido (BG PM 166/2006, item ${gInfo.item})</div>
+          <div style="font-size:19px;font-weight:700;color:${gInfo.cor}">${gInfo.label}</div>
+        </div>`;
+      }
+    }
   }
   document.getElementById('pronto-restr').innerHTML = restrHtml || `<span style="font-size:19px;color:var(--tx3)">—</span>`;
 

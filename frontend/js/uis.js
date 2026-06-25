@@ -192,6 +192,34 @@ function _uisTipHide() {
 window.addEventListener('blur', _uisTipHide);
 document.addEventListener('mouseleave', _uisTipHide);
 
+function uisTipGenShow(e, html) {
+  const tip = _uisTipGet();
+  tip.innerHTML = html;
+  tip.style.display = 'block';
+  _uisTipMove(e);
+}
+
+function uisTipPmOver(e, re) {
+  if (!_uisRestMap) return;
+  const recs = (_uisRestMap[uisNormRE(re)] || []);
+  if (!recs.length) return;
+  const allCods = [...new Set(recs.flatMap(r => uisExtrairCodigos(r.codigos)))];
+  const grupo = uisGrupoMaisRestritivo(allCods);
+  const gInfo = grupo ? UIS_GRUPOS[grupo] : null;
+  const cor = gInfo ? gInfo.cor : '#c8a84b';
+  const codLines = allCods.map(c => {
+    const inf = UIS_CODIGOS[c];
+    return `<div style="display:flex;gap:8px;align-items:baseline;padding:2px 0">
+      <span style="font-family:'DM Mono',monospace;font-size:11px;color:${cor};font-weight:700;min-width:26px">${c}</span>
+      <span style="font-size:11px;color:#ddd">${inf ? inf.desc : '—'}</span>
+    </div>`;
+  }).join('');
+  uisTipGenShow(e,
+    `<div style="font-weight:700;color:${cor};font-size:11px;margin-bottom:6px;letter-spacing:.5px">${gInfo ? gInfo.label : 'RESTRIÇÃO UIS'}</div>` +
+    codLines
+  );
+}
+
 function renderUisPorOpm(porOpm, porOpmCodigos) {
   const entries = Object.entries(porOpm).sort((a,b) => b[1]-a[1]);
   const container = document.getElementById('uis-por-opm');
