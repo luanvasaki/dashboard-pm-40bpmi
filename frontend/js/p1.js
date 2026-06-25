@@ -984,35 +984,52 @@ function p1ShowKpiDetail(tipo) {
   }
 
   else if (tipo === 'restricao') {
-    const listEfetivo = dataF.filter(r => (r.possui_restricao||'').toLowerCase().startsWith('s'));
-    const listUisOnly = dataF.filter(r => !(r.possui_restricao||'').toLowerCase().startsWith('s') && hasUisRestr(r.re));
-    const listAll = [...listEfetivo, ...listUisOnly];
-    const rows = listAll.map(r => {
-      const isUisOnly = !(r.possui_restricao||'').toLowerCase().startsWith('s') && hasUisRestr(r.re);
-      let termino = r.restricao_termino || null;
-      let tipoR = r.tipos_restricao || '—';
-      if (isUisOnly) {
-        const uisRecs = (_uisRestMap || {})[uisNormRE(r.re)] || [];
-        termino = uisRecs.map(x => x.termino).filter(Boolean).sort().pop() || null;
-        tipoR = 'Restrição UIS';
+    // Agrupa todos os PMs por tipo de restrição
+    const groups = {};
+    dataF.forEach(r => {
+      const temEfetivo = (r.possui_restricao||'').toLowerCase().startsWith('s');
+      const temUis     = hasUisRestr(r.re);
+      if (temUis) {
+        (groups['Restrição UIS'] = groups['Restrição UIS'] || []).push(r);
+      } else if (temEfetivo) {
+        const t = r.tipos_restricao || 'Não especificado';
+        (groups[t] = groups[t] || []).push(r);
+      } else {
+        (groups['__sem__'] = groups['__sem__'] || []).push(r);
       }
-      const dias = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : null;
-      const cor  = dias === null ? 'var(--tx3)' : dias <= 0 ? '#e05555' : dias <= 30 ? '#c8a84b' : '#4bc87a';
-      return `<tr>
-        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
-        <td style="${tdS}">${r.posto||'—'}</td>
-        <td style="${tdS}">${r.opm||'—'}</td>
-        <td style="${tdS};color:var(--tx2)">${tipoR}</td>
-        <td style="${tdS};text-align:right">${fmtD(termino)}</td>
-        <td style="${tdS};text-align:right;color:${cor};font-weight:700">${dias!==null?(dias<0?'Vencida':dias+'d'):'—'}</td>
-      </tr>`;
-    }).join('');
-    html = wrapDetail('Em Restrição', listAll.length, '#c8a84b', closeBtn,
+    });
+    const ORDER = ['Restrição UIS', ...Object.keys(groups).filter(k => k !== 'Restrição UIS' && k !== '__sem__').sort()];
+    const COR_GRUPO = { 'Restrição UIS': '#5a9de0' };
+    let inner = '';
+    ORDER.forEach(grp => {
+      const list = groups[grp]; if (!list?.length) return;
+      const cor = COR_GRUPO[grp] || '#c8a84b';
+      inner += `<tr><td colspan="5" style="padding:10px 12px 4px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:1px;padding:3px 10px;border-radius:10px;background:${cor}22;color:${cor};text-transform:uppercase">${grp} — ${list.length}</span>
+      </td></tr>`;
+      list.forEach(r => {
+        const uisRecs = hasUisRestr(r.re) ? ((_uisRestMap||{})[uisNormRE(r.re)]||[]) : [];
+        let termino = r.restricao_termino || null;
+        if (!termino && uisRecs.length) termino = uisRecs.map(x=>x.termino).filter(Boolean).sort().pop() || null;
+        const dias = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : null;
+        const corD = dias === null ? 'var(--tx3)' : dias <= 0 ? '#e05555' : dias <= 30 ? '#c8a84b' : '#4bc87a';
+        inner += `<tr>
+          <td style="${tdS}">${r.posto||'—'}</td>
+          <td style="${tdS}">${r.re}</td>
+          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
+          <td style="${tdS}">${r.opm||'—'}</td>
+          <td style="${tdS};text-align:right">${fmtD(termino)}</td>
+          <td style="${tdS};text-align:right;color:${corD};font-weight:700">${dias!==null?(dias<0?'Vencida':dias+'d'):'—'}</td>
+        </tr>`;
+      });
+    });
+    const semRestr = (groups['__sem__'] || []).length;
+    if (semRestr) inner += `<tr><td colspan="6" style="padding:10px 12px;border-top:1px solid var(--bd2);color:var(--tx3);font-size:19px">Sem restrição: ${semRestr} PMs</td></tr>`;
+    const totalRestr = dataF.length - semRestr;
+    html = wrapDetail('Em Restrição', totalRestr, '#c8a84b', closeBtn,
       `<table style="width:100%;border-collapse:collapse">
-        <thead><tr>
-          <th style="${thL}">Nome</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th>
-          <th style="${thL}">Tipo de Restrição</th><th style="${thR}">Válida até</th><th style="${thR}">Restam</th>
-        </tr></thead><tbody>${rows}</tbody></table>`);
+        <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Válida até</th><th style="${thR}">Restam</th></tr></thead>
+        <tbody>${inner}</tbody></table>`);
   }
 
   else if (tipo === 'eap') {
