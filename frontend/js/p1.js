@@ -1616,7 +1616,9 @@ async function openProntuario(re) {
 
   // Status
   const afsts    = p1AfastHoje[re] || [];
-  const emRestr  = (pm.possui_restricao || '').toLowerCase().startsWith('s');
+  const emRestrEfetivo = (pm.possui_restricao || '').toLowerCase().startsWith('s');
+  const emRestrUis     = hasUisRestr(re);
+  const emRestr        = emRestrEfetivo || emRestrUis;
   let statusHtml = '';
   if (afsts.length) {
     statusHtml = afsts.map(a =>
@@ -1646,10 +1648,21 @@ async function openProntuario(re) {
   }
 
   // Restrição
-  document.getElementById('pronto-restr').innerHTML = emRestr
-    ? `<div style="font-size:19px;color:#c8a84b">${pm.tipos_restricao || 'Sim'}</div>
-       <div style="font-size:19px;color:var(--tx3)">${fmtD(pm.restricao_inicio)} → ${fmtD(pm.restricao_termino)}</div>`
-    : `<span style="font-size:19px;color:var(--tx3)">—</span>`;
+  let restrHtml = '';
+  if (emRestrEfetivo) {
+    restrHtml += `<div style="font-size:19px;color:#c8a84b">${pm.tipos_restricao || 'Sim'}</div>
+                  <div style="font-size:19px;color:var(--tx3)">${fmtD(pm.restricao_inicio)} → ${fmtD(pm.restricao_termino)}</div>`;
+  }
+  if (emRestrUis) {
+    const uisRecs = ((_uisRestMap||{})[uisNormRE(re)]||[]);
+    restrHtml += uisRecs.map(u => {
+      const codDesc = (u.codigos||'').split(/[,;]/).map(c => c.trim()).filter(Boolean)
+        .map(c => { const inf = typeof UIS_CODIGOS!=='undefined' && UIS_CODIGOS[c]; return inf ? `${c} – ${inf.desc}` : c; }).join(', ') || '—';
+      return `<div style="font-size:19px;color:#5a9de0;margin-top:${restrHtml?'6px':'0'}">🏥 ${codDesc}</div>
+              <div style="font-size:19px;color:var(--tx3)">${fmtD(u.inicio)} → ${fmtD(u.termino)}</div>`;
+    }).join('');
+  }
+  document.getElementById('pronto-restr').innerHTML = restrHtml || `<span style="font-size:19px;color:var(--tx3)">—</span>`;
 
   // TAF / TAT
   const NOTA_COR = { 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#e05555','inapto':'#e05555' };
