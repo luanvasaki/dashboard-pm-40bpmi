@@ -45,6 +45,10 @@ let p1ClosingPronto  = false;// flag: acabou de fechar prontuário — evita fec
 let p1UnitClickOut   = null; // handler de click fora do detalhe de unidade
 let p1KpiClickOut    = null; // handler de click fora do detalhe de KPI
 
+function hasUisRestr(re) {
+  return typeof uisNormRE === 'function' && !!_uisRestMap?.[uisNormRE(re)]?.length;
+}
+
 // ── Estrutura orgânica do 40º BPM/I ─────────────────────────────────────────
 const CIA_STRUCT = [
   {
@@ -165,7 +169,6 @@ function renderP1() {
   // Status de cada PM
   const pmAfastados    = dataF.filter(r => afastHoje[r.re]);
   const pmAptos        = dataF.filter(r => !afastHoje[r.re]);
-  const hasUisRestr = re => typeof uisNormRE === 'function' && !!_uisRestMap?.[uisNormRE(re)]?.length;
   const pmComRestricaoEfetivo = dataF.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s'));
   const pmComRestricaoUis = dataF.filter(r => !(r.possui_restricao||'').toLowerCase().startsWith('s') && hasUisRestr(r.re));
   const pmComRestricao = dataF.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s') || hasUisRestr(r.re));
