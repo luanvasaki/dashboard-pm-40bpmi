@@ -847,8 +847,8 @@ function renderUisPage() {
   }
 
   // ── UIS KPIs clicáveis ─────────────────────────────────────
-  const thS = 'padding:13px 16px;font-family:"DM Mono",monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;border-bottom:2px solid var(--bd2);text-align:left;font-weight:600;white-space:nowrap';
-  const tdS = 'padding:13px 16px;font-size:16px;color:var(--tx);border-bottom:1px solid var(--bd);vertical-align:middle';
+  const thS = 'padding:14px 18px;font-family:"DM Mono",monospace;font-size:16px;color:var(--tx3);letter-spacing:1px;border-bottom:2px solid var(--bd2);text-align:left;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+  const tdS = 'padding:14px 18px;font-size:19px;color:var(--tx);border-bottom:1px solid var(--bd);vertical-align:middle';
   const fmtD = s => s ? s.split('-').reverse().join('/') : '—';
 
   const uisKpiData = [
@@ -899,7 +899,8 @@ function renderUisPage() {
     uisDetailHtml = `
       <div style="background:var(--s2);border:1px solid ${kpiInfo?.cor}33;border-radius:8px;padding:14px;margin-top:8px;overflow-x:auto">
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:${kpiInfo?.cor};letter-spacing:1.5px;margin-bottom:10px">${kpiInfo?.label} — ${rows.length} PM${rows.length!==1?'s':''}</div>
-        <table style="width:100%;border-collapse:collapse;min-width:560px">
+        <table style="width:100%;border-collapse:collapse;min-width:580px;table-layout:fixed">
+          <colgroup><col style="width:14%"><col style="width:17%"><col style="width:27%"><col style="width:27%"><col style="width:15%"></colgroup>
           <thead><tr><th style="${thS}">POSTO</th><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">CÓDIGOS</th><th style="${thS}">TÉRMINO</th></tr></thead>
           <tbody>${rowsHtml}</tbody>
         </table>
@@ -960,7 +961,8 @@ function renderUisPage() {
     iasDetailHtml = `
       <div style="background:var(--s2);border:1px solid ${kpiInfo?.cor}33;border-radius:8px;padding:14px;margin-top:8px;overflow-x:auto">
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:${kpiInfo?.cor};letter-spacing:1.5px;margin-bottom:10px">${kpiInfo?.label} — ${filtRows.length} PM${filtRows.length!==1?'s':''}</div>
-        <table style="width:100%;border-collapse:collapse;min-width:460px">
+        <table style="width:100%;border-collapse:collapse;min-width:480px;table-layout:fixed">
+          <colgroup><col style="width:20%"><col style="width:22%"><col style="width:38%"><col style="width:20%"></colgroup>
           <thead><tr><th style="${thS}">POSTO</th><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">VENCIMENTO</th></tr></thead>
           <tbody>${iasRowsHtml}</tbody>
         </table>
@@ -976,8 +978,8 @@ function renderUisPage() {
   const tlBar = (label, count, cor, sub) => count > 0 ? `
     <div style="margin-bottom:18px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div><div style="font-size:18px;color:#ffffff;font-weight:600">${label}</div><div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff;opacity:.6;margin-top:2px">${sub}</div></div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:800;color:${cor};line-height:1">${count}</div>
+        <div><div style="font-size:20px;color:#ffffff;font-weight:600">${label}</div><div style="font-family:'DM Mono',monospace;font-size:15px;color:#ffffff;margin-top:3px">${sub}</div></div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:800;color:${cor};line-height:1">${count}</div>
       </div>
       <div style="background:rgba(255,255,255,.07);border-radius:4px;height:10px">
         <div style="height:100%;width:${Math.round(count/tlMax*100)}%;background:${cor};border-radius:4px"></div>
@@ -1040,13 +1042,13 @@ function renderUisPage() {
   const iasAgendarHtml = agendarPms.length > 0 ? `
     <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #c8a84b;border-radius:10px;padding:18px 20px;margin-bottom:14px">
       <div style="font-family:'DM Mono',monospace;font-size:11px;color:#c8a84b;letter-spacing:1.5px;margin-bottom:14px">IAS · AGENDAR INSPEÇÃO — MÊS ATUAL E PRÓXIMO</div>
-      <div style="font-size:13px;color:var(--tx3);margin-bottom:14px">A IAS é realizada no mês de aniversário — <b style="color:#c8a84b">${agendarPms.length} PM${agendarPms.length!==1?'s':''}</b> precisam agendar em breve.</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
+      <div style="font-size:19px;color:#ffffff;margin-bottom:16px">A IAS é realizada no mês de aniversário — <b style="color:#c8a84b">${agendarPms.length} PM${agendarPms.length!==1?'s':''}</b> precisam agendar em breve.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">
         ${Object.entries(agendarPorOpm).sort((a,b)=>b[1]-a[1]).map(([opm,cnt]) => {
           const cor = uisCiaColor(opm);
-          return `<div style="background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.25);border-left:3px solid ${cor};border-radius:6px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:#c8a84b">${cnt}</div>
+          return `<div style="background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.25);border-left:3px solid ${cor};border-radius:6px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:800;color:#c8a84b;line-height:1">${cnt}</div>
           </div>`;
         }).join('')}
       </div>
@@ -1062,13 +1064,13 @@ function renderUisPage() {
   const alertasHtml = duplos.length > 0 ? `
     <div style="background:var(--s2);border:1px solid #f0787844;border-top:3px solid #f07878;border-radius:10px;padding:18px 20px;margin-bottom:14px">
       <div style="font-family:'DM Mono',monospace;font-size:11px;color:#f07878;letter-spacing:1.5px;margin-bottom:14px">⚠ ALERTA — PENDÊNCIA DUPLA (UIS + IAS VENCIDA)</div>
-      <div style="font-size:13px;color:var(--tx3);margin-bottom:14px"><b style="color:#f07878">${duplos.length} PM${duplos.length!==1?'s':''}</b> com restrição UIS ativa <b>e</b> IAS vencida simultaneamente.</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
+      <div style="font-size:19px;color:#ffffff;margin-bottom:16px"><b style="color:#f07878">${duplos.length} PM${duplos.length!==1?'s':''}</b> com restrição UIS ativa <b>e</b> IAS vencida simultaneamente.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">
         ${Object.entries(duplosPorOpm).sort((a,b)=>b[1]-a[1]).map(([opm,cnt]) => {
           const cor = uisCiaColor(opm);
-          return `<div style="background:rgba(240,120,120,.07);border:1px solid #f0787833;border-left:3px solid ${cor};border-radius:6px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:#f07878">${cnt}</div>
+          return `<div style="background:rgba(240,120,120,.07);border:1px solid #f0787833;border-left:3px solid ${cor};border-radius:6px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:800;color:#f07878;line-height:1">${cnt}</div>
           </div>`;
         }).join('')}
       </div>
