@@ -53,6 +53,9 @@ const UIS_CODIGOS = {
   US: { desc: 'Uso de sapatos',                   grupo: 'admin_apoio' },
   UU: { desc: 'Uso de uniformes',                 grupo: 'admin_apoio' },
   VP: { desc: 'Visão seja primordial',            grupo: 'admin_only' },
+  // Códigos especiais detectados por padrão de texto
+  GESTANTE: { desc: 'Licença Gestante',           grupo: 'admin_only' },
+  NAPS:     { desc: 'NAPS / Apoio Psicossocial',  grupo: 'admin_only' },
 };
 
 // Rótulo e cor de cada grupo (do mais restritivo ao menos)
@@ -81,8 +84,14 @@ function uisGrupoMaisRestritivo(codigos) {
 }
 
 // Extrai array de códigos de um campo texto (ex: "EF,LP, OU" → ['EF','LP','OU'])
+// Também detecta padrões de texto livre como LICENCA-GESTANTE e NAPS.
 function uisExtrairCodigos(codigos_str) {
-  return (codigos_str || '').split(/[,\s]+/).map(c => c.trim().toUpperCase()).filter(c => /^[A-Z]{2,3}$/.test(c));
+  const upper = (codigos_str || '').toUpperCase();
+  const extra = [];
+  if (/LICEN[CÇ]A[\s-]*GESTANTE|GESTANTE/.test(upper)) extra.push('GESTANTE');
+  if (/NAPS/.test(upper)) extra.push('NAPS');
+  const fromSplit = upper.split(/[,\s]+/).map(c => c.trim()).filter(c => /^[A-Z]{2,3}$/.test(c));
+  return [...new Set([...extra, ...fromSplit])];
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1129,7 +1138,10 @@ function renderUisDetail() {
       const grupo    = uisGrupoMaisRestritivo(allCods);
       const gInfo    = grupo ? UIS_GRUPOS[grupo] : null;
       const cor      = gInfo ? gInfo.cor : '#c8a84b';
-      const codsHtml = allCods.slice(0,5).map(c => `<span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:${cor};background:${cor}12;border:1px solid ${cor}33;border-radius:3px;padding:3px 8px">${c}</span>`).join(' ');
+      const codsHtml = allCods.slice(0,5).map(c => {
+        const lbl = UIS_CODIGOS[c]?.desc && c.length > 3 ? UIS_CODIGOS[c].desc : c;
+        return `<span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:${cor};background:${cor}12;border:1px solid ${cor}33;border-radius:3px;padding:3px 8px">${escHtml(lbl)}</span>`;
+      }).join(' ');
       const termino  = recs.reduce((min,r) => r.termino && (!min||r.termino<min) ? r.termino : min, null);
       return `<tr>
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px">${re}</td>
