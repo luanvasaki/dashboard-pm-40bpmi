@@ -847,8 +847,8 @@ function renderUisPage() {
   }
 
   // ── UIS KPIs clicáveis ─────────────────────────────────────
-  const thS = 'padding:8px 10px;font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3);letter-spacing:1px;border-bottom:1px solid var(--bd2);text-align:left;font-weight:400';
-  const tdS = 'padding:8px 10px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd)';
+  const thS = 'padding:10px 14px;font-family:"DM Mono",monospace;font-size:12px;color:var(--tx3);letter-spacing:1px;border-bottom:2px solid var(--bd2);text-align:left;font-weight:600;white-space:nowrap';
+  const tdS = 'padding:11px 14px;font-size:15px;color:var(--tx);border-bottom:1px solid var(--bd);vertical-align:middle';
   const fmtD = s => s ? s.split('-').reverse().join('/') : '—';
 
   const uisKpiData = [
@@ -886,20 +886,20 @@ function renderUisPage() {
       const grupo   = uisGrupoMaisRestritivo(allCods);
       const gInfo   = grupo ? UIS_GRUPOS[grupo] : null;
       const cor     = gInfo ? gInfo.cor : '#c8a84b';
-      const codsHtml = allCods.slice(0,5).map(c => `<span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:${cor};background:${cor}12;border:1px solid ${cor}33;border-radius:3px;padding:1px 5px">${c}</span>`).join(' ');
+      const codsHtml = allCods.slice(0,5).map(c => `<span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${cor};background:${cor}12;border:1px solid ${cor}33;border-radius:3px;padding:2px 7px">${c}</span>`).join(' ');
       const termino  = recs.reduce((min,r) => r.termino && (!min||r.termino<min) ? r.termino : min, null);
       return `<tr>
         <td style="${tdS}">${escHtml(posto)}</td>
-        <td style="${tdS};font-family:'DM Mono',monospace;font-size:12px">${re}</td>
-        <td style="${tdS};font-size:12px">${escHtml(opm)}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:14px">${re}</td>
+        <td style="${tdS}">${escHtml(opm)}</td>
         <td style="${tdS}">${codsHtml}</td>
-        <td style="${tdS};font-family:'DM Mono',monospace;font-size:12px;color:${termino&&termino<today?'#e05555':termino&&termino<=em30?'#c8a84b':'var(--tx)'}">${fmtD(termino)}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:14px;color:${termino&&termino<today?'#e05555':termino&&termino<=em30?'#c8a84b':'var(--tx)'}">${fmtD(termino)}</td>
       </tr>`;
     }).join('') || `<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">Nenhum registro</td></tr>`;
     uisDetailHtml = `
       <div style="background:var(--s2);border:1px solid ${kpiInfo?.cor}33;border-radius:8px;padding:14px;margin-top:8px;overflow-x:auto">
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:${kpiInfo?.cor};letter-spacing:1.5px;margin-bottom:10px">${kpiInfo?.label} — ${rows.length} PM${rows.length!==1?'s':''}</div>
-        <table style="width:100%;border-collapse:collapse;min-width:460px">
+        <table style="width:100%;border-collapse:collapse;min-width:560px">
           <thead><tr><th style="${thS}">POSTO</th><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">CÓDIGOS</th><th style="${thS}">TÉRMINO</th></tr></thead>
           <tbody>${rowsHtml}</tbody>
         </table>
@@ -952,15 +952,15 @@ function renderUisPage() {
       const cor = s === 'vencido' ? '#e05555' : s === 'vencendo' ? '#c8a84b' : '#4bc87a';
       return `<tr>
         <td style="${tdS}">${escHtml(r.posto||'—')}</td>
-        <td style="${tdS};font-family:'DM Mono',monospace;font-size:12px">${re}</td>
-        <td style="${tdS};font-size:12px">${escHtml(r.opm||'—')}</td>
-        <td style="${tdS};font-family:'DM Mono',monospace;color:${cor}">${fmtD(r.data_vencimento)}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:14px">${re}</td>
+        <td style="${tdS}">${escHtml(r.opm||'—')}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:14px;color:${cor}">${fmtD(r.data_vencimento)}</td>
       </tr>`;
     }).join('') || `<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">Nenhum registro</td></tr>`;
     iasDetailHtml = `
       <div style="background:var(--s2);border:1px solid ${kpiInfo?.cor}33;border-radius:8px;padding:14px;margin-top:8px;overflow-x:auto">
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:${kpiInfo?.cor};letter-spacing:1.5px;margin-bottom:10px">${kpiInfo?.label} — ${filtRows.length} PM${filtRows.length!==1?'s':''}</div>
-        <table style="width:100%;border-collapse:collapse;min-width:360px">
+        <table style="width:100%;border-collapse:collapse;min-width:460px">
           <thead><tr><th style="${thS}">POSTO</th><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">VENCIMENTO</th></tr></thead>
           <tbody>${iasRowsHtml}</tbody>
         </table>
