@@ -2552,15 +2552,15 @@ function renderHome() {
 
   // ── Resumo UIS ────────────────────────────────────────────────────────────
   let uisPreview = '';
-  if (dataF && dataF.length > 0 && (typeof _uisRestMap !== 'undefined' || typeof _iasMap !== 'undefined')) {
+  if (p1Data && p1Data.length > 0 && (typeof _uisRestMap !== 'undefined' || typeof _iasMap !== 'undefined')) {
     const comRestUis = (typeof _uisRestMap === 'object' && _uisRestMap && typeof uisNormRE === 'function')
-      ? dataF.filter(r => { try { return !!_uisRestMap[uisNormRE(r.re)]?.length; } catch { return false; } }).length
+      ? p1Data.filter(r => { try { return !!_uisRestMap[uisNormRE(r.re)]?.length; } catch { return false; } }).length
       : null;
     const iasApt = (typeof _iasMap === 'object' && _iasMap && typeof iasStatus === 'function')
-      ? dataF.filter(r => { const s = iasStatus(r.re); return s === 'apto' || s === 'vencendo'; }).length
+      ? p1Data.filter(r => { const s = iasStatus(r.re); return s === 'apto' || s === 'vencendo'; }).length
       : null;
     const iasVenc = (typeof _iasMap === 'object' && _iasMap && typeof iasStatus === 'function')
-      ? dataF.filter(r => iasStatus(r.re) === 'vencido').length
+      ? p1Data.filter(r => iasStatus(r.re) === 'vencido').length
       : null;
     if (comRestUis !== null || iasApt !== null) {
       uisPreview = `<div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px">
