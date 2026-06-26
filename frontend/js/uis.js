@@ -887,19 +887,19 @@ function renderUisPage() {
   const tl90       = iasVals.filter(([,r]) => r.data_vencimento && r.data_vencimento > em60 && r.data_vencimento <= em90).length;
   const tlMax      = Math.max(tlVencidas, tl30, tl60, tl90, 1);
   const tlBar = (label, count, cor, sub) => count > 0 ? `
-    <div style="margin-bottom:18px">
+    <div style="margin-bottom:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div><div style="font-size:20px;color:#ffffff;font-weight:600">${label}</div><div style="font-family:'DM Mono',monospace;font-size:17px;color:#ffffff;margin-top:3px">${sub}</div></div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:800;color:${cor};line-height:1">${count}</div>
+        <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:#ffffff">${label}</div><div style="font-family:'DM Mono',monospace;font-size:15px;color:#ffffff;margin-top:3px">${sub}</div></div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:800;color:${cor};line-height:1">${count}</div>
       </div>
       <div style="background:rgba(255,255,255,.07);border-radius:4px;height:10px">
         <div style="height:100%;width:${Math.round(count/tlMax*100)}%;background:${cor};border-radius:4px"></div>
       </div>
     </div>` : '';
   const iasTimelineHtml = (tlVencidas+tl30+tl60+tl90) > 0 ? `
-    <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:18px 20px;margin-bottom:14px">
-      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:14px">IAS · VENCIMENTOS POR PERÍODO</div>
-      ${tlBar('Já vencidas', tlVencidas, '#e05555', 'regularizar imediatamente')}
+    <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px 24px;margin-bottom:14px">
+      <div style="font-family:'DM Mono',monospace;font-size:14px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:18px">IAS · VENCIMENTOS POR PERÍODO</div>
+      ${tlBar('Já vencidas', tlVencidas, '#f07878', 'regularizar imediatamente')}
       ${tlBar('Vencem em 30 dias', tl30, '#c8a84b', 'ação urgente')}
       ${tlBar('Vencem em 31–60 dias', tl60, '#e0a030', 'atenção')}
       ${tlBar('Vencem em 61–90 dias', tl90, '#5a9de0', 'planejamento')}
@@ -918,27 +918,30 @@ function renderUisPage() {
   });
   const iasPorOpmEntries = Object.entries(iasPorOpm).sort((a,b) => b[1].total - a[1].total);
   const iasPorOpmHtml = iasPorOpmEntries.length > 0 ? `
-    <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5ae09a;border-radius:10px;padding:18px 20px;margin-bottom:14px">
-      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5ae09a;letter-spacing:1.5px;margin-bottom:14px">IAS · SITUAÇÃO POR OPM</div>
+    <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5ae09a;border-radius:10px;padding:20px 24px;margin-bottom:14px">
+      <div style="font-family:'DM Mono',monospace;font-size:14px;color:#5ae09a;letter-spacing:1.5px;margin-bottom:18px">IAS · SITUAÇÃO POR OPM</div>
       ${iasPorOpmEntries.map(([opm, s]) => {
         const cor    = uisCiaColor(opm);
         const pctA   = s.total > 0 ? Math.round(s.aptos/s.total*100) : 0;
         const pctV30 = s.total > 0 ? Math.round(s.venc30/s.total*100) : 0;
         const pctVc  = s.total > 0 ? Math.round(s.vencida/s.total*100) : 0;
-        return `<div style="margin-bottom:18px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:17px;color:#ffffff">${s.total} PMs</div>
+        const subStats = [
+          s.aptos>0  ? `<span style="color:#4bc87a">${s.aptos} aptos</span>` : '',
+          s.venc30>0 ? `<span style="color:#c8a84b">${s.venc30} vencendo</span>` : '',
+          s.vencida>0? `<span style="color:#f07878">${s.vencida} vencida</span>` : '',
+        ].filter(Boolean).join(' · ');
+        return `<div style="margin-bottom:20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
+              <div style="font-family:'DM Mono',monospace;font-size:15px;color:#ffffff;margin-top:3px">${subStats}</div>
+            </div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:800;color:#ffffff;line-height:1">${s.total}</div>
           </div>
-          <div style="display:flex;height:12px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.07)">
-            ${s.aptos>0?`<div style="width:${pctA}%;background:#4bc87a" title="Aptos: ${s.aptos}"></div>`:''}
-            ${s.venc30>0?`<div style="width:${pctV30}%;background:#c8a84b" title="Vencendo: ${s.venc30}"></div>`:''}
-            ${s.vencida>0?`<div style="width:${pctVc}%;background:#e05555" title="Vencidas: ${s.vencida}"></div>`:''}
-          </div>
-          <div style="display:flex;gap:14px;margin-top:6px;font-family:'DM Mono',monospace;font-size:15px">
-            ${s.aptos>0?`<span style="color:#4bc87a">${s.aptos} aptos</span>`:''}
-            ${s.venc30>0?`<span style="color:#c8a84b">${s.venc30} vencendo</span>`:''}
-            ${s.vencida>0?`<span style="color:#e05555">${s.vencida} vencida</span>`:''}
+          <div style="display:flex;height:10px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.07)">
+            ${s.aptos>0   ?`<div style="width:${pctA}%;background:#4bc87a" title="Aptos: ${s.aptos}"></div>`:''}
+            ${s.venc30>0  ?`<div style="width:${pctV30}%;background:#c8a84b" title="Vencendo: ${s.venc30}"></div>`:''}
+            ${s.vencida>0 ?`<div style="width:${pctVc}%;background:#f07878" title="Vencidas: ${s.vencida}"></div>`:''}
           </div>
         </div>`;
       }).join('')}
