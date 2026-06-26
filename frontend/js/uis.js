@@ -170,13 +170,13 @@ function renderUisFiltroBar() {
 
 async function loadUisSection() {
   const content = document.getElementById('uis-content');
-  if (content) content.innerHTML = '<div style="color:var(--tx3);font-size:13px;padding:20px">Carregando...</div>';
+  if (content) content.innerHTML = '<div style="color:var(--tx3);font-size:17px;padding:20px">Carregando...</div>';
   try {
     await Promise.all([loadUisRestricoes(), loadIasMapa()]);
     renderUisFiltroBar();
     renderUisPage();
   } catch (e) {
-    if (content) content.innerHTML = `<div style="color:#f07878;font-size:13px">Erro ao carregar UIS: ${e.message}</div>`;
+    if (content) content.innerHTML = `<div style="color:#f07878;font-size:17px">Erro ao carregar UIS: ${e.message}</div>`;
   }
 }
 
@@ -281,7 +281,7 @@ function uisTipPmOver(e, re) {
 function renderUisPorOpm(porOpm, porOpmCodigos) {
   const entries = Object.entries(porOpm).sort((a,b) => b[1]-a[1]);
   const container = document.getElementById('uis-por-opm');
-  if (!entries.length) { container.innerHTML = '<div style="color:var(--tx3);font-size:13px;padding:8px">Sem dados</div>'; return; }
+  if (!entries.length) { container.innerHTML = '<div style="color:#ffffff;font-size:17px;padding:8px">Sem dados</div>'; return; }
   const max = entries[0][1];
 
   // Pré-processa os dados de tooltip por OPM (armazena no elemento via dataset)
@@ -301,7 +301,7 @@ function renderUisPorOpm(porOpm, porOpmCodigos) {
       <div style="flex:1;background:var(--s3);border-radius:5px;height:26px;overflow:hidden">
         <div style="height:100%;width:${Math.round(n/max*100)}%;background:${cor};border-radius:5px;transition:width .4s;opacity:.85"></div>
       </div>
-      <div style="width:32px;text-align:right;font-size:17px;font-weight:700;color:${cor}">${n}</div>
+      <div style="width:38px;text-align:right;font-size:20px;font-weight:700;color:${cor}">${n}</div>
     </div>`;
   }).join('');
 
@@ -319,7 +319,7 @@ function renderUisPorOpm(porOpm, porOpmCodigos) {
 
 function renderUisPorCodigo(porCodigo) {
   const entries = Object.entries(porCodigo).sort((a,b) => b[1]-a[1]).slice(0,15);
-  if (!entries.length) { document.getElementById('uis-por-codigo').innerHTML = '<div style="color:var(--tx3);font-size:13px;padding:8px">Sem dados</div>'; return; }
+  if (!entries.length) { document.getElementById('uis-por-codigo').innerHTML = '<div style="color:#ffffff;font-size:17px;padding:8px">Sem dados</div>'; return; }
   const max = entries[0][1];
   document.getElementById('uis-por-codigo').innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0">${
     entries.map(([cod, n]) => {
@@ -328,8 +328,8 @@ function renderUisPorCodigo(porCodigo) {
       const cor   = grupo ? grupo.cor : '#aaa';
       return `<div title="${info ? info.desc : cod}" style="background:var(--s2);border:1px solid ${cor}44;border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:10px;cursor:default">
         <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:700;color:${cor}">${cod}</span>
-        <span style="font-size:14px;color:var(--tx)">${info ? info.desc : '—'}</span>
-        <span style="font-size:18px;font-weight:800;color:var(--tx);margin-left:4px">${n}</span>
+        <span style="font-size:17px;color:#ffffff">${info ? info.desc : '—'}</span>
+        <span style="font-size:22px;font-weight:800;color:#ffffff;margin-left:4px">${n}</span>
       </div>`;
     }).join('')
   }</div>`;
@@ -337,7 +337,7 @@ function renderUisPorCodigo(porCodigo) {
 
 function renderUisTabelaCodigos() {
   const grupos = Object.entries(UIS_GRUPOS);
-  let html = `<table class="tbl" style="font-size:12px"><thead><tr><th>Código</th><th>Descrição</th><th>Tipo de Emprego (BG PM 166/2006)</th><th>Item</th></tr></thead><tbody>`;
+  let html = `<table class="tbl" style="font-size:15px"><thead><tr><th>Código</th><th>Descrição</th><th>Tipo de Emprego (BG PM 166/2006)</th><th>Item</th></tr></thead><tbody>`;
   for (const [grupo, gInfo] of grupos) {
     const codigos = Object.entries(UIS_CODIGOS).filter(([,v]) => v.grupo === grupo);
     for (const [cod, info] of codigos) {
@@ -473,10 +473,10 @@ function renderUisPmContent(restricoes) {
 
     // Datas
     html += `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-      <div style="font-size:12px;color:var(--tx3)">Início: <b style="color:var(--tx)">${r.inicio ? r.inicio.split('-').reverse().join('/') : '—'}</b></div>
-      <div style="font-size:12px;color:var(--tx3)">Término: <b style="color:${vencida?'#f07878':vencendo?'#c8a84b':'var(--tx)'}">${r.termino ? r.termino.split('-').reverse().join('/') : '—'}</b></div>
-      ${r.dias ? `<div style="font-size:12px;color:var(--tx3)">Dias: <b style="color:var(--tx)">${r.dias}</b></div>` : ''}
-      ${r.opm ? `<div style="font-size:12px;color:var(--tx3)">OPM: <b style="color:var(--tx)">${escHtml(r.opm)}</b></div>` : ''}
+      <div style="font-size:15px;color:#ffffff">Início: <b style="color:var(--tx)">${r.inicio ? r.inicio.split('-').reverse().join('/') : '—'}</b></div>
+      <div style="font-size:15px;color:#ffffff">Término: <b style="color:${vencida?'#f07878':vencendo?'#c8a84b':'var(--tx)'}">${r.termino ? r.termino.split('-').reverse().join('/') : '—'}</b></div>
+      ${r.dias ? `<div style="font-size:15px;color:#ffffff">Dias: <b style="color:var(--tx)">${r.dias}</b></div>` : ''}
+      ${r.opm ? `<div style="font-size:15px;color:#ffffff">OPM: <b style="color:var(--tx)">${escHtml(r.opm)}</b></div>` : ''}
       ${alertaBadge}
     </div>`;
 
@@ -489,7 +489,7 @@ function renderUisPmContent(restricoes) {
         const cor   = gCod ? gCod.cor : '#aaa';
         html += `<div title="${info ? info.desc : cod}" style="background:${cor}18;border:1px solid ${cor}55;border-radius:5px;padding:3px 10px;display:flex;gap:6px;align-items:center">
           <span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${cor}">${cod}</span>
-          ${info ? `<span style="font-size:11px;color:var(--tx3)">${info.desc}</span>` : ''}
+          ${info ? `<span style="font-size:13px;color:#ffffff">${info.desc}</span>` : ''}
         </div>`;
       }
       html += `</div>`;
@@ -497,14 +497,14 @@ function renderUisPmContent(restricoes) {
 
     // Texto livre (ex: "LICENCA-GESTANTE", "NAPS NÍVEL III")
     if (textoLivre) {
-      html += `<div style="font-size:12px;color:var(--tx3);margin-bottom:10px;font-style:italic">${escHtml(textoLivre)}</div>`;
+      html += `<div style="font-size:15px;color:#ffffff;margin-bottom:10px;font-style:italic">${escHtml(textoLivre)}</div>`;
     }
 
     // Bloco de emprego permitido (destaque em vermelho se admin_only)
     if (gInfo && !vencida) {
       html += `<div style="background:${gInfo.bg};border:1px solid ${gInfo.cor}55;border-radius:6px;padding:10px 14px">
         <div style="font-family:'DM Mono',monospace;font-size:10px;color:${gInfo.cor};letter-spacing:1.5px;margin-bottom:4px">EMPREGO PERMITIDO · BG PM 166/2006 · Item ${gInfo.item}</div>
-        <div style="font-size:13px;font-weight:700;color:${gInfo.cor}">${gInfo.label}</div>
+        <div style="font-size:17px;font-weight:700;color:${gInfo.cor}">${gInfo.label}</div>
       </div>`;
     }
 
@@ -773,15 +773,15 @@ function renderIasPmContent(rec) {
 
   return `<div style="background:var(--s2);border:1px solid ${borderCor};border-radius:8px;padding:14px;margin-bottom:10px">
     <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-      <div style="font-size:12px;color:var(--tx3)">Vencimento: <b style="color:${corVal};font-size:15px">${fmtD(venc)}</b></div>
-      <div style="font-size:12px;color:var(--tx3)">Médico: <b style="color:var(--tx)">${fmtD(rec.data_medico)}</b></div>
-      <div style="font-size:12px;color:var(--tx3)">Dentista: <b style="color:var(--tx)">${fmtD(rec.data_dentista)}</b></div>
-      ${rec.data_aniversario ? `<div style="font-size:12px;color:var(--tx3)">Aniversário: <b style="color:var(--tx)">${rec.data_aniversario}</b></div>` : ''}
+      <div style="font-size:15px;color:#ffffff">Vencimento: <b style="color:${corVal};font-size:17px">${fmtD(venc)}</b></div>
+      <div style="font-size:15px;color:#ffffff">Médico: <b style="color:var(--tx)">${fmtD(rec.data_medico)}</b></div>
+      <div style="font-size:15px;color:#ffffff">Dentista: <b style="color:var(--tx)">${fmtD(rec.data_dentista)}</b></div>
+      ${rec.data_aniversario ? `<div style="font-size:15px;color:#ffffff">Aniversário: <b style="color:var(--tx)">${rec.data_aniversario}</b></div>` : ''}
       ${alertaBadge}
     </div>
     <div style="background:${vencida?'rgba(240,120,120,0.1)':vencendo?'rgba(200,168,75,0.1)':'rgba(75,200,122,0.1)'};border:1px solid ${borderCor}55;border-radius:6px;padding:10px 14px">
       <div style="font-family:'DM Mono',monospace;font-size:10px;color:${corVal};letter-spacing:1.5px;margin-bottom:4px">SITUAÇÃO IAS · INSPEÇÃO ANUAL DE SAÚDE</div>
-      <div style="font-size:13px;font-weight:700;color:${corVal}">${vencida ? 'IAS VENCIDA — Regularizar para TAF/TAT' : vencendo ? `IAS vence em ${diasRest} dias — Regularizar em breve` : venc ? 'IAS VÁLIDA — Apto para TAF/TAT' : 'Data de vencimento não informada'}</div>
+      <div style="font-size:17px;font-weight:700;color:${corVal}">${vencida ? 'IAS VENCIDA — Regularizar para TAF/TAT' : vencendo ? `IAS vence em ${diasRest} dias — Regularizar em breve` : venc ? 'IAS VÁLIDA — Apto para TAF/TAT' : 'Data de vencimento não informada'}</div>
     </div>
   </div>`;
 }
@@ -839,8 +839,8 @@ function renderUisPage() {
             <div style="flex:1;background:rgba(255,255,255,.06);border-radius:6px;height:10px;overflow:hidden">
               <div style="height:100%;width:${pct}%;background:${cor};border-radius:6px;transition:width .5s"></div>
             </div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:800;color:${cor};line-height:1">${plenos}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">de ${pmsF.length} PMs<br>${pct}%</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:800;color:${cor};line-height:1">${plenos}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:16px;color:#ffffff">de ${pmsF.length} PMs<br>${pct}%</div>
           </div>
         </div>`;
     }
@@ -863,7 +863,7 @@ function renderUisPage() {
       <div class="kpi-top" style="background:${c.cor}"></div>
       <div class="kpi-lbl">${c.label}</div>
       <div class="kpi-val" style="color:${c.cor}">${c.val ?? '—'}</div>
-      ${c.val > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-top:4px">${open ? '▲ fechar' : '▼ ver lista'}</div>` : ''}
+      ${c.val > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff;margin-top:4px;opacity:.75">${open ? '▲ fechar' : '▼ ver lista'}</div>` : ''}
     </div>`;
   }).join('');
 
@@ -886,16 +886,16 @@ function renderUisPage() {
       const grupo   = uisGrupoMaisRestritivo(allCods);
       const gInfo   = grupo ? UIS_GRUPOS[grupo] : null;
       const cor     = gInfo ? gInfo.cor : '#c8a84b';
-      const codsHtml = allCods.slice(0,5).map(c => `<span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${cor};background:${cor}12;border:1px solid ${cor}33;border-radius:3px;padding:2px 7px">${c}</span>`).join(' ');
+      const codsHtml = allCods.slice(0,5).map(c => `<span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:${cor};background:${cor}12;border:1px solid ${cor}33;border-radius:3px;padding:3px 8px">${c}</span>`).join(' ');
       const termino  = recs.reduce((min,r) => r.termino && (!min||r.termino<min) ? r.termino : min, null);
       return `<tr>
         <td style="${tdS}">${escHtml(posto)}</td>
-        <td style="${tdS};font-family:'DM Mono',monospace;font-size:15px">${re}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px">${re}</td>
         <td style="${tdS}">${escHtml(opm)}</td>
         <td style="${tdS}">${codsHtml}</td>
-        <td style="${tdS};font-family:'DM Mono',monospace;font-size:15px;color:${termino&&termino<today?'#e05555':termino&&termino<=em30?'#c8a84b':'var(--tx)'}">${fmtD(termino)}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px;color:${termino&&termino<today?'#e05555':termino&&termino<=em30?'#c8a84b':'var(--tx)'}">${fmtD(termino)}</td>
       </tr>`;
-    }).join('') || `<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">Nenhum registro</td></tr>`;
+    }).join('') || `<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--tx3);font-size:17px">Nenhum registro</td></tr>`;
     uisDetailHtml = `
       <div style="background:var(--s2);border:1px solid ${kpiInfo?.cor}33;border-radius:8px;padding:14px;margin-top:8px;overflow-x:auto">
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:${kpiInfo?.cor};letter-spacing:1.5px;margin-bottom:10px">${kpiInfo?.label} — ${rows.length} PM${rows.length!==1?'s':''}</div>
@@ -953,11 +953,11 @@ function renderUisPage() {
       const cor = s === 'vencido' ? '#e05555' : s === 'vencendo' ? '#c8a84b' : '#4bc87a';
       return `<tr>
         <td style="${tdS}">${escHtml(r.posto||'—')}</td>
-        <td style="${tdS};font-family:'DM Mono',monospace;font-size:15px">${re}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px">${re}</td>
         <td style="${tdS}">${escHtml(r.opm||'—')}</td>
-        <td style="${tdS};font-family:'DM Mono',monospace;font-size:15px;color:${cor}">${fmtD(r.data_vencimento)}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px;color:${cor}">${fmtD(r.data_vencimento)}</td>
       </tr>`;
-    }).join('') || `<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">Nenhum registro</td></tr>`;
+    }).join('') || `<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--tx3);font-size:17px">Nenhum registro</td></tr>`;
     iasDetailHtml = `
       <div style="background:var(--s2);border:1px solid ${kpiInfo?.cor}33;border-radius:8px;padding:14px;margin-top:8px;overflow-x:auto">
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:${kpiInfo?.cor};letter-spacing:1.5px;margin-bottom:10px">${kpiInfo?.label} — ${filtRows.length} PM${filtRows.length!==1?'s':''}</div>
@@ -978,7 +978,7 @@ function renderUisPage() {
   const tlBar = (label, count, cor, sub) => count > 0 ? `
     <div style="margin-bottom:18px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div><div style="font-size:20px;color:#ffffff;font-weight:600">${label}</div><div style="font-family:'DM Mono',monospace;font-size:15px;color:#ffffff;margin-top:3px">${sub}</div></div>
+        <div><div style="font-size:20px;color:#ffffff;font-weight:600">${label}</div><div style="font-family:'DM Mono',monospace;font-size:17px;color:#ffffff;margin-top:3px">${sub}</div></div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:800;color:${cor};line-height:1">${count}</div>
       </div>
       <div style="background:rgba(255,255,255,.07);border-radius:4px;height:10px">
@@ -1017,14 +1017,14 @@ function renderUisPage() {
         return `<div style="margin-bottom:18px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:15px;color:#ffffff">${s.total} PMs</div>
+            <div style="font-family:'DM Mono',monospace;font-size:17px;color:#ffffff">${s.total} PMs</div>
           </div>
           <div style="display:flex;height:12px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.07)">
             ${s.aptos>0?`<div style="width:${pctA}%;background:#4bc87a" title="Aptos: ${s.aptos}"></div>`:''}
             ${s.venc30>0?`<div style="width:${pctV30}%;background:#c8a84b" title="Vencendo: ${s.venc30}"></div>`:''}
             ${s.vencida>0?`<div style="width:${pctVc}%;background:#e05555" title="Vencidas: ${s.vencida}"></div>`:''}
           </div>
-          <div style="display:flex;gap:14px;margin-top:6px;font-family:'DM Mono',monospace;font-size:13px">
+          <div style="display:flex;gap:14px;margin-top:6px;font-family:'DM Mono',monospace;font-size:15px">
             ${s.aptos>0?`<span style="color:#4bc87a">${s.aptos} aptos</span>`:''}
             ${s.venc30>0?`<span style="color:#c8a84b">${s.venc30} vencendo</span>`:''}
             ${s.vencida>0?`<span style="color:#e05555">${s.vencida} vencida</span>`:''}
