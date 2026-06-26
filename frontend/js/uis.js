@@ -160,7 +160,7 @@ function _uisTipGet() {
 function _uisTipShow(e, opm, cor, topCods) {
   const tip = _uisTipGet();
   // Para OPMs sem CIA (cor branco), usa rgba visível como cor de texto secundário
-  const descCor = cor === '#ffffff' ? '#ffffff' : 'rgba(255,255,255,.75)';
+  const descCor = '#ffffff';
   const codsHtml = topCods.map(([cod, cnt, desc]) => `
     <div style="display:flex;align-items:baseline;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.07)">
       <span style="font-weight:700;color:${cor};min-width:34px;font-size:16px">${cod}</span>
@@ -209,14 +209,15 @@ function uisTipPmOver(e, re) {
   const cor = gInfo ? gInfo.cor : '#c8a84b';
   const codLines = allCods.map(c => {
     const inf = UIS_CODIGOS[c];
-    return `<div style="display:flex;gap:8px;align-items:baseline;padding:2px 0">
-      <span style="font-family:'DM Mono',monospace;font-size:11px;color:${cor};font-weight:700;min-width:26px">${c}</span>
-      <span style="font-size:11px;color:#ddd">${inf ? inf.desc : '—'}</span>
+    return `<div style="display:flex;align-items:baseline;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.07)">
+      <span style="font-weight:700;color:${cor};min-width:34px;font-size:16px">${c}</span>
+      <span style="color:#ffffff;flex:1;font-size:15px">${inf ? inf.desc : '—'}</span>
     </div>`;
   }).join('');
   uisTipGenShow(e,
-    `<div style="font-weight:700;color:${cor};font-size:11px;margin-bottom:6px;letter-spacing:.5px">${gInfo ? gInfo.label : 'RESTRIÇÃO UIS'}</div>` +
-    codLines
+    `<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${cor};letter-spacing:.5px;margin-bottom:10px;text-transform:uppercase">${gInfo ? gInfo.label : 'RESTRIÇÃO UIS'}</div>` +
+    `<div style="font-size:13px;color:#ffffff;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">Códigos UIS</div>` +
+    (codLines || `<div style="color:rgba(255,255,255,.35);font-size:15px">Sem detalhes</div>`)
   );
 }
 
@@ -391,10 +392,12 @@ function closeUisPmModal() {
 function renderUisPmContent(restricoes) {
   if (!restricoes?.length) return '<div style="color:var(--tx3);font-size:13px;padding:8px">Nenhuma restrição encontrada para este RE.</div>';
 
+  // Exibe apenas a restrição mais recente (maior data de início)
+  const ultima = [...restricoes].sort((a, b) => (b.inicio || '').localeCompare(a.inicio || ''))[0];
   const today = new Date().toISOString().slice(0,10);
   let html = '';
 
-  for (const r of restricoes) {
+  for (const r of [ultima]) {
     const codigos = uisExtrairCodigos(r.codigos);
     const textoLivre = (r.codigos || '').replace(/[A-Z]{2,3}[,\s]*/g,'').trim(); // texto não-código
     const grupo = uisGrupoMaisRestritivo(codigos);
