@@ -889,19 +889,18 @@ function renderUisPage() {
       const codsHtml = allCods.slice(0,5).map(c => `<span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:${cor};background:${cor}12;border:1px solid ${cor}33;border-radius:3px;padding:3px 8px">${c}</span>`).join(' ');
       const termino  = recs.reduce((min,r) => r.termino && (!min||r.termino<min) ? r.termino : min, null);
       return `<tr>
-        <td style="${tdS}">${escHtml(posto)}</td>
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px">${re}</td>
         <td style="${tdS}">${escHtml(opm)}</td>
         <td style="${tdS}">${codsHtml}</td>
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px;color:${termino&&termino<today?'#e05555':termino&&termino<=em30?'#c8a84b':'var(--tx)'}">${fmtD(termino)}</td>
       </tr>`;
-    }).join('') || `<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--tx3);font-size:17px">Nenhum registro</td></tr>`;
+    }).join('') || `<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--tx3);font-size:17px">Nenhum registro</td></tr>`;
     uisDetailHtml = `
       <div style="background:var(--s2);border:1px solid ${kpiInfo?.cor}33;border-radius:8px;padding:14px;margin-top:8px;overflow-x:auto">
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:${kpiInfo?.cor};letter-spacing:1.5px;margin-bottom:10px">${kpiInfo?.label} — ${rows.length} PM${rows.length!==1?'s':''}</div>
-        <table style="width:100%;border-collapse:collapse;min-width:580px;table-layout:fixed">
-          <colgroup><col style="width:14%"><col style="width:17%"><col style="width:27%"><col style="width:27%"><col style="width:15%"></colgroup>
-          <thead><tr><th style="${thS}">POSTO</th><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">CÓDIGOS</th><th style="${thS}">TÉRMINO</th></tr></thead>
+        <table style="width:100%;border-collapse:collapse;min-width:480px;table-layout:fixed">
+          <colgroup><col style="width:20%"><col style="width:33%"><col style="width:30%"><col style="width:17%"></colgroup>
+          <thead><tr><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">CÓDIGOS</th><th style="${thS}">TÉRMINO</th></tr></thead>
           <tbody>${rowsHtml}</tbody>
         </table>
       </div>`;
@@ -952,18 +951,17 @@ function renderUisPage() {
       const s   = _iasStatusFromRec(r);
       const cor = s === 'vencido' ? '#e05555' : s === 'vencendo' ? '#c8a84b' : '#4bc87a';
       return `<tr>
-        <td style="${tdS}">${escHtml(r.posto||'—')}</td>
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px">${re}</td>
         <td style="${tdS}">${escHtml(r.opm||'—')}</td>
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px;color:${cor}">${fmtD(r.data_vencimento)}</td>
       </tr>`;
-    }).join('') || `<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--tx3);font-size:17px">Nenhum registro</td></tr>`;
+    }).join('') || `<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--tx3);font-size:17px">Nenhum registro</td></tr>`;
     iasDetailHtml = `
       <div style="background:var(--s2);border:1px solid ${kpiInfo?.cor}33;border-radius:8px;padding:14px;margin-top:8px;overflow-x:auto">
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:${kpiInfo?.cor};letter-spacing:1.5px;margin-bottom:10px">${kpiInfo?.label} — ${filtRows.length} PM${filtRows.length!==1?'s':''}</div>
-        <table style="width:100%;border-collapse:collapse;min-width:480px;table-layout:fixed">
-          <colgroup><col style="width:20%"><col style="width:22%"><col style="width:38%"><col style="width:20%"></colgroup>
-          <thead><tr><th style="${thS}">POSTO</th><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">VENCIMENTO</th></tr></thead>
+        <table style="width:100%;border-collapse:collapse;min-width:380px;table-layout:fixed">
+          <colgroup><col style="width:25%"><col style="width:50%"><col style="width:25%"></colgroup>
+          <thead><tr><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">VENCIMENTO</th></tr></thead>
           <tbody>${iasRowsHtml}</tbody>
         </table>
       </div>`;
