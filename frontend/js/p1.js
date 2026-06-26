@@ -2942,7 +2942,6 @@ function goSection(id, btn) {
   }
   if (id === 'uis') {
     loadUisSection();
-    loadIasSection();
   }
   setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
 }

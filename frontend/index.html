@@ -877,35 +877,14 @@
 <div id="page-uis" class="page">
   <div class="ph" style="position:relative">
     <div>
-      <div style="font-size:19px;color:var(--tx3);letter-spacing:2px;font-weight:600;margin-bottom:2px">UIS · UNIDADES INTEGRADAS DE SAÚDE</div>
-      <div class="ph-tag">RESTRIÇÕES MÉDICAS</div>
-      <div class="ph-title">UNIDADES INTEGRADAS DE <span style="color:#5ae09a">SAÚDE</span></div>
+      <div class="ph-tag">SAÚDE DO EFETIVO · BG PM 166/2006</div>
+      <div class="ph-title">UIS — UNIDADES INTEGRADAS DE <span style="color:#5ae09a">SAÚDE</span></div>
+      <div style="font-size:14px;color:var(--tx3);margin-top:2px">Restrições Médicas e IAS</div>
     </div>
     <div class="ph-meta" id="uis-updated">—</div>
   </div>
-  <!-- KPI cards -->
-  <div id="uis-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px"></div>
-  <!-- Breakdown por CIA/OPM -->
-  <div class="card" style="margin-bottom:14px">
-    <div class="card-head"><div class="card-title">Restrições Ativas por CIA</div></div>
-    <div id="uis-por-opm"></div>
-  </div>
-  <!-- Breakdown por código -->
-  <div class="card" style="margin-bottom:14px">
-    <div class="card-head"><div class="card-title">Códigos mais frequentes</div><div style="font-size:13px;color:var(--tx3)">BG PM 166/2006</div></div>
-    <div id="uis-por-codigo"></div>
-  </div>
-  <!-- IAS — INSPEÇÃO ANUAL DE SAÚDE -->
-  <div style="border-top:1px solid var(--bd);padding-top:18px;margin-top:4px">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
-      <div>
-        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">IAS · INSPEÇÃO ANUAL DE SAÚDE</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:.5px">REGULARIDADE <span style="color:#5a9de0">IAS</span></div>
-        <div style="font-size:19px;color:var(--tx3);margin-top:2px">Validade 1 ano — pré-requisito para TAF/TAT</div>
-      </div>
-    </div>
-    <div id="ias-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px"></div>
-  </div>
+  <div id="uis-filtro-bar" class="pf" style="margin-bottom:16px"></div>
+  <div id="uis-content"></div>
 </div>
 
 <!-- MODAL UPLOAD UIS RESTRIÇÕES -->
@@ -1009,9 +988,9 @@
 <script src="js/upload.js?v=20260624"></script>
 <script src="js/ocorr-modal.js?v=20260624"></script>
 <script src="js/intel.js?v=20260624"></script>
-<script src="js/p1.js?v=20260626d"></script>
+<script src="js/p1.js?v=20260626e"></script>
 <script src="js/p3.js?v=20260701"></script>
-<script src="js/uis.js?v=20260626b"></script>
+<script src="js/uis.js?v=20260626e"></script>
 <script src="js/init.js?v=20260624"></script>
 </body>
 </html>

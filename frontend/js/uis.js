@@ -86,36 +86,98 @@ function uisExtrairCodigos(codigos_str) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SEÇÃO UIS — renderização dos KPI cards e breakdowns
+// SEÇÃO UIS — estado, filtros e renderização principal
 // ═══════════════════════════════════════════════════════════════
 
-async function loadUisSection() {
-  try {
-    const stats = await authFetch(`${API}/uis/stats`).then(r => r.json());
-    renderUisKpis(stats);
-    renderUisPorOpm(stats.por_opm || {}, stats.por_opm_codigos || {});
-    renderUisPorCodigo(stats.por_codigo || {});
-  } catch (e) {
-    document.getElementById('uis-kpis').innerHTML = `<div style="color:#f07878;font-size:13px">Erro ao carregar dados UIS: ${e.message}</div>`;
-  }
+let _uisFiltroIdx = -1;  // -1 = batalhão, 0+ = índice CIA em CIA_STRUCT
+let _uisKpiAberto = null; // drill-down KPI UIS aberto
+let _iasKpiAberto = null; // drill-down KPI IAS aberto
 
+function uisSetFiltro(idx) {
+  _uisFiltroIdx = idx;
+  _uisKpiAberto = null;
+  _iasKpiAberto = null;
+  renderUisPage();
 }
 
-function renderUisKpis(stats) {
-  const cards = [
-    { label: 'COM RESTRIÇÃO ATIVA',    val: stats.total_ativas,    cor: '#5ae09a' },
-    { label: 'SOMENTE ADMINISTRATIVO', val: stats.total_admin_only, cor: '#f07878' },
-    { label: 'VENCENDO EM 30 DIAS',    val: stats.total_vencendo,   cor: '#c8a84b' },
-    { label: 'RESTRIÇÃO VENCIDA',      val: stats.total_vencidas,   cor: '#e05555' },
-  ];
-  const el = document.getElementById('uis-kpis');
-  el.style.gridTemplateColumns = 'repeat(auto-fill,minmax(210px,1fr))';
-  el.innerHTML = cards.map(c => `
-    <div class="kpi" style="cursor:default">
-      <div class="kpi-top" style="background:${c.cor}"></div>
-      <div class="kpi-lbl">${c.label}</div>
-      <div class="kpi-val" style="color:${c.cor}">${c.val ?? '—'}</div>
-    </div>`).join('');
+function uisKpiToggle(tipo) {
+  _uisKpiAberto = _uisKpiAberto === tipo ? null : tipo;
+  renderUisPage();
+}
+
+function iasKpiToggle(tipo) {
+  _iasKpiAberto = _iasKpiAberto === tipo ? null : tipo;
+  renderUisPage();
+}
+
+function _uisOpmPassFilter(opm) {
+  if (_uisFiltroIdx < 0 || typeof CIA_STRUCT === 'undefined') return true;
+  const cia = CIA_STRUCT[_uisFiltroIdx];
+  if (!cia) return true;
+  return typeof _opmMatch === 'function' ? _opmMatch(opm || '', cia.units.flatMap(u => u.keys)) : true;
+}
+
+function _uisFilteredRestMap() {
+  if (!_uisRestMap) return {};
+  if (_uisFiltroIdx < 0) return _uisRestMap;
+  const result = {};
+  for (const [re, recs] of Object.entries(_uisRestMap)) {
+    const f = recs.filter(r => _uisOpmPassFilter(r.opm));
+    if (f.length) result[re] = f;
+  }
+  return result;
+}
+
+function _uisFilteredIasMap() {
+  if (!_iasMap) return {};
+  if (_uisFiltroIdx < 0) return _iasMap;
+  const result = {};
+  for (const [re, rec] of Object.entries(_iasMap)) {
+    if (_uisOpmPassFilter(rec.opm)) result[re] = rec;
+  }
+  return result;
+}
+
+function _iasStatusFromRec(rec) {
+  if (!rec) return null;
+  if (!rec.data_vencimento) return 'vencido';
+  const today = new Date().toISOString().slice(0, 10);
+  const em30  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  if (rec.data_vencimento < today) return 'vencido';
+  if (rec.data_vencimento <= em30) return 'vencendo';
+  return 'apto';
+}
+
+function _iasAnivMes(aniv) {
+  if (!aniv) return null;
+  const s = String(aniv);
+  const slash = s.split('/');
+  if (slash.length >= 2) return slash[0].length <= 2 && parseInt(slash[0]) > 12 ? slash[1].padStart(2,'0') : slash[0].padStart(2,'0');
+  const dash = s.split('-');
+  if (dash.length >= 3) return dash[1].padStart(2,'0');
+  return null;
+}
+
+function renderUisFiltroBar() {
+  const el = document.getElementById('uis-filtro-bar');
+  if (!el || typeof CIA_STRUCT === 'undefined') return;
+  el.innerHTML =
+    `<button class="pf-btn${_uisFiltroIdx === -1 ? ' on' : ''}" onclick="uisSetFiltro(-1)">Batalhão</button>` +
+    CIA_STRUCT.map((cia, i) =>
+      `<button class="pf-btn${_uisFiltroIdx === i ? ' on' : ''}" onclick="uisSetFiltro(${i})" style="${_uisFiltroIdx===i?`color:${cia.color};border-color:${cia.color}55`:''}">${cia.label}</button>`
+    ).join('');
+}
+
+async function loadUisSection() {
+  const content = document.getElementById('uis-content');
+  if (content) content.innerHTML = '<div style="color:var(--tx3);font-size:13px;padding:20px">Carregando...</div>';
+  try {
+    await Promise.all([loadUisRestricoes(), loadIasMapa()]);
+    renderUisFiltroBar();
+    renderUisPage();
+  } catch (e) {
+    if (content) content.innerHTML = `<div style="color:#f07878;font-size:13px">Erro ao carregar UIS: ${e.message}</div>`;
+  }
 }
 
 // Mapeia OPM para a cor da CIA correspondente (usa CIA_COR de users.js).
@@ -598,32 +660,9 @@ function iasBadge(re) {
   return `<span onclick="event.stopPropagation();openIasPmModal('${key}')" title="IAS vencendo — clique para ver" style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;background:#c8a84b18;border:1px solid #c8a84b55;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;color:#c8a84b;margin-left:6px">💉 IAS ⚠ ${dias}d</span>`;
 }
 
-// ─── KPIs da seção UIS (IAS) ───────────────────────────────────
+// ─── IAS section load (unificado em loadUisSection) ────────────
 async function loadIasSection() {
-  try {
-    const stats = await authFetch(`${API}/ias/stats`).then(r => r.json());
-    renderIasKpis(stats);
-  } catch (e) {
-    const el = document.getElementById('ias-kpis');
-    if (el) el.innerHTML = `<div style="color:#f07878;font-size:13px">Erro ao carregar IAS: ${e.message}</div>`;
-  }
-}
-
-function renderIasKpis(stats) {
-  const el = document.getElementById('ias-kpis');
-  if (!el) return;
-  const cards = [
-    { label: 'TOTAL REGISTROS',    val: stats.total ?? '—',         cor: '#ffffff' },
-    { label: 'APTOS (VÁLIDOS)',    val: stats.total_aptos ?? '—',    cor: '#4bc87a' },
-    { label: 'VENCENDO EM 30 DIAS', val: stats.total_vencendo ?? '—', cor: '#c8a84b' },
-    { label: 'IAS VENCIDA',        val: stats.total_vencidos ?? '—', cor: '#e05555' },
-  ];
-  el.innerHTML = cards.map(c => `
-    <div class="kpi" style="cursor:default">
-      <div class="kpi-top" style="background:${c.cor}"></div>
-      <div class="kpi-lbl">${c.label}</div>
-      <div class="kpi-val" style="color:${c.cor}">${c.val}</div>
-    </div>`).join('');
+  if (_iasMap !== null && _uisRestMap !== null) renderUisPage();
 }
 
 // ─── Modal de upload IAS ───────────────────────────────────────
@@ -686,8 +725,8 @@ async function confirmIasUpload() {
     if (!res.ok || !json.ok) throw new Error(json.error || 'Erro desconhecido');
     showIasMsg(`✓ ${json.inserted} registros importados com sucesso.`, 'ok');
     btn.textContent = 'Importar';
-    loadIasSection();
     await loadIasMapa();
+    renderUisPage();
   } catch (err) {
     showIasMsg('✗ ' + err.message, 'err');
     btn.disabled = false; btn.textContent = 'Importar';
@@ -745,4 +784,322 @@ function renderIasPmContent(rec) {
       <div style="font-size:13px;font-weight:700;color:${corVal}">${vencida ? 'IAS VENCIDA — Regularizar para TAF/TAT' : vencendo ? `IAS vence em ${diasRest} dias — Regularizar em breve` : venc ? 'IAS VÁLIDA — Apto para TAF/TAT' : 'Data de vencimento não informada'}</div>
     </div>
   </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDERIZAÇÃO PRINCIPAL DA PÁGINA UIS
+// ═══════════════════════════════════════════════════════════════
+
+function renderUisPage() {
+  const el = document.getElementById('uis-content');
+  if (!el) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const em30  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  const em60  = new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10);
+  const em90  = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
+
+  const restMap  = _uisFilteredRestMap();
+  const iasMapF  = _uisFilteredIasMap();
+  const restEntries = Object.entries(restMap);
+  const iasVals     = Object.entries(iasMapF);
+
+  // ── UIS stats ──────────────────────────────────────────────
+  const restAtivas  = restEntries.length;
+  const restAdm     = restEntries.filter(([,recs]) => recs.some(r => uisExtrairCodigos(r.codigos).some(c => UIS_CODIGOS[c]?.grupo === 'admin_only'))).length;
+  const restVenc30  = restEntries.filter(([,recs]) => recs.some(r => r.termino && r.termino >= today && r.termino <= em30)).length;
+  const restVencida = restEntries.filter(([,recs]) => recs.some(r => r.termino && r.termino < today)).length;
+
+  // ── IAS stats ──────────────────────────────────────────────
+  const iasTotal   = iasVals.length;
+  const iasAptos   = iasVals.filter(([,r]) => _iasStatusFromRec(r) === 'apto').length;
+  const iasVenc30  = iasVals.filter(([,r]) => _iasStatusFromRec(r) === 'vencendo').length;
+  const iasVencida = iasVals.filter(([,r]) => _iasStatusFromRec(r) === 'vencido').length;
+
+  // ── Capacity bar ───────────────────────────────────────────
+  let capacidadeHtml = '';
+  const totalPmsRaw = (typeof p1Data !== 'undefined' && p1Data.length) ? p1Data : [];
+  if (totalPmsRaw.length > 0) {
+    let pmsF = totalPmsRaw;
+    if (_uisFiltroIdx >= 0 && typeof CIA_STRUCT !== 'undefined') {
+      const cia = CIA_STRUCT[_uisFiltroIdx];
+      pmsF = totalPmsRaw.filter(r => _opmMatch(r.opm || '', cia.units.flatMap(u => u.keys)));
+    }
+    if (pmsF.length > 0) {
+      const comRest = new Set(pmsF.filter(r => !!restMap[uisNormRE(r.re)]?.length).map(r => r.re));
+      const comIasV = new Set(pmsF.filter(r => _iasStatusFromRec(iasMapF[uisNormRE(r.re)]) === 'vencido').map(r => r.re));
+      const pendSet = new Set([...comRest, ...comIasV]);
+      const plenos  = pmsF.length - pendSet.size;
+      const pct     = Math.round(plenos / pmsF.length * 100);
+      const cor     = pct >= 90 ? '#4bc87a' : pct >= 75 ? '#c8a84b' : '#e05555';
+      capacidadeHtml = `
+        <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${cor};border-radius:10px;padding:18px 20px;margin-bottom:18px">
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:${cor};letter-spacing:1.5px;margin-bottom:10px">CAPACIDADE OPERACIONAL PLENA · SEM PENDÊNCIAS UIS/IAS</div>
+          <div style="display:flex;align-items:center;gap:16px">
+            <div style="flex:1;background:rgba(255,255,255,.06);border-radius:6px;height:10px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:${cor};border-radius:6px;transition:width .5s"></div>
+            </div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:800;color:${cor};line-height:1">${plenos}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">de ${pmsF.length} PMs<br>${pct}%</div>
+          </div>
+        </div>`;
+    }
+  }
+
+  // ── UIS KPIs clicáveis ─────────────────────────────────────
+  const thS = 'padding:8px 10px;font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3);letter-spacing:1px;border-bottom:1px solid var(--bd2);text-align:left;font-weight:400';
+  const tdS = 'padding:8px 10px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd)';
+  const fmtD = s => s ? s.split('-').reverse().join('/') : '—';
+
+  const uisKpiData = [
+    { key: 'ativas',  label: 'COM RESTRIÇÃO ATIVA',    val: restAtivas,  cor: '#5ae09a' },
+    { key: 'adm',     label: 'SOMENTE ADMINISTRATIVO', val: restAdm,     cor: '#f07878' },
+    { key: 'venc30',  label: 'VENCENDO EM 30 DIAS',    val: restVenc30,  cor: '#c8a84b' },
+    { key: 'vencida', label: 'RESTRIÇÃO VENCIDA',      val: restVencida, cor: '#e05555' },
+  ];
+  const uisKpisHtml = uisKpiData.map(c => {
+    const open = _uisKpiAberto === c.key;
+    return `<div class="kpi" onclick="${c.val > 0 ? `uisKpiToggle('${c.key}')` : ''}" style="cursor:${c.val > 0 ? 'pointer' : 'default'};border:1px solid ${open ? c.cor+'88' : 'var(--bd)'};transition:border .2s">
+      <div class="kpi-top" style="background:${c.cor}"></div>
+      <div class="kpi-lbl">${c.label}</div>
+      <div class="kpi-val" style="color:${c.cor}">${c.val ?? '—'}</div>
+      ${c.val > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-top:4px">${open ? '▲ fechar' : '▼ ver lista'}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  // ── UIS KPI detail ─────────────────────────────────────────
+  let uisDetailHtml = '';
+  if (_uisKpiAberto) {
+    const rows = (() => {
+      if (_uisKpiAberto === 'ativas')  return restEntries;
+      if (_uisKpiAberto === 'adm')     return restEntries.filter(([,recs]) => recs.some(r => uisExtrairCodigos(r.codigos).some(c => UIS_CODIGOS[c]?.grupo === 'admin_only')));
+      if (_uisKpiAberto === 'venc30')  return restEntries.filter(([,recs]) => recs.some(r => r.termino && r.termino >= today && r.termino <= em30));
+      if (_uisKpiAberto === 'vencida') return restEntries.filter(([,recs]) => recs.some(r => r.termino && r.termino < today));
+      return [];
+    })().sort((a, b) => (a[1][0]?.opm||'').localeCompare(b[1][0]?.opm||''));
+    const kpiInfo = uisKpiData.find(c => c.key === _uisKpiAberto);
+    const rowsHtml = rows.map(([re, recs]) => {
+      const iasRec  = iasMapF[re];
+      const nome    = iasRec?.nome_guerra || iasRec?.nome || '—';
+      const posto   = iasRec?.posto || '—';
+      const opm     = recs[0]?.opm || '—';
+      const allCods = [...new Set(recs.flatMap(r => uisExtrairCodigos(r.codigos)))];
+      const grupo   = uisGrupoMaisRestritivo(allCods);
+      const gInfo   = grupo ? UIS_GRUPOS[grupo] : null;
+      const cor     = gInfo ? gInfo.cor : '#c8a84b';
+      const codsHtml = allCods.slice(0,5).map(c => `<span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:${cor};background:${cor}12;border:1px solid ${cor}33;border-radius:3px;padding:1px 5px">${c}</span>`).join(' ');
+      const termino  = recs.reduce((min,r) => r.termino && (!min||r.termino<min) ? r.termino : min, null);
+      return `<tr>
+        <td style="${tdS}">${escHtml(posto)}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:12px">${re}</td>
+        <td style="${tdS}">${escHtml(nome)}</td>
+        <td style="${tdS};font-size:12px">${escHtml(opm)}</td>
+        <td style="${tdS}">${codsHtml}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:12px;color:${termino&&termino<today?'#e05555':termino&&termino<=em30?'#c8a84b':'var(--tx)'}">${fmtD(termino)}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">Nenhum registro</td></tr>`;
+    uisDetailHtml = `
+      <div style="background:var(--s2);border:1px solid ${kpiInfo?.cor}33;border-radius:8px;padding:14px;margin-top:8px;overflow-x:auto">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:${kpiInfo?.cor};letter-spacing:1.5px;margin-bottom:10px">${kpiInfo?.label} — ${rows.length} PM${rows.length!==1?'s':''}</div>
+        <table style="width:100%;border-collapse:collapse;min-width:560px">
+          <thead><tr><th style="${thS}">POSTO</th><th style="${thS}">RE</th><th style="${thS}">NOME GUERRA</th><th style="${thS}">OPM</th><th style="${thS}">CÓDIGOS</th><th style="${thS}">TÉRMINO</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>`;
+  }
+
+  // ── UIS por OPM/código (computa do restMap) ────────────────
+  const porOpm = {}, porOpmCodigos = {}, porCodigo = {};
+  restEntries.forEach(([, recs]) => {
+    const opm = recs[0]?.opm || 'Sem OPM';
+    porOpm[opm] = (porOpm[opm]||0) + 1;
+    if (!porOpmCodigos[opm]) porOpmCodigos[opm] = {};
+    recs.forEach(r => uisExtrairCodigos(r.codigos).forEach(c => {
+      porOpmCodigos[opm][c] = (porOpmCodigos[opm][c]||0) + 1;
+      porCodigo[c] = (porCodigo[c]||0) + 1;
+    }));
+  });
+
+  // ── IAS KPIs clicáveis ─────────────────────────────────────
+  const iasKpiData = [
+    { key: 'total',   label: 'TOTAL REGISTROS',     val: iasTotal,   cor: '#ffffff' },
+    { key: 'aptos',   label: 'APTOS (VÁLIDOS)',      val: iasAptos,   cor: '#4bc87a' },
+    { key: 'venc30',  label: 'VENCENDO EM 30 DIAS',  val: iasVenc30,  cor: '#c8a84b' },
+    { key: 'vencida', label: 'IAS VENCIDA',          val: iasVencida, cor: '#e05555' },
+  ];
+  const iasKpisHtml = iasKpiData.map(c => {
+    const open = _iasKpiAberto === c.key;
+    const drill = c.key !== 'total' && c.val > 0;
+    return `<div class="kpi" onclick="${drill ? `iasKpiToggle('${c.key}')` : ''}" style="cursor:${drill?'pointer':'default'};border:1px solid ${open?c.cor+'88':'var(--bd)'};transition:border .2s">
+      <div class="kpi-top" style="background:${c.cor}"></div>
+      <div class="kpi-lbl">${c.label}</div>
+      <div class="kpi-val" style="color:${c.cor}">${c.val ?? '—'}</div>
+      ${drill ? `<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-top:4px">${open ? '▲ fechar' : '▼ ver lista'}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  // ── IAS KPI detail ─────────────────────────────────────────
+  let iasDetailHtml = '';
+  if (_iasKpiAberto) {
+    const filtRows = iasVals.filter(([,r]) => {
+      const s = _iasStatusFromRec(r);
+      if (_iasKpiAberto === 'aptos')   return s === 'apto';
+      if (_iasKpiAberto === 'venc30')  return s === 'vencendo';
+      if (_iasKpiAberto === 'vencida') return s === 'vencido';
+      return false;
+    }).sort((a,b) => (a[1].data_vencimento||'').localeCompare(b[1].data_vencimento||''));
+    const kpiInfo = iasKpiData.find(c => c.key === _iasKpiAberto);
+    const iasRowsHtml = filtRows.map(([re, r]) => {
+      const s   = _iasStatusFromRec(r);
+      const cor = s === 'vencido' ? '#e05555' : s === 'vencendo' ? '#c8a84b' : '#4bc87a';
+      return `<tr>
+        <td style="${tdS}">${escHtml(r.posto||'—')}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:12px">${re}</td>
+        <td style="${tdS}">${escHtml(r.nome_guerra||r.nome||'—')}</td>
+        <td style="${tdS};font-size:12px">${escHtml(r.opm||'—')}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;color:${cor}">${fmtD(r.data_vencimento)}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">Nenhum registro</td></tr>`;
+    iasDetailHtml = `
+      <div style="background:var(--s2);border:1px solid ${kpiInfo?.cor}33;border-radius:8px;padding:14px;margin-top:8px;overflow-x:auto">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:${kpiInfo?.cor};letter-spacing:1.5px;margin-bottom:10px">${kpiInfo?.label} — ${filtRows.length} PM${filtRows.length!==1?'s':''}</div>
+        <table style="width:100%;border-collapse:collapse;min-width:460px">
+          <thead><tr><th style="${thS}">POSTO</th><th style="${thS}">RE</th><th style="${thS}">NOME GUERRA</th><th style="${thS}">OPM</th><th style="${thS}">VENCIMENTO</th></tr></thead>
+          <tbody>${iasRowsHtml}</tbody>
+        </table>
+      </div>`;
+  }
+
+  // ── IAS Timeline 30/60/90 dias ─────────────────────────────
+  const tlVencidas = iasVals.filter(([,r]) => r.data_vencimento && r.data_vencimento < today).length;
+  const tl30       = iasVals.filter(([,r]) => r.data_vencimento && r.data_vencimento >= today && r.data_vencimento <= em30).length;
+  const tl60       = iasVals.filter(([,r]) => r.data_vencimento && r.data_vencimento > em30 && r.data_vencimento <= em60).length;
+  const tl90       = iasVals.filter(([,r]) => r.data_vencimento && r.data_vencimento > em60 && r.data_vencimento <= em90).length;
+  const tlMax      = Math.max(tlVencidas, tl30, tl60, tl90, 1);
+  const tlBar = (label, count, cor, sub) => count > 0 ? `
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <div><div style="font-size:13px;color:#ffffff">${label}</div><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">${sub}</div></div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${cor}">${count}</div>
+      </div>
+      <div style="background:rgba(255,255,255,.06);border-radius:4px;height:6px">
+        <div style="height:100%;width:${Math.round(count/tlMax*100)}%;background:${cor};border-radius:4px"></div>
+      </div>
+    </div>` : '';
+  const iasTimelineHtml = (tlVencidas+tl30+tl60+tl90) > 0 ? `
+    <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:18px 20px;margin-bottom:14px">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:14px">IAS · VENCIMENTOS POR PERÍODO</div>
+      ${tlBar('Já vencidas', tlVencidas, '#e05555', 'regularizar imediatamente')}
+      ${tlBar('Vencem em 30 dias', tl30, '#c8a84b', 'ação urgente')}
+      ${tlBar('Vencem em 31–60 dias', tl60, '#e0a030', 'atenção')}
+      ${tlBar('Vencem em 61–90 dias', tl90, '#5a9de0', 'planejamento')}
+    </div>` : '';
+
+  // ── IAS por OPM ────────────────────────────────────────────
+  const iasPorOpm = {};
+  iasVals.forEach(([,r]) => {
+    const opm = r.opm || 'Sem OPM';
+    if (!iasPorOpm[opm]) iasPorOpm[opm] = { total:0, aptos:0, venc30:0, vencida:0 };
+    iasPorOpm[opm].total++;
+    const s = _iasStatusFromRec(r);
+    if (s === 'apto')     iasPorOpm[opm].aptos++;
+    if (s === 'vencendo') iasPorOpm[opm].venc30++;
+    if (s === 'vencido')  iasPorOpm[opm].vencida++;
+  });
+  const iasPorOpmEntries = Object.entries(iasPorOpm).sort((a,b) => b[1].total - a[1].total);
+  const iasPorOpmHtml = iasPorOpmEntries.length > 0 ? `
+    <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5ae09a;border-radius:10px;padding:18px 20px;margin-bottom:14px">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5ae09a;letter-spacing:1.5px;margin-bottom:14px">IAS · SITUAÇÃO POR OPM</div>
+      ${iasPorOpmEntries.map(([opm, s]) => {
+        const cor    = uisCiaColor(opm);
+        const pctA   = s.total > 0 ? Math.round(s.aptos/s.total*100) : 0;
+        const pctV30 = s.total > 0 ? Math.round(s.venc30/s.total*100) : 0;
+        const pctVc  = s.total > 0 ? Math.round(s.vencida/s.total*100) : 0;
+        return `<div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${s.total} PMs</div>
+          </div>
+          <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.06)">
+            ${s.aptos>0?`<div style="width:${pctA}%;background:#4bc87a" title="Aptos: ${s.aptos}"></div>`:''}
+            ${s.venc30>0?`<div style="width:${pctV30}%;background:#c8a84b" title="Vencendo: ${s.venc30}"></div>`:''}
+            ${s.vencida>0?`<div style="width:${pctVc}%;background:#e05555" title="Vencidas: ${s.vencida}"></div>`:''}
+          </div>
+          <div style="display:flex;gap:10px;margin-top:4px;font-family:'DM Mono',monospace;font-size:10px">
+            ${s.aptos>0?`<span style="color:#4bc87a">${s.aptos} aptos</span>`:''}
+            ${s.venc30>0?`<span style="color:#c8a84b">${s.venc30} vencendo</span>`:''}
+            ${s.vencida>0?`<span style="color:#e05555">${s.vencida} vencida</span>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
+  // ── IAS agendar este mês / próximo ─────────────────────────
+  const mesAtual = today.slice(5,7);
+  const mesProx  = String((parseInt(mesAtual)%12)+1).padStart(2,'0');
+  const agendarPms = iasVals.filter(([,r]) => { const m = _iasAnivMes(r.data_aniversario); return m === mesAtual || m === mesProx; });
+  const iasAgendarHtml = agendarPms.length > 0 ? `
+    <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #c8a84b;border-radius:10px;padding:18px 20px;margin-bottom:14px">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#c8a84b;letter-spacing:1.5px;margin-bottom:4px">IAS · AGENDAR INSPEÇÃO — MÊS ATUAL E PRÓXIMO</div>
+      <div style="font-size:12px;color:var(--tx3);margin-bottom:12px">A IAS é realizada no mês de aniversário — estes PMs precisam agendar em breve.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${agendarPms.map(([re,r]) => `<div style="background:rgba(200,168,75,.1);border:1px solid rgba(200,168,75,.3);border-radius:6px;padding:6px 12px;cursor:pointer" onclick="openIasPmModal('${re}')">
+          <div style="font-size:13px;color:#ffffff;font-weight:600">${escHtml(r.nome_guerra||r.nome||re)}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:#c8a84b">${r.posto||''} · ${r.opm||''}</div>
+        </div>`).join('')}
+      </div>
+    </div>` : '';
+
+  // ── Alerta duplo (UIS ativa + IAS vencida) ─────────────────
+  const duplos = Object.entries(restMap).filter(([re]) => _iasStatusFromRec(iasMapF[re]) === 'vencido');
+  const alertasHtml = duplos.length > 0 ? `
+    <div style="background:var(--s2);border:1px solid #f0787844;border-top:3px solid #f07878;border-radius:10px;padding:18px 20px;margin-bottom:14px">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#f07878;letter-spacing:1.5px;margin-bottom:4px">⚠ ALERTA — PENDÊNCIA DUPLA (UIS + IAS VENCIDA)</div>
+      <div style="font-size:12px;color:var(--tx3);margin-bottom:12px">${duplos.length} PM${duplos.length!==1?'s':''} com restrição UIS ativa <b>e</b> IAS vencida simultaneamente.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${duplos.map(([re, recs]) => {
+          const iasRec = iasMapF[re];
+          const nome   = iasRec?.nome_guerra || iasRec?.nome || re;
+          const posto  = iasRec?.posto || '—';
+          const opm    = recs[0]?.opm || iasRec?.opm || '—';
+          return `<div style="background:rgba(240,120,120,.08);border:1px solid #f0787844;border-radius:6px;padding:8px 14px;cursor:pointer" onclick="openIasPmModal('${re}')">
+            <div style="font-size:13px;color:#ffffff;font-weight:600">${escHtml(nome)}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:#f07878">${escHtml(posto)} · ${escHtml(opm)}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : '';
+
+  // ── Render final ───────────────────────────────────────────
+  el.innerHTML = `
+    ${capacidadeHtml}
+    <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5ae09a;border-radius:10px;padding:18px 20px;margin-bottom:14px">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5ae09a;letter-spacing:1.5px;margin-bottom:14px">RESTRIÇÕES MÉDICAS · BG PM 166/2006</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:4px" id="uis-kpis">${uisKpisHtml}</div>
+      ${uisDetailHtml}
+    </div>
+    ${Object.keys(porOpm).length > 0 ? `
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-head"><div class="card-title">Restrições Ativas por CIA</div></div>
+      <div id="uis-por-opm"></div>
+    </div>` : ''}
+    ${Object.keys(porCodigo).length > 0 ? `
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-head"><div class="card-title">Códigos mais frequentes</div><div style="font-size:13px;color:var(--tx3)">BG PM 166/2006</div></div>
+      <div id="uis-por-codigo"></div>
+    </div>` : ''}
+    <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:18px 20px;margin-bottom:14px">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:14px">INSPEÇÃO ANUAL DE SAÚDE · IAS</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:4px" id="ias-kpis">${iasKpisHtml}</div>
+      ${iasDetailHtml}
+    </div>
+    ${iasTimelineHtml}
+    ${iasPorOpmHtml}
+    ${iasAgendarHtml}
+    ${alertasHtml}
+  `;
+
+  renderUisPorOpm(porOpm, porOpmCodigos);
+  renderUisPorCodigo(porCodigo);
+  if (window.lucide) lucide.createIcons();
 }
