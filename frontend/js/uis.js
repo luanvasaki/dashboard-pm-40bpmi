@@ -801,9 +801,20 @@ function renderIasPmContent(rec) {
 // RENDERIZAÇÃO PRINCIPAL DA PÁGINA UIS
 // ═══════════════════════════════════════════════════════════════
 
+function _iasEnrichOpmFromP1() {
+  if (!_iasMap || typeof p1Data === 'undefined' || !p1Data.length) return;
+  const lookup = {};
+  p1Data.forEach(pm => { if (pm.re) lookup[uisNormRE(pm.re)] = pm.opm || ''; });
+  for (const [re, rec] of Object.entries(_iasMap)) {
+    if (!rec.opm) rec.opm = lookup[re] || '';
+  }
+}
+
 function renderUisPage() {
   const el = document.getElementById('uis-content');
   if (!el) return;
+
+  _iasEnrichOpmFromP1();
 
   const today = new Date().toISOString().slice(0, 10);
   const em30  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
@@ -1041,6 +1052,8 @@ function renderUisPage() {
 
 function renderUisDetail() {
   if (!_uisDetTipo) return;
+
+  _iasEnrichOpmFromP1();
 
   const today = new Date().toISOString().slice(0, 10);
   const em30  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
