@@ -90,23 +90,32 @@ function uisExtrairCodigos(codigos_str) {
 // ═══════════════════════════════════════════════════════════════
 
 let _uisFiltroIdx = -1;  // -1 = batalhão, 0+ = índice CIA em CIA_STRUCT
-let _uisKpiAberto = null; // drill-down KPI UIS aberto
-let _iasKpiAberto = null; // drill-down KPI IAS aberto
+let _uisCardAberto = null; // 'uis' | 'ias' | null
+let _uisSubFiltro  = null; // grupo key | null (drill-down UIS)
+let _iasSubFiltro  = null; // 'aptos'|'vencendo'|'vencida'|null (drill-down IAS)
 
 function uisSetFiltro(idx) {
-  _uisFiltroIdx = idx;
-  _uisKpiAberto = null;
-  _iasKpiAberto = null;
+  _uisFiltroIdx  = idx;
+  _uisCardAberto = null;
+  _uisSubFiltro  = null;
+  _iasSubFiltro  = null;
   renderUisPage();
 }
 
-function uisKpiToggle(tipo) {
-  _uisKpiAberto = _uisKpiAberto === tipo ? null : tipo;
+function uisCardToggle(card) {
+  _uisCardAberto = _uisCardAberto === card ? null : card;
+  _uisSubFiltro  = null;
+  _iasSubFiltro  = null;
   renderUisPage();
 }
 
-function iasKpiToggle(tipo) {
-  _iasKpiAberto = _iasKpiAberto === tipo ? null : tipo;
+function uisSubFiltroSet(key) {
+  _uisSubFiltro = _uisSubFiltro === key ? null : key;
+  renderUisPage();
+}
+
+function iasSubFiltroSet(key) {
+  _iasSubFiltro = _iasSubFiltro === key ? null : key;
   renderUisPage();
 }
 
@@ -846,63 +855,68 @@ function renderUisPage() {
     }
   }
 
-  // ── UIS KPIs clicáveis ─────────────────────────────────────
+  // ── Estilos de tabela ──────────────────────────────────────
   const thS = 'padding:14px 18px;font-family:"DM Mono",monospace;font-size:16px;color:var(--tx3);letter-spacing:1px;border-bottom:2px solid var(--bd2);text-align:left;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
   const tdS = 'padding:14px 18px;font-size:19px;color:var(--tx);border-bottom:1px solid var(--bd);vertical-align:middle';
   const fmtD = s => s ? s.split('-').reverse().join('/') : '—';
 
-  const uisKpiData = [
-    { key: 'ativas',  label: 'COM RESTRIÇÃO ATIVA',    val: restAtivas,  cor: '#5ae09a' },
-    { key: 'adm',     label: 'SOMENTE ADMINISTRATIVO', val: restAdm,     cor: '#f07878' },
-    { key: 'venc30',  label: 'VENCENDO EM 30 DIAS',    val: restVenc30,  cor: '#c8a84b' },
-    { key: 'vencida', label: 'RESTRIÇÃO VENCIDA',      val: restVencida, cor: '#e05555' },
-  ];
-  const uisKpisHtml = uisKpiData.map(c => {
-    const open = _uisKpiAberto === c.key;
-    return `<div class="kpi" onclick="${c.val > 0 ? `uisKpiToggle('${c.key}')` : ''}" style="cursor:${c.val > 0 ? 'pointer' : 'default'};border:1px solid ${open ? c.cor+'88' : 'var(--bd)'};transition:border .2s">
-      <div class="kpi-top" style="background:${c.cor}"></div>
-      <div class="kpi-lbl">${c.label}</div>
-      <div class="kpi-val" style="color:${c.cor}">${c.val ?? '—'}</div>
-      ${c.val > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff;margin-top:4px;opacity:.75">${open ? '▲ fechar' : '▼ ver lista'}</div>` : ''}
-    </div>`;
-  }).join('');
+  // ── UIS agrupamento por grupo (card + gráfico) ─────────────
+  const porGrupoUis = {};
+  restEntries.forEach(([re, recs]) => {
+    const allCods = [...new Set(recs.flatMap(r => uisExtrairCodigos(r.codigos)))];
+    const grupo = uisGrupoMaisRestritivo(allCods) || 'outros';
+    if (!porGrupoUis[grupo]) porGrupoUis[grupo] = [];
+    porGrupoUis[grupo].push([re, recs]);
+  });
+  const grupoMaxN = Math.max(...Object.values(porGrupoUis).map(a => a.length), 1);
 
-  // ── UIS KPI detail ─────────────────────────────────────────
-  let uisDetailHtml = '';
-  if (_uisKpiAberto) {
-    const rows = (() => {
-      if (_uisKpiAberto === 'ativas')  return restEntries;
-      if (_uisKpiAberto === 'adm')     return restEntries.filter(([,recs]) => recs.some(r => uisExtrairCodigos(r.codigos).some(c => UIS_CODIGOS[c]?.grupo === 'admin_only')));
-      if (_uisKpiAberto === 'venc30')  return restEntries.filter(([,recs]) => recs.some(r => r.termino && r.termino >= today && r.termino <= em30));
-      if (_uisKpiAberto === 'vencida') return restEntries.filter(([,recs]) => recs.some(r => r.termino && r.termino < today));
-      return [];
-    })().sort((a, b) => (a[1][0]?.opm||'').localeCompare(b[1][0]?.opm||''));
-    const kpiInfo = uisKpiData.find(c => c.key === _uisKpiAberto);
-    const rowsHtml = rows.map(([re, recs]) => {
-      const iasRec  = iasMapF[re];
-      const posto   = iasRec?.posto || '—';
-      const opm     = recs[0]?.opm || '—';
-      const allCods = [...new Set(recs.flatMap(r => uisExtrairCodigos(r.codigos)))];
-      const grupo   = uisGrupoMaisRestritivo(allCods);
-      const gInfo   = grupo ? UIS_GRUPOS[grupo] : null;
-      const cor     = gInfo ? gInfo.cor : '#c8a84b';
+  // Cor/barra card UIS
+  const restCampo = Object.entries(porGrupoUis).filter(([g]) => g !== 'admin_only').reduce((s,[,a])=>s+a.length,0);
+  const pctCampo  = restAtivas > 0 ? Math.round(restCampo / restAtivas * 100) : 0;
+  const uisCor    = restAtivas === 0 ? '#4bc87a' : pctCampo > 50 ? '#e05555' : '#c8a84b';
+
+  // Cor/barra card IAS
+  const pctAptos = iasTotal > 0 ? Math.round(iasAptos / iasTotal * 100) : 100;
+  const iasCor   = pctAptos >= 90 ? '#4bc87a' : pctAptos >= 75 ? '#c8a84b' : '#e05555';
+
+  // ── UIS drill-down (dentro do card grande) ────────────────
+  let uisDrillHtml = '';
+  if (_uisCardAberto === 'uis') {
+    const grupoEntries = Object.entries(porGrupoUis).sort((a,b) => b[1].length - a[1].length);
+    const uisSubBtns = grupoEntries.map(([grupo, arr]) => {
+      const gInfo  = UIS_GRUPOS[grupo];
+      const cor    = gInfo ? gInfo.cor : '#aaa';
+      const active = _uisSubFiltro === grupo;
+      return `<button onclick="event.stopPropagation();uisSubFiltroSet('${grupo}')" style="padding:8px 16px;background:${active?cor+'22':'transparent'};border:1px solid ${active?cor:cor+'44'};color:${cor};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;transition:all .15s">
+        ${escHtml(gInfo ? gInfo.label : grupo)}<span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:8px">${arr.length}</span>
+      </button>`;
+    }).join('');
+    const drillRows = (_uisSubFiltro ? (porGrupoUis[_uisSubFiltro] || []) : restEntries)
+      .slice().sort((a,b) => (a[1][0]?.opm||'').localeCompare(b[1][0]?.opm||''));
+    const drillRowsHtml = drillRows.map(([re, recs]) => {
+      const allCods  = [...new Set(recs.flatMap(r => uisExtrairCodigos(r.codigos)))];
+      const grupo    = uisGrupoMaisRestritivo(allCods);
+      const gInfo    = grupo ? UIS_GRUPOS[grupo] : null;
+      const cor      = gInfo ? gInfo.cor : '#c8a84b';
       const codsHtml = allCods.slice(0,5).map(c => `<span style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:${cor};background:${cor}12;border:1px solid ${cor}33;border-radius:3px;padding:3px 8px">${c}</span>`).join(' ');
       const termino  = recs.reduce((min,r) => r.termino && (!min||r.termino<min) ? r.termino : min, null);
       return `<tr>
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px">${re}</td>
-        <td style="${tdS}">${escHtml(opm)}</td>
+        <td style="${tdS}">${escHtml(recs[0]?.opm||'—')}</td>
         <td style="${tdS}">${codsHtml}</td>
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px;color:${termino&&termino<today?'#e05555':termino&&termino<=em30?'#c8a84b':'var(--tx)'}">${fmtD(termino)}</td>
       </tr>`;
     }).join('') || `<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--tx3);font-size:17px">Nenhum registro</td></tr>`;
-    uisDetailHtml = `
-      <div style="background:var(--s2);border:1px solid ${kpiInfo?.cor}33;border-radius:8px;padding:14px;margin-top:8px;overflow-x:auto">
-        <div style="font-family:'DM Mono',monospace;font-size:11px;color:${kpiInfo?.cor};letter-spacing:1.5px;margin-bottom:10px">${kpiInfo?.label} — ${rows.length} PM${rows.length!==1?'s':''}</div>
-        <table style="width:100%;border-collapse:collapse;min-width:480px;table-layout:fixed">
-          <colgroup><col style="width:20%"><col style="width:33%"><col style="width:30%"><col style="width:17%"></colgroup>
-          <thead><tr><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">CÓDIGOS</th><th style="${thS}">TÉRMINO</th></tr></thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>
+    uisDrillHtml = `
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--bd)" onclick="event.stopPropagation()">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">${uisSubBtns}</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;min-width:480px;table-layout:fixed">
+            <colgroup><col style="width:20%"><col style="width:33%"><col style="width:30%"><col style="width:17%"></colgroup>
+            <thead><tr><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">CÓDIGOS</th><th style="${thS}">TÉRMINO</th></tr></thead>
+            <tbody>${drillRowsHtml}</tbody>
+          </table>
+        </div>
       </div>`;
   }
 
@@ -918,36 +932,31 @@ function renderUisPage() {
     }));
   });
 
-  // ── IAS KPIs clicáveis ─────────────────────────────────────
-  const iasKpiData = [
-    { key: 'total',   label: 'TOTAL REGISTROS',     val: iasTotal,   cor: '#ffffff' },
-    { key: 'aptos',   label: 'APTOS (VÁLIDOS)',      val: iasAptos,   cor: '#4bc87a' },
-    { key: 'venc30',  label: 'VENCENDO EM 30 DIAS',  val: iasVenc30,  cor: '#c8a84b' },
-    { key: 'vencida', label: 'IAS VENCIDA',          val: iasVencida, cor: '#e05555' },
-  ];
-  const iasKpisHtml = iasKpiData.map(c => {
-    const open = _iasKpiAberto === c.key;
-    const drill = c.key !== 'total' && c.val > 0;
-    return `<div class="kpi" onclick="${drill ? `iasKpiToggle('${c.key}')` : ''}" style="cursor:${drill?'pointer':'default'};border:1px solid ${open?c.cor+'88':'var(--bd)'};transition:border .2s">
-      <div class="kpi-top" style="background:${c.cor}"></div>
-      <div class="kpi-lbl">${c.label}</div>
-      <div class="kpi-val" style="color:${c.cor}">${c.val ?? '—'}</div>
-      ${drill ? `<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-top:4px">${open ? '▲ fechar' : '▼ ver lista'}</div>` : ''}
-    </div>`;
-  }).join('');
-
-  // ── IAS KPI detail ─────────────────────────────────────────
-  let iasDetailHtml = '';
-  if (_iasKpiAberto) {
-    const filtRows = iasVals.filter(([,r]) => {
-      const s = _iasStatusFromRec(r);
-      if (_iasKpiAberto === 'aptos')   return s === 'apto';
-      if (_iasKpiAberto === 'venc30')  return s === 'vencendo';
-      if (_iasKpiAberto === 'vencida') return s === 'vencido';
-      return false;
-    }).sort((a,b) => (a[1].data_vencimento||'').localeCompare(b[1].data_vencimento||''));
-    const kpiInfo = iasKpiData.find(c => c.key === _iasKpiAberto);
-    const iasRowsHtml = filtRows.map(([re, r]) => {
+  // ── IAS drill-down (dentro do card grande) ────────────────
+  let iasDrillHtml = '';
+  if (_uisCardAberto === 'ias') {
+    const iasSubFilters = [
+      { key: 'aptos',    label: 'APTOS',    val: iasAptos,   cor: '#4bc87a' },
+      { key: 'vencendo', label: 'VENCENDO', val: iasVenc30,  cor: '#c8a84b' },
+      { key: 'vencida',  label: 'VENCIDAS', val: iasVencida, cor: '#e05555' },
+    ].filter(f => f.val > 0);
+    const iasSubBtns = iasSubFilters.map(f => {
+      const active = _iasSubFiltro === f.key;
+      return `<button onclick="event.stopPropagation();iasSubFiltroSet('${f.key}')" style="padding:8px 16px;background:${active?f.cor+'22':'transparent'};border:1px solid ${active?f.cor:f.cor+'44'};color:${f.cor};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;transition:all .15s">
+        ${f.label}<span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:8px">${f.val}</span>
+      </button>`;
+    }).join('');
+    const filtIas = (_iasSubFiltro
+      ? iasVals.filter(([,r]) => {
+          const s = _iasStatusFromRec(r);
+          if (_iasSubFiltro === 'aptos')    return s === 'apto';
+          if (_iasSubFiltro === 'vencendo') return s === 'vencendo';
+          if (_iasSubFiltro === 'vencida')  return s === 'vencido';
+          return true;
+        })
+      : iasVals
+    ).slice().sort((a,b) => (a[1].data_vencimento||'').localeCompare(b[1].data_vencimento||''));
+    const iasRowsHtml = filtIas.map(([re, r]) => {
       const s   = _iasStatusFromRec(r);
       const cor = s === 'vencido' ? '#e05555' : s === 'vencendo' ? '#c8a84b' : '#4bc87a';
       return `<tr>
@@ -956,14 +965,16 @@ function renderUisPage() {
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px;color:${cor}">${fmtD(r.data_vencimento)}</td>
       </tr>`;
     }).join('') || `<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--tx3);font-size:17px">Nenhum registro</td></tr>`;
-    iasDetailHtml = `
-      <div style="background:var(--s2);border:1px solid ${kpiInfo?.cor}33;border-radius:8px;padding:14px;margin-top:8px;overflow-x:auto">
-        <div style="font-family:'DM Mono',monospace;font-size:11px;color:${kpiInfo?.cor};letter-spacing:1.5px;margin-bottom:10px">${kpiInfo?.label} — ${filtRows.length} PM${filtRows.length!==1?'s':''}</div>
-        <table style="width:100%;border-collapse:collapse;min-width:380px;table-layout:fixed">
-          <colgroup><col style="width:25%"><col style="width:50%"><col style="width:25%"></colgroup>
-          <thead><tr><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">VENCIMENTO</th></tr></thead>
-          <tbody>${iasRowsHtml}</tbody>
-        </table>
+    iasDrillHtml = `
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--bd)" onclick="event.stopPropagation()">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">${iasSubBtns}</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;min-width:380px;table-layout:fixed">
+            <colgroup><col style="width:25%"><col style="width:50%"><col style="width:25%"></colgroup>
+            <thead><tr><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">VENCIMENTO</th></tr></thead>
+            <tbody>${iasRowsHtml}</tbody>
+          </table>
+        </div>
       </div>`;
   }
 
@@ -1077,26 +1088,84 @@ function renderUisPage() {
   // ── Render final ───────────────────────────────────────────
   el.innerHTML = `
     ${capacidadeHtml}
-    <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5ae09a;border-radius:10px;padding:18px 20px;margin-bottom:14px">
-      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5ae09a;letter-spacing:1.5px;margin-bottom:14px">RESTRIÇÕES MÉDICAS · BG PM 166/2006</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:4px" id="uis-kpis">${uisKpisHtml}</div>
-      ${uisDetailHtml}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+
+      <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${uisCor};border-radius:10px;padding:22px 24px;cursor:pointer" onclick="uisCardToggle('uis')">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:${uisCor};letter-spacing:1.5px;margin-bottom:14px">RESTRIÇÕES MÉDICAS · UIS</div>
+        <div style="display:flex;align-items:flex-start;gap:20px;margin-bottom:14px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:64px;font-weight:800;color:${uisCor};line-height:1;flex-shrink:0">${restAtivas}</div>
+          <div style="padding-top:6px">
+            <div style="font-size:18px;color:#ffffff;font-weight:600">PMs com restrição ativa</div>
+            <div style="font-size:15px;color:#ffffff;margin-top:6px;opacity:.85">${restAdm} só ADM · ${restVenc30} vencendo · ${restVencida} vencidas</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,.07);border-radius:4px;height:8px;margin-bottom:8px">
+          <div style="height:100%;width:${pctCampo}%;background:${uisCor};border-radius:4px"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;color:#ffffff">
+          <span>${pctCampo}% com restrição de campo</span>
+          <span style="opacity:.6">${_uisCardAberto === 'uis' ? '▲ fechar' : '▼ ver detalhes'}</span>
+        </div>
+        ${uisDrillHtml}
+      </div>
+
+      <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${iasCor};border-radius:10px;padding:22px 24px;cursor:pointer" onclick="uisCardToggle('ias')">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:${iasCor};letter-spacing:1.5px;margin-bottom:14px">INSPEÇÃO ANUAL DE SAÚDE · IAS</div>
+        <div style="display:flex;align-items:flex-start;gap:20px;margin-bottom:14px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:64px;font-weight:800;color:${iasCor};line-height:1;flex-shrink:0">${iasTotal}</div>
+          <div style="padding-top:6px">
+            <div style="font-size:18px;color:#ffffff;font-weight:600">PMs com registro IAS</div>
+            <div style="font-size:15px;color:#ffffff;margin-top:6px;opacity:.85">${iasVencida} vencidas · ${iasVenc30} vencendo · ${iasAptos} aptos</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,.07);border-radius:4px;height:8px;margin-bottom:8px">
+          <div style="height:100%;width:${pctAptos}%;background:${iasCor};border-radius:4px"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;color:#ffffff">
+          <span>${pctAptos}% aptos</span>
+          <span style="opacity:.6">${_uisCardAberto === 'ias' ? '▲ fechar' : '▼ ver detalhes'}</span>
+        </div>
+        ${iasDrillHtml}
+      </div>
     </div>
-    ${Object.keys(porOpm).length > 0 ? `
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-head"><div class="card-title">Restrições Ativas por CIA</div></div>
-      <div id="uis-por-opm"></div>
-    </div>` : ''}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5ae09a;border-radius:10px;padding:18px 20px">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5ae09a;letter-spacing:1.5px;margin-bottom:16px">RESTRIÇÕES · POR GRUPO</div>
+        ${Object.keys(porGrupoUis).length > 0 ? Object.entries(porGrupoUis).sort((a,b)=>b[1].length-a[1].length).map(([grupo, arr]) => {
+          const gInfo = UIS_GRUPOS[grupo];
+          const cor   = gInfo ? gInfo.cor : '#aaa';
+          const pct   = Math.round(arr.length / grupoMaxN * 100);
+          return `<div style="margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;color:${cor}">${escHtml(gInfo ? gInfo.label : grupo)}</div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${cor};line-height:1">${arr.length}</div>
+            </div>
+            <div style="background:rgba(255,255,255,.07);border-radius:4px;height:8px">
+              <div style="height:100%;width:${pct}%;background:${cor};border-radius:4px"></div>
+            </div>
+          </div>`;
+        }).join('') : '<div style="color:#ffffff;font-size:17px;padding:8px 0">Sem restrições ativas</div>'}
+      </div>
+      <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;align-items:center">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:16px;align-self:flex-start">IAS · SITUAÇÃO GERAL</div>
+        ${iasTotal > 0 ? `<canvas id="ias-donut-chart" width="240" height="240" style="max-width:100%"></canvas>` : `<div style="color:#ffffff;font-size:17px;margin-top:20px;align-self:flex-start">Sem dados IAS</div>`}
+      </div>
+    </div>
+
     ${Object.keys(porCodigo).length > 0 ? `
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-head"><div class="card-title">Códigos mais frequentes</div><div style="font-size:13px;color:var(--tx3)">BG PM 166/2006</div></div>
+    <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5ae09a;border-radius:10px;padding:18px 20px;margin-bottom:14px">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5ae09a;letter-spacing:1.5px;margin-bottom:14px">CÓDIGOS MAIS FREQUENTES · BG PM 166/2006</div>
       <div id="uis-por-codigo"></div>
     </div>` : ''}
-    <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:18px 20px;margin-bottom:14px">
-      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:14px">INSPEÇÃO ANUAL DE SAÚDE · IAS</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:4px" id="ias-kpis">${iasKpisHtml}</div>
-      ${iasDetailHtml}
-    </div>
+
+    ${Object.keys(porOpm).length > 0 ? `
+    <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5ae09a;border-radius:10px;padding:18px 20px;margin-bottom:14px">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5ae09a;letter-spacing:1.5px;margin-bottom:14px">RESTRIÇÕES · POR CIA</div>
+      <div id="uis-por-opm"></div>
+    </div>` : ''}
+
     ${iasTimelineHtml}
     ${iasPorOpmHtml}
     ${iasAgendarHtml}
@@ -1105,5 +1174,26 @@ function renderUisPage() {
 
   renderUisPorOpm(porOpm, porOpmCodigos);
   renderUisPorCodigo(porCodigo);
+
+  const donutCanvas = document.getElementById('ias-donut-chart');
+  if (donutCanvas && iasTotal > 0) {
+    if (window._iasDonutChart) { window._iasDonutChart.destroy(); window._iasDonutChart = null; }
+    window._iasDonutChart = new Chart(donutCanvas, {
+      type: 'doughnut',
+      data: {
+        labels: ['Aptos', 'Vencendo', 'Vencidas'],
+        datasets: [{ data: [iasAptos, iasVenc30, iasVencida], backgroundColor: ['#4bc87a','#c8a84b','#e05555'], borderWidth: 0, hoverOffset: 6 }]
+      },
+      options: {
+        responsive: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#ffffff', font: { size: 15 }, padding: 14, boxWidth: 14 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} PMs (${Math.round(ctx.raw/iasTotal*100)}%)` } }
+        },
+        cutout: '62%'
+      }
+    });
+  }
+
   if (window.lucide) lucide.createIcons();
 }
