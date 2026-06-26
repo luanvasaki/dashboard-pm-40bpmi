@@ -847,8 +847,8 @@ function renderUisPage() {
   }
 
   // ── UIS KPIs clicáveis ─────────────────────────────────────
-  const thS = 'padding:10px 14px;font-family:"DM Mono",monospace;font-size:12px;color:var(--tx3);letter-spacing:1px;border-bottom:2px solid var(--bd2);text-align:left;font-weight:600;white-space:nowrap';
-  const tdS = 'padding:11px 14px;font-size:15px;color:var(--tx);border-bottom:1px solid var(--bd);vertical-align:middle';
+  const thS = 'padding:13px 16px;font-family:"DM Mono",monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;border-bottom:2px solid var(--bd2);text-align:left;font-weight:600;white-space:nowrap';
+  const tdS = 'padding:13px 16px;font-size:16px;color:var(--tx);border-bottom:1px solid var(--bd);vertical-align:middle';
   const fmtD = s => s ? s.split('-').reverse().join('/') : '—';
 
   const uisKpiData = [
@@ -890,10 +890,10 @@ function renderUisPage() {
       const termino  = recs.reduce((min,r) => r.termino && (!min||r.termino<min) ? r.termino : min, null);
       return `<tr>
         <td style="${tdS}">${escHtml(posto)}</td>
-        <td style="${tdS};font-family:'DM Mono',monospace;font-size:14px">${re}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:15px">${re}</td>
         <td style="${tdS}">${escHtml(opm)}</td>
         <td style="${tdS}">${codsHtml}</td>
-        <td style="${tdS};font-family:'DM Mono',monospace;font-size:14px;color:${termino&&termino<today?'#e05555':termino&&termino<=em30?'#c8a84b':'var(--tx)'}">${fmtD(termino)}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:15px;color:${termino&&termino<today?'#e05555':termino&&termino<=em30?'#c8a84b':'var(--tx)'}">${fmtD(termino)}</td>
       </tr>`;
     }).join('') || `<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">Nenhum registro</td></tr>`;
     uisDetailHtml = `
@@ -952,9 +952,9 @@ function renderUisPage() {
       const cor = s === 'vencido' ? '#e05555' : s === 'vencendo' ? '#c8a84b' : '#4bc87a';
       return `<tr>
         <td style="${tdS}">${escHtml(r.posto||'—')}</td>
-        <td style="${tdS};font-family:'DM Mono',monospace;font-size:14px">${re}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:15px">${re}</td>
         <td style="${tdS}">${escHtml(r.opm||'—')}</td>
-        <td style="${tdS};font-family:'DM Mono',monospace;font-size:14px;color:${cor}">${fmtD(r.data_vencimento)}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:15px;color:${cor}">${fmtD(r.data_vencimento)}</td>
       </tr>`;
     }).join('') || `<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">Nenhum registro</td></tr>`;
     iasDetailHtml = `
@@ -974,12 +974,12 @@ function renderUisPage() {
   const tl90       = iasVals.filter(([,r]) => r.data_vencimento && r.data_vencimento > em60 && r.data_vencimento <= em90).length;
   const tlMax      = Math.max(tlVencidas, tl30, tl60, tl90, 1);
   const tlBar = (label, count, cor, sub) => count > 0 ? `
-    <div style="margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-        <div><div style="font-size:13px;color:#ffffff">${label}</div><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">${sub}</div></div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${cor}">${count}</div>
+    <div style="margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div><div style="font-size:18px;color:#ffffff;font-weight:600">${label}</div><div style="font-family:'DM Mono',monospace;font-size:13px;color:#ffffff;opacity:.6;margin-top:2px">${sub}</div></div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:800;color:${cor};line-height:1">${count}</div>
       </div>
-      <div style="background:rgba(255,255,255,.06);border-radius:4px;height:6px">
+      <div style="background:rgba(255,255,255,.07);border-radius:4px;height:10px">
         <div style="height:100%;width:${Math.round(count/tlMax*100)}%;background:${cor};border-radius:4px"></div>
       </div>
     </div>` : '';
@@ -1012,17 +1012,17 @@ function renderUisPage() {
         const pctA   = s.total > 0 ? Math.round(s.aptos/s.total*100) : 0;
         const pctV30 = s.total > 0 ? Math.round(s.venc30/s.total*100) : 0;
         const pctVc  = s.total > 0 ? Math.round(s.vencida/s.total*100) : 0;
-        return `<div style="margin-bottom:12px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${s.total} PMs</div>
+        return `<div style="margin-bottom:18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:15px;color:#ffffff">${s.total} PMs</div>
           </div>
-          <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.06)">
+          <div style="display:flex;height:12px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.07)">
             ${s.aptos>0?`<div style="width:${pctA}%;background:#4bc87a" title="Aptos: ${s.aptos}"></div>`:''}
             ${s.venc30>0?`<div style="width:${pctV30}%;background:#c8a84b" title="Vencendo: ${s.venc30}"></div>`:''}
             ${s.vencida>0?`<div style="width:${pctVc}%;background:#e05555" title="Vencidas: ${s.vencida}"></div>`:''}
           </div>
-          <div style="display:flex;gap:10px;margin-top:4px;font-family:'DM Mono',monospace;font-size:10px">
+          <div style="display:flex;gap:14px;margin-top:6px;font-family:'DM Mono',monospace;font-size:13px">
             ${s.aptos>0?`<span style="color:#4bc87a">${s.aptos} aptos</span>`:''}
             ${s.venc30>0?`<span style="color:#c8a84b">${s.venc30} vencendo</span>`:''}
             ${s.vencida>0?`<span style="color:#e05555">${s.vencida} vencida</span>`:''}
