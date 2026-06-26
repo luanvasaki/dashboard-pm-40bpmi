@@ -548,3 +548,211 @@ function uisBadge(re) {
   const alerta = isFinite(diasMin) && diasMin <= 30 ? ` ⚠ ${diasMin}d` : '';
   return `<span onclick="event.stopPropagation();openUisPmModal('${matchKey}')" title="Restrição UIS — clique para ver" style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;background:${cor}18;border:1px solid ${cor}55;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;color:${cor};margin-left:6px">🏥 UIS${alerta}</span>`;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// IAS — INSPEÇÃO ANUAL DE SAÚDE
+// Validade: 1 ano a partir do vencimento (campo data_vencimento).
+// RE normalizado sem dígito verificador (igual ao UIS).
+// ═══════════════════════════════════════════════════════════════
+
+let _iasMap = null; // cache: { reNorm → registro IAS }
+
+// Mesma lógica de normalização do UIS
+function iasNormRE(re) { return uisNormRE(re); }
+
+// Carrega mapa IAS para badges no P1
+async function loadIasMapa() {
+  _iasMap = {};
+  try {
+    const resp = await authFetch(`${API}/ias/mapa`);
+    if (!resp.ok) { console.warn('[IAS] /mapa status:', resp.status); return; }
+    const all = await resp.json();
+    if (!Array.isArray(all)) { console.warn('[IAS] /mapa não retornou array'); return; }
+    for (const r of all) {
+      const key = iasNormRE(r.re);
+      if (key) _iasMap[key] = r;
+    }
+    console.log(`[IAS] mapa pronto: ${Object.keys(_iasMap).length} PMs`);
+  } catch (e) { console.warn('[IAS] loadIasMapa erro:', e.message); }
+}
+
+// Retorna status IAS de um RE: 'apto' | 'vencendo' | 'vencido' | null (sem registro)
+function iasStatus(re) {
+  if (!_iasMap || !re) return null;
+  const rec = _iasMap[iasNormRE(re)];
+  if (!rec) return null;
+  if (!rec.data_vencimento) return 'vencido';
+  const today = new Date().toISOString().slice(0, 10);
+  const em30  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  if (rec.data_vencimento < today) return 'vencido';
+  if (rec.data_vencimento <= em30) return 'vencendo';
+  return 'apto';
+}
+
+// Badge IAS para lista do P1 (mostra somente se vencido ou vencendo)
+function iasBadge(re) {
+  const status = iasStatus(re);
+  if (!status || status === 'apto') return '';
+  const key = iasNormRE(re);
+  if (status === 'vencido') {
+    return `<span onclick="event.stopPropagation();openIasPmModal('${key}')" title="IAS vencida — clique para ver" style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;background:#e0555518;border:1px solid #e0555555;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;color:#e05555;margin-left:6px">💉 IAS VENCIDA</span>`;
+  }
+  const rec = _iasMap[key];
+  const today = new Date().toISOString().slice(0, 10);
+  const dias = rec?.data_vencimento ? Math.ceil((new Date(rec.data_vencimento) - new Date(today)) / 86400000) : null;
+  return `<span onclick="event.stopPropagation();openIasPmModal('${key}')" title="IAS vencendo — clique para ver" style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;background:#c8a84b18;border:1px solid #c8a84b55;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;color:#c8a84b;margin-left:6px">💉 IAS ⚠ ${dias}d</span>`;
+}
+
+// ─── KPIs da seção UIS (IAS) ───────────────────────────────────
+async function loadIasSection() {
+  try {
+    const stats = await authFetch(`${API}/ias/stats`).then(r => r.json());
+    renderIasKpis(stats);
+  } catch (e) {
+    const el = document.getElementById('ias-kpis');
+    if (el) el.innerHTML = `<div style="color:#f07878;font-size:13px">Erro ao carregar IAS: ${e.message}</div>`;
+  }
+  const role = currentRole();
+  const wrap = document.getElementById('ias-upload-btn-wrap');
+  if (wrap && ['admin','p1','ti'].includes(role)) {
+    wrap.innerHTML = `<button onclick="openIasModal()" style="margin-bottom:14px;padding:8px 20px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.35);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar IAS</button>`;
+  }
+}
+
+function renderIasKpis(stats) {
+  const el = document.getElementById('ias-kpis');
+  if (!el) return;
+  const cards = [
+    { label: 'TOTAL REGISTROS',    val: stats.total ?? '—',         cor: '#ffffff' },
+    { label: 'APTOS (VÁLIDOS)',    val: stats.total_aptos ?? '—',    cor: '#4bc87a' },
+    { label: 'VENCENDO EM 30 DIAS', val: stats.total_vencendo ?? '—', cor: '#c8a84b' },
+    { label: 'IAS VENCIDA',        val: stats.total_vencidos ?? '—', cor: '#e05555' },
+  ];
+  el.innerHTML = cards.map(c => `
+    <div class="kpi" style="cursor:default">
+      <div class="kpi-top" style="background:${c.cor}"></div>
+      <div class="kpi-lbl">${c.label}</div>
+      <div class="kpi-val" style="color:${c.cor}">${c.val}</div>
+    </div>`).join('');
+}
+
+// ─── Modal de upload IAS ───────────────────────────────────────
+let _iasData = null;
+
+function openIasModal() {
+  _iasData = null;
+  document.getElementById('ias-file').value = '';
+  document.getElementById('ias-preview').style.display = 'none';
+  document.getElementById('ias-confirm').disabled = true;
+  document.getElementById('ias-confirm').textContent = 'Importar';
+  showIasMsg('', '');
+  document.getElementById('ias-upl-mo').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeIasModal() {
+  document.getElementById('ias-upl-mo').classList.remove('on');
+  document.body.style.overflow = '';
+}
+
+function showIasMsg(txt, type) {
+  const el = document.getElementById('ias-msg');
+  el.textContent = txt;
+  el.style.display = txt ? 'block' : 'none';
+  el.style.color = type === 'err' ? '#f07878' : type === 'ok' ? '#5ae09a' : '#c8a84b';
+}
+
+function handleIasFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  showIasMsg('Lendo arquivo...', 'info');
+  Papa.parse(file, {
+    header: true, skipEmptyLines: true, transformHeader: h => h.trim(),
+    complete: results => {
+      if (!results.data.length) { showIasMsg('Arquivo vazio.', 'err'); return; }
+      const headers = Object.keys(results.data[0]).map(h => h.toLowerCase());
+      const hasRE   = headers.some(h => h === 're');
+      if (!hasRE) { showIasMsg('Coluna RE não encontrada. Verifique o arquivo.', 'err'); return; }
+      _iasData = results.data.map(row => { const n={}; Object.entries(row).forEach(([k,v])=>{n[k.trim()]=String(v||'').trim();}); return n; })
+        .filter(r => r.RE || r.re);
+      document.getElementById('ias-fn').textContent   = file.name;
+      document.getElementById('ias-rows').textContent = _iasData.length;
+      document.getElementById('ias-preview').style.display = 'block';
+      document.getElementById('ias-confirm').disabled = false;
+      showIasMsg(`${_iasData.length} registros prontos para importar.`, 'ok');
+    },
+    error: err => showIasMsg('Erro ao ler: ' + err.message, 'err')
+  });
+}
+
+async function confirmIasUpload() {
+  if (!_iasData?.length) return;
+  const btn = document.getElementById('ias-confirm');
+  btn.disabled = true; btn.textContent = 'Importando...';
+  showIasMsg('Enviando...', 'info');
+  try {
+    const res  = await authFetch(`${API}/upload/ias`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ records: _iasData }) });
+    const json = await res.json();
+    if (!res.ok || !json.ok) throw new Error(json.error || 'Erro desconhecido');
+    showIasMsg(`✓ ${json.inserted} registros importados com sucesso.`, 'ok');
+    btn.textContent = 'Importar';
+    loadIasSection();
+    await loadIasMapa();
+  } catch (err) {
+    showIasMsg('✗ ' + err.message, 'err');
+    btn.disabled = false; btn.textContent = 'Importar';
+  }
+}
+
+// ─── Modal individual: IAS de um PM ───────────────────────────
+async function openIasPmModal(re, nomePm) {
+  const el = document.getElementById('ias-pm-nome');
+  if (el) el.textContent = `RE ${re}${nomePm ? ' · ' + nomePm : ''}`;
+  const ct = document.getElementById('ias-pm-content');
+  if (ct) ct.innerHTML = '<div style="color:var(--tx3);font-size:13px">Carregando...</div>';
+  document.getElementById('ias-pm-mo').classList.add('on');
+  document.body.style.overflow = 'hidden';
+  try {
+    const data = await authFetch(`${API}/ias/${re}`).then(r => r.json());
+    if (ct) ct.innerHTML = renderIasPmContent(data);
+  } catch (e) {
+    if (ct) ct.innerHTML = `<div style="color:#f07878">Erro: ${e.message}</div>`;
+  }
+}
+
+function closeIasPmModal() {
+  document.getElementById('ias-pm-mo').classList.remove('on');
+  document.body.style.overflow = '';
+}
+
+function renderIasPmContent(rec) {
+  if (!rec) return '<div style="color:var(--tx3);font-size:13px;padding:8px">Nenhum registro IAS encontrado para este PM.</div>';
+  const today = new Date().toISOString().slice(0, 10);
+  const venc  = rec.data_vencimento;
+  const vencida  = venc && venc < today;
+  const diasRest = venc ? Math.ceil((new Date(venc) - new Date(today)) / 86400000) : null;
+  const vencendo = diasRest !== null && diasRest >= 0 && diasRest <= 30;
+  const fmtD = s => s ? s.split('-').reverse().join('/') : '—';
+
+  let alertaBadge = '';
+  if (vencida)       alertaBadge = `<span style="background:#f0787822;color:#f07878;border:1px solid #f07878;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">VENCIDA</span>`;
+  else if (vencendo) alertaBadge = `<span style="background:#c8a84b22;color:#c8a84b;border:1px solid #c8a84b;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">VENCE EM ${diasRest} DIAS</span>`;
+  else if (venc)     alertaBadge = `<span style="background:#4bc87a22;color:#4bc87a;border:1px solid #4bc87a;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">VÁLIDA</span>`;
+
+  const borderCor = vencida ? '#f07878' : vencendo ? '#c8a84b' : venc ? '#4bc87a' : 'var(--bd)';
+  const corVal    = vencida ? '#f07878' : vencendo ? '#c8a84b' : '#4bc87a';
+
+  return `<div style="background:var(--s2);border:1px solid ${borderCor};border-radius:8px;padding:14px;margin-bottom:10px">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+      <div style="font-size:12px;color:var(--tx3)">Vencimento: <b style="color:${corVal};font-size:15px">${fmtD(venc)}</b></div>
+      <div style="font-size:12px;color:var(--tx3)">Médico: <b style="color:var(--tx)">${fmtD(rec.data_medico)}</b></div>
+      <div style="font-size:12px;color:var(--tx3)">Dentista: <b style="color:var(--tx)">${fmtD(rec.data_dentista)}</b></div>
+      ${rec.data_aniversario ? `<div style="font-size:12px;color:var(--tx3)">Aniversário: <b style="color:var(--tx)">${rec.data_aniversario}</b></div>` : ''}
+      ${alertaBadge}
+    </div>
+    <div style="background:${vencida?'rgba(240,120,120,0.1)':vencendo?'rgba(200,168,75,0.1)':'rgba(75,200,122,0.1)'};border:1px solid ${borderCor}55;border-radius:6px;padding:10px 14px">
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:${corVal};letter-spacing:1.5px;margin-bottom:4px">SITUAÇÃO IAS · INSPEÇÃO ANUAL DE SAÚDE</div>
+      <div style="font-size:13px;font-weight:700;color:${corVal}">${vencida ? 'IAS VENCIDA — Regularizar para TAF/TAT' : vencendo ? `IAS vence em ${diasRest} dias — Regularizar em breve` : venc ? 'IAS VÁLIDA — Apto para TAF/TAT' : 'Data de vencimento não informada'}</div>
+    </div>
+  </div>`;
+}

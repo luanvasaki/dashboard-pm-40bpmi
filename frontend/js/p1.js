@@ -121,9 +121,11 @@ async function loadP1() {
     p1Vagas  = Array.isArray(vagasRaw) ? vagasRaw : [];
     const quadroRaw = await r4.json();
     p1Quadro = Array.isArray(quadroRaw) ? quadroRaw : [];
-    // Carrega restrições UIS em paralelo com o restante, mas aguarda antes de renderizar
-    // para que os badges já apareçam na primeira passagem (sem segundo render).
-    await loadUisRestricoes().catch(() => {});
+    // Carrega UIS e IAS antes de renderizar para que os badges apareçam na primeira passagem.
+    await Promise.all([
+      loadUisRestricoes().catch(() => {}),
+      loadIasMapa().catch(() => {}),
+    ]);
     if (renderingP1) renderP1();
     renderHome();
   } catch (err) {
@@ -272,6 +274,21 @@ function renderP1() {
        ...(taftatVencidos.length ? [_kpiRow('Vencidos', taftatVencidos.length, '#e05555')] : [])
       ].join(''),
       (inaptosTaf.length || inaptosTat.length || taftatVencidos.length) ? '#e05555' : pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a', 'eap') +
+    (() => {
+      if (!_iasMap || !Object.keys(_iasMap).length) return '';
+      const pmIasAptos    = dataF.filter(r => iasStatus(r.re) === 'apto');
+      const pmIasVencendo = dataF.filter(r => iasStatus(r.re) === 'vencendo');
+      const pmIasVencidos = dataF.filter(r => iasStatus(r.re) === 'vencido');
+      const pmIasSemReg   = dataF.filter(r => !iasStatus(r.re));
+      const corIas = pmIasVencidos.length ? '#e05555' : pmIasVencendo.length ? '#c8a84b' : '#4bc87a';
+      return kpiCard('IAS · Inspeção de Saúde', pmIasAptos.length + pmIasVencendo.length,
+        [_kpiRow('Aptos', pmIasAptos.length + pmIasVencendo.length, '#4bc87a'),
+         pmIasVencendo.length ? _kpiRow('Vencendo 30d', pmIasVencendo.length, '#c8a84b') : '',
+         pmIasVencidos.length ? _kpiRow('Vencidos', pmIasVencidos.length, '#e05555') : '',
+         pmIasSemReg.length ? _kpiRow('Sem registro', pmIasSemReg.length, '#606880') : '',
+        ].filter(Boolean).join('') || '—',
+        corIas, 'ias');
+    })() +
     kpiCard('Controle de Férias', ferEmGozo.length,
       [_kpiRow('Em gozo', ferEmGozo.length, '#5a9de0'), _kpiRow('Iniciam em 15d', ferEm15Dias.length, '#5a9de0')].join(''),
       ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)', 'ferias') +
@@ -326,7 +343,7 @@ function renderP1() {
         <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.03);width:44px;vertical-align:middle">${_av}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx2)">${r.posto || '—'}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${r.re || '—'}</td>
-        <td style="${tdL};cursor:pointer" onclick="openProntuario('${_fotoRe}')">${r.nome_guerra || r.nome}${uisBadge(r.re)}</td>
+        <td style="${tdL};cursor:pointer" onclick="openProntuario('${_fotoRe}')">${r.nome_guerra || r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${r.opm || '—'}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')}">${badge(tipo, '#e05555')}</td>
         <td style="${tdS}">${fmtDate(ats[0]?.inicio)}</td>
@@ -588,7 +605,7 @@ function renderP1() {
         ${badge(tipo.split(',')[0].trim().toUpperCase(), '#e05555')}
         <div>
           <span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${r.posto||''}</span>
-          <span style="font-size:20px;font-weight:700;color:var(--tx);margin-left:6px;cursor:pointer" onclick="openProntuario('${_esc2(r.re)}')">${r.nome_guerra||r.nome}</span>${uisBadge(r.re)}
+          <span style="font-size:20px;font-weight:700;color:var(--tx);margin-left:6px;cursor:pointer" onclick="openProntuario('${_esc2(r.re)}')">${r.nome_guerra||r.nome}</span>${uisBadge(r.re)}${iasBadge(r.re)}
           ${r.opm ? `<div style="font-size:17px;color:var(--tx3);margin-top:2px">${r.opm}</div>` : ''}
         </div>
         <div style="font-size:19px;color:var(--tx3);text-align:right;white-space:nowrap">${retStr}</div>
@@ -889,6 +906,7 @@ function p1ShowKpiDetail(tipo) {
     afastados:{ title: 'AFASTAMENTOS',         color: '#e05555' },
     restricao:{ title: 'EM RESTRIÇÃO',         color: '#c8a84b' },
     eap:      { title: `EAP / TAF / TAT ${new Date().getFullYear()}`, color: '#c8a84b' },
+    ias:      { title: 'IAS · INSPEÇÃO ANUAL DE SAÚDE', color: '#5a9de0' },
     ferias:   { title: 'CONTROLE DE FÉRIAS',   color: '#5a9de0' },
     quadro:   { title: 'QUADRO FIXADO DO EFETIVO', color: '#4bc87a' },
   };
@@ -937,7 +955,7 @@ function p1ShowKpiDetail(tipo) {
       return `<tr>
         <td style="${tdS}">${r.posto||'—'}</td>
         <td style="${tdS}">${r.re}</td>
-        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
+        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
         <td style="${tdS}">${r.opm||'—'}</td>
         <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03)">${s}</td>
       </tr>`;
@@ -953,7 +971,7 @@ function p1ShowKpiDetail(tipo) {
     const rows = list.map(r => `<tr>
       <td style="${tdS}">${r.posto||'—'}</td>
       <td style="${tdS}">${r.re}</td>
-      <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
+      <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
       <td style="${tdS}">${r.opm||'—'}</td>
     </tr>`).join('');
     html = wrapDetail('Aptos', list.length, '#4bc87a', closeBtn,
@@ -1028,7 +1046,7 @@ function p1ShowKpiDetail(tipo) {
         inner += `<tr>
           <td style="${tdS}">${r.posto||'—'}</td>
           <td style="${tdS}">${r.re}</td>
-          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')"${hasTip ? ` onmouseover="uisTipPmOver(event,'${esc(r.re)}')" onmousemove="_uisTipMove(event)" onmouseleave="_uisTipHide()"` : ''}>${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
+          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')"${hasTip ? ` onmouseover="uisTipPmOver(event,'${esc(r.re)}')" onmousemove="_uisTipMove(event)" onmouseleave="_uisTipHide()"` : ''}>${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
           <td style="${tdS}">${r.opm||'—'}</td>
           <td style="${tdS};text-align:right">${fmtD(termino)}</td>
           <td style="${tdS};text-align:right;color:${corD};font-weight:700">${dias!==null?(dias<0?'Vencida':dias+'d'):'—'}</td>
@@ -1082,7 +1100,7 @@ function p1ShowKpiDetail(tipo) {
     const mkRow7 = r => `<tr>
       <td style="${pC};${cS}">${r.posto||'—'}</td>
       <td style="${pC};${cS}">${r.re}</td>
-      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
+      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
       <td style="${pC};${cS}">${r.opm||'—'}</td>
       <td style="${pC};${cS};color:#4bc87a">${fmtEap(r.data_eap)}</td>
       <td style="${pC};text-align:center">${notaBadge(r.taf)}</td>
@@ -1091,7 +1109,7 @@ function p1ShowKpiDetail(tipo) {
     const mkRow5nota = (r, campo, notaFn) => `<tr>
       <td style="${pC};${cS}">${r.posto||'—'}</td>
       <td style="${pC};${cS}">${r.re}</td>
-      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
+      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
       <td style="${pC};${cS}">${r.opm||'—'}</td>
       <td style="${pC};text-align:center">${notaBadge(r[campo])}</td>
     </tr>`;
@@ -1117,7 +1135,7 @@ function p1ShowKpiDetail(tipo) {
           return `<tr>
             <td style="${pC};${cS}">${r.posto||'—'}</td>
             <td style="${pC};${cS}">${r.re}</td>
-            <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
+            <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
             <td style="${pC};${cS}">${r.opm||'—'}</td>
             <td style="${pC}">${sit}</td>
             <td style="${pC};text-align:center">${notaBadge(r.taf)}</td>
@@ -1189,6 +1207,52 @@ function p1ShowKpiDetail(tipo) {
     html = wrapDetail(`EAP / TAF / TAT ${anoAtual}`, null, '#c8a84b', closeBtn, inner);
   }
 
+  else if (tipo === 'ias') {
+    if (!_iasMap) { html = '<div style="color:var(--tx3);padding:16px">Dados IAS não carregados.</div>'; }
+    else {
+      const pmIasAptos    = dataF.filter(r => iasStatus(r.re) === 'apto');
+      const pmIasVencendo = dataF.filter(r => iasStatus(r.re) === 'vencendo');
+      const pmIasVencidos = dataF.filter(r => iasStatus(r.re) === 'vencido');
+      const pmIasSemReg   = dataF.filter(r => !iasStatus(r.re));
+      const fmtV = s => s ? s.split('-').reverse().join('/') : '—';
+      const mkRowIas = (r, statusCor, statusTxt) => {
+        const rec = _iasMap[iasNormRE(r.re)];
+        return `<tr>
+          <td style="${tdS}">${r.posto||'—'}</td>
+          <td style="${tdS}">${r.re}</td>
+          <td style="${tdL};cursor:pointer" onclick="openIasPmModal('${esc(iasNormRE(r.re))}');closeP1Detail()">${r.nome_guerra||r.nome}</td>
+          <td style="${tdS}">${r.opm||'—'}</td>
+          <td style="${tdS};text-align:right;color:${statusCor};font-weight:700">${rec?.data_vencimento ? fmtV(rec.data_vencimento) : '—'}</td>
+          <td style="${tdS};text-align:right"><span style="padding:2px 8px;border-radius:8px;font-size:15px;background:${statusCor}22;color:${statusCor};font-family:'DM Mono',monospace">${statusTxt}</span></td>
+        </tr>`;
+      };
+      const thH6 = [thL,thL,thL,thL,thR,thR].join(',');
+      const thead = `<thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Vencimento</th><th style="${thR}">Situação</th></tr></thead>`;
+      const mkTbl = rows => `<table style="width:100%;border-collapse:collapse">${thead}<tbody>${rows||`<tr><td colspan="6" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum</td></tr>`}</tbody></table>`;
+
+      let inner = '';
+      if (pmIasVencidos.length) inner += `
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#e05555;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">IAS Vencida — ${pmIasVencidos.length}</div>
+        ${mkTbl(pmIasVencidos.map(r => mkRowIas(r,'#e05555','VENCIDA')).join(''))}`;
+      if (pmIasVencendo.length) inner += `
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#c8a84b;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Vencendo em 30 dias — ${pmIasVencendo.length}</div>
+        ${mkTbl(pmIasVencendo.map(r => mkRowIas(r,'#c8a84b','VENCENDO')).join(''))}`;
+      if (pmIasAptos.length) inner += `
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Aptos — ${pmIasAptos.length}</div>
+        ${mkTbl(pmIasAptos.map(r => mkRowIas(r,'#4bc87a','APTO')).join(''))}`;
+      if (pmIasSemReg.length) inner += `
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#606880;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Sem Registro IAS — ${pmIasSemReg.length}</div>
+        ${mkTbl(pmIasSemReg.map(r => `<tr>
+          <td style="${tdS}">${r.posto||'—'}</td><td style="${tdS}">${r.re}</td>
+          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
+          <td style="${tdS}">${r.opm||'—'}</td><td style="${tdS}">—</td>
+          <td style="${tdS}"><span style="padding:2px 8px;border-radius:8px;font-size:15px;background:#60688022;color:#606880;font-family:'DM Mono',monospace">SEM REG.</span></td>
+        </tr>`).join(''))}`;
+      if (!inner) inner = '<div style="color:var(--tx3);padding:16px">Nenhum dado IAS disponível.</div>';
+      html = wrapDetail('IAS · Inspeção Anual de Saúde', null, '#5a9de0', closeBtn, inner);
+    }
+  }
+
   else if (tipo === 'ferias') {
     const afastsF = p1FiltroOpm ? p1Afasts.filter(a => reSetF.has(a.re)) : p1Afasts;
     const em15s   = (() => { const d = new Date(); d.setDate(d.getDate()+15); return d.toISOString().split('T')[0]; })();
@@ -1226,7 +1290,7 @@ function p1ShowKpiDetail(tipo) {
     if (semFer.length) {
       const rows = semFer.map(r => `<tr>
         <td style="${tdS}">${r.re}</td>
-        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
+        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
         <td style="${tdS}">${r.posto||'—'}</td>
         <td style="${tdS}">${r.opm||'—'}</td>
       </tr>`).join('');
@@ -2353,7 +2417,7 @@ function p1ShowPmList(pms, label) {
       <div style="font-size:19px;font-weight:700;color:var(--tx);line-height:1.3;word-break:break-word">${r.nome_guerra || r.nome}</div>
       <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:2px">
         <div style="font-size:19px;padding:2px 8px;border-radius:10px;background:${statusColor}22;color:${statusColor};font-family:'DM Mono',monospace">${statusTxt}</div>
-        ${uisBadge(r.re)}
+        ${uisBadge(r.re)}${iasBadge(r.re)}
       </div>
     </div>`;
   }).join('');
@@ -2842,6 +2906,7 @@ function goSection(id, btn) {
   }
   if (id === 'uis') {
     loadUisSection();
+    loadIasSection();
   }
   setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
 }

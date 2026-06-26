@@ -1911,6 +1911,105 @@ app.get('/api/uis/restricoes/:re', requireAuth, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// IAS — INSPEÇÃO ANUAL DE SAÚDE
+// Tabela: ias_registros (re, nome, posto, opm, funcao, genero, nome_guerra,
+//         data_aniversario, data_medico, data_dentista, data_vencimento)
+// Validade: 1 ano a partir do vencimento. Sem IAS válida → não pode fazer TAF/TAT.
+// RE é normalizado sem dígito verificador (igual ao UIS).
+// ═══════════════════════════════════════════════════════════════
+
+// [POST /api/upload/ias] — importa CSV da IAS.
+// Colunas: POST/GRAD, RE (com dígito), QRA, FUNÇÃO, SEX, ANIVERSARIO, MÉDICO, DENTISTA, VENCIMENTO
+// Estratégia: substitui tudo (delete + insert).
+app.post('/api/upload/ias', requireAuth, requireRole('admin', 'p1', 'ti'), async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  const { records } = req.body;
+  if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
+  const nk = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+  const gf = (r, ...keys) => {
+    for (const k of keys) {
+      const hit = Object.entries(r).find(([ck]) => nk(ck) === nk(k));
+      if (hit && hit[1] != null) return String(hit[1]).trim();
+    }
+    const frags = keys.map(nk);
+    const hit2 = Object.entries(r).find(([ck]) => frags.some(f => nk(ck).includes(f)));
+    return hit2 ? String(hit2[1]||'').trim() : '';
+  };
+  try {
+    const rows = [];
+    const seen = new Set();
+    for (const r of records) {
+      // RE vem com dígito verificador: "180673-4" ou "1806734" → normaliza para "180673"
+      const reRaw = gf(r, 're').replace(/[^0-9]/g, '');
+      const re = reRaw.length >= 7 ? reRaw.slice(0, reRaw.length - 1) : reRaw;
+      if (!re) continue;
+      if (seen.has(re)) continue;
+      seen.add(re);
+      rows.push({
+        re,
+        nome:             gf(r, 'nome', 'nome completo') || null,
+        posto:            gf(r, 'posto', 'post/grad', 'posto/grad', 'grad') || null,
+        funcao:           gf(r, 'funcao', 'função') || null,
+        genero:           gf(r, 'sex', 'sexo', 'genero', 'gênero') || null,
+        nome_guerra:      gf(r, 'qra', 'nome de guerra', 'nome_guerra') || null,
+        data_aniversario: gf(r, 'aniversario', 'aniversário') || null,
+        data_medico:      parseDateBR(gf(r, 'medico', 'médico')) || null,
+        data_dentista:    parseDateBR(gf(r, 'dentista')) || null,
+        data_vencimento:  parseDateBR(gf(r, 'vencimento')) || null,
+      });
+    }
+    if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
+    const { error: delErr } = await supabase.from('ias_registros').delete().not('re', 'is', null);
+    if (delErr) throw new Error('Erro ao limpar tabela: ' + delErr.message);
+    const BATCH = 500;
+    let total = 0;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const { error } = await supabase.from('ias_registros').insert(rows.slice(i, i + BATCH));
+      if (error) throw new Error(error.message);
+      total += Math.min(BATCH, rows.length - i);
+    }
+    res.json({ ok: true, inserted: total });
+  } catch (err) {
+    console.error('IAS upload error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// [GET /api/ias/stats] — estatísticas gerais para a seção UIS/IAS (somente números).
+app.get('/api/ias/stats', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const em30  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    const all   = await fetchAll('ias_registros', {});
+    const aptos    = all.filter(r => r.data_vencimento && r.data_vencimento >= today);
+    const vencidos = all.filter(r => !r.data_vencimento || r.data_vencimento < today);
+    const vencendo = aptos.filter(r => r.data_vencimento <= em30);
+    res.json({ total: all.length, total_aptos: aptos.length, total_vencidos: vencidos.length, total_vencendo: vencendo.length });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// [GET /api/ias/mapa] — todos os registros IAS para badges no P1.
+app.get('/api/ias/mapa', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  try {
+    const all = await fetchAll('ias_registros', {});
+    res.json(all);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// [GET /api/ias/:re] — registro IAS de um PM pelo RE.
+app.get('/api/ias/:re', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  try {
+    const reBase = req.params.re.replace(/[^0-9]/g, '');
+    const reNorm = reBase.length >= 7 ? reBase.slice(0, reBase.length - 1) : reBase;
+    const data = await fetchAll('ias_registros', { filters: [['eq', 're', reNorm]] });
+    res.json(data[0] || null);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ═══════════════════════════════════════════════════════════════
 // ROTAS P3 — CURSOS INSTITUCIONAIS
 // Histórico de cursos por PM: ofício, data, nome do curso, posto e RE.
 // O campo PM é um texto com vários PMs separados por ';' (parsePMsField).
