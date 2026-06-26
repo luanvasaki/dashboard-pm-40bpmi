@@ -2550,6 +2550,31 @@ function renderHome() {
       </div>`;
   }
 
+  // ── Resumo UIS ────────────────────────────────────────────────────────────
+  let uisPreview = '';
+  if (dataF && dataF.length > 0 && (typeof _uisRestMap !== 'undefined' || typeof _iasMap !== 'undefined')) {
+    const comRestUis = (typeof _uisRestMap === 'object' && _uisRestMap && typeof uisNormRE === 'function')
+      ? dataF.filter(r => { try { return !!_uisRestMap[uisNormRE(r.re)]?.length; } catch { return false; } }).length
+      : null;
+    const iasApt = (typeof _iasMap === 'object' && _iasMap && typeof iasStatus === 'function')
+      ? dataF.filter(r => { const s = iasStatus(r.re); return s === 'apto' || s === 'vencendo'; }).length
+      : null;
+    const iasVenc = (typeof _iasMap === 'object' && _iasMap && typeof iasStatus === 'function')
+      ? dataF.filter(r => iasStatus(r.re) === 'vencido').length
+      : null;
+    if (comRestUis !== null || iasApt !== null) {
+      uisPreview = `<div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px">
+        ${comRestUis !== null ? `<div style="display:flex;gap:14px;margin-bottom:8px;flex-wrap:wrap">
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${comRestUis>0?'#c8a84b':'#4bc87a'}">${comRestUis}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-left:4px">com restrição</span></div>
+        </div>` : ''}
+        ${iasApt !== null ? `<div style="display:flex;gap:14px;flex-wrap:wrap">
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:#4bc87a">${iasApt}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-left:4px">IAS aptos</span></div>
+          ${iasVenc > 0 ? `<div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:#e05555">${iasVenc}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);margin-left:4px">IAS vencida</span></div>` : ''}
+        </div>` : ''}
+      </div>`;
+    }
+  }
+
   // ── Resumo P3 ─────────────────────────────────────────────────────────────
   let p3Preview = '';
   if (RAW && RAW.length > 0) {
@@ -2734,6 +2759,12 @@ function renderHome() {
       preview: p1Preview
     },
     {
+      id: 'uis', icon: 'heart-pulse', color: '#5ae09a', label: 'UIS', title: 'Unid. Integradas de Saúde',
+      desc: 'Restrições médicas e odontológicas (BG PM 166/2006) e Inspeção Anual de Saúde (IAS) — pré-requisito para TAF/TAT.',
+      soon: false, action: `goSection('uis', document.getElementById('sec-uis'))`,
+      preview: uisPreview
+    },
+    {
       id: 'p3', icon: 'shield', color: '#5a9de0', label: 'P3', title: 'Divisão Operacional',
       desc: 'Inteligência criminal, análise de crimes, metas SSP, ocorrências InfoCrim e relatórios operacionais.',
       soon: false, action: `goSection('p3', document.getElementById('sec-p3'))`,
@@ -2805,6 +2836,11 @@ function updateSidebarImports(section) {
       <button onclick="openP1Upload()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Efetivo</button>
       <button onclick="openAfUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Afastamentos</button>
       <button onclick="openQuadroUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(75,200,122,.12);border:1px solid rgba(75,200,122,.3);color:#4bc87a;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Quadro de Claros</button>`;
+  } else if (section === 'uis') {
+    if (!isP1) { el.innerHTML = ''; return; }
+    el.innerHTML = `
+      <button onclick="openUisModal()" style="width:100%;padding:6px;background:rgba(90,224,154,.12);border:1px solid rgba(90,224,154,.3);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Restrições UIS</button>
+      <button onclick="openIasModal()" style="margin-top:4px;width:100%;padding:6px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar IAS</button>`;
   } else if (section === 'p3') {
     if (!isP3) { el.innerHTML = ''; return; }
     el.innerHTML = `

@@ -99,11 +99,6 @@ async function loadUisSection() {
     document.getElementById('uis-kpis').innerHTML = `<div style="color:#f07878;font-size:13px">Erro ao carregar dados UIS: ${e.message}</div>`;
   }
 
-  const role = currentRole();
-  const wrap = document.getElementById('uis-upload-btn-wrap');
-  if (wrap && ['admin','p1','ti'].includes(role)) {
-    wrap.innerHTML = `<button onclick="openUisModal()" style="margin-bottom:14px;padding:8px 20px;background:rgba(46,138,94,.12);border:1px solid rgba(46,138,94,.35);color:#5ae09a;border-radius:6px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Restrições UIS</button>`;
-  }
 }
 
 function renderUisKpis(stats) {
@@ -611,11 +606,6 @@ async function loadIasSection() {
   } catch (e) {
     const el = document.getElementById('ias-kpis');
     if (el) el.innerHTML = `<div style="color:#f07878;font-size:13px">Erro ao carregar IAS: ${e.message}</div>`;
-  }
-  const role = currentRole();
-  const wrap = document.getElementById('ias-upload-btn-wrap');
-  if (wrap && ['admin','p1','ti'].includes(role)) {
-    wrap.innerHTML = `<button onclick="openIasModal()" style="margin-bottom:14px;padding:8px 20px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.35);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar IAS</button>`;
   }
 }
 
