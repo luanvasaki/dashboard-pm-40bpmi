@@ -1025,10 +1025,10 @@ function p1ShowKpiDetail(tipo) {
         const dias = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : null;
         const corD = dias === null ? 'var(--tx3)' : dias <= 0 ? '#e05555' : dias <= 30 ? '#c8a84b' : '#4bc87a';
         const hasTip = hasUisRestr(r.re);
-        inner += `<tr${hasTip ? ` onmouseover="uisTipPmOver(event,'${esc(r.re)}')" onmouseleave="_uisTipHide()"` : ''}>
+        inner += `<tr>
           <td style="${tdS}">${r.posto||'—'}</td>
           <td style="${tdS}">${r.re}</td>
-          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
+          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')"${hasTip ? ` onmouseover="uisTipPmOver(event,'${esc(r.re)}')" onmousemove="_uisTipMove(event)" onmouseleave="_uisTipHide()"` : ''}>${r.nome_guerra||r.nome}${uisBadge(r.re)}</td>
           <td style="${tdS}">${r.opm||'—'}</td>
           <td style="${tdS};text-align:right">${fmtD(termino)}</td>
           <td style="${tdS};text-align:right;color:${corD};font-weight:700">${dias!==null?(dias<0?'Vencida':dias+'d'):'—'}</td>
