@@ -2768,8 +2768,34 @@ function updateSidebarImports(section) {
   }
 }
 
+function _showAccessDenied() {
+  let t = document.getElementById('_acesso-neg');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = '_acesso-neg';
+    t.style.cssText = 'position:fixed;top:22px;left:50%;transform:translateX(-50%);background:#1a2035;border:1px solid rgba(230,100,100,.45);color:#f07878;padding:11px 26px;border-radius:8px;font-size:14px;font-weight:600;z-index:99999;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap';
+    t.textContent = '🔒 Acesso restrito — você não tem permissão para esta seção';
+    document.body.appendChild(t);
+  }
+  t.style.opacity = '1';
+  clearTimeout(t._tmr);
+  t._tmr = setTimeout(() => { t.style.opacity = '0'; }, 2800);
+}
+
+function _checkSectionAccess(id) {
+  const u  = JSON.parse(localStorage.getItem('auth_user') || '{}');
+  const sa = u.secoes_acesso || {};
+  if (!Object.keys(sa).length) return true;          // sem config → libera
+  if (['admin', 'ti'].includes(u.role)) return true; // superusuário → libera
+  const key = id === 'p3prod' ? 'p3' : id;           // p3prod verifica chave p3
+  const controlled = ['p1', 'uis', 'p3'];
+  if (!controlled.includes(key)) return true;        // seção não controlada → libera
+  return sa[key] === 'viewer' || sa[key] === 'editor';
+}
+
 function goSection(id, btn) {
   closeSidebarMobile();
+  if (!_checkSectionAccess(id)) { _showAccessDenied(); return; }
 
   if (id === 'p3prod') {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));

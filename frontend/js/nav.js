@@ -35,7 +35,6 @@ function initUserBlock() {
     const isSuperuser = ['admin', 'ti'].includes(u.role);
 
     if (isSuperuser) {
-      // Superusuário vê tudo
       document.getElementById('btn-admin').style.display = 'block';
       checkPendingUsers();
       ['btn-edit-periodo','btn-edit-fonte','btn-edit-sicoordop'].forEach(id => {
@@ -44,38 +43,18 @@ function initUserBlock() {
       const btnP1Per = document.getElementById('btn-p1-edit-periodo');
       if (btnP1Per) btnP1Per.style.display = 'inline-block';
     } else if (hasSecoes) {
-      // Controle via secoes_acesso
-      const isP3Editor = sa.p3 === 'editor';
-      const isP1Editor = sa.p1 === 'editor';
-      const isAnyEditor = isP3Editor || isP1Editor || sa.uis === 'editor';
-
-      if (isAnyEditor) {
-        document.getElementById('btn-admin').style.display = 'block';
-        checkPendingUsers();
-      }
-      if (isP3Editor) {
+      const isAnyEditor = sa.p3 === 'editor' || sa.p1 === 'editor' || sa.uis === 'editor';
+      if (isAnyEditor) { document.getElementById('btn-admin').style.display = 'block'; checkPendingUsers(); }
+      if (sa.p3 === 'editor') {
         ['btn-edit-periodo','btn-edit-fonte','btn-edit-sicoordop'].forEach(id => {
           const el = document.getElementById(id); if (el) el.style.display = 'inline-block';
         });
       }
-      if (isP1Editor) {
+      if (sa.p1 === 'editor') {
         const btnP1Per = document.getElementById('btn-p1-edit-periodo');
         if (btnP1Per) btnP1Per.style.display = 'inline-block';
       }
-      // Oculta seções sem acesso
-      const sectionMap = { p1: 'sec-p1', uis: 'sec-uis', p3: 'sec-p3' };
-      Object.entries(sectionMap).forEach(([key, btnId]) => {
-        if (!sa[key] || sa[key] === 'none') {
-          const btn = document.getElementById(btnId);
-          if (btn) btn.style.display = 'none';
-          if (key === 'p3') {
-            const sub = document.getElementById('p3-submenu');
-            if (sub) sub.style.display = 'none';
-          }
-        }
-      });
     } else {
-      // Sem secoes_acesso → comportamento legado por role
       if (['admin', 'p3', 'ti'].includes(u.role)) {
         document.getElementById('btn-admin').style.display = 'block';
         checkPendingUsers();
