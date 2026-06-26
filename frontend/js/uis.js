@@ -90,8 +90,9 @@ function uisExtrairCodigos(codigos_str) {
 // ═══════════════════════════════════════════════════════════════
 
 let _uisFiltroIdx = -1;  // -1 = batalhão, 0+ = índice CIA em CIA_STRUCT
-let _uisDetTipo   = null; // 'uis-ativas'|'uis-adm'|'uis-venc30'|'uis-vencida'|'ias-total'|'ias-aptos'|'ias-venc30'|'ias-vencida'
-let _uisDetSub    = null; // sub-filtro dentro do modal
+let _uisDetTipo   = null; // 'uis-ativas'|'uis-adm'|...|'ias-total'|'ias-aptos'|...
+let _uisDetSub    = null; // sub-filtro de status dentro do modal IAS
+let _uisDetCia    = -1;   // filtro CIA dentro do modal IAS (-1 = todas)
 
 function uisSetFiltro(idx) {
   _uisFiltroIdx = idx;
@@ -101,6 +102,7 @@ function uisSetFiltro(idx) {
 function openUisDetail(tipo) {
   _uisDetTipo = tipo;
   _uisDetSub  = null;
+  _uisDetCia  = -1;
   renderUisDetail();
   document.getElementById('uis-detail-mo').classList.add('on');
   document.body.style.overflow = 'hidden';
@@ -118,6 +120,11 @@ function uisDetailClickOut(e) {
 
 function uisDetSubFiltroSet(key) {
   _uisDetSub = _uisDetSub === key ? null : key;
+  renderUisDetail();
+}
+
+function uisDetCiaSet(idx) {
+  _uisDetCia = idx;
   renderUisDetail();
 }
 
@@ -1169,60 +1176,93 @@ function renderUisDetail() {
 
   } else {
     // ── IAS ──────────────────────────────────────────────────
-    const filtRows = (() => {
-      if (_uisDetTipo === 'ias-total')   return iasVals;
+    const mesAtual = today.slice(5, 7);
+    const mesProx  = String((parseInt(mesAtual) % 12) + 1).padStart(2, '0');
+
+    // Pool inicial baseado no tipo de KPI clicado
+    const pool = (() => {
       if (_uisDetTipo === 'ias-aptos')   return iasVals.filter(([,r]) => _iasStatusFromRec(r) === 'apto');
       if (_uisDetTipo === 'ias-venc30')  return iasVals.filter(([,r]) => _iasStatusFromRec(r) === 'vencendo');
       if (_uisDetTipo === 'ias-vencida') return iasVals.filter(([,r]) => _iasStatusFromRec(r) === 'vencido');
-      return iasVals;
+      return iasVals; // ias-total
+    })();
+
+    // Filtro CIA dentro do modal
+    const ciaPassModal = ([, r]) => {
+      if (_uisDetCia < 0 || typeof CIA_STRUCT === 'undefined') return true;
+      const cia = CIA_STRUCT[_uisDetCia];
+      if (!cia) return true;
+      return typeof _opmMatch === 'function' ? _opmMatch(r.opm || '', cia.units.flatMap(u => u.keys)) : true;
+    };
+    const poolCia = pool.filter(ciaPassModal);
+
+    // Contagens para botões (sobre pool pós-CIA)
+    const cntVencida  = poolCia.filter(([,r]) => _iasStatusFromRec(r) === 'vencido').length;
+    const cntAniv     = poolCia.filter(([,r]) => { const m = _iasAnivMes(r.data_aniversario); return m === mesAtual || m === mesProx; }).length;
+    const cntApto     = poolCia.filter(([,r]) => _iasStatusFromRec(r) === 'apto').length;
+
+    // Aplicar sub-filtro de status
+    const displayRows = (() => {
+      if (_uisDetSub === 'vencida')  return poolCia.filter(([,r]) => _iasStatusFromRec(r) === 'vencido');
+      if (_uisDetSub === 'aniv')     return poolCia.filter(([,r]) => { const m = _iasAnivMes(r.data_aniversario); return m === mesAtual || m === mesProx; });
+      if (_uisDetSub === 'apto')     return poolCia.filter(([,r]) => _iasStatusFromRec(r) === 'apto');
+      return poolCia;
     })().slice().sort((a,b) => (a[1].data_vencimento||'').localeCompare(b[1].data_vencimento||''));
 
-    // Sub-filtros status (só para ias-total)
+    // Botões de status (sempre visíveis)
+    const statusBtns = [
+      { key: 'vencida', label: 'VENCIDA',              val: cntVencida, cor: '#f07878' },
+      { key: 'aniv',    label: 'MÊS DE ANIVERSÁRIO',   val: cntAniv,    cor: '#c8a84b' },
+      { key: 'apto',    label: 'APTO',                  val: cntApto,    cor: '#4bc87a' },
+    ].map(f => {
+      const active = _uisDetSub === f.key;
+      return `<button onclick="uisDetSubFiltroSet('${f.key}')" style="padding:9px 18px;background:${active?f.cor+'22':'var(--s2)'};border:1px solid ${active?f.cor:f.cor+'44'};color:${f.cor};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;transition:all .15s">
+        ${f.label}<span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;margin-left:8px">${f.val}</span>
+      </button>`;
+    }).join('');
+
+    // Botões CIA
+    const ciaBtns = typeof CIA_STRUCT !== 'undefined' ? [
+      `<button onclick="uisDetCiaSet(-1)" style="padding:7px 14px;background:${_uisDetCia===-1?'rgba(255,255,255,.12)':'transparent'};border:1px solid ${_uisDetCia===-1?'rgba(255,255,255,.4)':'var(--bd)'};color:#ffffff;border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;transition:all .15s">Todas as CIAs</button>`,
+      ...CIA_STRUCT.map((cia, i) => {
+        const active = _uisDetCia === i;
+        return `<button onclick="uisDetCiaSet(${i})" style="padding:7px 14px;background:${active?cia.color+'22':'transparent'};border:1px solid ${active?cia.color:cia.color+'44'};color:${cia.color};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;transition:all .15s">${cia.label}</button>`;
+      })
+    ].join('') : '';
+
+    // Contagens globais (sem filtro CIA) para o donut
     const iasTotal   = iasVals.length;
     const iasAptos   = iasVals.filter(([,r]) => _iasStatusFromRec(r) === 'apto').length;
     const iasVenc30  = iasVals.filter(([,r]) => _iasStatusFromRec(r) === 'vencendo').length;
     const iasVencida = iasVals.filter(([,r]) => _iasStatusFromRec(r) === 'vencido').length;
 
-    const subFilters = [
-      { key: 'apto',     label: 'APTOS',    val: iasAptos,   cor: '#4bc87a' },
-      { key: 'vencendo', label: 'VENCENDO', val: iasVenc30,  cor: '#c8a84b' },
-      { key: 'vencido',  label: 'VENCIDAS', val: iasVencida, cor: '#f07878' },
-    ].filter(f => f.val > 0);
-
-    const subBtns = _uisDetTipo === 'ias-total' ? subFilters.map(f => {
-      const active = _uisDetSub === f.key;
-      return `<button onclick="uisDetSubFiltroSet('${f.key}')" style="padding:8px 16px;background:${active?f.cor+'22':'var(--s2)'};border:1px solid ${active?f.cor:f.cor+'44'};color:${f.cor};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;transition:all .15s">
-        ${f.label}<span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:8px">${f.val}</span>
-      </button>`;
-    }).join('') : '';
-
-    const displayRows = (_uisDetSub && _uisDetTipo === 'ias-total')
-      ? filtRows.filter(([,r]) => _iasStatusFromRec(r) === _uisDetSub)
-      : filtRows;
-
     const rowsHtml = displayRows.map(([re, r]) => {
-      const s   = _iasStatusFromRec(r);
-      const cor = s === 'vencido' ? '#f07878' : s === 'vencendo' ? '#c8a84b' : '#4bc87a';
+      const s    = _iasStatusFromRec(r);
+      const cor  = s === 'vencido' ? '#f07878' : s === 'vencendo' ? '#c8a84b' : '#4bc87a';
+      const anivM = _iasAnivMes(r.data_aniversario);
+      const anivLabel = anivM === mesAtual ? '🎂 este mês' : anivM === mesProx ? '🎂 próximo mês' : '';
       return `<tr>
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px">${re}</td>
         <td style="${tdS}">${escHtml(r.opm||'—')}</td>
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px;color:${cor}">${fmtD(r.data_vencimento)}</td>
+        <td style="${tdS};font-size:15px;color:#c8a84b">${anivLabel}</td>
       </tr>`;
-    }).join('') || `<tr><td colspan="3" style="padding:20px;text-align:center;color:var(--tx3);font-size:17px">Nenhum registro</td></tr>`;
+    }).join('') || `<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--tx3);font-size:17px">Nenhum registro</td></tr>`;
 
     document.getElementById('ud-content').innerHTML = `
-      ${subBtns ? `<div style="margin-bottom:16px;display:flex;flex-wrap:wrap;gap:8px">${subBtns}</div>` : ''}
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">${statusBtns}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--bd)">${ciaBtns}</div>
       <div class="mo-g2" style="margin-bottom:16px">
         <div class="mo-card" style="display:flex;flex-direction:column;align-items:center">
-          <div class="mo-ct" style="align-self:flex-start">SITUAÇÃO IAS</div>
-          ${iasTotal > 0 ? `<canvas id="ias-donut-chart" width="260" height="260" style="max-width:100%;margin-top:8px"></canvas>` : '<div style="color:var(--tx3);font-size:17px;margin-top:16px">Sem dados</div>'}
+          <div class="mo-ct" style="align-self:flex-start">SITUAÇÃO GERAL</div>
+          ${iasTotal > 0 ? `<canvas id="ias-donut-chart" width="240" height="240" style="max-width:100%;margin-top:8px"></canvas>` : '<div style="color:var(--tx3);font-size:17px;margin-top:16px">Sem dados</div>'}
         </div>
         <div class="mo-card">
           <div class="mo-ct">${displayRows.length} PM${displayRows.length!==1?'s':''}</div>
           <div style="overflow-x:auto">
-            <table style="width:100%;border-collapse:collapse;min-width:360px;table-layout:fixed">
-              <colgroup><col style="width:22%"><col style="width:52%"><col style="width:26%"></colgroup>
-              <thead><tr><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">VENCIMENTO</th></tr></thead>
+            <table style="width:100%;border-collapse:collapse;min-width:380px;table-layout:fixed">
+              <colgroup><col style="width:18%"><col style="width:38%"><col style="width:22%"><col style="width:22%"></colgroup>
+              <thead><tr><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">VENCIMENTO</th><th style="${thS}">ANIVERSÁRIO</th></tr></thead>
               <tbody>${rowsHtml}</tbody>
             </table>
           </div>
