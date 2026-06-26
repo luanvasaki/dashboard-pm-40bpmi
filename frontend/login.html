@@ -84,7 +84,7 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
     <div class="form on" id="form-login">
       <div class="field">
         <label>RE</label>
-        <input type="text" id="l-mat" name="username" placeholder="RE" maxlength="6" inputmode="numeric" autocomplete="username" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)">
+        <input type="text" id="l-mat" name="username" placeholder="RE sem dígito" maxlength="6" inputmode="numeric" autocomplete="username" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)">
       </div>
       <div class="field">
         <label>Senha</label>
@@ -196,7 +196,7 @@ async function doLogin() {
       body: JSON.stringify({ matricula, senha })
     });
     const data = await res.json();
-    if (!res.ok) return showMsg('msg-login', data.error || 'Erro ao entrar.', 'err');
+    if (!res.ok) return showMsg('msg-login', 'RE ou senha incorretos.', 'err');
 
     localStorage.setItem('auth_user', JSON.stringify(data.user));
     if (data.user.resetSenha) {

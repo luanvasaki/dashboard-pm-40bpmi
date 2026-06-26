@@ -169,7 +169,7 @@ function _uisTipShow(e, opm, cor, topCods) {
     </div>`).join('');
   tip.innerHTML = `
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${cor};letter-spacing:.5px;margin-bottom:10px;text-transform:uppercase">${escHtml(opm)}</div>
-    <div style="font-size:13px;color:rgba(255,255,255,.45);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">Códigos mais frequentes</div>
+    <div style="font-size:13px;color:#ffffff;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">Códigos mais frequentes</div>
     ${codsHtml || '<div style="color:rgba(255,255,255,.35);font-size:15px">Sem detalhes</div>'}`;
   tip.style.display = 'block';
   _uisTipMove(e);
@@ -270,7 +270,7 @@ function renderUisPorCodigo(porCodigo) {
       const cor   = grupo ? grupo.cor : '#aaa';
       return `<div title="${info ? info.desc : cod}" style="background:var(--s2);border:1px solid ${cor}44;border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:10px;cursor:default">
         <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:700;color:${cor}">${cod}</span>
-        <span style="font-size:14px;color:var(--tx3)">${info ? info.desc : '—'}</span>
+        <span style="font-size:14px;color:var(--tx)">${info ? info.desc : '—'}</span>
         <span style="font-size:18px;font-weight:800;color:var(--tx);margin-left:4px">${n}</span>
       </div>`;
     }).join('')
