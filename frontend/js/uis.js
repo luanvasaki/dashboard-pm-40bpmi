@@ -880,7 +880,6 @@ function renderUisPage() {
     const kpiInfo = uisKpiData.find(c => c.key === _uisKpiAberto);
     const rowsHtml = rows.map(([re, recs]) => {
       const iasRec  = iasMapF[re];
-      const nome    = iasRec?.nome_guerra || iasRec?.nome || '—';
       const posto   = iasRec?.posto || '—';
       const opm     = recs[0]?.opm || '—';
       const allCods = [...new Set(recs.flatMap(r => uisExtrairCodigos(r.codigos)))];
@@ -892,17 +891,16 @@ function renderUisPage() {
       return `<tr>
         <td style="${tdS}">${escHtml(posto)}</td>
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:12px">${re}</td>
-        <td style="${tdS}">${escHtml(nome)}</td>
         <td style="${tdS};font-size:12px">${escHtml(opm)}</td>
         <td style="${tdS}">${codsHtml}</td>
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:12px;color:${termino&&termino<today?'#e05555':termino&&termino<=em30?'#c8a84b':'var(--tx)'}">${fmtD(termino)}</td>
       </tr>`;
-    }).join('') || `<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">Nenhum registro</td></tr>`;
+    }).join('') || `<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">Nenhum registro</td></tr>`;
     uisDetailHtml = `
       <div style="background:var(--s2);border:1px solid ${kpiInfo?.cor}33;border-radius:8px;padding:14px;margin-top:8px;overflow-x:auto">
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:${kpiInfo?.cor};letter-spacing:1.5px;margin-bottom:10px">${kpiInfo?.label} — ${rows.length} PM${rows.length!==1?'s':''}</div>
-        <table style="width:100%;border-collapse:collapse;min-width:560px">
-          <thead><tr><th style="${thS}">POSTO</th><th style="${thS}">RE</th><th style="${thS}">NOME GUERRA</th><th style="${thS}">OPM</th><th style="${thS}">CÓDIGOS</th><th style="${thS}">TÉRMINO</th></tr></thead>
+        <table style="width:100%;border-collapse:collapse;min-width:460px">
+          <thead><tr><th style="${thS}">POSTO</th><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">CÓDIGOS</th><th style="${thS}">TÉRMINO</th></tr></thead>
           <tbody>${rowsHtml}</tbody>
         </table>
       </div>`;
@@ -955,16 +953,15 @@ function renderUisPage() {
       return `<tr>
         <td style="${tdS}">${escHtml(r.posto||'—')}</td>
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:12px">${re}</td>
-        <td style="${tdS}">${escHtml(r.nome_guerra||r.nome||'—')}</td>
         <td style="${tdS};font-size:12px">${escHtml(r.opm||'—')}</td>
         <td style="${tdS};font-family:'DM Mono',monospace;color:${cor}">${fmtD(r.data_vencimento)}</td>
       </tr>`;
-    }).join('') || `<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">Nenhum registro</td></tr>`;
+    }).join('') || `<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">Nenhum registro</td></tr>`;
     iasDetailHtml = `
       <div style="background:var(--s2);border:1px solid ${kpiInfo?.cor}33;border-radius:8px;padding:14px;margin-top:8px;overflow-x:auto">
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:${kpiInfo?.cor};letter-spacing:1.5px;margin-bottom:10px">${kpiInfo?.label} — ${filtRows.length} PM${filtRows.length!==1?'s':''}</div>
-        <table style="width:100%;border-collapse:collapse;min-width:460px">
-          <thead><tr><th style="${thS}">POSTO</th><th style="${thS}">RE</th><th style="${thS}">NOME GUERRA</th><th style="${thS}">OPM</th><th style="${thS}">VENCIMENTO</th></tr></thead>
+        <table style="width:100%;border-collapse:collapse;min-width:360px">
+          <thead><tr><th style="${thS}">POSTO</th><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">VENCIMENTO</th></tr></thead>
           <tbody>${iasRowsHtml}</tbody>
         </table>
       </div>`;
@@ -1038,33 +1035,40 @@ function renderUisPage() {
   const mesAtual = today.slice(5,7);
   const mesProx  = String((parseInt(mesAtual)%12)+1).padStart(2,'0');
   const agendarPms = iasVals.filter(([,r]) => { const m = _iasAnivMes(r.data_aniversario); return m === mesAtual || m === mesProx; });
+  const agendarPorOpm = {};
+  agendarPms.forEach(([,r]) => { const o = r.opm||'Sem OPM'; agendarPorOpm[o] = (agendarPorOpm[o]||0)+1; });
   const iasAgendarHtml = agendarPms.length > 0 ? `
     <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #c8a84b;border-radius:10px;padding:18px 20px;margin-bottom:14px">
-      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#c8a84b;letter-spacing:1.5px;margin-bottom:4px">IAS · AGENDAR INSPEÇÃO — MÊS ATUAL E PRÓXIMO</div>
-      <div style="font-size:12px;color:var(--tx3);margin-bottom:12px">A IAS é realizada no mês de aniversário — estes PMs precisam agendar em breve.</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">
-        ${agendarPms.map(([re,r]) => `<div style="background:rgba(200,168,75,.1);border:1px solid rgba(200,168,75,.3);border-radius:6px;padding:6px 12px;cursor:pointer" onclick="openIasPmModal('${re}')">
-          <div style="font-size:13px;color:#ffffff;font-weight:600">${escHtml(r.nome_guerra||r.nome||re)}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:10px;color:#c8a84b">${r.posto||''} · ${r.opm||''}</div>
-        </div>`).join('')}
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#c8a84b;letter-spacing:1.5px;margin-bottom:14px">IAS · AGENDAR INSPEÇÃO — MÊS ATUAL E PRÓXIMO</div>
+      <div style="font-size:13px;color:var(--tx3);margin-bottom:14px">A IAS é realizada no mês de aniversário — <b style="color:#c8a84b">${agendarPms.length} PM${agendarPms.length!==1?'s':''}</b> precisam agendar em breve.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
+        ${Object.entries(agendarPorOpm).sort((a,b)=>b[1]-a[1]).map(([opm,cnt]) => {
+          const cor = uisCiaColor(opm);
+          return `<div style="background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.25);border-left:3px solid ${cor};border-radius:6px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:#c8a84b">${cnt}</div>
+          </div>`;
+        }).join('')}
       </div>
     </div>` : '';
 
   // ── Alerta duplo (UIS ativa + IAS vencida) ─────────────────
   const duplos = Object.entries(restMap).filter(([re]) => _iasStatusFromRec(iasMapF[re]) === 'vencido');
+  const duplosPorOpm = {};
+  duplos.forEach(([re, recs]) => {
+    const opm = recs[0]?.opm || iasMapF[re]?.opm || 'Sem OPM';
+    duplosPorOpm[opm] = (duplosPorOpm[opm]||0) + 1;
+  });
   const alertasHtml = duplos.length > 0 ? `
     <div style="background:var(--s2);border:1px solid #f0787844;border-top:3px solid #f07878;border-radius:10px;padding:18px 20px;margin-bottom:14px">
-      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#f07878;letter-spacing:1.5px;margin-bottom:4px">⚠ ALERTA — PENDÊNCIA DUPLA (UIS + IAS VENCIDA)</div>
-      <div style="font-size:12px;color:var(--tx3);margin-bottom:12px">${duplos.length} PM${duplos.length!==1?'s':''} com restrição UIS ativa <b>e</b> IAS vencida simultaneamente.</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">
-        ${duplos.map(([re, recs]) => {
-          const iasRec = iasMapF[re];
-          const nome   = iasRec?.nome_guerra || iasRec?.nome || re;
-          const posto  = iasRec?.posto || '—';
-          const opm    = recs[0]?.opm || iasRec?.opm || '—';
-          return `<div style="background:rgba(240,120,120,.08);border:1px solid #f0787844;border-radius:6px;padding:8px 14px;cursor:pointer" onclick="openIasPmModal('${re}')">
-            <div style="font-size:13px;color:#ffffff;font-weight:600">${escHtml(nome)}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:10px;color:#f07878">${escHtml(posto)} · ${escHtml(opm)}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#f07878;letter-spacing:1.5px;margin-bottom:14px">⚠ ALERTA — PENDÊNCIA DUPLA (UIS + IAS VENCIDA)</div>
+      <div style="font-size:13px;color:var(--tx3);margin-bottom:14px"><b style="color:#f07878">${duplos.length} PM${duplos.length!==1?'s':''}</b> com restrição UIS ativa <b>e</b> IAS vencida simultaneamente.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
+        ${Object.entries(duplosPorOpm).sort((a,b)=>b[1]-a[1]).map(([opm,cnt]) => {
+          const cor = uisCiaColor(opm);
+          return `<div style="background:rgba(240,120,120,.07);border:1px solid #f0787833;border-left:3px solid ${cor};border-radius:6px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:#f07878">${cnt}</div>
           </div>`;
         }).join('')}
       </div>
