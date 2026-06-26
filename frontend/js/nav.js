@@ -22,28 +22,71 @@ function toggleSidebarCollapse() {
 })();
 
 // Preenche nome/cargo do usuário na sidebar e configura visibilidade de botões
-// conforme o role (admin/p3/ti veem botões de edição; p1/ti veem edição do P1)
+// e seções conforme role e secoes_acesso.
 function initUserBlock() {
   try {
     const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
     const ROLE_LABEL = { ti: 'T.I. / Programador', comandante: 'Cmt Batalhão', comandante_cia: 'Cmt de Cia', p1: 'Seção P1', p3: 'Seção P3', viewer: 'Visualizador' };
     document.getElementById('user-nome').textContent = u.nome || '—';
     document.getElementById('user-info').textContent = `${u.secao || '—'} · ${ROLE_LABEL[u.role] || u.role || '—'}`;
-    if (['admin', 'p3', 'ti'].includes(u.role)) {
+
+    const sa = u.secoes_acesso || {};
+    const hasSecoes = Object.keys(sa).length > 0;
+    const isSuperuser = ['admin', 'ti'].includes(u.role);
+
+    if (isSuperuser) {
+      // Superusuário vê tudo
       document.getElementById('btn-admin').style.display = 'block';
       checkPendingUsers();
-      // Botões de edição do cabeçalho P3 — visíveis só para admin/p3
-      const btnEdit = document.getElementById('btn-edit-periodo');
-      if (btnEdit) btnEdit.style.display = 'inline-block';
-      const btnFonte = document.getElementById('btn-edit-fonte');
-      if (btnFonte) btnFonte.style.display = 'inline-block';
-      const btnSicoordop = document.getElementById('btn-edit-sicoordop');
-      if (btnSicoordop) btnSicoordop.style.display = 'inline-block';
-    }
-    if (['p1', 'ti'].includes(u.role)) {
-      // Botão de edição de 'Última Atualização' do P1 — visível só para p1/ti
+      ['btn-edit-periodo','btn-edit-fonte','btn-edit-sicoordop'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.style.display = 'inline-block';
+      });
       const btnP1Per = document.getElementById('btn-p1-edit-periodo');
       if (btnP1Per) btnP1Per.style.display = 'inline-block';
+    } else if (hasSecoes) {
+      // Controle via secoes_acesso
+      const isP3Editor = sa.p3 === 'editor';
+      const isP1Editor = sa.p1 === 'editor';
+      const isAnyEditor = isP3Editor || isP1Editor || sa.uis === 'editor';
+
+      if (isAnyEditor) {
+        document.getElementById('btn-admin').style.display = 'block';
+        checkPendingUsers();
+      }
+      if (isP3Editor) {
+        ['btn-edit-periodo','btn-edit-fonte','btn-edit-sicoordop'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.style.display = 'inline-block';
+        });
+      }
+      if (isP1Editor) {
+        const btnP1Per = document.getElementById('btn-p1-edit-periodo');
+        if (btnP1Per) btnP1Per.style.display = 'inline-block';
+      }
+      // Oculta seções sem acesso
+      const sectionMap = { p1: 'sec-p1', uis: 'sec-uis', p3: 'sec-p3' };
+      Object.entries(sectionMap).forEach(([key, btnId]) => {
+        if (!sa[key] || sa[key] === 'none') {
+          const btn = document.getElementById(btnId);
+          if (btn) btn.style.display = 'none';
+          if (key === 'p3') {
+            const sub = document.getElementById('p3-submenu');
+            if (sub) sub.style.display = 'none';
+          }
+        }
+      });
+    } else {
+      // Sem secoes_acesso → comportamento legado por role
+      if (['admin', 'p3', 'ti'].includes(u.role)) {
+        document.getElementById('btn-admin').style.display = 'block';
+        checkPendingUsers();
+        ['btn-edit-periodo','btn-edit-fonte','btn-edit-sicoordop'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.style.display = 'inline-block';
+        });
+      }
+      if (['p1', 'ti'].includes(u.role)) {
+        const btnP1Per = document.getElementById('btn-p1-edit-periodo');
+        if (btnP1Per) btnP1Per.style.display = 'inline-block';
+      }
     }
     loadDashboardConfig();
   } catch (_) {}

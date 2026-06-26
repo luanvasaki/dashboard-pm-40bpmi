@@ -1,29 +1,32 @@
 ﻿// ═══════════════════════════════════════════════════════════════════════════
-// GERENCIAMENTO DE USUÁRIOS (modal #adm-mo)
-// Acessível apenas por admin, p3 e ti. Permite:
-//   • Aprovar / recusar cadastros pendentes
-//   • Alterar role (nível de acesso), posto/graduação e seção
-//   • Revogar acesso e excluir conta
-//   • Redefinir senha (temporária = matrícula do usuário)
-// Usuários com role 'admin' são ocultados da lista (protegidos contra alteração).
+// GERENCIAMENTO DE USUÁRIOS
+// adm-mo: lista de usuários (clique no nome → adm-user-mo)
+// adm-user-mo: edição individual — posto, seção, acesso por seção, ações
+// P1 e P3 podem gerenciar; exclusão restrita a P3/admin.
 // ═══════════════════════════════════════════════════════════════════════════
+
 function admClickOut(e) { if (e.target.id === 'adm-mo') closeAdminModal(); }
 function closeAdminModal() { document.getElementById('adm-mo').style.display = 'none'; }
+function admUserMoClickOut(e) { if (e.target.id === 'adm-user-mo') closeUserEditModal(); }
+function closeUserEditModal() { document.getElementById('adm-user-mo').style.display = 'none'; _editingUserId = null; }
 
-let _admAllUsers = []; // cache para busca sem re-fetch
+let _admAllUsers   = [];
+let _admUsersById  = {};
+let _editingUserId = null;
+let _editingSecoes = {};
 
-// Ordem de posto do menor ao maior — índice maior = posto mais alto
 const POSTO_ORDER = ['Sd PM','Cb PM','3º Sgt PM','2º Sgt PM','1º Sgt PM','Subten PM','Asp Of PM','2º Ten PM','1º Ten PM','Cap PM','Maj PM','Ten Cel PM','Cel PM'];
 function _postoRank(posto) { const i = POSTO_ORDER.indexOf(posto||''); return i === -1 ? -1 : i; }
 function _sortHierarquia(users) {
   return [...users].sort((a, b) => {
-    const dr = _postoRank(b.posto) - _postoRank(a.posto); // mais alto primeiro
+    const dr = _postoRank(b.posto) - _postoRank(a.posto);
     if (dr !== 0) return dr;
     const ma = parseInt((a.matricula||'').replace(/\D/g,'')) || 999999;
     const mb = parseInt((b.matricula||'').replace(/\D/g,'')) || 999999;
-    return ma - mb; // RE menor = mais antigo = primeiro
+    return ma - mb;
   });
 }
+
 function admSearch(q) {
   const me = JSON.parse(localStorage.getItem('auth_user') || '{}');
   const term = (q||'').toLowerCase().trim();
@@ -44,16 +47,16 @@ async function openAdminModal() {
   const searchEl = document.getElementById('adm-search');
   if (searchEl) searchEl.value = '';
   _admAllUsers = [];
-  document.getElementById('adm-users').innerHTML = '<div style="color:var(--tx3);font-size:19px;padding:10px 0">Carregando...</div>';
+  _admUsersById = {};
+  document.getElementById('adm-users').innerHTML = '<div style="color:var(--tx3);font-size:13px;padding:10px 0">Carregando...</div>';
   document.getElementById('adm-pending').innerHTML = '';
   document.getElementById('adm-pending-section').style.display = 'none';
-
   try {
     const data = await authFetch(`${API}/admin/users`).then(r => r.json());
     if (!Array.isArray(data)) throw new Error(data?.error || 'Resposta inesperada da API.');
     renderAdminUsers(data);
   } catch (err) {
-    document.getElementById('adm-users').innerHTML = `<div style="color:#f07878;font-size:19px">${err.message}</div>`;
+    document.getElementById('adm-users').innerHTML = `<div style="color:#f07878;font-size:13px">${err.message}</div>`;
   }
 }
 
@@ -61,8 +64,9 @@ function renderAdminUsers(users) {
   const me = JSON.parse(localStorage.getItem('auth_user') || '{}');
   const pending = _sortHierarquia(users.filter(u => u.status === 'pending'));
   const others  = _sortHierarquia(users.filter(u => u.status !== 'pending'));
-  _admAllUsers  = others;
-
+  _admAllUsers = others;
+  _admUsersById = {};
+  users.forEach(u => { _admUsersById[u.id] = u; });
   if (pending.length) {
     document.getElementById('adm-pending-section').style.display = 'block';
     document.getElementById('adm-pending').innerHTML = buildUserTable(pending, me);
@@ -71,175 +75,214 @@ function renderAdminUsers(users) {
 }
 
 function buildUserTable(users, me) {
-  // Oculta usuários com role 'admin' — protegidos contra alteração
   users = users.filter(u => u.role !== 'admin');
-  if (!users.length) return '<div style="color:var(--tx3);font-size:19px;padding:6px 0">Nenhum registro.</div>';
-  const ROLE_LABEL = { ti: 'T.I.', comandante: 'Cmt Batalhão', comandante_cia: 'Cmt de Cia', p1: 'P1', p3: 'P3', viewer: 'Visualizador' };
+  if (!users.length) return '<div style="color:var(--tx3);font-size:13px;padding:6px 0">Nenhum registro.</div>';
   const STATUS_STYLE = {
     pending:  'background:rgba(200,168,75,.15);color:#e8c96a',
     approved: 'background:rgba(61,191,122,.1);color:#5ae09a',
     rejected: 'background:rgba(230,100,100,.1);color:#f07878'
   };
   const STATUS_LABEL = { pending: 'Pendente', approved: 'Aprovado', rejected: 'Recusado' };
-
-  let h = `<table style="width:100%;border-collapse:collapse;font-size:19px">
+  const thS = 'text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:"DM Mono",monospace;font-size:11px;color:var(--tx3);letter-spacing:1px';
+  const tdS = 'padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-size:13px';
+  let h = `<table style="width:100%;border-collapse:collapse">
     <thead><tr>
-      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">NOME</th>
-      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">POSTO/GRAD.</th>
-      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">RE</th>
-      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">FUNÇÃO</th>
-      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">STATUS</th>
-      <th style="text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">NÍVEL</th>
-      <th style="padding:9px 8px;border-bottom:1px solid var(--bd)"></th>
+      <th style="${thS}">NOME</th>
+      <th style="${thS}">POSTO/GRAD.</th>
+      <th style="${thS}">RE</th>
+      <th style="${thS}">FUNÇÃO</th>
+      <th style="${thS}">STATUS</th>
+      <th style="${thS}"></th>
     </tr></thead><tbody>`;
-
-  const SECAO_OPTS = ['Comandante de Batalhão','Subcomandante de Batalhão','CoordOp','Comandante de Cia','CFP','Sargentante','P1','P2','P3','P4','P5','P1 de Cia','P3 de Cia','P4 de Cia','P5 de Cia','CGP','1ª Cia Operacional','2ª Cia Operacional','3ª Cia Operacional','Força Tatica Operacional'];
-
   users.forEach(u => {
     const sStyle = STATUS_STYLE[u.status] || '';
-    const canEditRole  = ['admin', 'p3', 'ti'].includes(me.role);
-    const canEditPosto = ['admin', 'p1', 'p3', 'ti'].includes(me.role);
-    const editableRoles = ['viewer','p1','p3','ti'];
-    const roleOpts = canEditRole
-      ? editableRoles.map(r =>
-          `<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABEL[r]||r}</option>`).join('')
-      : `<option>${ROLE_LABEL[u.role]||u.role}</option>`;
-    const secaoOpts = canEditRole
-      ? SECAO_OPTS.map(s => `<option value="${s}" ${u.secao===s?'selected':''}>${s}</option>`).join('')
-      : `<option>${u.secao}</option>`;
-
-    let actions = '';
+    let quickActions = '';
     if (u.status === 'pending') {
-      actions = `<button onclick="admAction('${u.id}','approved')" style="padding:5px 12px;background:rgba(61,191,122,.15);border:1px solid rgba(61,191,122,.3);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:19px;margin-right:4px">✓ Aprovar</button>
-                 <button onclick="admAction('${u.id}','rejected')" style="padding:5px 12px;background:rgba(230,100,100,.1);border:1px solid rgba(230,100,100,.25);color:#f07878;border-radius:4px;cursor:pointer;font-size:19px">✕ Recusar</button>`;
-    } else if (u.status === 'approved') {
-      actions = `<button onclick="admAction('${u.id}','approved')" style="display:none"></button>
-                 <button onclick="admAction('${u.id}','rejected')" style="padding:5px 12px;background:rgba(230,100,100,.08);border:1px solid rgba(230,100,100,.2);color:#f07878;border-radius:4px;cursor:pointer;font-size:19px">Revogar</button>
-                 <button data-uid="${escHtml(u.id)}" data-unome="${escHtml(u.nome)}" onclick="admResetSenha(this.dataset.uid,this.dataset.unome)" style="padding:5px 12px;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.25);color:#e8c96a;border-radius:4px;cursor:pointer;font-size:19px;margin-left:4px" title="Senha temporária = matrícula do usuário">🔑 Redefinir Senha</button>`;
-    } else {
-      actions = `<button onclick="admAction('${u.id}','approved')" style="padding:5px 12px;background:rgba(61,191,122,.1);border:1px solid rgba(61,191,122,.25);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:19px">Reativar</button>`;
+      quickActions = `
+        <button onclick="event.stopPropagation();admAction('${u.id}','approved')" style="padding:4px 10px;background:rgba(61,191,122,.15);border:1px solid rgba(61,191,122,.3);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:12px;margin-right:4px">✓</button>
+        <button onclick="event.stopPropagation();admAction('${u.id}','rejected')" style="padding:4px 10px;background:rgba(230,100,100,.1);border:1px solid rgba(230,100,100,.25);color:#f07878;border-radius:4px;cursor:pointer;font-size:12px">✕</button>`;
     }
-
-    h += `<tr>
-      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:#d8dce8">${escHtml(u.nome)}</td>
-      <td style="padding:4px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
-        ${canEditPosto
-          ? `<select name="adm-posto-${u.id}" autocomplete="off" onchange="admChangePosto('${u.id}',this.value)" style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:4px 8px;border-radius:4px;font-size:19px;cursor:pointer">
-              ${ ['Sd PM','Cb PM','3º Sgt PM','2º Sgt PM','1º Sgt PM','Subten PM','Asp Of PM','2º Ten PM','1º Ten PM','Cap PM','Maj PM','Ten Cel PM','Cel PM']
-                .map(p => `<option value="${p}" ${(u.posto||'')=== p?'selected':''}>${p}</option>`).join('') }
-            </select>`
-          : `<span style="color:var(--tx3)">${u.posto||'—'}</span>`}
-      </td>
-      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-family:'DM Mono',monospace;color:var(--tx3)">${escHtml(u.matricula)}</td>
-      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
-        <select name="adm-secao-${u.id}" autocomplete="off" onchange="admChangeSecao('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:4px 8px;border-radius:4px;font-size:19px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${secaoOpts}</select>
-      </td>
-      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)"><span style="padding:3px 10px;border-radius:20px;font-family:'DM Mono',monospace;font-size:19px;${sStyle}">${STATUS_LABEL[u.status]||u.status}</span></td>
-      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03)">
-        <select name="adm-role-${u.id}" autocomplete="off" onchange="admChangeRole('${u.id}',this.value)" ${!canEditRole?'disabled':''} style="background:#121620;border:1px solid #252d40;color:#d8dce8;padding:4px 8px;border-radius:4px;font-size:19px;cursor:pointer;${!canEditRole?'opacity:.6':''}">${roleOpts}</select>
-      </td>
-      <td style="padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);white-space:nowrap">
-        ${actions}
-        <button data-uid="${escHtml(u.id)}" data-unome="${escHtml(u.nome)}" onclick="admDelete(this.dataset.uid,this.dataset.unome)" style="padding:5px 10px;background:transparent;border:1px solid rgba(230,100,100,.2);color:var(--tx3);border-radius:4px;cursor:pointer;font-size:19px;margin-left:4px" title="Excluir usuário">🗑</button>
-      </td>
+    h += `<tr onclick="openUserEditModal('${u.id}')" style="cursor:pointer;transition:background .12s" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
+      <td style="${tdS};color:#5a9de0;font-weight:600">${escHtml(u.nome)}</td>
+      <td style="${tdS};font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${escHtml(u.posto||'—')}</td>
+      <td style="${tdS};font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${escHtml(u.matricula)}</td>
+      <td style="${tdS};font-size:12px;color:var(--tx3)">${escHtml(u.secao||'—')}</td>
+      <td style="${tdS}"><span style="padding:2px 10px;border-radius:20px;font-family:'DM Mono',monospace;font-size:11px;${sStyle}">${STATUS_LABEL[u.status]||u.status}</span></td>
+      <td style="${tdS};white-space:nowrap">${quickActions}</td>
     </tr>`;
   });
-
   h += '</tbody></table>';
   return h;
+}
+
+// Seções disponíveis para controle de acesso por usuário
+const SECOES_ACESSO_DEF = [
+  { key: 'p1',  label: 'P1 · Seção de Pessoal',   cor: '#5a9de0' },
+  { key: 'uis', label: 'UIS · Restrições Médicas', cor: '#9b59b6' },
+  { key: 'p3',  label: 'P3 · Painel Operacional',  cor: '#4bc87a' },
+];
+
+function _secBtn(key, val, active, cor) {
+  const on = val === active;
+  const labels = { none: 'Sem acesso', viewer: 'Visualizador', editor: 'Editor' };
+  const s = on
+    ? `background:${cor}33;border:1px solid ${cor}88;color:${cor};font-weight:600`
+    : `background:transparent;border:1px solid rgba(255,255,255,.1);color:var(--tx3);font-weight:400`;
+  return `<button onclick="admSetSecAccess('${key}','${val}',this)" data-sec="${key}" data-val="${val}" style="padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;transition:all .12s;${s}">${labels[val]}</button>`;
+}
+
+function admSetSecAccess(key, val, btn) {
+  _editingSecoes[key] = val;
+  const def = SECOES_ACESSO_DEF.find(s => s.key === key);
+  const cor = def ? def.cor : '#5a9de0';
+  document.querySelectorAll(`[data-sec="${key}"]`).forEach(b => {
+    const on = b.dataset.val === val;
+    b.style.background = on ? `${cor}33` : 'transparent';
+    b.style.border = on ? `1px solid ${cor}88` : '1px solid rgba(255,255,255,.1)';
+    b.style.color = on ? cor : 'var(--tx3)';
+    b.style.fontWeight = on ? '600' : '400';
+  });
+}
+
+function openUserEditModal(id) {
+  const u = _admUsersById[id];
+  if (!u) return;
+  _editingUserId = id;
+  _editingSecoes = {};
+  const me = JSON.parse(localStorage.getItem('auth_user') || '{}');
+  const canDelete = ['admin', 'p3', 'ti'].includes(me.role);
+
+  document.getElementById('admu-re').textContent   = `RE ${u.matricula}`;
+  document.getElementById('admu-nome').textContent = u.nome;
+
+  const SS = { pending: 'background:rgba(200,168,75,.15);color:#e8c96a', approved: 'background:rgba(61,191,122,.1);color:#5ae09a', rejected: 'background:rgba(230,100,100,.1);color:#f07878' };
+  const SL = { pending: 'Pendente', approved: 'Aprovado', rejected: 'Recusado' };
+  const badge = document.getElementById('admu-status-badge');
+  badge.textContent = SL[u.status] || u.status;
+  badge.style.cssText = `display:inline-block;margin-top:5px;padding:2px 10px;border-radius:20px;font-family:'DM Mono',monospace;font-size:11px;${SS[u.status]||''}`;
+
+  document.getElementById('admu-posto-sel').value = u.posto || '';
+  document.getElementById('admu-secao-sel').value = u.secao || '';
+
+  const sa = u.secoes_acesso || {};
+  SECOES_ACESSO_DEF.forEach(({ key }) => { _editingSecoes[key] = sa[key] || 'none'; });
+
+  document.getElementById('admu-secoes').innerHTML = SECOES_ACESSO_DEF.map(({ key, label, cor }) => {
+    const cur = sa[key] || 'none';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,.025);border-radius:6px">
+      <div style="flex:1;font-size:13px;color:var(--tx);font-weight:600">${label}</div>
+      <div style="display:flex;gap:4px">${['none','viewer','editor'].map(v => _secBtn(key, v, cur, cor)).join('')}</div>
+    </div>`;
+  }).join('');
+
+  let statusHtml = '';
+  if (u.status === 'pending') {
+    statusHtml = `<button onclick="admStatusFromModal('approved')" style="padding:5px 12px;background:rgba(61,191,122,.15);border:1px solid rgba(61,191,122,.3);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:12px;margin-right:4px">✓ Aprovar</button>
+                  <button onclick="admStatusFromModal('rejected')" style="padding:5px 12px;background:rgba(230,100,100,.1);border:1px solid rgba(230,100,100,.25);color:#f07878;border-radius:4px;cursor:pointer;font-size:12px">✕ Recusar</button>`;
+  } else if (u.status === 'approved') {
+    statusHtml = `<button onclick="admStatusFromModal('rejected')" style="padding:5px 12px;background:rgba(230,100,100,.08);border:1px solid rgba(230,100,100,.2);color:#f07878;border-radius:4px;cursor:pointer;font-size:12px">Revogar acesso</button>`;
+  } else {
+    statusHtml = `<button onclick="admStatusFromModal('approved')" style="padding:5px 12px;background:rgba(61,191,122,.1);border:1px solid rgba(61,191,122,.25);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:12px">Reativar</button>`;
+  }
+  document.getElementById('admu-status-actions').innerHTML = statusHtml;
+  document.getElementById('admu-btn-del').style.display = canDelete ? 'inline-block' : 'none';
+  document.getElementById('admu-msg').textContent = '';
+  document.getElementById('adm-user-mo').style.display = 'flex';
+}
+
+async function admSaveUserEdit() {
+  const id = _editingUserId; if (!id) return;
+  const posto = document.getElementById('admu-posto-sel').value;
+  const secao = document.getElementById('admu-secao-sel').value;
+  const secoes_acesso = { ..._editingSecoes };
+  try {
+    if (posto) {
+      const r1 = await authFetch(`${API}/admin/users/${id}/posto`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ posto })
+      });
+      if (!r1.ok) throw new Error((await r1.json()).error);
+    }
+    const r2 = await authFetch(`${API}/admin/users/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secao, secoes_acesso })
+    });
+    if (!r2.ok) throw new Error((await r2.json()).error);
+    if (_admUsersById[id]) { Object.assign(_admUsersById[id], { posto, secao, secoes_acesso }); }
+    const me = JSON.parse(localStorage.getItem('auth_user') || '{}');
+    document.getElementById('adm-users').innerHTML = buildUserTable(_admAllUsers, me);
+    showAdmuMsg('Salvo com sucesso.', 'ok');
+  } catch (err) { showAdmuMsg(err.message, 'err'); }
+}
+
+async function admStatusFromModal(status) {
+  const id = _editingUserId; if (!id) return;
+  try {
+    const res = await authFetch(`${API}/admin/users/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    if (_admUsersById[id]) _admUsersById[id].status = status;
+    const me = JSON.parse(localStorage.getItem('auth_user') || '{}');
+    document.getElementById('adm-users').innerHTML = buildUserTable(_admAllUsers, me);
+    // Re-abre o modal com dados atualizados
+    openUserEditModal(id);
+    showAdmuMsg('Status atualizado.', 'ok');
+  } catch (err) { showAdmuMsg(err.message, 'err'); }
+}
+
+async function admResetSenhaFromModal() {
+  const id = _editingUserId; if (!id) return;
+  const u = _admUsersById[id];
+  if (!confirm(`Redefinir a senha de "${u?.nome}"?\n\nA senha temporária será a matrícula do usuário.\nEle será obrigado a criar uma nova senha no próximo login.`)) return;
+  try {
+    const res  = await authFetch(`${API}/admin/users/${id}/reset-senha`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showAdmuMsg(`Senha redefinida. Temporária: matrícula ${data.matricula}`, 'ok');
+  } catch (err) { showAdmuMsg(err.message, 'err'); }
+}
+
+async function admDeleteFromModal() {
+  const id = _editingUserId; if (!id) return;
+  const u = _admUsersById[id];
+  if (!confirm(`Excluir definitivamente "${u?.nome}"? Esta ação não pode ser desfeita.`)) return;
+  try {
+    const res = await authFetch(`${API}/admin/users/${id}`, { method: 'DELETE' });
+    if (!res.ok) { showAdmuMsg((await res.json()).error || 'Erro ao excluir.', 'err'); return; }
+    closeUserEditModal();
+    openAdminModal();
+  } catch (err) { showAdmuMsg('Erro de conexão.', 'err'); }
 }
 
 async function admAction(id, status) {
   try {
     const res = await authFetch(`${API}/admin/users/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     await openAdminModal();
-  } catch (err) {
-    showAdmMsg(err.message, 'err');
-  }
-}
-
-async function admDelete(id, nome) {
-  if (!confirm(`Excluir definitivamente o usuário "${nome}"? Esta ação não pode ser desfeita.`)) return;
-  try {
-    const res = await authFetch(`${API}/admin/users/${id}`, { method: 'DELETE' });
-    if (!res.ok) { const d = await res.json(); alert(d.error || 'Erro ao excluir.'); return; }
-    openAdminModal();
-  } catch (err) {
-    alert('Erro de conexão.');
-  }
-}
-
-async function admChangeRole(id, role) {
-  try {
-    const res = await authFetch(`${API}/admin/users/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showAdmMsg('Nível de acesso atualizado.', 'ok');
-  } catch (err) {
-    showAdmMsg(err.message, 'err');
-  }
-}
-
-async function admChangeSecao(id, secao) {
-  try {
-    const res = await authFetch(`${API}/admin/users/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secao })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showAdmMsg('Função atualizada.', 'ok');
-  } catch (err) {
-    showAdmMsg(err.message, 'err');
-  }
-}
-
-async function admChangePosto(id, posto) {
-  if (!posto || !posto.trim()) return;
-  try {
-    const res = await authFetch(`${API}/admin/users/${id}/posto`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ posto })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showAdmMsg('Posto/Grad atualizado.', 'ok');
-  } catch (err) {
-    showAdmMsg(err.message, 'err');
-  }
-}
-
-async function admResetSenha(id, nome) {
-  if (!confirm(`Redefinir a senha de "${nome}"?\n\nA senha temporária será a própria matrícula do usuário.\nNa próxima vez que entrar, ele será obrigado a criar uma nova senha.`)) return;
-  try {
-    const res  = await authFetch(`${API}/admin/users/${id}/reset-senha`, { method: 'POST' });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    showAdmMsg(`Senha redefinida. Senha temporária: matrícula ${data.matricula}`, 'ok');
-  } catch (err) {
-    showAdmMsg(err.message, 'err');
-  }
+  } catch (err) { showAdmMsg(err.message, 'err'); }
 }
 
 function showAdmMsg(text, type) {
   const el = document.getElementById('adm-msg');
   el.textContent = text;
   el.style.cssText = type === 'ok'
-    ? 'display:block;padding:12px 14px;border-radius:6px;font-size:19px;background:rgba(61,191,122,.1);border:1px solid rgba(61,191,122,.25);color:#5ae09a;margin-top:14px'
-    : 'display:block;padding:12px 14px;border-radius:6px;font-size:19px;background:rgba(230,100,100,.1);border:1px solid rgba(230,100,100,.25);color:#f07878;margin-top:14px';
+    ? 'display:block;padding:10px 14px;border-radius:6px;font-size:13px;background:rgba(61,191,122,.1);border:1px solid rgba(61,191,122,.25);color:#5ae09a;margin-top:14px'
+    : 'display:block;padding:10px 14px;border-radius:6px;font-size:13px;background:rgba(230,100,100,.1);border:1px solid rgba(230,100,100,.25);color:#f07878;margin-top:14px';
   setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+function showAdmuMsg(text, type) {
+  const el = document.getElementById('admu-msg');
+  el.textContent = text;
+  el.style.color = type === 'ok' ? '#5ae09a' : '#f07878';
+  setTimeout(() => { el.textContent = ''; }, 4000);
 }
 
 // Paleta de cores por crime (mesma ordem da API)

@@ -117,6 +117,54 @@
   </div>
 </div>
 
+<!-- MODAL EDIÇÃO DE USUÁRIO -->
+<div id="adm-user-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:10600;align-items:center;justify-content:center;padding:20px;overflow-y:auto" onclick="admUserMoClickOut(event)">
+  <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:26px;width:100%;max-width:480px;margin:auto">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px">
+      <div style="min-width:0">
+        <div id="admu-re" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">RE —</div>
+        <div id="admu-nome" style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:1px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div>
+        <div id="admu-status-badge" style="display:inline-block;margin-top:5px;padding:2px 10px;border-radius:20px;font-family:'DM Mono',monospace;font-size:11px"></div>
+      </div>
+      <button onclick="closeUserEditModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:13px;flex-shrink:0">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">POSTO / GRAD.</div>
+        <select id="admu-posto-sel" autocomplete="off" style="width:100%;background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:6px 8px;border-radius:4px;font-size:13px;cursor:pointer">
+          <option value="">—</option>
+          <option>Sd PM</option><option>Cb PM</option><option>3º Sgt PM</option><option>2º Sgt PM</option>
+          <option>1º Sgt PM</option><option>Subten PM</option><option>Asp Of PM</option><option>2º Ten PM</option>
+          <option>1º Ten PM</option><option>Cap PM</option><option>Maj PM</option><option>Ten Cel PM</option><option>Cel PM</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">FUNÇÃO / SEÇÃO</div>
+        <select id="admu-secao-sel" autocomplete="off" style="width:100%;background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:6px 8px;border-radius:4px;font-size:13px;cursor:pointer">
+          <option value="">—</option>
+          <option>Comandante de Batalhão</option><option>Subcomandante de Batalhão</option><option>CoordOp</option>
+          <option>Comandante de Cia</option><option>CFP</option><option>Sargentante</option>
+          <option>P1</option><option>P2</option><option>P3</option><option>P4</option><option>P5</option>
+          <option>P1 de Cia</option><option>P3 de Cia</option><option>P4 de Cia</option><option>P5 de Cia</option>
+          <option>CGP</option><option>1ª Cia Operacional</option><option>2ª Cia Operacional</option>
+          <option>3ª Cia Operacional</option><option>Força Tatica Operacional</option>
+        </select>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--bd);padding-top:14px;margin-bottom:16px">
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">ACESSO POR SEÇÃO</div>
+      <div id="admu-secoes" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+    <button onclick="admSaveUserEdit()" style="width:100%;padding:9px;background:rgba(90,157,224,.15);border:1px solid rgba(90,157,224,.35);color:#5a9de0;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;margin-bottom:10px">Salvar alterações</button>
+    <div id="admu-msg" style="font-size:12px;min-height:16px;margin-bottom:12px;padding:0 2px"></div>
+    <div style="border-top:1px solid var(--bd);padding-top:14px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+      <div id="admu-status-actions" style="display:contents"></div>
+      <button id="admu-btn-reset" onclick="admResetSenhaFromModal()" style="padding:5px 12px;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.25);color:#e8c96a;border-radius:4px;cursor:pointer;font-size:12px">🔑 Redefinir Senha</button>
+      <button id="admu-btn-del" onclick="admDeleteFromModal()" style="padding:5px 12px;background:transparent;border:1px solid rgba(230,100,100,.2);color:var(--tx3);border-radius:4px;cursor:pointer;font-size:12px">🗑 Excluir</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL DE DETALHES -->
 <div class="mo" id="mo" onclick="moClickOut(event)">
   <div class="mo-box">

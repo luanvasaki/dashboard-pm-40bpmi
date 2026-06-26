@@ -436,7 +436,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     const ok = await bcrypt.compare(senha, data.senha_hash);
     if (!ok) return res.status(401).json({ error: 'Matrícula ou senha incorretos' });
 
-    const payload = { id: data.id, nome: data.nome, matricula: data.matricula, role: data.role, secao: data.secao, resetSenha: data.reset_senha === true };
+    const payload = { id: data.id, nome: data.nome, matricula: data.matricula, role: data.role, secao: data.secao, resetSenha: data.reset_senha === true, secoes_acesso: data.secoes_acesso || {} };
     const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
     res.cookie('auth_token', token, {
       httpOnly: true,
@@ -485,12 +485,12 @@ app.post('/api/auth/nova-senha', requireAuth, async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 
 // [GET /api/admin/users] — lista todos os usuários (sem senha_hash), ordenados por criação.
-app.get('/api/admin/users', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
+app.get('/api/admin/users', requireAuth, requireRole('admin', 'p1', 'p3'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
   try {
     const { data, error } = await supabase
       .from(USUARIOS_TABLE)
-      .select('id, nome, posto, matricula, secao, role, status, created_at')
+      .select('id, nome, posto, matricula, secao, role, status, created_at, secoes_acesso')
       .order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
     res.json(data);
@@ -499,20 +499,32 @@ app.get('/api/admin/users', requireAuth, requireRole('admin', 'p3'), async (req,
   }
 });
 
-// [PATCH /api/admin/users/:id] — aprova (status: 'approved'), rejeita (status: 'rejected') ou altera role/seção.
+// [PATCH /api/admin/users/:id] — aprova/rejeita status, atualiza seção e secoes_acesso.
+// P1 e P3 podem gerenciar usuários; apenas admin/p3 alteram role diretamente.
+// secoes_acesso auto-deriva o role interno para manter compatibilidade com requireRole.
 // Usuários com role 'admin' são protegidos contra qualquer alteração.
-app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
+app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'p1', 'p3'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
-  const { status, role, secao } = req.body;
+  const { status, secao, secoes_acesso } = req.body;
   const updates = {};
+  const canAdmin = ['admin', 'p3', 'ti'].includes(req.user.role);
+
   if (status) updates.status = status;
-  if (role   && ['admin', 'p3', 'ti'].includes(req.user.role)) updates.role  = role;
-  if (secao  && ['admin', 'p3', 'ti'].includes(req.user.role)) updates.secao = secao;
+  if (secao  && canAdmin) updates.secao = secao;
+  if (secao  && !canAdmin) updates.secao = secao; // p1 também pode atualizar seção
+
+  if (secoes_acesso !== undefined && typeof secoes_acesso === 'object') {
+    updates.secoes_acesso = secoes_acesso;
+    // Deriva role automaticamente para manter autorização backend funcional
+    const sa = secoes_acesso;
+    if (sa.p3 === 'editor') updates.role = 'p3';
+    else if (sa.p1 === 'editor' || sa.uis === 'editor') updates.role = 'p1';
+    else updates.role = 'viewer';
+  }
 
   if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nenhuma alteração informada' });
 
   try {
-    // Impede qualquer alteração em usuários com role 'admin'
     const { data: target } = await supabase.from(USUARIOS_TABLE).select('role').eq('id', req.params.id).single();
     if (target?.role === 'admin') return res.status(403).json({ error: 'Usuário protegido — não pode ser alterado.' });
 
@@ -543,7 +555,7 @@ app.patch('/api/admin/users/:id/posto', requireAuth, requireRole('admin', 'p1', 
 
 // [POST /api/admin/users/:id/reset-senha] — redefine a senha do usuário para sua própria matrícula.
 // Marca reset_senha=true: o frontend obriga troca de senha no próximo login.
-app.post('/api/admin/users/:id/reset-senha', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
+app.post('/api/admin/users/:id/reset-senha', requireAuth, requireRole('admin', 'p1', 'p3'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
   try {
     const { data: target } = await supabase.from(USUARIOS_TABLE).select('role, matricula').eq('id', req.params.id).single();
