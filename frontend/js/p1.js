@@ -1080,13 +1080,10 @@ function p1ShowKpiDetail(tipo) {
       <td style="${tdS}">${r.opm||'—'}</td>
     </tr>`).join('') || `<tr><td colspan="4" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`;
 
-    const munCols = Math.min(munList.length, 4);
-    const pstCols = Math.min(postoList.length, 5);
-    const ciaCols = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.length : 3;
     html = wrapDetail(`Aptos Operacional — ${filtered.length}`, null, '#4bc87a', closeBtn, `
-      ${ciaBtns   ? gridRow('CIA', ciaBtns, ciaCols) : ''}
-      ${munBtns   ? gridRow('MUNICÍPIO', munBtns, munCols) : ''}
-      ${postoBtns ? gridRow('POSTO / GRAD.', postoBtns, pstCols) : ''}
+      ${ciaBtns   ? gridRow('CIA', ciaBtns) : ''}
+      ${munBtns   ? gridRow('MUNICÍPIO', munBtns) : ''}
+      ${postoBtns ? gridRow('POSTO / GRAD.', postoBtns) : ''}
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse">${thead}<tbody>${rowsHtml}</tbody></table>
       </div>`);
@@ -1350,16 +1347,15 @@ function p1ShowKpiDetail(tipo) {
       const cntSemR = baseList.filter(x => x.s === 'semreg').length;
 
       // ── Helpers de botão ─────────────────────────────────────
-      const btnBase = (lbl, sub, cor, on, onclick) =>
-        `<button onclick="${onclick}" style="padding:20px 22px;background:${on?cor+'1a':'var(--s2)'};border:1px solid ${on?cor:cor+'33'};border-top:4px solid ${on?cor:'transparent'};border-radius:8px;cursor:pointer;text-align:left;transition:all .15s;width:100%">
-          <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;color:${on?cor:'var(--tx3)'};margin-bottom:6px;text-transform:uppercase">${lbl}</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:800;color:${on?cor:'var(--tx2)'};line-height:1">${sub}</div>
+      const btnBase = (lbl, cnt, cor, on, onclick) =>
+        `<button onclick="${onclick}" style="padding:7px 16px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx3)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap">
+          ${lbl}<span style="opacity:.6;font-size:11px"> (${cnt})</span>
         </button>`;
 
-      const gridRow = (lbl, btns, cols) =>
-        `<div style="border-bottom:1px solid var(--bd);padding-bottom:16px;margin-bottom:16px">
-          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:2px;margin-bottom:10px;text-transform:uppercase">${lbl}</div>
-          <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:10px">${btns}</div>
+      const gridRow = (lbl, btns) =>
+        `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
         </div>`;
 
       const sitBtns = [
@@ -1403,14 +1399,11 @@ function p1ShowKpiDetail(tipo) {
         </tr>`;
       }).join('') || `<tr><td colspan="6" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`;
 
-      const munCols  = Math.min(munList.length, 4);
-      const pstCols  = Math.min(postoList.length, 5);
-      const ciaCols  = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.length : 3;
       html = wrapDetail(`IAS · Inspeção Anual de Saúde — ${filtered.length}`, null, '#5a9de0', closeBtn, `
-        ${gridRow('SITUAÇÃO', sitBtns, 4)}
-        ${ciaBtns  ? gridRow('CIA', ciaBtns, ciaCols) : ''}
-        ${munBtns  ? gridRow('MUNICÍPIO', munBtns, munCols) : ''}
-        ${postoBtns? gridRow('POSTO / GRAD.', postoBtns, pstCols) : ''}
+        ${gridRow('SITUAÇÃO', sitBtns)}
+        ${ciaBtns  ? gridRow('CIA', ciaBtns) : ''}
+        ${munBtns  ? gridRow('MUNICÍPIO', munBtns) : ''}
+        ${postoBtns? gridRow('POSTO / GRAD.', postoBtns) : ''}
         <div style="overflow-x:auto">
           <table style="width:100%;border-collapse:collapse">${thead}<tbody>${rowsHtml}</tbody></table>
         </div>`);
