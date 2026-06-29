@@ -46,18 +46,31 @@ let p1UnitClickOut   = null; // handler de click fora do detalhe de unidade
 let p1KpiClickOut    = null; // handler de click fora do detalhe de KPI
 
 // Estado dos filtros do detalhe IAS
-let _p1IasDetSit   = null;  // null | 'vencido' | 'vencendo' | 'apto' | 'semreg'
-let _p1IasDetCia   = -1;    // -1 = todas, 0+ = índice em CIA_STRUCT
-let _p1IasDetMun   = null;  // null | string município
-let _p1IasDetPostos = [];   // [] = todos, ou array de postos selecionados
+let _p1IasDetSit    = null;
+let _p1IasDetCia    = -1;
+let _p1IasDetMun    = null;
+let _p1IasDetPostos = [];
 
 function p1IasSetSit(val)   { _p1IasDetSit = _p1IasDetSit === val ? null : val; p1ShowKpiDetail('ias'); }
-function p1IasSetCia(idx)   { _p1IasDetCia = _p1IasDetCia === idx ? -1 : idx;  p1ShowKpiDetail('ias'); }
-function p1IasSetMun(val)   { _p1IasDetMun = _p1IasDetMun === val ? null : val; p1ShowKpiDetail('ias'); }
+function p1IasSetCia(idx)   { _p1IasDetCia = _p1IasDetCia === idx ? -1 : idx;   p1ShowKpiDetail('ias'); }
+function p1IasSetMun(val)   { _p1IasDetMun = _p1IasDetMun === val ? null : val;  p1ShowKpiDetail('ias'); }
 function p1IasTogPosto(val) {
-  const idx = _p1IasDetPostos.indexOf(val);
-  if (idx >= 0) _p1IasDetPostos.splice(idx, 1); else _p1IasDetPostos.push(val);
+  const i = _p1IasDetPostos.indexOf(val);
+  if (i >= 0) _p1IasDetPostos.splice(i, 1); else _p1IasDetPostos.push(val);
   p1ShowKpiDetail('ias');
+}
+
+// Estado dos filtros do detalhe Aptos Operacional
+let _p1AptosDetCia    = -1;
+let _p1AptosDetMun    = null;
+let _p1AptosDetPostos = [];
+
+function p1AptosSetCia(idx)   { _p1AptosDetCia = _p1AptosDetCia === idx ? -1 : idx;   p1ShowKpiDetail('aptos'); }
+function p1AptosSetMun(val)   { _p1AptosDetMun = _p1AptosDetMun === val ? null : val;  p1ShowKpiDetail('aptos'); }
+function p1AptosTogPosto(val) {
+  const i = _p1AptosDetPostos.indexOf(val);
+  if (i >= 0) _p1AptosDetPostos.splice(i, 1); else _p1AptosDetPostos.push(val);
+  p1ShowKpiDetail('aptos');
 }
 
 function hasUisRestr(re) {
@@ -909,6 +922,7 @@ function closeP1Detail() {
   const mo = document.getElementById('p1-detail-mo');
   if (mo) { mo.classList.remove('on'); document.body.style.overflow = ''; }
   _p1IasDetSit = null; _p1IasDetCia = -1; _p1IasDetMun = null; _p1IasDetPostos = [];
+  _p1AptosDetCia = -1; _p1AptosDetMun = null; _p1AptosDetPostos = [];
 }
 
 
@@ -1004,22 +1018,78 @@ function p1ShowKpiDetail(tipo) {
       const g    = typeof uisGrupoMaisRestritivo === 'function' ? uisGrupoMaisRestritivo(cods) : null;
       return g === 'admin_only' || g === 'admin_apoio';
     };
+    const getMun = opm => { if (!opm) return null; const p = opm.split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
+    const getCia = opm => {
+      if (!opm || typeof CIA_STRUCT === 'undefined') return -1;
+      return CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
+    };
+
     const naoAptosRe = new Set([
       ...p1Afasts.filter(a => a.inicio <= hoje && a.termino >= hoje && reSetF.has(a.re)).map(a => a.re),
       ...dataF.filter(r => _isAdmRestr(r.re)).map(r => r.re),
       ...dataF.filter(r => iasStatus(r.re) === 'vencido').map(r => r.re),
     ]);
-    const list = dataF.filter(r => !naoAptosRe.has(r.re));
-    const rows = list.map(r => `<tr>
+    const baseList = dataF.filter(r => !naoAptosRe.has(r.re)).map(r => ({
+      r, mun: getMun(r.opm), ciaIdx: getCia(r.opm)
+    }));
+
+    const munList   = [...new Set(baseList.map(x => x.mun).filter(Boolean))].sort();
+    const postoList = [...new Set(baseList.map(x => x.r.posto).filter(Boolean))].sort();
+
+    let filtered = baseList;
+    if (_p1AptosDetCia >= 0)      filtered = filtered.filter(x => x.ciaIdx === _p1AptosDetCia);
+    if (_p1AptosDetMun)           filtered = filtered.filter(x => x.mun === _p1AptosDetMun);
+    if (_p1AptosDetPostos.length) filtered = filtered.filter(x => _p1AptosDetPostos.includes(x.r.posto));
+
+    // ── Helpers de botão ───────────────────────────────────────
+    const btnBase = (lbl, sub, cor, on, onclick) =>
+      `<button onclick="${onclick}" style="padding:14px 16px;background:${on?cor+'1a':'var(--s2)'};border:1px solid ${on?cor:cor+'33'};border-top:3px solid ${on?cor:'transparent'};border-radius:6px;cursor:pointer;text-align:left;transition:all .15s;width:100%">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;color:${on?cor:'var(--tx3)'};margin-bottom:4px">${lbl}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${on?cor:'var(--tx2)'};line-height:1">${sub}</div>
+      </button>`;
+    const gridRow = (lbl, btns, cols) =>
+      `<div style="border-bottom:1px solid var(--bd);padding-bottom:14px;margin-bottom:14px">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
+        <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px">${btns}</div>
+      </div>`;
+
+    const ciaBtns = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.map((c,i) => {
+      const cnt = baseList.filter(x => x.ciaIdx === i).length;
+      return btnBase(c.label, cnt, c.color, _p1AptosDetCia === i, `p1AptosSetCia(${i})`);
+    }).join('') : '';
+
+    const munBtns = munList.map(m => {
+      const cnt = baseList.filter(x => x.mun === m).length;
+      return btnBase(m, cnt, '#4bc87a', _p1AptosDetMun === m, `p1AptosSetMun('${m.replace(/'/g,"\\'")}')`)
+    }).join('');
+
+    const postoBtns = postoList.map(p => {
+      const cnt = baseList.filter(x => x.r.posto === p).length;
+      const on  = _p1AptosDetPostos.includes(p);
+      return btnBase(p, cnt, '#c8a84b', on, `p1AptosTogPosto('${p.replace(/'/g,"\\'")}')`)
+    }).join('');
+
+    const thead = `<thead><tr>
+      <th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th>
+      <th style="${thL}">OPM</th>
+    </tr></thead>`;
+    const rowsHtml = filtered.map(({r}) => `<tr>
       <td style="${tdS}">${r.posto||'—'}</td>
       <td style="${tdS}">${r.re}</td>
       <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
       <td style="${tdS}">${r.opm||'—'}</td>
-    </tr>`).join('');
-    html = wrapDetail('Aptos Operacional', list.length, '#4bc87a', closeBtn,
-      `<table style="width:100%;border-collapse:collapse">
-        <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th></tr></thead>
-        <tbody>${rows}</tbody></table>`);
+    </tr>`).join('') || `<tr><td colspan="4" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`;
+
+    const munCols = Math.min(munList.length, 4);
+    const pstCols = Math.min(postoList.length, 5);
+    const ciaCols = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.length : 3;
+    html = wrapDetail(`Aptos Operacional — ${filtered.length}`, null, '#4bc87a', closeBtn, `
+      ${ciaBtns   ? gridRow('CIA', ciaBtns, ciaCols) : ''}
+      ${munBtns   ? gridRow('MUNICÍPIO', munBtns, munCols) : ''}
+      ${postoBtns ? gridRow('POSTO / GRAD.', postoBtns, pstCols) : ''}
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">${thead}<tbody>${rowsHtml}</tbody></table>
+      </div>`);
   }
 
   else if (tipo === 'afastados') {
@@ -1252,71 +1322,71 @@ function p1ShowKpiDetail(tipo) {
   else if (tipo === 'ias') {
     if (!_iasMap) { html = '<div style="color:var(--tx3);padding:16px">Dados IAS não carregados.</div>'; }
     else {
-      const fmtV  = s => s ? s.split('-').reverse().join('/') : '—';
+      const fmtV   = s => s ? s.split('-').reverse().join('/') : '—';
       const getMun = opm => { if (!opm) return null; const p = opm.split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
       const getCia = opm => {
         if (!opm || typeof CIA_STRUCT === 'undefined') return -1;
         return CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
       };
 
-      // Monta lista base com status
       const baseList = dataF.map(r => {
         const s = iasStatus(r.re) || 'semreg';
         const rec = _iasMap[iasNormRE(r.re)];
         return { r, s, rec, mun: getMun(r.opm), ciaIdx: getCia(r.opm) };
       });
 
-      // Opções únicas para filtros
-      const munList = [...new Set(baseList.map(x => x.mun).filter(Boolean))].sort();
+      const munList   = [...new Set(baseList.map(x => x.mun).filter(Boolean))].sort();
       const postoList = [...new Set(dataF.map(r => r.posto).filter(Boolean))].sort();
 
-      // Aplica filtros
       let filtered = baseList;
-      if (_p1IasDetSit)             filtered = filtered.filter(x => x.s === _p1IasDetSit);
-      if (_p1IasDetCia >= 0)        filtered = filtered.filter(x => x.ciaIdx === _p1IasDetCia);
-      if (_p1IasDetMun)             filtered = filtered.filter(x => x.mun === _p1IasDetMun);
-      if (_p1IasDetPostos.length)   filtered = filtered.filter(x => _p1IasDetPostos.includes(x.r.posto));
+      if (_p1IasDetSit)           filtered = filtered.filter(x => x.s === _p1IasDetSit);
+      if (_p1IasDetCia >= 0)      filtered = filtered.filter(x => x.ciaIdx === _p1IasDetCia);
+      if (_p1IasDetMun)           filtered = filtered.filter(x => x.mun === _p1IasDetMun);
+      if (_p1IasDetPostos.length) filtered = filtered.filter(x => _p1IasDetPostos.includes(x.r.posto));
 
-      // Contagens totais (sem filtro) para os botões de situação
-      const cntVenc  = baseList.filter(x => x.s === 'vencido').length;
-      const cntVend  = baseList.filter(x => x.s === 'vencendo').length;
-      const cntApto  = baseList.filter(x => x.s === 'apto').length;
-      const cntSemR  = baseList.filter(x => x.s === 'semreg').length;
+      const cntVenc = baseList.filter(x => x.s === 'vencido').length;
+      const cntVend = baseList.filter(x => x.s === 'vencendo').length;
+      const cntApto = baseList.filter(x => x.s === 'apto').length;
+      const cntSemR = baseList.filter(x => x.s === 'semreg').length;
 
-      const fBtn = (lbl, val, cor, cnt, fn) => {
-        const on = _p1IasDetSit === val;
-        return `<button onclick="${fn}('${val}')" style="padding:7px 14px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${cor};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;transition:all .15s">${lbl} <span style="opacity:.7">(${cnt})</span></button>`;
-      };
-      const fBtnTog = (lbl, val, cor, fn, activeArr) => {
-        const on = activeArr.includes(val);
-        return `<button onclick="${fn}('${val}')" style="padding:6px 12px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx3)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;transition:all .15s">${lbl}</button>`;
-      };
-      const fBtnSel = (lbl, val, cor, fn, activeVal) => {
-        const on = activeVal === val;
-        return `<button onclick="${fn}('${val}')" style="padding:6px 12px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx3)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;transition:all .15s">${lbl}</button>`;
-      };
+      // ── Helpers de botão ─────────────────────────────────────
+      const btnBase = (lbl, sub, cor, on, onclick) =>
+        `<button onclick="${onclick}" style="padding:14px 16px;background:${on?cor+'1a':'var(--s2)'};border:1px solid ${on?cor:cor+'33'};border-top:3px solid ${on?cor:'transparent'};border-radius:6px;cursor:pointer;text-align:left;transition:all .15s;width:100%">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;color:${on?cor:'var(--tx3)'};margin-bottom:4px">${lbl}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${on?cor:'var(--tx2)'};line-height:1">${sub}</div>
+        </button>`;
+
+      const gridRow = (lbl, btns, cols) =>
+        `<div style="border-bottom:1px solid var(--bd);padding-bottom:14px;margin-bottom:14px">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
+          <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px">${btns}</div>
+        </div>`;
 
       const sitBtns = [
-        fBtn('VENCIDA',    'vencido',  '#f07878', cntVenc, 'p1IasSetSit'),
-        fBtn('VENCENDO',   'vencendo', '#c8a84b', cntVend, 'p1IasSetSit'),
-        fBtn('APTO',       'apto',     '#4bc87a', cntApto, 'p1IasSetSit'),
-        fBtn('SEM REG.',   'semreg',   '#606880', cntSemR, 'p1IasSetSit'),
+        btnBase('VENCIDA',   cntVenc, '#f07878', _p1IasDetSit==='vencido',  "p1IasSetSit('vencido')"),
+        btnBase('VENCENDO',  cntVend, '#c8a84b', _p1IasDetSit==='vencendo', "p1IasSetSit('vencendo')"),
+        btnBase('APTO',      cntApto, '#4bc87a', _p1IasDetSit==='apto',     "p1IasSetSit('apto')"),
+        btnBase('SEM REG.',  cntSemR, '#606880', _p1IasDetSit==='semreg',   "p1IasSetSit('semreg')"),
       ].join('');
 
-      const ciaBtns = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.map((c,i) =>
-        fBtnSel(c.label, i, c.color, 'p1IasSetCia', _p1IasDetCia)
-      ).join('') : '';
+      const ciaBtns = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.map((c,i) => {
+        const cnt = baseList.filter(x => x.ciaIdx === i).length;
+        return btnBase(c.label, cnt, c.color, _p1IasDetCia === i, `p1IasSetCia(${i})`);
+      }).join('') : '';
 
-      const munBtns = munList.map(m =>
-        fBtnSel(m, m, '#5a9de0', 'p1IasSetMun', _p1IasDetMun)
-      ).join('');
+      const munBtns = munList.map(m => {
+        const cnt = baseList.filter(x => x.mun === m).length;
+        return btnBase(m, cnt, '#5a9de0', _p1IasDetMun === m, `p1IasSetMun('${m.replace(/'/g,"\\'")}')`)
+      }).join('');
 
-      const postoBtns = postoList.map(p =>
-        fBtnTog(p, p, '#c8a84b', 'p1IasTogPosto', _p1IasDetPostos)
-      ).join('');
+      const postoBtns = postoList.map(p => {
+        const cnt = baseList.filter(x => x.r.posto === p).length;
+        const on  = _p1IasDetPostos.includes(p);
+        return btnBase(p, cnt, '#c8a84b', on, `p1IasTogPosto('${p.replace(/'/g,"\\'")}')`)
+      }).join('');
 
-      const SIT_COR  = { vencido:'#f07878', vencendo:'#c8a84b', apto:'#4bc87a', semreg:'#606880' };
-      const SIT_LBL  = { vencido:'VENCIDA', vencendo:'VENCENDO', apto:'APTO', semreg:'SEM REG.' };
+      const SIT_COR = { vencido:'#f07878', vencendo:'#c8a84b', apto:'#4bc87a', semreg:'#606880' };
+      const SIT_LBL = { vencido:'VENCIDA', vencendo:'VENCENDO', apto:'APTO', semreg:'SEM REG.' };
       const thead = `<thead><tr>
         <th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th>
         <th style="${thL}">OPM</th><th style="${thR}">Vencimento</th><th style="${thR}">Situação</th>
@@ -1333,13 +1403,14 @@ function p1ShowKpiDetail(tipo) {
         </tr>`;
       }).join('') || `<tr><td colspan="6" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`;
 
-      const sepStyle = 'border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px';
-      const lblStyle = 'font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:6px;text-transform:uppercase';
+      const munCols  = Math.min(munList.length, 4);
+      const pstCols  = Math.min(postoList.length, 5);
+      const ciaCols  = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.length : 3;
       html = wrapDetail(`IAS · Inspeção Anual de Saúde — ${filtered.length}`, null, '#5a9de0', closeBtn, `
-        <div style="${sepStyle}"><div style="${lblStyle}">SITUAÇÃO</div><div style="display:flex;flex-wrap:wrap;gap:6px">${sitBtns}</div></div>
-        ${ciaBtns ? `<div style="${sepStyle}"><div style="${lblStyle}">CIA</div><div style="display:flex;flex-wrap:wrap;gap:6px">${ciaBtns}</div></div>` : ''}
-        ${munBtns ? `<div style="${sepStyle}"><div style="${lblStyle}">MUNICÍPIO</div><div style="display:flex;flex-wrap:wrap;gap:6px">${munBtns}</div></div>` : ''}
-        ${postoBtns ? `<div style="${sepStyle}"><div style="${lblStyle}">POSTO / GRAD.</div><div style="display:flex;flex-wrap:wrap;gap:6px">${postoBtns}</div></div>` : ''}
+        ${gridRow('SITUAÇÃO', sitBtns, 4)}
+        ${ciaBtns  ? gridRow('CIA', ciaBtns, ciaCols) : ''}
+        ${munBtns  ? gridRow('MUNICÍPIO', munBtns, munCols) : ''}
+        ${postoBtns? gridRow('POSTO / GRAD.', postoBtns, pstCols) : ''}
         <div style="overflow-x:auto">
           <table style="width:100%;border-collapse:collapse">${thead}<tbody>${rowsHtml}</tbody></table>
         </div>`);
