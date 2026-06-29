@@ -1034,7 +1034,9 @@ function p1ShowKpiDetail(tipo) {
     }));
 
     const munList   = [...new Set(baseList.map(x => x.mun).filter(Boolean))].sort();
-    const postoList = [...new Set(baseList.map(x => x.r.posto).filter(Boolean))].sort();
+    const _pH = [/cel/i,/\btc\b/i,/maj/i,/cap/i,/1.{0,4}ten/i,/2.{0,4}ten/i,/asp/i,/sub.?ten|^st$|st pm/i,/1.{0,4}sgt/i,/2.{0,4}sgt/i,/3.{0,4}sgt/i,/\bcb\b|cabo/i,/\bsd\b|soldado/i];
+    const _pR = p => { const n=(p||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); const i=_pH.findIndex(r=>r.test(n)); return i<0?999:i; };
+    const postoList = [...new Set(baseList.map(x => x.r.posto).filter(Boolean))].sort((a,b) => _pR(a)-_pR(b));
 
     let filtered = baseList;
     if (_p1AptosDetCia >= 0)      filtered = filtered.filter(x => x.ciaIdx === _p1AptosDetCia);
@@ -1330,7 +1332,9 @@ function p1ShowKpiDetail(tipo) {
       });
 
       const munList   = [...new Set(baseList.map(x => x.mun).filter(Boolean))].sort();
-      const postoList = [...new Set(dataF.map(r => r.posto).filter(Boolean))].sort();
+      const _pH = [/cel/i,/\btc\b/i,/maj/i,/cap/i,/1.{0,4}ten/i,/2.{0,4}ten/i,/asp/i,/sub.?ten|^st$|st pm/i,/1.{0,4}sgt/i,/2.{0,4}sgt/i,/3.{0,4}sgt/i,/\bcb\b|cabo/i,/\bsd\b|soldado/i];
+      const _pR = p => { const n=(p||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); const i=_pH.findIndex(r=>r.test(n)); return i<0?999:i; };
+      const postoList = [...new Set(dataF.map(r => r.posto).filter(Boolean))].sort((a,b) => _pR(a)-_pR(b));
 
       let filtered = baseList;
       if (_p1IasDetSit)           filtered = filtered.filter(x => x.s === _p1IasDetSit);
