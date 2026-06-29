@@ -1043,7 +1043,7 @@ function p1ShowKpiDetail(tipo) {
 
     // ── Helpers de botão ───────────────────────────────────────
     const btnBase = (lbl, _cnt, cor, on, onclick) =>
-      `<button onclick="${onclick}" style="padding:7px 16px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
+      `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
     const gridRow = (lbl, btns) =>
       `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
         <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
@@ -1345,7 +1345,7 @@ function p1ShowKpiDetail(tipo) {
 
       // ── Helpers de botão ─────────────────────────────────────
       const btnBase = (lbl, _cnt, cor, on, onclick) =>
-        `<button onclick="${onclick}" style="padding:7px 16px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
+        `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
 
       const gridRow = (lbl, btns) =>
         `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
