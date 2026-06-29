@@ -170,7 +170,6 @@ function renderP1() {
 
   // Status de cada PM
   const pmAfastados    = dataF.filter(r => afastHoje[r.re]);
-  const pmAptos        = dataF.filter(r => !afastHoje[r.re]);
   const pmComRestricaoEfetivo = dataF.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s'));
   const pmComRestricaoUis = dataF.filter(r => !(r.possui_restricao||'').toLowerCase().startsWith('s') && hasUisRestr(r.re));
   const pmComRestricao = dataF.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s') || hasUisRestr(r.re));
@@ -185,6 +184,15 @@ function renderP1() {
   };
   const pmRestAdm    = pmComRestricao.filter(r => isAdmRestr(r.re));
   const pmRestOutros = pmComRestricao.filter(r => !isAdmRestr(r.re));
+
+  // Aptos = não afastado + IAS não vencida + sem restrição que impede o campo
+  const pmIasVencidaP1  = dataF.filter(r => iasStatus(r.re) === 'vencido');
+  const pmNaoAptosSet   = new Set([
+    ...pmAfastados.map(r => r.re),
+    ...pmRestAdm.map(r => r.re),
+    ...pmIasVencidaP1.map(r => r.re),
+  ]);
+  const pmAptos = dataF.filter(r => !pmNaoAptosSet.has(r.re));
   const pmEapPendente  = dataF.filter(r => {
     if (!r.data_eap) return true;
     const d = new Date(r.data_eap);
@@ -259,7 +267,13 @@ function renderP1() {
     kpiCard('Total Efetivo', total,
       Object.keys(CATS).filter(k=>count(dataF,k)>0).map(k => _kpiRow(CATS[k], count(dataF,k), CATS_COLOR[k])).join(''),
       'var(--tx)', 'total') +
-    kpiCard('Aptos', pmAptos.length, total > 0 ? `${Math.round(pmAptos.length/total*100)}% do efetivo` : '—', '#4bc87a', 'aptos') +
+    kpiCard('Aptos para o Campo', pmAptos.length,
+      total > 0 ? [
+        _kpiRow(`${Math.round(pmAptos.length/total*100)}% do efetivo`, '', '#4bc87a'),
+        pmRestAdm.length    ? _kpiRow('Restr. campo', pmRestAdm.length, '#f07878') : '',
+        pmIasVencidaP1.length ? _kpiRow('IAS vencida', pmIasVencidaP1.length, '#f07878') : '',
+      ].filter(Boolean).join('') : '—',
+      '#4bc87a', 'aptos') +
     kpiCard('Afastamentos', pmAfastados.length, tiposSub, pmAfastados.length > 0 ? '#e05555' : 'var(--tx3)', 'afastados') +
     kpiCard('Restrições', pmComRestricao.length,
       [pmRestAdm.length ? _kpiRow('Administrativa', pmRestAdm.length, '#f07878') : '',
@@ -967,14 +981,19 @@ function p1ShowKpiDetail(tipo) {
   }
 
   else if (tipo === 'aptos') {
-    const list = dataF.filter(r => !p1AfastHoje[r.re]);
+    const naoAptosRe = new Set([
+      ...p1Afasts.filter(a => a.inicio <= hoje && a.termino >= hoje && reSetF.has(a.re)).map(a => a.re),
+      ...dataF.filter(r => isAdmRestr(r.re)).map(r => r.re),
+      ...dataF.filter(r => iasStatus(r.re) === 'vencido').map(r => r.re),
+    ]);
+    const list = dataF.filter(r => !naoAptosRe.has(r.re));
     const rows = list.map(r => `<tr>
       <td style="${tdS}">${r.posto||'—'}</td>
       <td style="${tdS}">${r.re}</td>
       <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
       <td style="${tdS}">${r.opm||'—'}</td>
     </tr>`).join('');
-    html = wrapDetail('Aptos', list.length, '#4bc87a', closeBtn,
+    html = wrapDetail('Aptos para o Campo', list.length, '#4bc87a', closeBtn,
       `<table style="width:100%;border-collapse:collapse">
         <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th></tr></thead>
         <tbody>${rows}</tbody></table>`);

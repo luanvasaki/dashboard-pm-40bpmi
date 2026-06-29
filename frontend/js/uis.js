@@ -105,6 +105,7 @@ let _uisDetCia    = -1;   // filtro CIA dentro do modal IAS (-1 = todas)
 
 function uisSetFiltro(idx) {
   _uisFiltroIdx = idx;
+  renderUisFiltroBar();
   renderUisPage();
 }
 
