@@ -1145,12 +1145,11 @@ function renderUisDetail() {
       }).join(' ');
       const termino  = recs.reduce((min,r) => r.termino && (!min||r.termino<min) ? r.termino : min, null);
       return `<tr>
-        <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px">${re}</td>
         <td style="${tdS}">${escHtml(recs[0]?.opm||'—')}</td>
         <td style="${tdS}">${codsHtml}</td>
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px;color:${termino&&termino<today?'#f07878':termino&&termino<=em30?'#c8a84b':'var(--tx)'}">${fmtD(termino)}</td>
       </tr>`;
-    }).join('') || `<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--tx3);font-size:17px">Nenhum registro</td></tr>`;
+    }).join('') || `<tr><td colspan="3" style="padding:20px;text-align:center;color:var(--tx3);font-size:17px">Nenhum registro</td></tr>`;
 
     // Gráfico de barras por grupo
     const barHtml = Object.entries(porGrupo).sort((a,b)=>b[1].length-a[1].length).map(([grupo, arr]) => {
@@ -1178,9 +1177,9 @@ function renderUisDetail() {
         <div class="mo-card">
           <div class="mo-ct">${filtRows.length} PM${filtRows.length!==1?'s':''}</div>
           <div style="overflow-x:auto">
-            <table style="width:100%;border-collapse:collapse;min-width:420px;table-layout:fixed">
-              <colgroup><col style="width:18%"><col style="width:30%"><col style="width:35%"><col style="width:17%"></colgroup>
-              <thead><tr><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">CÓDIGOS</th><th style="${thS}">TÉRMINO</th></tr></thead>
+            <table style="width:100%;border-collapse:collapse;min-width:320px;table-layout:fixed">
+              <colgroup><col style="width:35%"><col style="width:45%"><col style="width:20%"></colgroup>
+              <thead><tr><th style="${thS}">OPM</th><th style="${thS}">CÓDIGOS</th><th style="${thS}">TÉRMINO</th></tr></thead>
               <tbody>${rowsHtml}</tbody>
             </table>
           </div>
@@ -1255,12 +1254,11 @@ function renderUisDetail() {
       const anivM = _iasAnivMes(r.data_aniversario);
       const anivLabel = anivM === mesAtual ? '🎂 este mês' : anivM === mesProx ? '🎂 próximo mês' : '';
       return `<tr>
-        <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px">${re}</td>
         <td style="${tdS}">${escHtml(r.opm||'—')}</td>
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px;color:${cor}">${fmtD(r.data_vencimento)}</td>
         <td style="${tdS};font-size:15px;color:#c8a84b">${anivLabel}</td>
       </tr>`;
-    }).join('') || `<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--tx3);font-size:17px">Nenhum registro</td></tr>`;
+    }).join('') || `<tr><td colspan="3" style="padding:20px;text-align:center;color:var(--tx3);font-size:17px">Nenhum registro</td></tr>`;
 
     document.getElementById('ud-content').innerHTML = `
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">${statusBtns}</div>
@@ -1273,9 +1271,9 @@ function renderUisDetail() {
         <div class="mo-card">
           <div class="mo-ct">${displayRows.length} PM${displayRows.length!==1?'s':''}</div>
           <div style="overflow-x:auto">
-            <table style="width:100%;border-collapse:collapse;min-width:380px;table-layout:fixed">
-              <colgroup><col style="width:18%"><col style="width:38%"><col style="width:22%"><col style="width:22%"></colgroup>
-              <thead><tr><th style="${thS}">RE</th><th style="${thS}">OPM</th><th style="${thS}">VENCIMENTO</th><th style="${thS}">ANIVERSÁRIO</th></tr></thead>
+            <table style="width:100%;border-collapse:collapse;min-width:300px;table-layout:fixed">
+              <colgroup><col style="width:46%"><col style="width:27%"><col style="width:27%"></colgroup>
+              <thead><tr><th style="${thS}">OPM</th><th style="${thS}">VENCIMENTO</th><th style="${thS}">ANIVERSÁRIO</th></tr></thead>
               <tbody>${rowsHtml}</tbody>
             </table>
           </div>
