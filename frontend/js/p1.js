@@ -1042,15 +1042,12 @@ function p1ShowKpiDetail(tipo) {
     if (_p1AptosDetPostos.length) filtered = filtered.filter(x => _p1AptosDetPostos.includes(x.r.posto));
 
     // ── Helpers de botão ───────────────────────────────────────
-    const btnBase = (lbl, sub, cor, on, onclick) =>
-      `<button onclick="${onclick}" style="padding:14px 16px;background:${on?cor+'1a':'var(--s2)'};border:1px solid ${on?cor:cor+'33'};border-top:3px solid ${on?cor:'transparent'};border-radius:6px;cursor:pointer;text-align:left;transition:all .15s;width:100%">
-        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;color:${on?cor:'var(--tx3)'};margin-bottom:4px">${lbl}</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${on?cor:'var(--tx2)'};line-height:1">${sub}</div>
-      </button>`;
-    const gridRow = (lbl, btns, cols) =>
-      `<div style="border-bottom:1px solid var(--bd);padding-bottom:14px;margin-bottom:14px">
+    const btnBase = (lbl, _cnt, cor, on, onclick) =>
+      `<button onclick="${onclick}" style="padding:7px 16px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
+    const gridRow = (lbl, btns) =>
+      `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
         <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
-        <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px">${btns}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
       </div>`;
 
     const ciaBtns = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.map((c,i) => {
@@ -1347,10 +1344,8 @@ function p1ShowKpiDetail(tipo) {
       const cntSemR = baseList.filter(x => x.s === 'semreg').length;
 
       // ── Helpers de botão ─────────────────────────────────────
-      const btnBase = (lbl, cnt, cor, on, onclick) =>
-        `<button onclick="${onclick}" style="padding:7px 16px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap">
-          ${lbl}<span style="opacity:.6;font-size:11px"> (${cnt})</span>
-        </button>`;
+      const btnBase = (lbl, _cnt, cor, on, onclick) =>
+        `<button onclick="${onclick}" style="padding:7px 16px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
 
       const gridRow = (lbl, btns) =>
         `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
