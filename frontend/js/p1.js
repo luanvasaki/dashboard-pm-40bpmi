@@ -1348,7 +1348,7 @@ function p1ShowKpiDetail(tipo) {
 
       // ── Helpers de botão ─────────────────────────────────────
       const btnBase = (lbl, cnt, cor, on, onclick) =>
-        `<button onclick="${onclick}" style="padding:7px 16px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx3)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap">
+        `<button onclick="${onclick}" style="padding:7px 16px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap">
           ${lbl}<span style="opacity:.6;font-size:11px"> (${cnt})</span>
         </button>`;
 
