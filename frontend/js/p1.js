@@ -1351,15 +1351,15 @@ function p1ShowKpiDetail(tipo) {
 
       // ── Helpers de botão ─────────────────────────────────────
       const btnBase = (lbl, sub, cor, on, onclick) =>
-        `<button onclick="${onclick}" style="padding:14px 16px;background:${on?cor+'1a':'var(--s2)'};border:1px solid ${on?cor:cor+'33'};border-top:3px solid ${on?cor:'transparent'};border-radius:6px;cursor:pointer;text-align:left;transition:all .15s;width:100%">
-          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;color:${on?cor:'var(--tx3)'};margin-bottom:4px">${lbl}</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${on?cor:'var(--tx2)'};line-height:1">${sub}</div>
+        `<button onclick="${onclick}" style="padding:20px 22px;background:${on?cor+'1a':'var(--s2)'};border:1px solid ${on?cor:cor+'33'};border-top:4px solid ${on?cor:'transparent'};border-radius:8px;cursor:pointer;text-align:left;transition:all .15s;width:100%">
+          <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;color:${on?cor:'var(--tx3)'};margin-bottom:6px;text-transform:uppercase">${lbl}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:800;color:${on?cor:'var(--tx2)'};line-height:1">${sub}</div>
         </button>`;
 
       const gridRow = (lbl, btns, cols) =>
-        `<div style="border-bottom:1px solid var(--bd);padding-bottom:14px;margin-bottom:14px">
-          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
-          <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px">${btns}</div>
+        `<div style="border-bottom:1px solid var(--bd);padding-bottom:16px;margin-bottom:16px">
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:2px;margin-bottom:10px;text-transform:uppercase">${lbl}</div>
+          <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:10px">${btns}</div>
         </div>`;
 
       const sitBtns = [
