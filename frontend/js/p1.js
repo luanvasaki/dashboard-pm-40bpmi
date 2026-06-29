@@ -45,6 +45,21 @@ let p1ClosingPronto  = false;// flag: acabou de fechar prontuário — evita fec
 let p1UnitClickOut   = null; // handler de click fora do detalhe de unidade
 let p1KpiClickOut    = null; // handler de click fora do detalhe de KPI
 
+// Estado dos filtros do detalhe IAS
+let _p1IasDetSit   = null;  // null | 'vencido' | 'vencendo' | 'apto' | 'semreg'
+let _p1IasDetCia   = -1;    // -1 = todas, 0+ = índice em CIA_STRUCT
+let _p1IasDetMun   = null;  // null | string município
+let _p1IasDetPostos = [];   // [] = todos, ou array de postos selecionados
+
+function p1IasSetSit(val)   { _p1IasDetSit = _p1IasDetSit === val ? null : val; p1ShowKpiDetail('ias'); }
+function p1IasSetCia(idx)   { _p1IasDetCia = _p1IasDetCia === idx ? -1 : idx;  p1ShowKpiDetail('ias'); }
+function p1IasSetMun(val)   { _p1IasDetMun = _p1IasDetMun === val ? null : val; p1ShowKpiDetail('ias'); }
+function p1IasTogPosto(val) {
+  const idx = _p1IasDetPostos.indexOf(val);
+  if (idx >= 0) _p1IasDetPostos.splice(idx, 1); else _p1IasDetPostos.push(val);
+  p1ShowKpiDetail('ias');
+}
+
 function hasUisRestr(re) {
   return typeof uisNormRE === 'function' && !!_uisRestMap?.[uisNormRE(re)]?.length;
 }
@@ -267,7 +282,7 @@ function renderP1() {
     kpiCard('Total Efetivo', total,
       Object.keys(CATS).filter(k=>count(dataF,k)>0).map(k => _kpiRow(CATS[k], count(dataF,k), CATS_COLOR[k])).join(''),
       'var(--tx)', 'total') +
-    kpiCard('Aptos para o Campo', pmAptos.length,
+    kpiCard('Aptos Operacional', pmAptos.length,
       total > 0 ? [
         _kpiRow(`${Math.round(pmAptos.length/total*100)}% do efetivo`, '', '#4bc87a'),
         pmRestAdm.length    ? _kpiRow('Restr. campo', pmRestAdm.length, '#f07878') : '',
@@ -893,6 +908,7 @@ function wrapDetail(_title, _count, _color, _closeBtn, inner) {
 function closeP1Detail() {
   const mo = document.getElementById('p1-detail-mo');
   if (mo) { mo.classList.remove('on'); document.body.style.overflow = ''; }
+  _p1IasDetSit = null; _p1IasDetCia = -1; _p1IasDetMun = null; _p1IasDetPostos = [];
 }
 
 
@@ -916,7 +932,7 @@ function p1ShowKpiDetail(tipo) {
 
   const KPI_META = {
     total:    { title: 'TODO O EFETIVO',       color: 'var(--gold)' },
-    aptos:    { title: 'APTOS',                color: '#4bc87a' },
+    aptos:    { title: 'APTOS OPERACIONAL',     color: '#4bc87a' },
     afastados:{ title: 'AFASTAMENTOS',         color: '#e05555' },
     restricao:{ title: 'EM RESTRIÇÃO',         color: '#c8a84b' },
     eap:      { title: `EAP / TAF / TAT ${new Date().getFullYear()}`, color: '#c8a84b' },
@@ -981,9 +997,16 @@ function p1ShowKpiDetail(tipo) {
   }
 
   else if (tipo === 'aptos') {
+    const _isAdmRestr = re => {
+      if (!hasUisRestr(re)) return false;
+      const recs = ((_uisRestMap||{})[uisNormRE(re)] || []);
+      const cods = typeof uisExtrairCodigos === 'function' ? recs.flatMap(r => uisExtrairCodigos(r.codigos)) : [];
+      const g    = typeof uisGrupoMaisRestritivo === 'function' ? uisGrupoMaisRestritivo(cods) : null;
+      return g === 'admin_only' || g === 'admin_apoio';
+    };
     const naoAptosRe = new Set([
       ...p1Afasts.filter(a => a.inicio <= hoje && a.termino >= hoje && reSetF.has(a.re)).map(a => a.re),
-      ...dataF.filter(r => isAdmRestr(r.re)).map(r => r.re),
+      ...dataF.filter(r => _isAdmRestr(r.re)).map(r => r.re),
       ...dataF.filter(r => iasStatus(r.re) === 'vencido').map(r => r.re),
     ]);
     const list = dataF.filter(r => !naoAptosRe.has(r.re));
@@ -993,7 +1016,7 @@ function p1ShowKpiDetail(tipo) {
       <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
       <td style="${tdS}">${r.opm||'—'}</td>
     </tr>`).join('');
-    html = wrapDetail('Aptos para o Campo', list.length, '#4bc87a', closeBtn,
+    html = wrapDetail('Aptos Operacional', list.length, '#4bc87a', closeBtn,
       `<table style="width:100%;border-collapse:collapse">
         <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th></tr></thead>
         <tbody>${rows}</tbody></table>`);
@@ -1229,46 +1252,97 @@ function p1ShowKpiDetail(tipo) {
   else if (tipo === 'ias') {
     if (!_iasMap) { html = '<div style="color:var(--tx3);padding:16px">Dados IAS não carregados.</div>'; }
     else {
-      const pmIasAptos    = dataF.filter(r => iasStatus(r.re) === 'apto');
-      const pmIasVencendo = dataF.filter(r => iasStatus(r.re) === 'vencendo');
-      const pmIasVencidos = dataF.filter(r => iasStatus(r.re) === 'vencido');
-      const pmIasSemReg   = dataF.filter(r => !iasStatus(r.re));
-      const fmtV = s => s ? s.split('-').reverse().join('/') : '—';
-      const mkRowIas = (r, statusCor, statusTxt) => {
+      const fmtV  = s => s ? s.split('-').reverse().join('/') : '—';
+      const getMun = opm => { if (!opm) return null; const p = opm.split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
+      const getCia = opm => {
+        if (!opm || typeof CIA_STRUCT === 'undefined') return -1;
+        return CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
+      };
+
+      // Monta lista base com status
+      const baseList = dataF.map(r => {
+        const s = iasStatus(r.re) || 'semreg';
         const rec = _iasMap[iasNormRE(r.re)];
+        return { r, s, rec, mun: getMun(r.opm), ciaIdx: getCia(r.opm) };
+      });
+
+      // Opções únicas para filtros
+      const munList = [...new Set(baseList.map(x => x.mun).filter(Boolean))].sort();
+      const postoList = [...new Set(dataF.map(r => r.posto).filter(Boolean))].sort();
+
+      // Aplica filtros
+      let filtered = baseList;
+      if (_p1IasDetSit)             filtered = filtered.filter(x => x.s === _p1IasDetSit);
+      if (_p1IasDetCia >= 0)        filtered = filtered.filter(x => x.ciaIdx === _p1IasDetCia);
+      if (_p1IasDetMun)             filtered = filtered.filter(x => x.mun === _p1IasDetMun);
+      if (_p1IasDetPostos.length)   filtered = filtered.filter(x => _p1IasDetPostos.includes(x.r.posto));
+
+      // Contagens totais (sem filtro) para os botões de situação
+      const cntVenc  = baseList.filter(x => x.s === 'vencido').length;
+      const cntVend  = baseList.filter(x => x.s === 'vencendo').length;
+      const cntApto  = baseList.filter(x => x.s === 'apto').length;
+      const cntSemR  = baseList.filter(x => x.s === 'semreg').length;
+
+      const fBtn = (lbl, val, cor, cnt, fn) => {
+        const on = _p1IasDetSit === val;
+        return `<button onclick="${fn}('${val}')" style="padding:7px 14px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${cor};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;transition:all .15s">${lbl} <span style="opacity:.7">(${cnt})</span></button>`;
+      };
+      const fBtnTog = (lbl, val, cor, fn, activeArr) => {
+        const on = activeArr.includes(val);
+        return `<button onclick="${fn}('${val}')" style="padding:6px 12px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx3)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;transition:all .15s">${lbl}</button>`;
+      };
+      const fBtnSel = (lbl, val, cor, fn, activeVal) => {
+        const on = activeVal === val;
+        return `<button onclick="${fn}('${val}')" style="padding:6px 12px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx3)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;transition:all .15s">${lbl}</button>`;
+      };
+
+      const sitBtns = [
+        fBtn('VENCIDA',    'vencido',  '#f07878', cntVenc, 'p1IasSetSit'),
+        fBtn('VENCENDO',   'vencendo', '#c8a84b', cntVend, 'p1IasSetSit'),
+        fBtn('APTO',       'apto',     '#4bc87a', cntApto, 'p1IasSetSit'),
+        fBtn('SEM REG.',   'semreg',   '#606880', cntSemR, 'p1IasSetSit'),
+      ].join('');
+
+      const ciaBtns = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.map((c,i) =>
+        fBtnSel(c.label, i, c.color, 'p1IasSetCia', _p1IasDetCia)
+      ).join('') : '';
+
+      const munBtns = munList.map(m =>
+        fBtnSel(m, m, '#5a9de0', 'p1IasSetMun', _p1IasDetMun)
+      ).join('');
+
+      const postoBtns = postoList.map(p =>
+        fBtnTog(p, p, '#c8a84b', 'p1IasTogPosto', _p1IasDetPostos)
+      ).join('');
+
+      const SIT_COR  = { vencido:'#f07878', vencendo:'#c8a84b', apto:'#4bc87a', semreg:'#606880' };
+      const SIT_LBL  = { vencido:'VENCIDA', vencendo:'VENCENDO', apto:'APTO', semreg:'SEM REG.' };
+      const thead = `<thead><tr>
+        <th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th>
+        <th style="${thL}">OPM</th><th style="${thR}">Vencimento</th><th style="${thR}">Situação</th>
+      </tr></thead>`;
+      const rowsHtml = filtered.map(({r, s, rec}) => {
+        const cor = SIT_COR[s] || 'var(--tx3)';
         return `<tr>
           <td style="${tdS}">${r.posto||'—'}</td>
           <td style="${tdS}">${r.re}</td>
           <td style="${tdL};cursor:pointer" onclick="openIasPmModal('${esc(iasNormRE(r.re))}');closeP1Detail()">${r.nome_guerra||r.nome}</td>
           <td style="${tdS}">${r.opm||'—'}</td>
-          <td style="${tdS};text-align:right;color:${statusCor};font-weight:700">${rec?.data_vencimento ? fmtV(rec.data_vencimento) : '—'}</td>
-          <td style="${tdS};text-align:right"><span style="padding:2px 8px;border-radius:8px;font-size:15px;background:${statusCor}22;color:${statusCor};font-family:'DM Mono',monospace">${statusTxt}</span></td>
+          <td style="${tdS};text-align:right;color:${cor};font-weight:700">${rec?.data_vencimento ? fmtV(rec.data_vencimento) : '—'}</td>
+          <td style="${tdS};text-align:right"><span style="padding:2px 8px;border-radius:8px;font-size:15px;background:${cor}22;color:${cor};font-family:'DM Mono',monospace">${SIT_LBL[s]||s}</span></td>
         </tr>`;
-      };
-      const thH6 = [thL,thL,thL,thL,thR,thR].join(',');
-      const thead = `<thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Vencimento</th><th style="${thR}">Situação</th></tr></thead>`;
-      const mkTbl = rows => `<table style="width:100%;border-collapse:collapse">${thead}<tbody>${rows||`<tr><td colspan="6" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum</td></tr>`}</tbody></table>`;
+      }).join('') || `<tr><td colspan="6" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`;
 
-      let inner = '';
-      if (pmIasVencidos.length) inner += `
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#e05555;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">IAS Vencida — ${pmIasVencidos.length}</div>
-        ${mkTbl(pmIasVencidos.map(r => mkRowIas(r,'#e05555','VENCIDA')).join(''))}`;
-      if (pmIasVencendo.length) inner += `
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#c8a84b;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Vencendo em 30 dias — ${pmIasVencendo.length}</div>
-        ${mkTbl(pmIasVencendo.map(r => mkRowIas(r,'#c8a84b','VENCENDO')).join(''))}`;
-      if (pmIasAptos.length) inner += `
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Aptos — ${pmIasAptos.length}</div>
-        ${mkTbl(pmIasAptos.map(r => mkRowIas(r,'#4bc87a','APTO')).join(''))}`;
-      if (pmIasSemReg.length) inner += `
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#606880;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Sem Registro IAS — ${pmIasSemReg.length}</div>
-        ${mkTbl(pmIasSemReg.map(r => `<tr>
-          <td style="${tdS}">${r.posto||'—'}</td><td style="${tdS}">${r.re}</td>
-          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}</td>
-          <td style="${tdS}">${r.opm||'—'}</td><td style="${tdS}">—</td>
-          <td style="${tdS}"><span style="padding:2px 8px;border-radius:8px;font-size:15px;background:#60688022;color:#606880;font-family:'DM Mono',monospace">SEM REG.</span></td>
-        </tr>`).join(''))}`;
-      if (!inner) inner = '<div style="color:var(--tx3);padding:16px">Nenhum dado IAS disponível.</div>';
-      html = wrapDetail('IAS · Inspeção Anual de Saúde', null, '#5a9de0', closeBtn, inner);
+      const sepStyle = 'border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px';
+      const lblStyle = 'font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:6px;text-transform:uppercase';
+      html = wrapDetail(`IAS · Inspeção Anual de Saúde — ${filtered.length}`, null, '#5a9de0', closeBtn, `
+        <div style="${sepStyle}"><div style="${lblStyle}">SITUAÇÃO</div><div style="display:flex;flex-wrap:wrap;gap:6px">${sitBtns}</div></div>
+        ${ciaBtns ? `<div style="${sepStyle}"><div style="${lblStyle}">CIA</div><div style="display:flex;flex-wrap:wrap;gap:6px">${ciaBtns}</div></div>` : ''}
+        ${munBtns ? `<div style="${sepStyle}"><div style="${lblStyle}">MUNICÍPIO</div><div style="display:flex;flex-wrap:wrap;gap:6px">${munBtns}</div></div>` : ''}
+        ${postoBtns ? `<div style="${sepStyle}"><div style="${lblStyle}">POSTO / GRAD.</div><div style="display:flex;flex-wrap:wrap;gap:6px">${postoBtns}</div></div>` : ''}
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse">${thead}<tbody>${rowsHtml}</tbody></table>
+        </div>`);
     }
   }
 
