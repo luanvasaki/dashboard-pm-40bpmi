@@ -920,12 +920,14 @@ function renderUisPage() {
   const tlMax      = Math.max(tlVencidas, tl30, tl60, tl90, 1);
   const tlBar = (label, count, cor, sub) => count > 0 ? `
     <div style="margin-bottom:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:#ffffff">${label}</div><div style="font-family:'DM Mono',monospace;font-size:15px;color:#ffffff;margin-top:3px">${sub}</div></div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:800;color:${cor};line-height:1">${count}</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:${cor}">${label}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--tx3)">${sub}</div>
       </div>
-      <div style="background:rgba(255,255,255,.07);border-radius:4px;height:10px">
-        <div style="height:100%;width:${Math.round(count/tlMax*100)}%;background:${cor};border-radius:4px"></div>
+      <div style="background:rgba(255,255,255,.07);border-radius:6px;height:32px;overflow:hidden">
+        <div style="height:100%;width:${Math.round(count/tlMax*100)}%;background:${cor};border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden">
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;white-space:nowrap">${count}</span>
+        </div>
       </div>
     </div>` : '';
   const iasTimelineHtml = (tlVencidas+tl30+tl60+tl90) > 0 ? `
