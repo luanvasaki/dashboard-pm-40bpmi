@@ -1078,8 +1078,11 @@ function renderUisDetail() {
   const restMap     = _uisFilteredRestMap();
   const iasMapF     = _uisFilteredIasMap();
   const restEntries = Object.entries(restMap);
-  const _p1ReSet    = new Set((typeof p1Data !== 'undefined' ? p1Data : []).map(pm => uisNormRE(pm.re)));
-  const iasVals     = Object.entries(iasMapF).filter(([re]) => _p1ReSet.has(re));
+  const _p1Loaded   = typeof p1Data !== 'undefined' && p1Data.length > 0;
+  const _p1ReSet    = _p1Loaded ? new Set(p1Data.map(pm => uisNormRE(pm.re))) : null;
+  const iasVals     = _p1ReSet
+    ? Object.entries(iasMapF).filter(([re]) => _p1ReSet.has(re))
+    : Object.entries(iasMapF);
 
   const thS = 'padding:14px 18px;font-family:"DM Mono",monospace;font-size:16px;color:var(--tx3);letter-spacing:1px;border-bottom:2px solid var(--bd2);text-align:left;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
   const tdS = 'padding:14px 18px;font-size:19px;color:var(--tx);border-bottom:1px solid var(--bd);vertical-align:middle';
