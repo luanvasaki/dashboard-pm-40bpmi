@@ -200,7 +200,11 @@ async function loadUisSection() {
   const content = document.getElementById('uis-content');
   if (content) content.innerHTML = '<div style="color:var(--tx3);font-size:17px;padding:20px">Carregando...</div>';
   try {
-    await Promise.all([loadUisRestricoes(), loadIasMapa()]);
+    const tasks = [loadUisRestricoes(), loadIasMapa()];
+    if (typeof p1Data !== 'undefined' && !p1Data.length) {
+      tasks.push(authFetch(`${API}/efetivo`).then(r => r.json()).then(d => { if (Array.isArray(d)) p1Data = d; }).catch(() => {}));
+    }
+    await Promise.all(tasks);
     renderUisFiltroBar();
     renderUisPage();
   } catch (e) {
