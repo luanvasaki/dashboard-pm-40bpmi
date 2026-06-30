@@ -1253,8 +1253,9 @@ function renderUisDetail() {
       const cor  = s === 'vencido' ? '#f07878' : s === 'vencendo' ? '#c8a84b' : '#4bc87a';
       const anivM = _iasAnivMes(r.data_aniversario);
       const anivLabel = anivM === mesAtual ? '🎂 este mês' : anivM === mesProx ? '🎂 próximo mês' : '';
+      const pm   = (typeof p1Data !== 'undefined' ? p1Data : []).find(p => iasNormRE(p.re) === re);
       return `<tr>
-        <td style="${tdS}">${escHtml(r.opm||'—')}</td>
+        <td style="${tdS}">${escHtml(pm?.opm || r.opm || '—')}</td>
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px;color:${cor}">${fmtD(r.data_vencimento)}</td>
         <td style="${tdS};font-size:15px;color:#c8a84b">${anivLabel}</td>
       </tr>`;
