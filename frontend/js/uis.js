@@ -1276,7 +1276,7 @@ function renderUisDetail() {
       <div class="mo-g2" style="margin-bottom:16px">
         <div class="mo-card" style="display:flex;flex-direction:column;min-height:420px">
           <div class="mo-ct">SITUAÇÃO GERAL</div>
-          ${iasTotal > 0 ? `<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:8px 0"><canvas id="ias-donut-chart"></canvas></div>` : '<div style="color:var(--tx3);font-size:17px;margin-top:16px">Sem dados</div>'}
+          ${iasTotal > 0 ? `<div style="flex:1;display:flex;align-items:flex-start;justify-content:center;padding:8px 0"><canvas id="ias-donut-chart"></canvas></div>` : '<div style="color:var(--tx3);font-size:17px;margin-top:16px">Sem dados</div>'}
         </div>
         <div class="mo-card">
           <div class="mo-ct">${displayRows.length} PM${displayRows.length!==1?'s':''}</div>
