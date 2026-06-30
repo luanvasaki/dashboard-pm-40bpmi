@@ -198,7 +198,7 @@ function renderUisFiltroBar() {
 
 async function loadUisSection() {
   const content = document.getElementById('uis-content');
-  if (content) content.innerHTML = '<div style="color:var(--tx3);font-size:17px;padding:20px">Carregando...</div>';
+  if (content) content.innerHTML = '<div style="color:#ffffff;font-size:17px;padding:20px">Carregando...</div>';
   try {
     const tasks = [loadUisRestricoes(), loadIasMapa()];
     if (typeof p1Data !== 'undefined' && !p1Data.length) {
@@ -259,7 +259,7 @@ function _uisTipShow(e, opm, cor, topCods) {
   tip.innerHTML = `
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${cor};letter-spacing:.5px;margin-bottom:10px;text-transform:uppercase">${escHtml(opm)}</div>
     <div style="font-size:13px;color:#ffffff;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">Códigos mais frequentes</div>
-    ${codsHtml || '<div style="color:rgba(255,255,255,.35);font-size:15px">Sem detalhes</div>'}`;
+    ${codsHtml || '<div style="color:#ffffff;font-size:15px">Sem detalhes</div>'}`;
   tip.style.display = 'block';
   _uisTipMove(e);
 }
@@ -306,7 +306,7 @@ function uisTipPmOver(e, re) {
   uisTipGenShow(e,
     `<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${cor};letter-spacing:.5px;margin-bottom:10px;text-transform:uppercase">${gInfo ? gInfo.label : 'RESTRIÇÃO UIS'}</div>` +
     `<div style="font-size:13px;color:#ffffff;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">Códigos UIS</div>` +
-    (codLines || `<div style="color:rgba(255,255,255,.35);font-size:15px">Sem detalhes</div>`)
+    (codLines || `<div style="color:#ffffff;font-size:15px">Sem detalhes</div>`)
   );
 }
 
@@ -357,7 +357,7 @@ function renderUisPorCodigo(porCodigo) {
     entries.map(([cod, n]) => {
       const info  = UIS_CODIGOS[cod];
       const grupo = info ? UIS_GRUPOS[info.grupo] : null;
-      const cor   = grupo ? grupo.cor : '#aaa';
+      const cor   = grupo ? grupo.cor : '#ffffff';
       return `<div title="${info ? info.desc : cod}" style="background:var(--s2);border:1px solid ${cor}44;border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:10px;cursor:default">
         <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:700;color:${cor}">${cod}</span>
         <span style="font-size:17px;color:#ffffff">${info ? info.desc : '—'}</span>
@@ -377,7 +377,7 @@ function renderUisTabelaCodigos() {
         <td><span style="font-family:'DM Mono',monospace;font-weight:700;color:${gInfo.cor}">${cod}</span></td>
         <td style="color:var(--tx)">${info.desc}</td>
         <td><span style="color:${gInfo.cor};font-size:11px;font-weight:600">${gInfo.label}</span></td>
-        <td style="color:var(--tx3);white-space:nowrap">${gInfo.item}</td>
+        <td style="color:#ffffff;white-space:nowrap">${gInfo.item}</td>
       </tr>`;
     }
   }
@@ -461,7 +461,7 @@ async function confirmUisUpload() {
 
 async function openUisPmModal(re, nomePm) {
   document.getElementById('uis-pm-nome').textContent = `RE ${re}${nomePm ? ' · ' + nomePm : ''}`;
-  document.getElementById('uis-pm-content').innerHTML = '<div style="color:var(--tx3);font-size:13px">Carregando...</div>';
+  document.getElementById('uis-pm-content').innerHTML = '<div style="color:#ffffff;font-size:13px">Carregando...</div>';
   document.getElementById('uis-pm-mo').classList.add('on');
   document.body.style.overflow = 'hidden';
   try {
@@ -479,7 +479,7 @@ function closeUisPmModal() {
 
 // Renderiza as restrições de um PM no modal, com alertas e o tipo de emprego permitido
 function renderUisPmContent(restricoes) {
-  if (!restricoes?.length) return '<div style="color:var(--tx3);font-size:13px;padding:8px">Nenhuma restrição encontrada para este RE.</div>';
+  if (!restricoes?.length) return '<div style="color:#ffffff;font-size:13px;padding:8px">Nenhuma restrição encontrada para este RE.</div>';
 
   // Exibe apenas a restrição mais recente (maior data de início)
   const ultima = [...restricoes].sort((a, b) => (b.inicio || '').localeCompare(a.inicio || ''))[0];
@@ -518,7 +518,7 @@ function renderUisPmContent(restricoes) {
       for (const cod of codigos) {
         const info  = UIS_CODIGOS[cod];
         const gCod  = info ? UIS_GRUPOS[info.grupo] : null;
-        const cor   = gCod ? gCod.cor : '#aaa';
+        const cor   = gCod ? gCod.cor : '#ffffff';
         html += `<div title="${info ? info.desc : cod}" style="background:${cor}18;border:1px solid ${cor}55;border-radius:5px;padding:3px 10px;display:flex;gap:6px;align-items:center">
           <span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${cor}">${cod}</span>
           ${info ? `<span style="font-size:13px;color:#ffffff">${info.desc}</span>` : ''}
@@ -770,7 +770,7 @@ async function openIasPmModal(re, nomePm) {
   const el = document.getElementById('ias-pm-nome');
   if (el) el.textContent = `RE ${re}${nomePm ? ' · ' + nomePm : ''}`;
   const ct = document.getElementById('ias-pm-content');
-  if (ct) ct.innerHTML = '<div style="color:var(--tx3);font-size:13px">Carregando...</div>';
+  if (ct) ct.innerHTML = '<div style="color:#ffffff;font-size:13px">Carregando...</div>';
   document.getElementById('ias-pm-mo').classList.add('on');
   document.body.style.overflow = 'hidden';
   try {
@@ -787,7 +787,7 @@ function closeIasPmModal() {
 }
 
 function renderIasPmContent(rec) {
-  if (!rec) return '<div style="color:var(--tx3);font-size:13px;padding:8px">Nenhum registro IAS encontrado para este PM.</div>';
+  if (!rec) return '<div style="color:#ffffff;font-size:13px;padding:8px">Nenhum registro IAS encontrado para este PM.</div>';
   const today = new Date().toISOString().slice(0, 10);
   const venc  = rec.data_vencimento;
   const vencida  = venc && venc < today;
@@ -922,7 +922,7 @@ function renderUisPage() {
     <div style="margin-bottom:20px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:${cor}">${label}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:16px;color:var(--tx3)">${sub}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:16px;color:#ffffff">${sub}</div>
       </div>
       <div style="background:rgba(255,255,255,.07);border-radius:6px;height:32px;overflow:hidden">
         <div style="height:100%;width:${Math.round(count/tlMax*100)}%;background:${cor};border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden">
@@ -965,14 +965,14 @@ function renderUisPage() {
           s.vencida>0? `<span style="color:#f07878">${s.vencida} vencida</span>` : '',
         ].filter(Boolean).join(' · ');
         return `<div style="margin-bottom:20px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:${cor};margin-bottom:8px">${escHtml(opm)}</div>
-          <div style="display:flex;align-items:center;gap:12px">
-            <div style="flex:1;display:flex;height:32px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.07)">
-              ${s.aptos>0   ?`<div style="width:${pctA}%;background:#4bc87a;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden"><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;white-space:nowrap">${s.aptos}</span></div>`:''}
-              ${s.venc30>0  ?`<div style="width:${pctV30}%;background:#c8a84b;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden"><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;white-space:nowrap">${s.venc30}</span></div>`:''}
-              ${s.vencida>0 ?`<div style="width:${pctVc}%;background:#f07878;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden"><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;white-space:nowrap">${s.vencida}</span></div>`:''}
-            </div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--tx3);white-space:nowrap;min-width:64px;text-align:right">${s.total} total</div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#ffffff">${s.total} total</div>
+          </div>
+          <div style="display:flex;height:32px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.07)">
+            ${s.aptos>0   ?`<div style="width:${pctA}%;background:#4bc87a;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden"><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;white-space:nowrap">${s.aptos}</span></div>`:''}
+            ${s.venc30>0  ?`<div style="width:${pctV30}%;background:#c8a84b;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden"><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;white-space:nowrap">${s.venc30}</span></div>`:''}
+            ${s.vencida>0 ?`<div style="width:${pctVc}%;background:#f07878;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden"><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;white-space:nowrap">${s.vencida}</span></div>`:''}
           </div>
         </div>`;
       }).join('')}
@@ -1087,7 +1087,7 @@ function renderUisDetail() {
     ? Object.entries(iasMapF).filter(([re]) => _p1ReSet.has(re))
     : Object.entries(iasMapF);
 
-  const thS = 'padding:14px 18px;font-family:"DM Mono",monospace;font-size:16px;color:var(--tx3);letter-spacing:1px;border-bottom:2px solid var(--bd2);text-align:left;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+  const thS = 'padding:14px 18px;font-family:"DM Mono",monospace;font-size:16px;color:#ffffff;letter-spacing:1px;border-bottom:2px solid var(--bd2);text-align:left;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
   const tdS = 'padding:14px 18px;font-size:19px;color:var(--tx);border-bottom:1px solid var(--bd);vertical-align:middle';
   const fmtD = s => s ? s.split('-').reverse().join('/') : '—';
 
@@ -1131,7 +1131,7 @@ function renderUisDetail() {
     // Sub-filtro buttons
     const subBtns = Object.entries(porGrupo).sort((a,b) => b[1].length-a[1].length).map(([grupo, arr]) => {
       const gInfo  = UIS_GRUPOS[grupo];
-      const cor    = gInfo ? gInfo.cor : '#aaa';
+      const cor    = gInfo ? gInfo.cor : '#ffffff';
       const active = _uisDetSub === grupo;
       return `<button onclick="uisDetSubFiltroSet('${grupo}')" style="padding:8px 16px;background:${active?cor+'22':'var(--s2)'};border:1px solid ${active?cor:cor+'44'};color:${cor};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;transition:all .15s">
         ${escHtml(gInfo ? gInfo.label : grupo)}<span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:8px">${arr.length}</span>
@@ -1156,12 +1156,12 @@ function renderUisDetail() {
         <td style="${tdS}">${codsHtml}</td>
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px;color:${termino&&termino<today?'#f07878':termino&&termino<=em30?'#c8a84b':'var(--tx)'}">${fmtD(termino)}</td>
       </tr>`;
-    }).join('') || `<tr><td colspan="3" style="padding:20px;text-align:center;color:var(--tx3);font-size:17px">Nenhum registro</td></tr>`;
+    }).join('') || `<tr><td colspan="3" style="padding:20px;text-align:center;color:#ffffff;font-size:17px">Nenhum registro</td></tr>`;
 
     // Gráfico de barras por grupo
     const barHtml = Object.entries(porGrupo).sort((a,b)=>b[1].length-a[1].length).map(([grupo, arr]) => {
       const gInfo = UIS_GRUPOS[grupo];
-      const cor   = gInfo ? gInfo.cor : '#aaa';
+      const cor   = gInfo ? gInfo.cor : '#ffffff';
       const pct   = Math.round(arr.length / grupoMaxN * 100);
       return `<div style="margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -1179,7 +1179,7 @@ function renderUisDetail() {
       <div class="mo-g2" style="margin-bottom:16px">
         <div class="mo-card">
           <div class="mo-ct">POR GRUPO</div>
-          ${barHtml || '<div style="color:var(--tx3);font-size:17px">Sem dados</div>'}
+          ${barHtml || '<div style="color:#ffffff;font-size:17px">Sem dados</div>'}
         </div>
         <div class="mo-card">
           <div class="mo-ct">${filtRows.length} PM${filtRows.length!==1?'s':''}</div>
@@ -1267,7 +1267,7 @@ function renderUisDetail() {
         <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px;color:${cor}">${fmtD(r.data_vencimento)}</td>
         <td style="${tdS};font-size:15px;color:#c8a84b">${anivLabel}</td>
       </tr>`;
-    }).join('') || `<tr><td colspan="3" style="padding:20px;text-align:center;color:var(--tx3);font-size:17px">Nenhum registro</td></tr>`;
+    }).join('') || `<tr><td colspan="3" style="padding:20px;text-align:center;color:#ffffff;font-size:17px">Nenhum registro</td></tr>`;
 
     document.getElementById('ud-content').innerHTML = `
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">${statusBtns}</div>
@@ -1275,7 +1275,7 @@ function renderUisDetail() {
       <div class="mo-g2" style="margin-bottom:16px">
         <div class="mo-card" style="display:flex;flex-direction:column;min-height:420px">
           <div class="mo-ct">SITUAÇÃO GERAL</div>
-          ${iasTotal > 0 ? `<div style="flex:1;display:flex;align-items:flex-start;justify-content:center;padding:8px 0"><canvas id="ias-donut-chart"></canvas></div>` : '<div style="color:var(--tx3);font-size:17px;margin-top:16px">Sem dados</div>'}
+          ${iasTotal > 0 ? `<div style="flex:1;display:flex;align-items:flex-start;justify-content:center;padding:8px 0"><canvas id="ias-donut-chart"></canvas></div>` : '<div style="color:#ffffff;font-size:17px;margin-top:16px">Sem dados</div>'}
         </div>
         <div class="mo-card">
           <div class="mo-ct">${displayRows.length} PM${displayRows.length!==1?'s':''}</div>
