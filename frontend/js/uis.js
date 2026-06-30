@@ -963,17 +963,14 @@ function renderUisPage() {
           s.vencida>0? `<span style="color:#f07878">${s.vencida} vencida</span>` : '',
         ].filter(Boolean).join(' · ');
         return `<div style="margin-bottom:20px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <div>
-              <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
-              <div style="font-family:'DM Mono',monospace;font-size:15px;color:#ffffff;margin-top:3px">${subStats}</div>
-            </div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:800;color:#ffffff;line-height:1">${s.total}</div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--tx3)">${s.total} total</div>
           </div>
-          <div style="display:flex;height:10px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.07)">
-            ${s.aptos>0   ?`<div style="width:${pctA}%;background:#4bc87a" title="Aptos: ${s.aptos}"></div>`:''}
-            ${s.venc30>0  ?`<div style="width:${pctV30}%;background:#c8a84b" title="Vencendo: ${s.venc30}"></div>`:''}
-            ${s.vencida>0 ?`<div style="width:${pctVc}%;background:#f07878" title="Vencidas: ${s.vencida}"></div>`:''}
+          <div style="display:flex;height:32px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.07)">
+            ${s.aptos>0   ?`<div style="width:${pctA}%;background:#4bc87a;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden"><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;white-space:nowrap">${s.aptos}</span></div>`:''}
+            ${s.venc30>0  ?`<div style="width:${pctV30}%;background:#c8a84b;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden"><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;white-space:nowrap">${s.venc30}</span></div>`:''}
+            ${s.vencida>0 ?`<div style="width:${pctVc}%;background:#f07878;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden"><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;white-space:nowrap">${s.vencida}</span></div>`:''}
           </div>
         </div>`;
       }).join('')}
