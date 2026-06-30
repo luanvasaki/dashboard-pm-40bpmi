@@ -922,7 +922,7 @@ function renderUisPage() {
     <div style="margin-bottom:20px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:${cor}">${label}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--tx3)">${sub}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:16px;color:var(--tx3)">${sub}</div>
       </div>
       <div style="background:rgba(255,255,255,.07);border-radius:6px;height:32px;overflow:hidden">
         <div style="height:100%;width:${Math.round(count/tlMax*100)}%;background:${cor};border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden">
@@ -965,14 +965,14 @@ function renderUisPage() {
           s.vencida>0? `<span style="color:#f07878">${s.vencida} vencida</span>` : '',
         ].filter(Boolean).join(' · ');
         return `<div style="margin-bottom:20px">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--tx3)">${s.total} total</div>
-          </div>
-          <div style="display:flex;height:32px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.07)">
-            ${s.aptos>0   ?`<div style="width:${pctA}%;background:#4bc87a;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden"><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;white-space:nowrap">${s.aptos}</span></div>`:''}
-            ${s.venc30>0  ?`<div style="width:${pctV30}%;background:#c8a84b;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden"><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;white-space:nowrap">${s.venc30}</span></div>`:''}
-            ${s.vencida>0 ?`<div style="width:${pctVc}%;background:#f07878;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden"><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;white-space:nowrap">${s.vencida}</span></div>`:''}
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:${cor};margin-bottom:8px">${escHtml(opm)}</div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="flex:1;display:flex;height:32px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.07)">
+              ${s.aptos>0   ?`<div style="width:${pctA}%;background:#4bc87a;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden"><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;white-space:nowrap">${s.aptos}</span></div>`:''}
+              ${s.venc30>0  ?`<div style="width:${pctV30}%;background:#c8a84b;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden"><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;white-space:nowrap">${s.venc30}</span></div>`:''}
+              ${s.vencida>0 ?`<div style="width:${pctVc}%;background:#f07878;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;overflow:hidden"><span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;white-space:nowrap">${s.vencida}</span></div>`:''}
+            </div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--tx3);white-space:nowrap;min-width:64px;text-align:right">${s.total} total</div>
           </div>
         </div>`;
       }).join('')}
