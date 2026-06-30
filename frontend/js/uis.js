@@ -1200,11 +1200,12 @@ function renderUisDetail() {
     const mesProx  = String((parseInt(mesAtual) % 12) + 1).padStart(2, '0');
 
     // Pool inicial baseado no tipo de KPI clicado
+    const iasComReg = iasVals.filter(([,r]) => r.data_vencimento); // só com data real
     const pool = (() => {
-      if (_uisDetTipo === 'ias-aptos')   return iasVals.filter(([,r]) => _iasStatusFromRec(r) === 'apto');
-      if (_uisDetTipo === 'ias-venc30')  return iasVals.filter(([,r]) => _iasStatusFromRec(r) === 'vencendo');
-      if (_uisDetTipo === 'ias-vencida') return iasVals.filter(([,r]) => _iasStatusFromRec(r) === 'vencido');
-      return iasVals; // ias-total
+      if (_uisDetTipo === 'ias-aptos')   return iasComReg.filter(([,r]) => _iasStatusFromRec(r) === 'apto');
+      if (_uisDetTipo === 'ias-venc30')  return iasComReg.filter(([,r]) => _iasStatusFromRec(r) === 'vencendo');
+      if (_uisDetTipo === 'ias-vencida') return iasComReg.filter(([,r]) => _iasStatusFromRec(r) === 'vencido');
+      return iasComReg; // ias-total: só registros com data_vencimento preenchida
     })();
 
     // Filtro CIA dentro do modal
@@ -1250,11 +1251,11 @@ function renderUisDetail() {
       })
     ].join('') : '';
 
-    // Contagens globais (sem filtro CIA) para o donut
-    const iasTotal   = iasVals.length;
-    const iasAptos   = iasVals.filter(([,r]) => _iasStatusFromRec(r) === 'apto').length;
-    const iasVenc30  = iasVals.filter(([,r]) => _iasStatusFromRec(r) === 'vencendo').length;
-    const iasVencida = iasVals.filter(([,r]) => _iasStatusFromRec(r) === 'vencido').length;
+    // Contagens globais (sem filtro CIA) para o donut — só registros com data real
+    const iasTotal   = iasComReg.length;
+    const iasAptos   = iasComReg.filter(([,r]) => _iasStatusFromRec(r) === 'apto').length;
+    const iasVenc30  = iasComReg.filter(([,r]) => _iasStatusFromRec(r) === 'vencendo').length;
+    const iasVencida = iasComReg.filter(([,r]) => _iasStatusFromRec(r) === 'vencido').length;
 
     const rowsHtml = displayRows.map(([re, r]) => {
       const s    = _iasStatusFromRec(r);
