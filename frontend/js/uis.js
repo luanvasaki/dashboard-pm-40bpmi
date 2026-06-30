@@ -1274,9 +1274,9 @@ function renderUisDetail() {
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">${statusBtns}</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--bd)">${ciaBtns}</div>
       <div class="mo-g2" style="margin-bottom:16px">
-        <div class="mo-card" style="display:flex;flex-direction:column;align-items:center">
-          <div class="mo-ct" style="align-self:flex-start">SITUAÇÃO GERAL</div>
-          ${iasTotal > 0 ? `<canvas id="ias-donut-chart" width="240" height="240" style="max-width:100%;margin-top:8px"></canvas>` : '<div style="color:var(--tx3);font-size:17px;margin-top:16px">Sem dados</div>'}
+        <div class="mo-card" style="display:flex;flex-direction:column;min-height:420px">
+          <div class="mo-ct">SITUAÇÃO GERAL</div>
+          ${iasTotal > 0 ? `<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:8px 0"><canvas id="ias-donut-chart"></canvas></div>` : '<div style="color:var(--tx3);font-size:17px;margin-top:16px">Sem dados</div>'}
         </div>
         <div class="mo-card">
           <div class="mo-ct">${displayRows.length} PM${displayRows.length!==1?'s':''}</div>
@@ -1301,12 +1301,13 @@ function renderUisDetail() {
           datasets: [{ data: [iasAptos, iasVenc30, iasVencida], backgroundColor: ['#4bc87a','#c8a84b','#f07878'], borderWidth: 0, hoverOffset: 6 }]
         },
         options: {
-          responsive: false,
+          responsive: true,
+          maintainAspectRatio: true,
           plugins: {
-            legend: { position: 'bottom', labels: { color: '#ffffff', font: { size: 15 }, padding: 14, boxWidth: 14 } },
+            legend: { position: 'bottom', labels: { color: '#ffffff', font: { size: 15 }, padding: 18, boxWidth: 16 } },
             tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} PMs (${Math.round(ctx.raw/iasTotal*100)}%)` } }
           },
-          cutout: '62%'
+          cutout: '60%'
         }
       });
     }
