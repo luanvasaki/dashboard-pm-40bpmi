@@ -251,6 +251,14 @@ canvas{max-height:320px}
   .hm-filter{flex-direction:column;align-items:flex-start}
 }
 
+/* ── P3 KPI row — tamanho reduzido ──────────────────────────────── */
+#kpi-row{gap:12px}
+#kpi-row .kpi{padding:14px 12px 12px}
+#kpi-row .kpi-lbl{font-size:18px;min-height:68px;letter-spacing:1.5px}
+#kpi-row .kpi-val{font-size:50px;margin-bottom:10px}
+#kpi-row .kpi-sub{font-size:17px}
+#kpi-row .kpi-hint{font-size:17px;padding-top:8px}
+
 /* ── Ranking CIA tooltip ─────────────────────────────────────────── */
 .prod-rank-row { position: relative; }
 .prod-rank-tooltip {
