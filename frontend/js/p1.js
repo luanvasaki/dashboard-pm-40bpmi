@@ -127,6 +127,30 @@ let _p1AptosDetCia    = -1;
 let _p1AptosDetMun    = null;
 let _p1AptosDetPostos = [];
 
+// Estado dos filtros do detalhe Restrições
+let _p1RestDetCia = -1;
+let _p1RestDetMun = null;
+
+function p1RestSetCia(idx) {
+  if (_p1RestDetCia === idx) {
+    _p1RestDetCia = -1;
+  } else {
+    _p1RestDetCia = idx;
+    if (_p1RestDetMun && _p1TotalMunCia(_p1RestDetMun) !== idx) _p1RestDetMun = null;
+  }
+  p1ShowKpiDetail('restricao');
+}
+function p1RestSetMun(val) {
+  if (_p1RestDetMun === val) {
+    _p1RestDetMun = null;
+  } else {
+    _p1RestDetMun = val;
+    const ciaIdx = _p1TotalMunCia(val);
+    if (ciaIdx >= 0) _p1RestDetCia = ciaIdx;
+  }
+  p1ShowKpiDetail('restricao');
+}
+
 function p1AptosSetCia(idx) {
   if (_p1AptosDetCia === idx) {
     _p1AptosDetCia = -1;
@@ -1003,6 +1027,7 @@ function closeP1Detail() {
   _p1TotalDetCia = -1; _p1TotalDetGen = null; _p1TotalDetMun = null; _p1TotalDetPostos = [];
   _p1IasDetSit = null; _p1IasDetCia = -1; _p1IasDetMun = null; _p1IasDetPostos = [];
   _p1AptosDetCia = -1; _p1AptosDetMun = null; _p1AptosDetPostos = [];
+  _p1RestDetCia = -1; _p1RestDetMun = null;
 }
 
 
@@ -1261,9 +1286,43 @@ function p1ShowKpiDetail(tipo) {
   }
 
   else if (tipo === 'restricao') {
-    // Agrupa todos os PMs por tipo de restrição
+    const getCiaRest = opm => {
+      if (!opm || typeof CIA_STRUCT === 'undefined') return -1;
+      return CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
+    };
+    const getMunRest = opm => { if (!opm) return null; const p = opm.split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
+
+    const baseList = dataF.map(r => ({ r, ciaIdx: getCiaRest(r.opm), mun: getMunRest(r.opm) }));
+    const munList  = [...new Set(baseList.map(x => x.mun).filter(Boolean))].sort();
+
+    // Aplica filtros CIA e Município
+    let filtrados = baseList;
+    if (_p1RestDetCia >= 0) filtrados = filtrados.filter(x => x.ciaIdx === _p1RestDetCia);
+    if (_p1RestDetMun)      filtrados = filtrados.filter(x => x.mun === _p1RestDetMun);
+    const filtSet = new Set(filtrados.map(x => x.r.re));
+    const dataFilt = dataF.filter(r => filtSet.has(r.re));
+
+    const btnBase = (lbl, cor, on, onclick) =>
+      `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
+    const gridRow = (lbl, btns) =>
+      `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
+      </div>`;
+
+    const ciaBtns = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.map((c, i) => {
+      const cnt = baseList.filter(x => x.ciaIdx === i).length;
+      return btnBase(`${c.label} <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cnt}</span>`, c.color, _p1RestDetCia === i, `p1RestSetCia(${i})`);
+    }).join('') : '';
+
+    const munBtns = munList.map(m => {
+      const cnt = baseList.filter(x => x.mun === m).length;
+      return btnBase(m, '#c8a84b', _p1RestDetMun === m, `p1RestSetMun('${m.replace(/'/g,"\\'")}')`)
+    }).join('');
+
+    // Agrupa os PMs filtrados por tipo de restrição
     const groups = {};
-    dataF.forEach(r => {
+    dataFilt.forEach(r => {
       const temEfetivo = (r.possui_restricao||'').toLowerCase().startsWith('s');
       const temUis     = hasUisRestr(r.re);
       if (temUis) {
@@ -1281,7 +1340,7 @@ function p1ShowKpiDetail(tipo) {
     ORDER.forEach(grp => {
       const list = groups[grp]; if (!list?.length) return;
       const cor = COR_GRUPO[grp] || '#c8a84b';
-      inner += `<tr><td colspan="5" style="padding:10px 12px 4px;border-bottom:1px solid rgba(255,255,255,.04)">
+      inner += `<tr><td colspan="6" style="padding:10px 12px 4px;border-bottom:1px solid rgba(255,255,255,.04)">
         <span style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:1px;padding:3px 10px;border-radius:10px;background:${cor}22;color:${cor};text-transform:uppercase">${grp} — ${list.length}</span>
       </td></tr>`;
       list.forEach(r => {
@@ -1303,11 +1362,16 @@ function p1ShowKpiDetail(tipo) {
     });
     const semRestr = (groups['__sem__'] || []).length;
     if (semRestr) inner += `<tr><td colspan="6" style="padding:10px 12px;border-top:1px solid var(--bd2);color:var(--tx3);font-size:19px">Sem restrição: ${semRestr} PMs</td></tr>`;
-    const totalRestr = dataF.length - semRestr;
-    html = wrapDetail('Em Restrição', totalRestr, '#c8a84b', closeBtn,
-      `<table style="width:100%;border-collapse:collapse">
-        <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Válida até</th><th style="${thR}">Restam</th></tr></thead>
-        <tbody>${inner}</tbody></table>`);
+    const totalRestr = dataFilt.length - semRestr;
+    html = wrapDetail('Em Restrição', totalRestr, '#c8a84b', closeBtn, `
+      ${ciaBtns  ? gridRow('CIA', ciaBtns) : ''}
+      ${munBtns  ? gridRow('MUNICÍPIO', munBtns) : ''}
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Válida até</th><th style="${thR}">Restam</th></tr></thead>
+          <tbody>${inner||`<tr><td colspan="6" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`}</tbody>
+        </table>
+      </div>`);
   }
 
   else if (tipo === 'eap') {
