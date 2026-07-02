@@ -46,11 +46,19 @@ let p1UnitClickOut   = null; // handler de click fora do detalhe de unidade
 let p1KpiClickOut    = null; // handler de click fora do detalhe de KPI
 
 // Estado dos filtros do detalhe Total Efetivo
-let _p1TotalDetCia = -1;
-let _p1TotalDetGen = null; // null | 'F' | 'M'
+let _p1TotalDetCia    = -1;
+let _p1TotalDetGen    = null; // null | 'F' | 'M'
+let _p1TotalDetMun    = null;
+let _p1TotalDetPostos = [];
 
-function p1TotalSetCia(idx) { _p1TotalDetCia = _p1TotalDetCia === idx ? -1 : idx; p1ShowKpiDetail('total'); }
-function p1TotalSetGen(val) { _p1TotalDetGen = _p1TotalDetGen === val ? null : val; p1ShowKpiDetail('total'); }
+function p1TotalSetCia(idx)   { _p1TotalDetCia = _p1TotalDetCia === idx ? -1 : idx; p1ShowKpiDetail('total'); }
+function p1TotalSetGen(val)   { _p1TotalDetGen = _p1TotalDetGen === val ? null : val; p1ShowKpiDetail('total'); }
+function p1TotalSetMun(val)   { _p1TotalDetMun = _p1TotalDetMun === val ? null : val; p1ShowKpiDetail('total'); }
+function p1TotalTogPosto(val) {
+  const i = _p1TotalDetPostos.indexOf(val);
+  if (i >= 0) _p1TotalDetPostos.splice(i, 1); else _p1TotalDetPostos.push(val);
+  p1ShowKpiDetail('total');
+}
 
 // Estado dos filtros do detalhe IAS
 let _p1IasDetSit    = null;
@@ -928,7 +936,7 @@ function wrapDetail(_title, _count, _color, _closeBtn, inner) {
 function closeP1Detail() {
   const mo = document.getElementById('p1-detail-mo');
   if (mo) { mo.classList.remove('on'); document.body.style.overflow = ''; }
-  _p1TotalDetCia = -1; _p1TotalDetGen = null;
+  _p1TotalDetCia = -1; _p1TotalDetGen = null; _p1TotalDetMun = null; _p1TotalDetPostos = [];
   _p1IasDetSit = null; _p1IasDetCia = -1; _p1IasDetMun = null; _p1IasDetPostos = [];
   _p1AptosDetCia = -1; _p1AptosDetMun = null; _p1AptosDetPostos = [];
 }
@@ -1004,15 +1012,23 @@ function p1ShowKpiDetail(tipo) {
       if (!opm || typeof CIA_STRUCT === 'undefined') return -1;
       return CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
     };
+    const getMunTot = opm => { if (!opm) return null; const p = opm.split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
 
-    const baseList = dataF.map(r => ({ r, ciaIdx: getCiaTot(r.opm), gen: genNorm(r.genero) }));
+    const _pH = [/cel/i,/\btc\b/i,/maj/i,/cap/i,/1.{0,4}ten/i,/2.{0,4}ten/i,/asp/i,/sub.?ten|^st$|st pm/i,/1.{0,4}sgt/i,/2.{0,4}sgt/i,/3.{0,4}sgt/i,/\bcb\b|cabo/i,/\bsd\b|soldado/i];
+    const _pR = p => { const n=(p||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); const i=_pH.findIndex(r=>r.test(n)); return i<0?999:i; };
 
-    const cntF = baseList.filter(x => x.gen === 'F').length;
-    const cntM = baseList.filter(x => x.gen === 'M').length;
+    const baseList = dataF.map(r => ({ r, ciaIdx: getCiaTot(r.opm), gen: genNorm(r.genero), mun: getMunTot(r.opm) }));
+
+    const cntF      = baseList.filter(x => x.gen === 'F').length;
+    const cntM      = baseList.filter(x => x.gen === 'M').length;
+    const munList   = [...new Set(baseList.map(x => x.mun).filter(Boolean))].sort();
+    const postoList = [...new Set(dataF.map(r => r.posto).filter(Boolean))].sort((a,b) => _pR(a)-_pR(b));
 
     let filtered = baseList;
-    if (_p1TotalDetCia >= 0) filtered = filtered.filter(x => x.ciaIdx === _p1TotalDetCia);
-    if (_p1TotalDetGen)      filtered = filtered.filter(x => x.gen === _p1TotalDetGen);
+    if (_p1TotalDetCia >= 0)      filtered = filtered.filter(x => x.ciaIdx === _p1TotalDetCia);
+    if (_p1TotalDetGen)           filtered = filtered.filter(x => x.gen === _p1TotalDetGen);
+    if (_p1TotalDetMun)           filtered = filtered.filter(x => x.mun === _p1TotalDetMun);
+    if (_p1TotalDetPostos.length) filtered = filtered.filter(x => _p1TotalDetPostos.includes(x.r.posto));
 
     const btnBase = (lbl, cor, on, onclick) =>
       `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
@@ -1032,6 +1048,17 @@ function p1ShowKpiDetail(tipo) {
       btnBase(`MASCULINO <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cntM}</span>`, '#5a9de0', _p1TotalDetGen === 'M', "p1TotalSetGen('M')"),
     ].join('');
 
+    const munBtns = munList.map(m => {
+      const cnt = baseList.filter(x => x.mun === m).length;
+      return btnBase(m, '#5a9de0', _p1TotalDetMun === m, `p1TotalSetMun('${m.replace(/'/g,"\\'")}')`)
+    }).join('');
+
+    const postoBtns = postoList.map(p => {
+      const cnt = baseList.filter(x => x.r.posto === p).length;
+      const on  = _p1TotalDetPostos.includes(p);
+      return btnBase(p, '#c8a84b', on, `p1TotalTogPosto('${p.replace(/'/g,"\\'")}')`)
+    }).join('');
+
     const rows = filtered.map(({r}) => {
       const afst = p1AfastHoje[r.re];
       const s = afst
@@ -1047,7 +1074,9 @@ function p1ShowKpiDetail(tipo) {
     }).join('');
 
     html = wrapDetail('Todo o Efetivo', filtered.length, '#c8a84b', closeBtn, `
-      ${ciaBtns ? gridRow('CIA', ciaBtns) : ''}
+      ${ciaBtns    ? gridRow('CIA', ciaBtns) : ''}
+      ${munBtns    ? gridRow('MUNICÍPIO', munBtns) : ''}
+      ${postoBtns  ? gridRow('POSTO / GRAD.', postoBtns) : ''}
       ${gridRow('GÊNERO', genBtns)}
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse">
