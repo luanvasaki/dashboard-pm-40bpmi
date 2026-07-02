@@ -127,8 +127,25 @@ let _p1AptosDetCia    = -1;
 let _p1AptosDetMun    = null;
 let _p1AptosDetPostos = [];
 
-function p1AptosSetCia(idx)   { _p1AptosDetCia = _p1AptosDetCia === idx ? -1 : idx;   p1ShowKpiDetail('aptos'); }
-function p1AptosSetMun(val)   { _p1AptosDetMun = _p1AptosDetMun === val ? null : val;  p1ShowKpiDetail('aptos'); }
+function p1AptosSetCia(idx) {
+  if (_p1AptosDetCia === idx) {
+    _p1AptosDetCia = -1;
+  } else {
+    _p1AptosDetCia = idx;
+    if (_p1AptosDetMun && _p1TotalMunCia(_p1AptosDetMun) !== idx) _p1AptosDetMun = null;
+  }
+  p1ShowKpiDetail('aptos');
+}
+function p1AptosSetMun(val) {
+  if (_p1AptosDetMun === val) {
+    _p1AptosDetMun = null;
+  } else {
+    _p1AptosDetMun = val;
+    const ciaIdx = _p1TotalMunCia(val);
+    if (ciaIdx >= 0) _p1AptosDetCia = ciaIdx;
+  }
+  p1ShowKpiDetail('aptos');
+}
 function p1AptosTogPosto(val) {
   const i = _p1AptosDetPostos.indexOf(val);
   if (i >= 0) _p1AptosDetPostos.splice(i, 1); else _p1AptosDetPostos.push(val);
