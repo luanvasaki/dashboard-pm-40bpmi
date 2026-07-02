@@ -51,9 +51,39 @@ let _p1TotalDetGen    = null; // null | 'F' | 'M'
 let _p1TotalDetMun    = null;
 let _p1TotalDetPostos = [];
 
-function p1TotalSetCia(idx)   { _p1TotalDetCia = _p1TotalDetCia === idx ? -1 : idx; p1ShowKpiDetail('total'); }
-function p1TotalSetGen(val)   { _p1TotalDetGen = _p1TotalDetGen === val ? null : val; p1ShowKpiDetail('total'); }
-function p1TotalSetMun(val)   { _p1TotalDetMun = _p1TotalDetMun === val ? null : val; p1ShowKpiDetail('total'); }
+function _p1TotalMunCia(mun) {
+  // Retorna o índice CIA de uma cidade, olhando no p1Data
+  if (!mun || typeof CIA_STRUCT === 'undefined') return -1;
+  const pm = p1Data.find(r => { const p = (r.opm||'').split(' - '); return (p.length > 1 ? p[p.length-1].trim() : null) === mun; });
+  if (!pm) return -1;
+  return CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(pm.opm, c.units.flatMap(u => u.keys)));
+}
+
+function p1TotalSetCia(idx) {
+  if (_p1TotalDetCia === idx) {
+    _p1TotalDetCia = -1;
+  } else {
+    _p1TotalDetCia = idx;
+    // Limpa cidade se não pertencer à CIA escolhida
+    if (_p1TotalDetMun && _p1TotalMunCia(_p1TotalDetMun) !== idx) _p1TotalDetMun = null;
+  }
+  p1ShowKpiDetail('total');
+}
+
+function p1TotalSetGen(val) { _p1TotalDetGen = _p1TotalDetGen === val ? null : val; p1ShowKpiDetail('total'); }
+
+function p1TotalSetMun(val) {
+  if (_p1TotalDetMun === val) {
+    _p1TotalDetMun = null;
+  } else {
+    _p1TotalDetMun = val;
+    // Acende automaticamente a CIA correspondente à cidade
+    const ciaIdx = _p1TotalMunCia(val);
+    if (ciaIdx >= 0) _p1TotalDetCia = ciaIdx;
+  }
+  p1ShowKpiDetail('total');
+}
+
 function p1TotalTogPosto(val) {
   const i = _p1TotalDetPostos.indexOf(val);
   if (i >= 0) _p1TotalDetPostos.splice(i, 1); else _p1TotalDetPostos.push(val);
