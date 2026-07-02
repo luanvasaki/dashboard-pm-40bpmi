@@ -96,9 +96,26 @@ let _p1IasDetCia    = -1;
 let _p1IasDetMun    = null;
 let _p1IasDetPostos = [];
 
-function p1IasSetSit(val)   { _p1IasDetSit = _p1IasDetSit === val ? null : val; p1ShowKpiDetail('ias'); }
-function p1IasSetCia(idx)   { _p1IasDetCia = _p1IasDetCia === idx ? -1 : idx;   p1ShowKpiDetail('ias'); }
-function p1IasSetMun(val)   { _p1IasDetMun = _p1IasDetMun === val ? null : val;  p1ShowKpiDetail('ias'); }
+function p1IasSetSit(val) { _p1IasDetSit = _p1IasDetSit === val ? null : val; p1ShowKpiDetail('ias'); }
+function p1IasSetCia(idx) {
+  if (_p1IasDetCia === idx) {
+    _p1IasDetCia = -1;
+  } else {
+    _p1IasDetCia = idx;
+    if (_p1IasDetMun && _p1TotalMunCia(_p1IasDetMun) !== idx) _p1IasDetMun = null;
+  }
+  p1ShowKpiDetail('ias');
+}
+function p1IasSetMun(val) {
+  if (_p1IasDetMun === val) {
+    _p1IasDetMun = null;
+  } else {
+    _p1IasDetMun = val;
+    const ciaIdx = _p1TotalMunCia(val);
+    if (ciaIdx >= 0) _p1IasDetCia = ciaIdx;
+  }
+  p1ShowKpiDetail('ias');
+}
 function p1IasTogPosto(val) {
   const i = _p1IasDetPostos.indexOf(val);
   if (i >= 0) _p1IasDetPostos.splice(i, 1); else _p1IasDetPostos.push(val);
