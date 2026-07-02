@@ -1946,9 +1946,9 @@ async function openProntuario(re) {
   const imgEl = document.getElementById('pronto-foto');
   const phEl  = document.getElementById('pronto-foto-ph');
   imgEl.style.display = 'none'; phEl.style.display = 'flex';
-  // Controles de upload (somente p1/admin)
+  // Controles de upload (somente p1/admin ou secoes_acesso.p1=editor)
   const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
-  const canEdit = ['admin','p1','ti'].includes(u.role);
+  const canEdit = ['admin','p1','ti'].includes(u.role) || (u.secoes_acesso || {}).p1 === 'editor';
   const editArea = document.getElementById('pronto-foto-edit-area');
   if (editArea) {
     editArea.style.display = canEdit ? 'block' : 'none';
@@ -2388,7 +2388,7 @@ async function openFotoModal(re, nome, posto) {
   document.getElementById('foto-placeholder').style.display = 'flex';
 
   const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
-  const canEdit = ['admin', 'p1', 'ti'].includes(u.role);
+  const canEdit = ['admin', 'p1', 'ti'].includes(u.role) || (u.secoes_acesso || {}).p1 === 'editor';
   document.getElementById('foto-edit-area').style.display = canEdit ? 'block' : 'none';
   document.getElementById('foto-readonly-note').style.display = canEdit ? 'none' : 'block';
   document.getElementById('foto-file-input').value = '';
@@ -2984,8 +2984,9 @@ function updateSidebarImports(section) {
   const el = document.getElementById('sidebar-imports');
   if (!el) return;
   const role = currentRole();
-  const isP3 = ['admin', 'p3', 'ti'].includes(role);
-  const isP1 = ['admin', 'p1', 'ti'].includes(role);
+  const _sa  = (() => { try { return JSON.parse(localStorage.getItem('auth_user') || '{}').secoes_acesso || {}; } catch { return {}; } })();
+  const isP3 = ['admin', 'p3', 'ti'].includes(role) || _sa.p3 === 'editor';
+  const isP1 = ['admin', 'p1', 'ti'].includes(role) || _sa.p1 === 'editor';
   if (section === 'p1') {
     if (!isP1) { el.innerHTML = ''; return; }
     el.innerHTML = `
