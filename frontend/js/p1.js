@@ -2566,13 +2566,13 @@ function p1ShowPmList(pms, label) {
     const avatarContent = fotoCached
       ? `<img src="${fotoCached}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.18)">`
       : p1AvatarSVG(r.nome_guerra || r.nome, r.posto).replace('width="32" height="32" viewBox="0 0 32 32"','width="56" height="56" viewBox="0 0 32 32"');
-    return `<div onclick="openProntuario('${_re}')" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)'">
+    return `<div onclick="openProntuario('${_re}')" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:12px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)'">
       <div data-foto-re="${r.re}" data-nome="${(r.nome_guerra||r.nome).replace(/"/g,'&quot;')}" data-posto="${(r.posto||'').replace(/"/g,'&quot;')}">${avatarContent}</div>
-      <div style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:2px">${r.posto || '—'}</div>
-      <div style="font-size:19px;color:var(--tx3);font-family:'DM Mono',monospace">RE ${r.re}</div>
-      <div style="font-size:19px;font-weight:700;color:var(--tx);line-height:1.3;word-break:break-word">${r.nome_guerra || r.nome}</div>
+      <div style="font-size:13px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:4px;white-space:nowrap;letter-spacing:.5px">${r.posto || '—'}</div>
+      <div style="font-size:13px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap;letter-spacing:.5px">RE ${r.re}</div>
+      <div style="font-size:16px;font-weight:700;color:var(--tx);line-height:1.3;word-break:break-word;max-width:100%">${r.nome_guerra || r.nome}</div>
       <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:2px">
-        <div style="font-size:19px;padding:2px 8px;border-radius:10px;background:${statusColor}22;color:${statusColor};font-family:'DM Mono',monospace">${statusTxt}</div>
+        <div style="font-size:11px;padding:2px 8px;border-radius:10px;background:${statusColor}22;color:${statusColor};font-family:'DM Mono',monospace;white-space:nowrap">${statusTxt}</div>
         ${uisBadge(r.re)}${iasBadge(r.re)}
       </div>
     </div>`;
@@ -2585,7 +2585,7 @@ function p1ShowPmList(pms, label) {
       <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:var(--gold);text-transform:uppercase">${label} — ${pms.length} militares</div>
       <button onclick="p1CloseUnit()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--tx3);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:19px">✕ Fechar</button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px">${cards}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">${cards}</div>
     ${quadroHtml}
   </div>`;
 
