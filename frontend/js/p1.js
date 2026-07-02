@@ -45,6 +45,13 @@ let p1ClosingPronto  = false;// flag: acabou de fechar prontuário — evita fec
 let p1UnitClickOut   = null; // handler de click fora do detalhe de unidade
 let p1KpiClickOut    = null; // handler de click fora do detalhe de KPI
 
+// Estado dos filtros do detalhe Total Efetivo
+let _p1TotalDetCia = -1;
+let _p1TotalDetGen = null; // null | 'F' | 'M'
+
+function p1TotalSetCia(idx) { _p1TotalDetCia = _p1TotalDetCia === idx ? -1 : idx; p1ShowKpiDetail('total'); }
+function p1TotalSetGen(val) { _p1TotalDetGen = _p1TotalDetGen === val ? null : val; p1ShowKpiDetail('total'); }
+
 // Estado dos filtros do detalhe IAS
 let _p1IasDetSit    = null;
 let _p1IasDetCia    = -1;
@@ -921,6 +928,7 @@ function wrapDetail(_title, _count, _color, _closeBtn, inner) {
 function closeP1Detail() {
   const mo = document.getElementById('p1-detail-mo');
   if (mo) { mo.classList.remove('on'); document.body.style.overflow = ''; }
+  _p1TotalDetCia = -1; _p1TotalDetGen = null;
   _p1IasDetSit = null; _p1IasDetCia = -1; _p1IasDetMun = null; _p1IasDetPostos = [];
   _p1AptosDetCia = -1; _p1AptosDetMun = null; _p1AptosDetPostos = [];
 }
@@ -991,7 +999,40 @@ function p1ShowKpiDetail(tipo) {
   let html = '';
 
   if (tipo === 'total') {
-    const rows = dataF.map(r => {
+    const genNorm = g => { const s = (g||'').toLowerCase().trim(); if (s.startsWith('f')) return 'F'; if (s.startsWith('m')) return 'M'; return null; };
+    const getCiaTot = opm => {
+      if (!opm || typeof CIA_STRUCT === 'undefined') return -1;
+      return CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
+    };
+
+    const baseList = dataF.map(r => ({ r, ciaIdx: getCiaTot(r.opm), gen: genNorm(r.genero) }));
+
+    const cntF = baseList.filter(x => x.gen === 'F').length;
+    const cntM = baseList.filter(x => x.gen === 'M').length;
+
+    let filtered = baseList;
+    if (_p1TotalDetCia >= 0) filtered = filtered.filter(x => x.ciaIdx === _p1TotalDetCia);
+    if (_p1TotalDetGen)      filtered = filtered.filter(x => x.gen === _p1TotalDetGen);
+
+    const btnBase = (lbl, cor, on, onclick) =>
+      `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
+    const gridRow = (lbl, btns) =>
+      `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
+      </div>`;
+
+    const ciaBtns = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.map((c, i) => {
+      const cnt = baseList.filter(x => x.ciaIdx === i).length;
+      return btnBase(`${c.label} <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cnt}</span>`, c.color, _p1TotalDetCia === i, `p1TotalSetCia(${i})`);
+    }).join('') : '';
+
+    const genBtns = [
+      btnBase(`FEMININO <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cntF}</span>`, '#e91e8c', _p1TotalDetGen === 'F', "p1TotalSetGen('F')"),
+      btnBase(`MASCULINO <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cntM}</span>`, '#5a9de0', _p1TotalDetGen === 'M', "p1TotalSetGen('M')"),
+    ].join('');
+
+    const rows = filtered.map(({r}) => {
       const afst = p1AfastHoje[r.re];
       const s = afst
         ? `<span style="font-size:19px;padding:3px 9px;border-radius:10px;background:#e0555522;color:#e05555;font-family:'DM Mono',monospace">${afst[0]?.tipo_afastamento||'Afastado'}</span>`
@@ -1004,10 +1045,16 @@ function p1ShowKpiDetail(tipo) {
         <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03)">${s}</td>
       </tr>`;
     }).join('');
-    html = wrapDetail('Todo o Efetivo', dataF.length, '#c8a84b', closeBtn,
-      `<table style="width:100%;border-collapse:collapse">
-        <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thL}">Status</th></tr></thead>
-        <tbody>${rows}</tbody></table>`);
+
+    html = wrapDetail('Todo o Efetivo', filtered.length, '#c8a84b', closeBtn, `
+      ${ciaBtns ? gridRow('CIA', ciaBtns) : ''}
+      ${gridRow('GÊNERO', genBtns)}
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thL}">Status</th></tr></thead>
+          <tbody>${rows||`<tr><td colspan="5" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`}</tbody>
+        </table>
+      </div>`);
   }
 
   else if (tipo === 'aptos') {

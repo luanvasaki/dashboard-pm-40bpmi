@@ -999,28 +999,6 @@ function renderUisPage() {
       </div>
     </div>` : '';
 
-  // ── Alerta duplo (UIS ativa + IAS vencida) ─────────────────
-  const duplos = Object.entries(restMap).filter(([re]) => _iasStatusFromRec(iasMapF[re]) === 'vencido');
-  const duplosPorOpm = {};
-  duplos.forEach(([re, recs]) => {
-    const opm = recs[0]?.opm || iasMapF[re]?.opm || 'Sem OPM';
-    duplosPorOpm[opm] = (duplosPorOpm[opm]||0) + 1;
-  });
-  const alertasHtml = duplos.length > 0 ? `
-    <div style="background:var(--s2);border:1px solid #f0787844;border-top:3px solid #f07878;border-radius:10px;padding:18px 20px;margin-bottom:14px">
-      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#f07878;letter-spacing:1.5px;margin-bottom:14px">⚠ ALERTA — PENDÊNCIA DUPLA (UIS + IAS VENCIDA)</div>
-      <div style="font-size:19px;color:#ffffff;margin-bottom:16px"><b style="color:#f07878">${duplos.length} PM${duplos.length!==1?'s':''}</b> com restrição UIS ativa <b>e</b> IAS vencida simultaneamente.</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">
-        ${Object.entries(duplosPorOpm).sort((a,b)=>b[1]-a[1]).map(([opm,cnt]) => {
-          const cor = uisCiaColor(opm);
-          return `<div style="background:rgba(240,120,120,.07);border:1px solid #f0787833;border-left:3px solid ${cor};border-radius:6px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:${cor}">${escHtml(opm)}</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:800;color:#f07878;line-height:1">${cnt}</div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>` : '';
-
   // ── Cor status UIS/IAS ────────────────────────────────────
   const restCampo = Object.entries(porGrupoUis).filter(([g]) => g !== 'admin_only').reduce((s,[,a])=>s+a.length,0);
   const pctCampo  = restAtivas > 0 ? Math.round(restCampo / restAtivas * 100) : 0;
@@ -1060,7 +1038,6 @@ function renderUisPage() {
     ${iasTimelineHtml}
     ${iasPorOpmHtml}
     ${iasAgendarHtml}
-    ${alertasHtml}
   `;
 
   if (window.lucide) lucide.createIcons();
