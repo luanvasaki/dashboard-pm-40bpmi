@@ -548,6 +548,8 @@ app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'p1', 'p3'),
   try {
     const { data: target } = await supabase.from(USUARIOS_TABLE).select('role').eq('id', req.params.id).single();
     if (target?.role === 'admin') return res.status(403).json({ error: 'Usuário protegido — não pode ser alterado.' });
+    // Roles especiais não podem ser sobrescritos pela derivação de secoes_acesso
+    if (target?.role === 'ti' && updates.role) delete updates.role;
 
     const { error } = await supabase.from(USUARIOS_TABLE).update(updates).eq('id', req.params.id);
     if (error) throw new Error(error.message);
