@@ -48,9 +48,13 @@ async function openAdminModal() {
   if (searchEl) searchEl.value = '';
   _admAllUsers = [];
   _admUsersById = {};
-  const me = JSON.parse(localStorage.getItem('auth_user') || '{}');
   const btnLogs = document.getElementById('adm-btn-logs');
-  if (btnLogs) btnLogs.style.display = ['admin', 'ti'].includes(me.role) ? 'inline-block' : 'none';
+  if (btnLogs) {
+    btnLogs.style.display = 'none';
+    authFetch(`${API}/logs/acesso?limit=1`).then(r => {
+      if (btnLogs) btnLogs.style.display = r.ok ? 'inline-block' : 'none';
+    }).catch(() => {});
+  }
   document.getElementById('adm-users').innerHTML = '<div style="color:var(--tx3);font-size:13px;padding:10px 0">Carregando...</div>';
   document.getElementById('adm-pending').innerHTML = '';
   document.getElementById('adm-pending-section').style.display = 'none';
