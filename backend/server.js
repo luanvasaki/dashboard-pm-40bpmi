@@ -479,7 +479,7 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
 
 // [POST /api/auth/logout] — invalida o cookie de sessão no cliente.
 // O JWT não é revogado no servidor (stateless) — o cookie simplesmente é apagado.
-app.post('/api/auth/logout', requireAuth, (req, res) => {
+app.post('/api/auth/logout', requireAuth, async (req, res) => {
   await logAcesso(req, 'logout', null);
   res.clearCookie('auth_token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' });
   res.json({ ok: true });
