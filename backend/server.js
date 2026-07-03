@@ -149,6 +149,25 @@ function requireRole(...roles) {
   };
 }
 
+// Fire-and-forget: registra evento na tabela logs_acesso sem bloquear a resposta.
+async function logAcesso(req, acao, detalhe, userOverride) {
+  if (!supabase) return;
+  try {
+    const u = userOverride || req.user || {};
+    const fwd = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+    await supabase.from('logs_acesso').insert({
+      usuario_id:   u.id   || null,
+      usuario_nome: u.nome || null,
+      matricula:    u.matricula || null,
+      role:         u.role || null,
+      acao,
+      detalhe: detalhe || null,
+      ip:          fwd || req.socket?.remoteAddress || null,
+      user_agent: (req.headers['user-agent'] || '').slice(0, 300),
+    });
+  } catch (_) {}
+}
+
 // ============================================================
 // Supabase — credenciais via variáveis de ambiente OBRIGATÓRIAS
 // Use a service_role key (não a anon/publishable key)
@@ -427,14 +446,14 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
       .eq('matricula', matricula.trim().toUpperCase())
       .single();
 
-    if (error || !data) return res.status(401).json({ error: 'Matrícula ou senha incorretos' });
+    if (error || !data) { logAcesso(req, 'login_falhou', `Matrícula não encontrada: ${matricula}`); return res.status(401).json({ error: 'Matrícula ou senha incorretos' }); }
     if (data.status === 'pending')
       return res.status(403).json({ error: 'Cadastro aguardando aprovação da seção P1 ou P3' });
     if (data.status === 'rejected')
       return res.status(403).json({ error: 'Cadastro recusado. Entre em contato com a seção P1 ou P3' });
 
     const ok = await bcrypt.compare(senha, data.senha_hash);
-    if (!ok) return res.status(401).json({ error: 'Matrícula ou senha incorretos' });
+    if (!ok) { logAcesso(req, 'login_falhou', `Senha incorreta: ${matricula}`); return res.status(401).json({ error: 'Matrícula ou senha incorretos' }); }
 
     const payload = { id: data.id, nome: data.nome, matricula: data.matricula, role: data.role, secao: data.secao, resetSenha: data.reset_senha === true, secoes_acesso: data.secoes_acesso || {} };
     const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
@@ -444,6 +463,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
       sameSite: 'strict',
       maxAge: 8 * 60 * 60 * 1000
     });
+    logAcesso(req, 'login', null, payload);
     res.json({ user: payload });
   } catch (err) {
     console.error('✗ Erro no login:', err.message);
@@ -459,7 +479,8 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
 
 // [POST /api/auth/logout] — invalida o cookie de sessão no cliente.
 // O JWT não é revogado no servidor (stateless) — o cookie simplesmente é apagado.
-app.post('/api/auth/logout', (req, res) => {
+app.post('/api/auth/logout', requireAuth, (req, res) => {
+  logAcesso(req, 'logout', null);
   res.clearCookie('auth_token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' });
   res.json({ ok: true });
 });
@@ -530,6 +551,7 @@ app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'p1', 'p3'),
 
     const { error } = await supabase.from(USUARIOS_TABLE).update(updates).eq('id', req.params.id);
     if (error) throw new Error(error.message);
+    logAcesso(req, 'admin_usuario_editado', `ID ${req.params.id}: ${JSON.stringify(updates)}`);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -547,6 +569,7 @@ app.patch('/api/admin/users/:id/posto', requireAuth, requireRole('admin', 'p1', 
     if (target.role === 'admin') return res.status(403).json({ error: 'Usuário protegido — não pode ser alterado.' });
     const { error } = await supabase.from(USUARIOS_TABLE).update({ posto: posto.trim() }).eq('id', req.params.id);
     if (error) throw new Error(error.message);
+    logAcesso(req, 'admin_posto_editado', `ID ${req.params.id}: ${posto.trim()}`);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -564,6 +587,7 @@ app.post('/api/admin/users/:id/reset-senha', requireAuth, requireRole('admin', '
     const hash = await bcrypt.hash(target.matricula, 10);
     const { error } = await supabase.from(USUARIOS_TABLE).update({ senha_hash: hash, reset_senha: true }).eq('id', req.params.id);
     if (error) throw new Error(error.message);
+    logAcesso(req, 'admin_reset_senha', `ID ${req.params.id} (${target.matricula})`);
     res.json({ ok: true, matricula: target.matricula });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -579,6 +603,7 @@ app.delete('/api/admin/users/:id', requireAuth, requireRole('admin', 'p3'), asyn
 
     const { error } = await supabase.from(USUARIOS_TABLE).delete().eq('id', req.params.id);
     if (error) throw new Error(error.message);
+    logAcesso(req, 'admin_usuario_excluido', `ID ${req.params.id}`);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -663,6 +688,7 @@ app.post('/api/upload', requireAuth, requireRole('admin', 'p3', 'ti'), async (re
     // Recarrega o cache a partir do Supabase para refletir os dados atualizados
     await syncFromSupabase();
 
+    logAcesso(req, 'upload_rac_pm', `${rows.length} registros importados`);
     res.json({ ok: true, uploaded: rows.length, total: cache.data.length });
   } catch (err) {
     console.error('✗ Erro no upload:', err.message);
@@ -710,6 +736,7 @@ app.post('/api/upload/ocorrencias', requireAuth, requireRole('admin', 'p3', 'ti'
       if (error) throw new Error(error.message);
       total += rows.slice(i, i + BATCH).length;
     }
+    logAcesso(req, 'upload_infocrim', `${total} ocorrências importadas`);
     res.json({ ok: true, inserted: total });
   } catch (err) {
     console.error('✗ Erro no upload de ocorrências:', err.message);
@@ -946,6 +973,7 @@ app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3'), async (
       if (error) throw new Error(error.message);
       inserted += Math.min(BATCH, rows.length - i);
     }
+    logAcesso(req, 'upload_efetivo', `${inserted} registros importados`);
     res.json({ ok: true, inserted });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1024,6 +1052,7 @@ app.post('/api/afastamentos/upload', requireAuth, requireRole('admin', 'p3'), as
       if (error) throw new Error(error.message);
       inserted += Math.min(BATCH, rows.length - i);
     }
+    logAcesso(req, 'upload_afastamentos', `${inserted} registros importados`);
     res.json({ ok: true, inserted });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1185,6 +1214,7 @@ app.post('/api/p1/quadro/upload', requireAuth, requireRole('admin', 'p1'), async
       const { error } = await supabase.from(QUADRO_TABLE).insert(rows.slice(i, i + BATCH));
       if (error) throw new Error(error.message);
     }
+    logAcesso(req, 'upload_quadro', `${rows.length} registros importados`);
     res.json({ ok: true, inserted: rows.length });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -1393,6 +1423,7 @@ app.post('/api/upload/prod/:tipo', requireAuth, requireRole('admin', 'p3'), asyn
       if (insErr) throw new Error(insErr.message);
       total += Math.min(BATCH, rows.length - i);
     }
+    logAcesso(req, 'upload_produtividade', `${req.params.tipo}: ${total} registros importados`);
     res.json({ ok: true, total });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1450,6 +1481,7 @@ app.post('/api/pvs', requireAuth, requireRole('admin', 'p3'), async (req, res) =
     }
     const { error: insErr } = await supabase.from('pvs').insert(rows);
     if (insErr) throw new Error(insErr.message);
+    logAcesso(req, 'upload_pvs', `${rows.length} registros importados`);
     res.json({ ok: true, total: rows.length });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -1540,6 +1572,7 @@ app.post('/api/indicadores-p3', requireAuth, requireRole('admin', 'p3', 'ti'), a
       preenchido_por:     req.user.nome || req.user.matricula
     }, { onConflict: 'mes,ano' });
     if (error) throw new Error(error.message);
+    logAcesso(req, 'indicadores_p3_salvo', `${mes}/${ano}`);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1829,6 +1862,7 @@ app.post('/api/upload/uis-restricoes', requireAuth, requireRole('admin', 'p1', '
       if (error) throw new Error(error.message);
       total += Math.min(BATCH, rows.length - i);
     }
+    logAcesso(req, 'upload_uis', `${total} registros importados`);
     res.json({ ok: true, inserted: total });
   } catch (err) {
     console.error('UIS upload error:', err.message);
@@ -1968,6 +2002,7 @@ app.post('/api/upload/ias', requireAuth, requireRole('admin', 'p1', 'ti'), async
       if (error) throw new Error(error.message);
       total += Math.min(BATCH, rows.length - i);
     }
+    logAcesso(req, 'upload_ias', `${total} registros importados`);
     res.json({ ok: true, inserted: total });
   } catch (err) {
     console.error('IAS upload error:', err.message);
@@ -2068,6 +2103,7 @@ app.post('/api/upload/cursos', requireAuth, requireRole('admin', 'p3'), async (r
       if (insErr) throw new Error(insErr.message);
       total += Math.min(BATCH, rows.length - i);
     }
+    logAcesso(req, 'upload_cursos', `${total} registros importados`);
     res.json({ ok: true, total });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -2080,6 +2116,33 @@ app.get('/api/pm/:re/cursos', requireAuth, async (req, res) => {
     if (error) throw new Error(error.message);
     res.json(data || []);
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// LOGS DE ACESSO — auditoria visível somente ao admin
+// ═══════════════════════════════════════════════════════════════
+
+// [GET /api/logs/acesso] — retorna o histórico de acessos. Restrito a admin.
+app.get('/api/logs/acesso', requireAuth, requireRole('admin'), async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 500, 2000);
+    const { data, error } = await supabase
+      .from('logs_acesso')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// [POST /api/logs/acesso] — registra evento de navegação enviado pelo frontend.
+app.post('/api/logs/acesso', requireAuth, async (req, res) => {
+  const { acao, detalhe } = req.body || {};
+  if (!acao) return res.status(400).json({ error: 'acao obrigatório' });
+  logAcesso(req, acao, detalhe || null);
+  res.json({ ok: true });
 });
 
 // Catch-all: qualquer rota não mapeada acima retorna o index.html (SPA — Single Page Application).

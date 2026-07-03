@@ -48,6 +48,9 @@ async function openAdminModal() {
   if (searchEl) searchEl.value = '';
   _admAllUsers = [];
   _admUsersById = {};
+  const me = JSON.parse(localStorage.getItem('auth_user') || '{}');
+  const btnLogs = document.getElementById('adm-btn-logs');
+  if (btnLogs) btnLogs.style.display = me.role === 'admin' ? 'inline-block' : 'none';
   document.getElementById('adm-users').innerHTML = '<div style="color:var(--tx3);font-size:13px;padding:10px 0">Carregando...</div>';
   document.getElementById('adm-pending').innerHTML = '';
   document.getElementById('adm-pending-section').style.display = 'none';
@@ -430,4 +433,112 @@ let moColor  = '';
 let moMeses  = [];
 let moScopeType = 'btl';
 let moScopeVal  = null;
+
+// ═══════════════════════════════════════════════════════════════
+// HISTÓRICO DE ACESSOS (somente admin)
+// ═══════════════════════════════════════════════════════════════
+let _logsAll = [];
+
+function closeLogsModal() { document.getElementById('logs-mo').style.display = 'none'; }
+
+async function openAdminModalWithLogs() {
+  const me = JSON.parse(localStorage.getItem('auth_user') || '{}');
+  const btn = document.getElementById('adm-btn-logs');
+  if (btn) btn.style.display = me.role === 'admin' ? 'inline-block' : 'none';
+}
+
+async function openLogsModal() {
+  document.getElementById('logs-mo').style.display = 'block';
+  document.getElementById('logs-search').value = '';
+  document.getElementById('logs-tipo').value = '';
+  await loadLogs();
+}
+
+async function loadLogs() {
+  const el = document.getElementById('logs-table');
+  el.innerHTML = '<div style="color:var(--tx3);font-size:13px;padding:10px 0">Carregando...</div>';
+  try {
+    const data = await authFetch(`${API}/logs/acesso?limit=1000`).then(r => r.json());
+    if (!Array.isArray(data)) throw new Error(data?.error || 'Erro ao carregar logs');
+    _logsAll = data;
+    logsFilter();
+  } catch (err) {
+    el.innerHTML = `<div style="color:#f07878;font-size:13px">${escHtml(err.message)}</div>`;
+  }
+}
+
+function logsFilter() {
+  const q = (document.getElementById('logs-search').value || '').toLowerCase().trim();
+  const tipo = (document.getElementById('logs-tipo').value || '').trim();
+  let rows = _logsAll;
+  if (q) rows = rows.filter(r =>
+    (r.usuario_nome || '').toLowerCase().includes(q) ||
+    (r.matricula    || '').toLowerCase().includes(q) ||
+    (r.acao         || '').toLowerCase().includes(q) ||
+    (r.detalhe      || '').toLowerCase().includes(q) ||
+    (r.ip           || '').toLowerCase().includes(q)
+  );
+  if (tipo) rows = rows.filter(r => (r.acao || '').startsWith(tipo));
+  document.getElementById('logs-count').textContent = `${rows.length} registro(s)`;
+  document.getElementById('logs-table').innerHTML = buildLogsTable(rows);
+}
+
+const ACAO_LABEL = {
+  login:                   { label: 'Login',             cor: '#5ae09a' },
+  login_falhou:            { label: 'Login falhou',      cor: '#f07878' },
+  logout:                  { label: 'Logout',            cor: '#5a9de0' },
+  upload_efetivo:          { label: 'Upload Efetivo',    cor: '#c8a84b' },
+  upload_afastamentos:     { label: 'Upload Afastamentos', cor: '#c8a84b' },
+  upload_uis:              { label: 'Upload UIS',        cor: '#c8a84b' },
+  upload_ias:              { label: 'Upload IAS',        cor: '#c8a84b' },
+  upload_rac_pm:           { label: 'Upload RAC PM',     cor: '#c8a84b' },
+  upload_infocrim:         { label: 'Upload InfoCrim',   cor: '#c8a84b' },
+  upload_produtividade:    { label: 'Upload Produtividade', cor: '#c8a84b' },
+  upload_pvs:              { label: 'Upload PVS',        cor: '#c8a84b' },
+  upload_cursos:           { label: 'Upload Cursos',     cor: '#c8a84b' },
+  admin_usuario_editado:   { label: 'Usuário editado',   cor: '#9b59b6' },
+  admin_usuario_excluido:  { label: 'Usuário excluído',  cor: '#f07878' },
+  admin_reset_senha:       { label: 'Reset senha',       cor: '#9b59b6' },
+  admin_posto_editado:     { label: 'Posto editado',     cor: '#9b59b6' },
+  upload_quadro:           { label: 'Upload Quadro',     cor: '#c8a84b' },
+  indicadores_p3_salvo:    { label: 'Indicadores P3',   cor: '#4bc87a' },
+};
+
+function _acaoBadge(acao) {
+  if (acao.startsWith('secao_')) return `<span style="padding:2px 8px;border-radius:10px;font-size:10px;background:rgba(90,158,224,.15);color:#5a9de0;font-family:'DM Mono',monospace">Seção: ${acao.slice(6)}</span>`;
+  if (acao.startsWith('pagina_p3_')) return `<span style="padding:2px 8px;border-radius:10px;font-size:10px;background:rgba(90,224,154,.1);color:#5ae09a;font-family:'DM Mono',monospace">Página: ${acao.slice(10)}</span>`;
+  const info = ACAO_LABEL[acao];
+  if (info) return `<span style="padding:2px 8px;border-radius:10px;font-size:10px;background:${info.cor}22;color:${info.cor};font-family:'DM Mono',monospace">${info.label}</span>`;
+  return `<span style="padding:2px 8px;border-radius:10px;font-size:10px;background:rgba(255,255,255,.06);color:var(--tx3);font-family:'DM Mono',monospace">${escHtml(acao)}</span>`;
+}
+
+function buildLogsTable(rows) {
+  if (!rows.length) return '<div style="color:var(--tx3);font-size:13px;padding:6px 0">Nenhum registro.</div>';
+  const thS = 'text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-family:"DM Mono",monospace;font-size:10px;color:var(--tx3);letter-spacing:1px;white-space:nowrap';
+  const tdS = 'padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px;vertical-align:top';
+  let h = `<table style="width:100%;border-collapse:collapse">
+    <thead><tr>
+      <th style="${thS}">DATA / HORA</th>
+      <th style="${thS}">USUÁRIO</th>
+      <th style="${thS}">RE</th>
+      <th style="${thS}">ROLE</th>
+      <th style="${thS}">AÇÃO</th>
+      <th style="${thS}">DETALHE</th>
+      <th style="${thS}">IP</th>
+    </tr></thead><tbody>`;
+  rows.forEach(r => {
+    const dt = r.created_at ? new Date(r.created_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '—';
+    h += `<tr>
+      <td style="${tdS};font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);white-space:nowrap">${escHtml(dt)}</td>
+      <td style="${tdS};color:#d8dce8;font-weight:500">${escHtml(r.usuario_nome || '—')}</td>
+      <td style="${tdS};font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${escHtml(r.matricula || '—')}</td>
+      <td style="${tdS};font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${escHtml(r.role || '—')}</td>
+      <td style="${tdS}">${_acaoBadge(r.acao || '')}</td>
+      <td style="${tdS};color:var(--tx3);font-size:11px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(r.detalhe||'')}">${escHtml(r.detalhe || '—')}</td>
+      <td style="${tdS};font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">${escHtml(r.ip || '—')}</td>
+    </tr>`;
+  });
+  h += '</tbody></table>';
+  return h;
+}
 

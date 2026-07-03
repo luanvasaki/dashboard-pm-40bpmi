@@ -3254,9 +3254,20 @@ function _checkSectionAccess(id) {
   return sa[key] === 'viewer' || sa[key] === 'editor';
 }
 
+function _logPageView(acao, detalhe) {
+  try {
+    authFetch(`${API}/logs/acesso`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acao, detalhe: detalhe || null })
+    }).catch(() => {});
+  } catch (_) {}
+}
+
 function goSection(id, btn) {
   closeSidebarMobile();
   if (!_checkSectionAccess(id)) { _showAccessDenied(); return; }
+  _logPageView('secao_' + id);
 
   if (id === 'p3prod') {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
@@ -3309,6 +3320,7 @@ function goSection(id, btn) {
 
 function goPage(id, btn) {
   closeSidebarMobile();
+  _logPageView('pagina_p3_' + id);
   currentP3Page = id;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));

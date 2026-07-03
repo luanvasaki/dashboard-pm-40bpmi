@@ -99,7 +99,10 @@
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">ADMINISTRAÇÃO</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:2px">GERENCIAR <span style="color:#c8a84b">USUÁRIOS</span></div>
       </div>
-      <button onclick="closeAdminModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:6px 14px;cursor:pointer;font-size:19px">✕</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button id="adm-btn-logs" onclick="openLogsModal()" style="display:none;background:rgba(200,168,75,.1);border:1px solid rgba(200,168,75,.3);color:#c8a84b;border-radius:4px;padding:6px 14px;cursor:pointer;font-size:13px;font-family:'DM Mono',monospace;letter-spacing:.5px">Histórico de Acessos</button>
+        <button onclick="closeAdminModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:6px 14px;cursor:pointer;font-size:19px">✕</button>
+      </div>
     </div>
     <div id="adm-pending-section" style="margin-bottom:20px;display:none">
       <div style="font-family:'DM Mono',monospace;font-size:19px;color:#e8c96a;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px">
@@ -114,6 +117,36 @@
       <div id="adm-users" style="overflow-x:auto"></div>
     </div>
     <div id="adm-msg" style="margin-top:14px;padding:10px 14px;border-radius:6px;font-size:19px;display:none"></div>
+  </div>
+</div>
+
+<!-- MODAL HISTÓRICO DE ACESSOS (somente admin) -->
+<div id="logs-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:2000;overflow-y:auto;padding:30px 16px" onclick="if(event.target.id==='logs-mo')closeLogsModal()">
+  <div style="max-width:1200px;margin:0 auto;background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:28px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--bd)">
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">ADMINISTRAÇÃO</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:2px">HISTÓRICO DE <span style="color:#c8a84b">ACESSOS</span></div>
+      </div>
+      <button onclick="closeLogsModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8dce8;border-radius:4px;padding:6px 14px;cursor:pointer;font-size:19px">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <input id="logs-search" type="text" placeholder="Filtrar por nome, matrícula ou ação..." oninput="logsFilter()"
+        style="flex:1;min-width:180px;background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:7px 12px;border-radius:6px;font-size:13px;outline:none">
+      <select id="logs-tipo" onchange="logsFilter()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx3);padding:7px 10px;border-radius:6px;font-size:13px;outline:none">
+        <option value="">Todos os eventos</option>
+        <option value="login">Login</option>
+        <option value="login_falhou">Login falhou</option>
+        <option value="logout">Logout</option>
+        <option value="secao_">Navegação (seção)</option>
+        <option value="pagina_">Navegação (página)</option>
+        <option value="upload_">Uploads</option>
+        <option value="admin_">Ações admin</option>
+      </select>
+      <button onclick="loadLogs()" style="background:rgba(61,122,191,.12);border:1px solid rgba(61,122,191,.3);color:#5a9de0;border-radius:4px;padding:7px 16px;cursor:pointer;font-size:13px">Atualizar</button>
+    </div>
+    <div id="logs-count" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:1px;margin-bottom:8px"></div>
+    <div id="logs-table" style="overflow-x:auto"></div>
   </div>
 </div>
 
