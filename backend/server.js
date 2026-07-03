@@ -2123,7 +2123,7 @@ app.get('/api/pm/:re/cursos', requireAuth, async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 
 // [GET /api/logs/acesso] — retorna o histórico de acessos. Restrito a admin.
-app.get('/api/logs/acesso', requireAuth, requireRole('admin'), async (req, res) => {
+app.get('/api/logs/acesso', requireAuth, requireRole('admin', 'ti'), async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
   try {
     const limit = Math.min(parseInt(req.query.limit) || 500, 2000);

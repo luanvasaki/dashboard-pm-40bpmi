@@ -50,7 +50,7 @@ async function openAdminModal() {
   _admUsersById = {};
   const me = JSON.parse(localStorage.getItem('auth_user') || '{}');
   const btnLogs = document.getElementById('adm-btn-logs');
-  if (btnLogs) btnLogs.style.display = me.role === 'admin' ? 'inline-block' : 'none';
+  if (btnLogs) btnLogs.style.display = ['admin', 'ti'].includes(me.role) ? 'inline-block' : 'none';
   document.getElementById('adm-users').innerHTML = '<div style="color:var(--tx3);font-size:13px;padding:10px 0">Carregando...</div>';
   document.getElementById('adm-pending').innerHTML = '';
   document.getElementById('adm-pending-section').style.display = 'none';
