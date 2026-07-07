@@ -122,7 +122,7 @@ async function confirmUpload() {
     btn.classList.remove('on');
 
     // Força re-sincronização do cache do servidor antes de recarregar
-    await authFetch(`${API}/sync`).catch(() => {});
+    await authFetch(`${API}/sync`, { method: 'POST' }).catch(() => {});
     await loadData();
     selAno   = ANOS[0] || new Date().getFullYear();
     MESES    = getMesForAno(selAno);

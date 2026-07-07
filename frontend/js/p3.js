@@ -3306,7 +3306,7 @@ async function iqSave() {
 // ddClassStatus() normaliza o status ignorando acentos e maiúsculas
 // ═══════════════════════════════════════════════════════════════════════════
 
-const DD_CIAS    = ['1ª Cia PM', '2ª Cia PM', '3ª Cia PM', 'FT'];
+let DD_CIAS    = ['1ª Cia PM', '2ª Cia PM', '3ª Cia PM', 'FT']; // fallback; atualizado via /api/disque-denuncia/cias
 const DD_STATUS  = ['Andamento', 'Averiguada com Êxito', 'Averiguada sem Êxito', 'Sem Averiguação'];
 const DD_STATUS_COR = {
   'Andamento':              '#f7d060',
@@ -3327,6 +3327,15 @@ const ddClassStatus = s => {
 const ddStatusMatch = (stored, expected) => ddClassStatus(stored) === expected;
 const ddStatusCor = s => DD_STATUS_COR[ddClassStatus(s)] || '#aaa';
 
+let _ddCiasLoaded = false;
+async function _loadDDCias() {
+  try {
+    const res = await authFetch(`${API}/disque-denuncia/cias`);
+    if (res.ok) { const data = await res.json(); if (Array.isArray(data) && data.length) { DD_CIAS.length = 0; DD_CIAS.push(...data); } }
+  } catch (_) {}
+  _ddCiasLoaded = true;
+}
+
 let ddData        = [];
 let ddAnoFiltro   = new Date().getFullYear();
 let ddMesFiltro   = []; // array de nomes de meses, vazio = todos
@@ -3344,6 +3353,7 @@ let _ddDrillCiaIdx = null;
 
 async function loadDDData() {
   try {
+    if (!_ddCiasLoaded) await _loadDDCias();
     const res = await authFetch(`${API}/disque-denuncia?ano=${ddAnoFiltro}`);
     if (!res.ok) return;
     ddData = await res.json();

@@ -242,7 +242,7 @@ async function forceSync() {
   const btn = document.getElementById('sync-btn');
   if (btn) { btn.textContent = '↻ Sincronizando...'; btn.disabled = true; btn.style.color = 'var(--gold2)'; }
   try {
-    await authFetch(`${API}/sync`);
+    await authFetch(`${API}/sync`, { method: 'POST' });
     await loadData();
     selAno   = ANOS[0] || new Date().getFullYear();
     MESES    = getMesForAno(selAno);

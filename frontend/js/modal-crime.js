@@ -306,7 +306,7 @@ function moRender() {
         const sy = vals.reduce((a,b) => a+b, 0);
         const sxy = vals.reduce((s,v,i) => s + i*v, 0);
         const denom = n*sx2 - sx*sx;
-        if (!denom) return vals.map(() => sy/n);
+        if (!denom) return vals.map(() => n > 0 ? sy/n : 0);
         const slope = (n*sxy - sx*sy) / denom;
         const intercept = (sy - slope*sx) / n;
         return vals.map((_,i) => Math.max(0, Math.round((intercept + slope*i)*10)/10));
@@ -322,7 +322,7 @@ function moRender() {
       // Índice sazonal do ano de referência — base para calcular projeção
       const baseAnoVals  = MES_ORD.map(m => mesExiste(baseAno, m) ? yrVal(baseAno, m) : null);
       const baseAnoNum   = baseAnoVals.filter(v => v !== null);
-      const avgBaseAno   = baseAnoNum.length > 0 ? baseAnoNum.reduce((a,b) => a+b,0) / baseAnoNum.length : 1;
+      const avgBaseAno   = (baseAnoNum.length > 0 ? baseAnoNum.reduce((a,b) => a+b,0) / baseAnoNum.length : 0) || 1;
       const sazonIdxBase = MES_ORD.map((_, i) => baseAnoVals[i] !== null ? baseAnoVals[i] / avgBaseAno : null);
 
       const yrDatasets = [];

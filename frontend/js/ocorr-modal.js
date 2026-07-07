@@ -148,12 +148,11 @@ function renderOcorrTable(data) {
   const th = s => `<th style="padding:9px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:1px;text-align:left;white-space:nowrap">${s}</th>`;
   const td = (s, mono) => `<td style="padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.05);color:#ffffff;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis${mono?';font-family:\'DM Mono\',monospace;font-size:19px':';font-size:19px'}" title="${escHtml(s||'')}">${escHtml(s)||'—'}</td>`;
   let h = `<table style="width:100%;border-collapse:collapse;font-size:19px"><thead><tr>
-    ${th('DATA')}${th('HORA')}${th('PERÍODO')}${th('DIA')}${th('FLAGRANTE')}${th('CONDUTA')}${th('BAIRRO')}${th('TIPO LOCAL')}${th('MUNICÍPIO')}${th('CIA')}
+    ${th('Nº BO')}${th('DATA')}${th('HORA')}${th('PERÍODO')}${th('DIA')}${th('CONDUTA')}${th('BAIRRO')}${th('TIPO LOCAL')}${th('MUNICÍPIO')}${th('CIA')}
   </tr></thead><tbody>`;
   data.forEach(r => {
     const df = r.data_ocorrencia ? r.data_ocorrencia.split('-').reverse().join('/') : '—';
-    const flag = r.flagrante === true ? 'Sim' : r.flagrante === false ? 'Não' : (r.flagrante || '—');
-    h += `<tr>${td(df,true)}${td(r.hora_ocorrencia)}${td(r.periodo)}${td(r.dia_semana)}${td(flag)}${td(r.conduta)}${td(r.bairro)}${td(r.tipo_local)}${td(r.municipio)}${td(r.cia)}</tr>`;
+    h += `<tr>${td(r.numero_bo,true)}${td(df,true)}${td(r.hora_ocorrencia)}${td(r.periodo)}${td(r.dia_semana)}${td(r.conduta)}${td(r.bairro)}${td(r.tipo_local)}${td(r.municipio)}${td(r.cia)}</tr>`;
   });
   h += '</tbody></table>';
   el.innerHTML = h;

@@ -214,11 +214,10 @@ function toggleEditSicoordop() {
 
 async function checkPendingUsers() {
   try {
-    const users   = await authFetch(`${API}/admin/users`).then(r => r.json());
-    const pending = Array.isArray(users) ? users.filter(u => u.status === 'pending').length : 0;
-    const badge   = document.getElementById('pending-badge');
-    if (pending > 0) {
-      badge.textContent = pending;
+    const { count } = await authFetch(`${API}/admin/users/pending/count`).then(r => r.json());
+    const badge = document.getElementById('pending-badge');
+    if (count > 0) {
+      badge.textContent = count;
       badge.style.display = 'block';
     } else {
       badge.style.display = 'none';

@@ -5,7 +5,6 @@
 //   • renderOcorrHeatmap() → pico dia/período e dia mais crítico
 //   • renderTipoLocal()    → ranking de tipos de local (gráfico barra horizontal)
 //   • renderBairros()      → top bairros com mais ocorrências
-//   • renderRubrica()      → distribuição por conduta/rubrica (gráfico pizza)
 // horaBlock() divide o dia em 4 blocos: Madrugada/Manhã/Tarde/Noite
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -37,7 +36,6 @@ function renderMoIntel(data) {
   renderOcorrHeatmap(data);
   renderTipoLocal(data);
   renderBairros(data);
-  renderRubrica(data);
 }
 
 function renderOcorrHeatmap(data) {
@@ -158,21 +156,6 @@ function renderBairros(data) {
       }
     }
   });
-}
-
-function renderRubrica(data) {
-  const counts = {};
-  data.forEach(r => { const rub = r.rubrica||'Não informado'; counts[rub]=(counts[rub]||0)+1; });
-  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-  if (!sorted.length) return;
-  const ctx = document.getElementById('mo-rubrica')?.getContext('2d');
-  if (!ctx) return;
-  const colors = ['#e05555','#bf7a3d','#c8a84b','#3d7abf','#3dbf7a','#7a4bbf','#4bbfbf','#f07878','#5ae09a'];
-  moIntelChs.push(new Chart(ctx, {
-    type: 'bar',
-    data: { labels: sorted.map(([k])=>k), datasets: [{ label:'Ocorrências', data: sorted.map(([,v])=>v), backgroundColor: sorted.map((_,i)=>colors[i%colors.length]), borderRadius:4 }] },
-    options: { indexAxis:'y', responsive:true, plugins:{ legend:{display:false} }, scales:{ x:{ grid:GR, ticks:{stepSize:1, color:'#ffffff', font:{size:22}} }, y:{ grid:GR, ticks:{color:'#ffffff', font:{size:22}, autoSkip:false} } } }
-  }));
 }
 
 

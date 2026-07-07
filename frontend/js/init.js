@@ -143,7 +143,7 @@ function initInspector() {
     const w = Math.round(rect.width);
     const h = Math.round(rect.height);
     const staticIds = ['user-block','sidebar','btn-admin','btn-logout','main-content','nav','header','pending-badge','user-nome','user-info'];
-    const srcFile  = staticIds.includes(refEl.id) ? 'index.html' : refEl.id ? 'app.js' : 'index.html ou app.js';
+    const srcFile  = staticIds.includes(refEl.id) ? 'index.html' : refEl.id ? 'js/' : 'index.html ou js/';
     const refClass = typeof refEl.className === 'string' ? refEl.className.trim().split(/\s+/)[0] : '';
     const searchTerm = refEl.id ? `id="${refEl.id}"` : refClass ? `.${refClass}` : refEl.tagName.toLowerCase();
     const swatch = c => `<span style="display:inline-block;width:9px;height:9px;background:${c};border-radius:2px;margin-right:5px;border:1px solid rgba(255,255,255,.15);vertical-align:middle;flex-shrink:0"></span>`;

@@ -520,6 +520,21 @@ app.get('/api/admin/users', requireAuth, requireRole('admin', 'p1', 'p3'), async
   }
 });
 
+// [GET /api/admin/users/pending/count] — contagem de usuários pendentes, sem carregar a lista completa.
+app.get('/api/admin/users/pending/count', requireAuth, requireRole('admin', 'p1', 'p3', 'ti'), async (req, res) => {
+  if (!supabase) return res.json({ count: 0 });
+  try {
+    const { count, error } = await supabase
+      .from(USUARIOS_TABLE)
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    if (error) throw new Error(error.message);
+    res.json({ count: count || 0 });
+  } catch (_) {
+    res.json({ count: 0 });
+  }
+});
+
 // [PATCH /api/admin/users/:id] — aprova/rejeita status, atualiza seção e secoes_acesso.
 // P1 e P3 podem gerenciar usuários; apenas admin/p3 alteram role diretamente.
 // secoes_acesso auto-deriva o role interno para manter compatibilidade com requireRole.
@@ -629,7 +644,7 @@ app.get('/api/status', requireAuth, (req, res) => {
 
 // [GET /api/sync] — força sincronização imediata com o Supabase, sem esperar o TTL.
 // Útil após um upload manual para ver os dados atualizados antes dos 5 min.
-app.get('/api/sync', requireAuth, async (req, res) => {
+app.post('/api/sync', requireAuth, async (req, res) => {
   if (!supabase) return res.status(400).json({ error: 'Supabase não configurado no server.js' });
   let ok = await syncFromSupabase();
   res.json({ ok, lastSync: cache.lastSync, source: cache.source, records: cache.data.length, error: cache.error });
@@ -718,7 +733,6 @@ app.post('/api/upload/ocorrencias', requireAuth, requireRole('admin', 'p3', 'ti'
       hora_ocorrencia: parseHora(r.HoraOcorrencia),
       periodo:         (r.PeriodoEstimado || '').trim(),
       dia_semana:      (r.DiaSemana       || '').trim(),
-      flagrante:       (r.Flagrante || '').toLowerCase() === 'sim',
       rubrica:         (r.Rubrica   || '').trim(),
       conduta:         (r.Conduta   || '').trim(),
       batalhao:        (r.BatalhaoCircunscricao       || '').trim(),
@@ -728,9 +742,8 @@ app.post('/api/upload/ocorrencias', requireAuth, requireRole('admin', 'p3', 'ti'
       tipo_local:      (r.TipoLocal || '').trim(),
     })).filter(r => r.data_ocorrencia && r.rubrica);
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
-    // Apaga todos os registros anteriores para evitar duplicação
-    const { error: delError } = await supabase.from(OCORRENCIAS_TABLE).delete().not('rubrica', 'is', null);
-    if (delError) throw new Error('Erro ao limpar ocorrências: ' + delError.message);
+    // Insere primeiro; só apaga os registros antigos após todos os batches terem sucesso
+    const batchStart = new Date().toISOString();
     const BATCH = 500;
     let total = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
@@ -738,6 +751,8 @@ app.post('/api/upload/ocorrencias', requireAuth, requireRole('admin', 'p3', 'ti'
       if (error) throw new Error(error.message);
       total += rows.slice(i, i + BATCH).length;
     }
+    const { error: delError } = await supabase.from(OCORRENCIAS_TABLE).delete().lt('created_at', batchStart);
+    if (delError) throw new Error('Erro ao limpar registros antigos: ' + delError.message);
     await logAcesso(req, 'upload_infocrim', `${total} ocorrências importadas`);
     res.json({ ok: true, inserted: total });
   } catch (err) {
@@ -932,7 +947,7 @@ app.get('/api/efetivo', requireAuth, async (req, res) => {
 // [POST /api/efetivo/upload] — substitui todo o efetivo pelo CSV enviado.
 // Apaga todos os registros existentes (delete where nome is not null) antes de inserir.
 // A busca de colunas é case-insensitive e aceita variações de nome (ex: "Posto / Grad" ou "Posto").
-app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
+app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3', 'p1'), async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
     const { records } = req.body;
@@ -965,9 +980,7 @@ app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3'), async (
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique as colunas do CSV.' });
 
-    // Apaga tudo e re-insere
-    await supabase.from(EFETIVO_TABLE).delete().not('nome', 'is', null);
-
+    const batchStart = new Date().toISOString();
     const BATCH = 500;
     let inserted = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
@@ -975,6 +988,7 @@ app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3'), async (
       if (error) throw new Error(error.message);
       inserted += Math.min(BATCH, rows.length - i);
     }
+    await supabase.from(EFETIVO_TABLE).delete().lt('created_at', batchStart);
     await logAcesso(req, 'upload_efetivo', `${inserted} registros importados`);
     res.json({ ok: true, inserted });
   } catch (err) {
@@ -1045,8 +1059,7 @@ app.post('/api/afastamentos/upload', requireAuth, requireRole('admin', 'p3'), as
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique RE, Tipo, Início e Término.' });
 
-    await supabase.from(AFASTAMENTOS_TABLE).delete().not('re', 'is', null);
-
+    const batchStart = new Date().toISOString();
     const BATCH = 500;
     let inserted = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
@@ -1054,6 +1067,7 @@ app.post('/api/afastamentos/upload', requireAuth, requireRole('admin', 'p3'), as
       if (error) throw new Error(error.message);
       inserted += Math.min(BATCH, rows.length - i);
     }
+    await supabase.from(AFASTAMENTOS_TABLE).delete().lt('created_at', batchStart);
     await logAcesso(req, 'upload_afastamentos', `${inserted} registros importados`);
     res.json({ ok: true, inserted });
   } catch (err) {
@@ -1620,7 +1634,7 @@ app.get('/api/indicadores-p3/calculado', requireAuth, async (req, res) => {
         ano,
         efetivo,
         homicidio_doloso:  sumRac('Homicídio'),
-        latrocinio:        0,
+        latrocinio:        sumRac('Latrocínio'),
         roubo_outros:      sumRac('Roubo'),
         roubo_veiculo:     sumRac('Roubo de Veículos'),
         furto_veiculo:     sumRac('Furto de Veículos'),
@@ -1666,6 +1680,9 @@ app.post('/api/indicadores-p3/desbloquear', requireAuth, requireRole('admin', 'p
 const DD_CIAS = ['1ª Cia PM', '2ª Cia PM', '3ª Cia PM', 'FT'];
 // Status válidos — qualquer outro valor é rejeitado com erro 400.
 const DD_STATUS = ['Andamento', 'Averiguada com Êxito', 'Averiguada sem Êxito', 'Sem Averiguação'];
+
+// [GET /api/disque-denuncia/cias] — lista de CIAs válidas para Disque Denúncia (fonte única de verdade).
+app.get('/api/disque-denuncia/cias', requireAuth, (req, res) => res.json(DD_CIAS));
 
 // [GET /api/disque-denuncia] — lista denúncias, opcionalmente filtradas por ano (query: ?ano=2025).
 app.get('/api/disque-denuncia', requireAuth, async (req, res) => {
@@ -1855,8 +1872,7 @@ app.post('/api/upload/uis-restricoes', requireAuth, requireRole('admin', 'p1', '
       });
     }
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
-    const { error: delErr } = await supabase.from('uis_restricoes').delete().not('re', 'is', null);
-    if (delErr) throw new Error('Erro ao limpar tabela: ' + delErr.message);
+    const batchStart = new Date().toISOString();
     const BATCH = 500;
     let total = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
@@ -1864,6 +1880,8 @@ app.post('/api/upload/uis-restricoes', requireAuth, requireRole('admin', 'p1', '
       if (error) throw new Error(error.message);
       total += Math.min(BATCH, rows.length - i);
     }
+    const { error: delErr } = await supabase.from('uis_restricoes').delete().lt('created_at', batchStart);
+    if (delErr) throw new Error('Erro ao limpar registros antigos: ' + delErr.message);
     await logAcesso(req, 'upload_uis', `${total} registros importados`);
     res.json({ ok: true, inserted: total });
   } catch (err) {
@@ -1995,8 +2013,7 @@ app.post('/api/upload/ias', requireAuth, requireRole('admin', 'p1', 'ti'), async
       });
     }
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
-    const { error: delErr } = await supabase.from('ias_registros').delete().not('re', 'is', null);
-    if (delErr) throw new Error('Erro ao limpar tabela: ' + delErr.message);
+    const batchStart = new Date().toISOString();
     const BATCH = 500;
     let total = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
@@ -2004,6 +2021,8 @@ app.post('/api/upload/ias', requireAuth, requireRole('admin', 'p1', 'ti'), async
       if (error) throw new Error(error.message);
       total += Math.min(BATCH, rows.length - i);
     }
+    const { error: delErr } = await supabase.from('ias_registros').delete().lt('created_at', batchStart);
+    if (delErr) throw new Error('Erro ao limpar registros antigos: ' + delErr.message);
     await logAcesso(req, 'upload_ias', `${total} registros importados`);
     res.json({ ok: true, inserted: total });
   } catch (err) {

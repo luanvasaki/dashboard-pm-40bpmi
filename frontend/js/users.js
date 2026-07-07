@@ -10,9 +10,10 @@ function closeAdminModal() { document.getElementById('adm-mo').style.display = '
 function admUserMoClickOut(e) { if (e.target.id === 'adm-user-mo') closeUserEditModal(); }
 function closeUserEditModal() { document.getElementById('adm-user-mo').style.display = 'none'; _editingUserId = null; }
 
-let _admAllUsers   = [];
-let _admUsersById  = {};
-let _editingUserId = null;
+let _admAllUsers     = [];
+let _admPendingUsers = [];
+let _admUsersById    = {};
+let _editingUserId   = null;
 let _editingSecoes = {};
 
 const POSTO_ORDER = ['Sd PM','Cb PM','3º Sgt PM','2º Sgt PM','1º Sgt PM','Subten PM','Asp Of PM','2º Ten PM','1º Ten PM','Cap PM','Maj PM','Ten Cel PM','Cel PM'];
@@ -30,12 +31,16 @@ function _sortHierarquia(users) {
 function admSearch(q) {
   const me = JSON.parse(localStorage.getItem('auth_user') || '{}');
   const term = (q||'').toLowerCase().trim();
-  const filtered = !term ? _admAllUsers : _admAllUsers.filter(u =>
+  if (!term) {
+    document.getElementById('adm-users').innerHTML = buildUserTable(_admAllUsers, me);
+    return;
+  }
+  const matchFn = u =>
     (u.nome    ||'').toLowerCase().includes(term) ||
     (u.matricula||'').toLowerCase().includes(term) ||
     (u.posto   ||'').toLowerCase().includes(term) ||
-    (u.secao   ||'').toLowerCase().includes(term)
-  );
+    (u.secao   ||'').toLowerCase().includes(term);
+  const filtered = [..._admAllUsers, ..._admPendingUsers].filter(matchFn);
   document.getElementById('adm-users').innerHTML = buildUserTable(filtered, me);
 }
 
@@ -72,6 +77,7 @@ function renderAdminUsers(users) {
   const pending = _sortHierarquia(users.filter(u => u.status === 'pending'));
   const others  = _sortHierarquia(users.filter(u => u.status !== 'pending'));
   _admAllUsers = others;
+  _admPendingUsers = pending;
   _admUsersById = {};
   users.forEach(u => { _admUsersById[u.id] = u; });
   if (pending.length) {
@@ -472,15 +478,15 @@ async function loadLogs() {
 }
 
 function logsFilter() {
-  const q = (document.getElementById('logs-search').value || '').toLowerCase().trim();
+  const term = (document.getElementById('logs-search').value || '').toLowerCase().trim();
   const tipo = (document.getElementById('logs-tipo').value || '').trim();
   let rows = _logsAll;
-  if (q) rows = rows.filter(r =>
-    (r.usuario_nome || '').toLowerCase().includes(q) ||
-    (r.matricula    || '').toLowerCase().includes(q) ||
-    (r.acao         || '').toLowerCase().includes(q) ||
-    (r.detalhe      || '').toLowerCase().includes(q) ||
-    (r.ip           || '').toLowerCase().includes(q)
+  if (term) rows = rows.filter(r =>
+    (r.usuario_nome || '').toLowerCase().includes(term) ||
+    (r.matricula    || '').toLowerCase().includes(term) ||
+    (r.acao         || '').toLowerCase().includes(term) ||
+    (r.detalhe      || '').toLowerCase().includes(term) ||
+    (r.ip           || '').toLowerCase().includes(term)
   );
   if (tipo) rows = rows.filter(r => (r.acao || '').startsWith(tipo));
   document.getElementById('logs-count').textContent = `${rows.length} registro(s)`;
