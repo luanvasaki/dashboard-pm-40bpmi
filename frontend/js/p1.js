@@ -45,6 +45,9 @@ let p1ClosingPronto  = false;// flag: acabou de fechar prontuário — evita fec
 let p1UnitClickOut   = null; // handler de click fora do detalhe de unidade
 let p1KpiClickOut    = null; // handler de click fora do detalhe de KPI
 
+// Comandantes visualizam apenas dados quantitativos (sem listagem nominal)
+const p1ModoComandante = () => ['comandante','comandante_cia'].includes(currentRole());
+
 // Estado dos filtros do detalhe Total Efetivo
 let _p1TotalDetCia    = -1;
 let _p1TotalDetGen    = null; // null | 'F' | 'M'
@@ -270,6 +273,10 @@ function renderP1() {
   const kpisEl = document.getElementById('p1-kpis');
   const bodyEl = document.getElementById('p1-body');
   if (!kpisEl || !bodyEl) return;
+
+  // Esconde busca nominal para comandantes
+  const _searchWrap = document.getElementById('p1-search')?.parentElement;
+  if (_searchWrap) _searchWrap.style.display = p1ModoComandante() ? 'none' : '';
 
   if (!p1Data.length) {
     kpisEl.innerHTML = '';
@@ -589,7 +596,7 @@ function renderP1() {
       return n ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${CATS[k]}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${CATS_COLOR[k]}">${n}</span></div>` : '';
     }).filter(Boolean).join('');
 
-    const unitBtns = cia.units.map((u, ui) => {
+    const unitBtns = p1ModoComandante() ? '' : cia.units.map((u, ui) => {
       const upms = getPms(u.keys);
       if (!upms.length) return '';
       const us = statsOf(upms);
@@ -814,13 +821,13 @@ function renderP1() {
       ${items.sort((a,b)=>a.order-b.order).map(i=>i.html).join('')}
     </div>`;
 
-  const bottomSection =
+  const bottomSection = p1ModoComandante() ? '' :
     mkBlock('Em Afastamento', '#e05555', nowItems) +
     mkBlock('Próximos Afastamentos — 30 dias', '#5a9de0', nextItems);
 
   bodyEl.innerHTML = claroSection + `
     <div style="margin-bottom:6px">
-      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia <span style="font-weight:400">· clique na sub-unidade para ver os PMs</span></div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia${p1ModoComandante() ? '' : ' <span style="font-weight:400">· clique na sub-unidade para ver os PMs</span>'}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
         ${ciaCards}${unmatchedCards}
       </div>
@@ -828,9 +835,9 @@ function renderP1() {
     <div id="p1-unit-detail"></div>
     ${bottomSection}`;
 
-  // Mostra botão exportar quando há dados
+  // Mostra botão exportar quando há dados (oculto para comandantes — exportação contém dados nominais)
   const btnE = document.getElementById('btn-exportar-p1');
-  if (btnE) btnE.style.display = 'inline-block';
+  if (btnE) btnE.style.display = p1ModoComandante() ? 'none' : 'inline-block';
 }
 
 // ── Upload modal P1
@@ -1162,17 +1169,19 @@ function p1ShowKpiDetail(tipo) {
       </tr>`;
     }).join('');
 
+    const tabelaTotalHtml = p1ModoComandante()
+      ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
+      : `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
+          <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thL}">Status</th></tr></thead>
+          <tbody>${rows||`<tr><td colspan="5" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`}</tbody>
+        </table></div>`;
+
     html = wrapDetail('Todo o Efetivo', filtered.length, '#c8a84b', closeBtn, `
       ${ciaBtns    ? gridRow('CIA', ciaBtns) : ''}
       ${munBtns    ? gridRow('MUNICÍPIO', munBtns) : ''}
       ${postoBtns  ? gridRow('POSTO / GRAD.', postoBtns) : ''}
       ${gridRow('GÊNERO', genBtns)}
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse">
-          <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thL}">Status</th></tr></thead>
-          <tbody>${rows||`<tr><td colspan="5" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`}</tbody>
-        </table>
-      </div>`);
+      ${tabelaTotalHtml}`);
   }
 
   else if (tipo === 'aptos') {
@@ -1244,13 +1253,15 @@ function p1ShowKpiDetail(tipo) {
       <td style="${tdS}">${r.opm||'—'}</td>
     </tr>`).join('') || `<tr><td colspan="4" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`;
 
+    const tabelaAptosHtml = p1ModoComandante()
+      ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
+      : `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">${thead}<tbody>${rowsHtml}</tbody></table></div>`;
+
     html = wrapDetail(`Aptos Operacional — ${filtered.length}`, null, '#4bc87a', closeBtn, `
       ${ciaBtns   ? gridRow('CIA', ciaBtns) : ''}
       ${munBtns   ? gridRow('MUNICÍPIO', munBtns) : ''}
       ${postoBtns ? gridRow('POSTO / GRAD.', postoBtns) : ''}
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse">${thead}<tbody>${rowsHtml}</tbody></table>
-      </div>`);
+      ${tabelaAptosHtml}`);
   }
 
   else if (tipo === 'afastados') {
@@ -1279,10 +1290,12 @@ function p1ShowKpiDetail(tipo) {
         </tr>`;
       });
     });
-    html = wrapDetail('Afastamentos Ativos', ativos.length, '#e05555', closeBtn,
-      `<table style="width:100%;border-collapse:collapse">
-        <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Início</th><th style="${thR}">Dias Rest.</th></tr></thead>
-        <tbody>${inner}</tbody></table>`);
+    const tabelaAfastHtml = p1ModoComandante()
+      ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${ativos.length}</div>`
+      : `<table style="width:100%;border-collapse:collapse">
+          <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Início</th><th style="${thR}">Dias Rest.</th></tr></thead>
+          <tbody>${inner}</tbody></table>`;
+    html = wrapDetail('Afastamentos Ativos', ativos.length, '#e05555', closeBtn, tabelaAfastHtml);
   }
 
   else if (tipo === 'restricao') {
@@ -1363,15 +1376,16 @@ function p1ShowKpiDetail(tipo) {
     const semRestr = (groups['__sem__'] || []).length;
     if (semRestr) inner += `<tr><td colspan="6" style="padding:10px 12px;border-top:1px solid var(--bd2);color:var(--tx3);font-size:19px">Sem restrição: ${semRestr} PMs</td></tr>`;
     const totalRestr = dataFilt.length - semRestr;
+    const tabelaRestrHtml = p1ModoComandante()
+      ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${totalRestr}</div>`
+      : `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
+          <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Válida até</th><th style="${thR}">Restam</th></tr></thead>
+          <tbody>${inner||`<tr><td colspan="6" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`}</tbody>
+        </table></div>`;
     html = wrapDetail('Em Restrição', totalRestr, '#c8a84b', closeBtn, `
       ${ciaBtns  ? gridRow('CIA', ciaBtns) : ''}
       ${munBtns  ? gridRow('MUNICÍPIO', munBtns) : ''}
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse">
-          <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Válida até</th><th style="${thR}">Restam</th></tr></thead>
-          <tbody>${inner||`<tr><td colspan="6" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`}</tbody>
-        </table>
-      </div>`);
+      ${tabelaRestrHtml}`);
   }
 
   else if (tipo === 'eap') {
@@ -1486,7 +1500,7 @@ function p1ShowKpiDetail(tipo) {
     const pill = (key, label, active) =>
       `<button class="pf-btn eap-flt${active?' on':''}" data-eapkey="${key}" onclick="eapFiltroSet('${key}')">${label}</button>`;
 
-    const inner = `
+    const eapSmCards = `
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:16px 12px 14px">
         ${smCard('feitos',   'Realizaram ' + anoAtual,  feitos.length,   '#4bc87a')}
         ${smCard('aptos365', 'Aptos 365 dias',           aptos365.length, aptos365.length ? '#4bc87a' : 'var(--tx3)')}
@@ -1494,29 +1508,32 @@ function p1ShowKpiDetail(tipo) {
         ${smCard('inaptaf',  'Inaptos TAF',              inapTAF.length,  inapTAF.length? '#e05555' : 'var(--tx3)')}
         ${smCard('inatat',   'Inaptos TAT',              inapTAT.length,  inapTAT.length? '#e05555' : 'var(--tx3)')}
         ${smCard('venc',     'Vencidos',                 vencidos.length, vencidos.length?'#e05555' : 'var(--tx3)')}
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 14px;border-bottom:1px solid var(--bd2)">
-        ${pill('feitos',   'Realizaram ('   + feitos.length    + ')', false)}
-        ${pill('aptos365', 'Aptos 365d ('   + aptos365.length  + ')', false)}
-        ${pill('pend',     'Pendentes ('    + pend.length      + ')', false)}
-        ${pill('inaptaf',  'Inaptos TAF ('  + inapTAF.length   + ')', false)}
-        ${pill('inatat',   'Inaptos TAT ('  + inapTAT.length   + ')', false)}
-        ${pill('venc',     'Vencidos ('     + vencidos.length  + ')', false)}
-      </div>
-      <div id="eap-tbl-feitos"   style="display:none;padding:0 12px 12px">${tblFeitos}</div>
-      <div id="eap-tbl-aptos365" style="display:none;padding:0 12px 12px">
-        <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-          ${`<colgroup><col style="width:17%"><col style="width:11%"><col style="width:24%"><col style="width:18%"><col style="width:15%"><col style="width:7%"><col style="width:8%"></colgroup>`}
-          <thead><tr>${[{l:'Posto'},{l:'RE'},{l:'Nome'},{l:'OPM'},{l:'Período'},{l:'TAF',center:true},{l:'TAT',center:true}].map(c=>`<th style="${thE}${c.center?';text-align:center':''}">${c.l}</th>`).join('')}</tr></thead>
-          <tbody>${aptos365.map(mkRow7).join('')||`<tr><td colspan="7" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum apto nos últimos 365 dias</td></tr>`}</tbody>
-        </table>
-      </div>
-      <div id="eap-tbl-pend"    style="display:none;padding:0 12px 12px">${tblPend}</div>
-      <div id="eap-tbl-inaptaf" style="display:none;padding:0 12px 12px">${tblInapTAF}</div>
-      <div id="eap-tbl-inatat"  style="display:none;padding:0 12px 12px">${tblInapTAT}</div>
-      <div id="eap-tbl-venc"    style="display:none;padding:0 12px 12px">${tblVenc}</div>`;
+      </div>`;
 
-    html = wrapDetail(`EAP / TAF / TAT ${anoAtual}`, null, '#c8a84b', closeBtn, inner);
+    const eapTabelasHtml = p1ModoComandante()
+      ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA</div>`
+      : `<div style="display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 14px;border-bottom:1px solid var(--bd2)">
+          ${pill('feitos',   'Realizaram ('   + feitos.length    + ')', false)}
+          ${pill('aptos365', 'Aptos 365d ('   + aptos365.length  + ')', false)}
+          ${pill('pend',     'Pendentes ('    + pend.length      + ')', false)}
+          ${pill('inaptaf',  'Inaptos TAF ('  + inapTAF.length   + ')', false)}
+          ${pill('inatat',   'Inaptos TAT ('  + inapTAT.length   + ')', false)}
+          ${pill('venc',     'Vencidos ('     + vencidos.length  + ')', false)}
+        </div>
+        <div id="eap-tbl-feitos"   style="display:none;padding:0 12px 12px">${tblFeitos}</div>
+        <div id="eap-tbl-aptos365" style="display:none;padding:0 12px 12px">
+          <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+            ${`<colgroup><col style="width:17%"><col style="width:11%"><col style="width:24%"><col style="width:18%"><col style="width:15%"><col style="width:7%"><col style="width:8%"></colgroup>`}
+            <thead><tr>${[{l:'Posto'},{l:'RE'},{l:'Nome'},{l:'OPM'},{l:'Período'},{l:'TAF',center:true},{l:'TAT',center:true}].map(c=>`<th style="${thE}${c.center?';text-align:center':''}">${c.l}</th>`).join('')}</tr></thead>
+            <tbody>${aptos365.map(mkRow7).join('')||`<tr><td colspan="7" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum apto nos últimos 365 dias</td></tr>`}</tbody>
+          </table>
+        </div>
+        <div id="eap-tbl-pend"    style="display:none;padding:0 12px 12px">${tblPend}</div>
+        <div id="eap-tbl-inaptaf" style="display:none;padding:0 12px 12px">${tblInapTAF}</div>
+        <div id="eap-tbl-inatat"  style="display:none;padding:0 12px 12px">${tblInapTAT}</div>
+        <div id="eap-tbl-venc"    style="display:none;padding:0 12px 12px">${tblVenc}</div>`;
+
+    html = wrapDetail(`EAP / TAF / TAT ${anoAtual}`, null, '#c8a84b', closeBtn, eapSmCards + eapTabelasHtml);
   }
 
   else if (tipo === 'ias') {
@@ -1602,14 +1619,15 @@ function p1ShowKpiDetail(tipo) {
         </tr>`;
       }).join('') || `<tr><td colspan="6" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`;
 
+      const tabelaIasHtml = p1ModoComandante()
+        ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
+        : `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">${thead}<tbody>${rowsHtml}</tbody></table></div>`;
       html = wrapDetail(`IAS · Inspeção Anual de Saúde — ${filtered.length}`, null, '#5a9de0', closeBtn, `
         ${gridRow('SITUAÇÃO', sitBtns)}
         ${ciaBtns  ? gridRow('CIA', ciaBtns) : ''}
         ${munBtns  ? gridRow('MUNICÍPIO', munBtns) : ''}
         ${postoBtns? gridRow('POSTO / GRAD.', postoBtns) : ''}
-        <div style="overflow-x:auto">
-          <table style="width:100%;border-collapse:collapse">${thead}<tbody>${rowsHtml}</tbody></table>
-        </div>`);
+        ${tabelaIasHtml}`);
     }
   }
 
@@ -1641,24 +1659,42 @@ function p1ShowKpiDetail(tipo) {
     </tr></thead>`;
 
     let inner = '';
-    if (gozo.length) inner += `
-      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#5a9de0;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Em Gozo — ${gozo.length}</div>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:4px">${colH(true)}<tbody>${gozo.map(a=>ferRow(a,true)).join('')}</tbody></table>`;
-    if (prox.length) inner += `
-      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#c8a84b;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Iniciando em 15 dias — ${prox.length}</div>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:4px">${colH(false)}<tbody>${prox.map(a=>ferRow(a,false)).join('')}</tbody></table>`;
-    if (semFer.length) {
-      const rows = semFer.map(r => `<tr>
-        <td style="${tdS}">${r.re}</td>
-        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-        <td style="${tdS}">${r.posto||'—'}</td>
-        <td style="${tdS}">${r.opm||'—'}</td>
-      </tr>`).join('');
-      inner += `
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#e05555;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Sem Férias em ${anoAtual} — ${semFer.length}</div>
-        <table style="width:100%;border-collapse:collapse">
-          <thead><tr><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th></tr></thead>
-          <tbody>${rows}</tbody></table>`;
+    if (p1ModoComandante()) {
+      inner = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:14px 12px">
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:8px;padding:14px 16px">
+          <div style="font-family:'DM Mono',monospace;font-size:15px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Em Gozo</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#5a9de0;line-height:1">${gozo.length}</div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-top:3px solid #c8a84b;border-radius:8px;padding:14px 16px">
+          <div style="font-family:'DM Mono',monospace;font-size:15px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Iniciam em 15d</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#c8a84b;line-height:1">${prox.length}</div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--bd);border-top:3px solid #e05555;border-radius:8px;padding:14px 16px">
+          <div style="font-family:'DM Mono',monospace;font-size:15px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Sem Férias ${anoAtual}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#e05555;line-height:1">${semFer.length}</div>
+        </div>
+      </div>
+      <div style="padding:12px 16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA</div>`;
+    } else {
+      if (gozo.length) inner += `
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#5a9de0;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Em Gozo — ${gozo.length}</div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:4px">${colH(true)}<tbody>${gozo.map(a=>ferRow(a,true)).join('')}</tbody></table>`;
+      if (prox.length) inner += `
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#c8a84b;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Iniciando em 15 dias — ${prox.length}</div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:4px">${colH(false)}<tbody>${prox.map(a=>ferRow(a,false)).join('')}</tbody></table>`;
+      if (semFer.length) {
+        const rows = semFer.map(r => `<tr>
+          <td style="${tdS}">${r.re}</td>
+          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
+          <td style="${tdS}">${r.posto||'—'}</td>
+          <td style="${tdS}">${r.opm||'—'}</td>
+        </tr>`).join('');
+        inner += `
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#e05555;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Sem Férias em ${anoAtual} — ${semFer.length}</div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th></tr></thead>
+            <tbody>${rows}</tbody></table>`;
+      }
     }
     html = wrapDetail('Controle de Férias', null, '#5a9de0', closeBtn, inner);
   }
@@ -1939,6 +1975,7 @@ function p1SetFiltroOpm(opm) {
 let p1SearchIdx = -1; // índice selecionado no dropdown
 
 function p1SearchInput(val) {
+  if (p1ModoComandante()) return;
   const drop = document.getElementById('p1-search-drop');
   if (!drop) return;
   const q = (val || '').trim().toLowerCase();
@@ -2031,6 +2068,7 @@ function p1SearchHide() {
 // ── Prontuário Individual ────────────────────────────────────────────────────
 
 async function openProntuario(re) {
+  if (p1ModoComandante()) return;
   const mo = document.getElementById('pronto-mo');
   if (!mo) return;
   mo.style.display = 'flex';
