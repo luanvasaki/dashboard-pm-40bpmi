@@ -104,6 +104,7 @@ let _p1IasDetSit    = null;
 let _p1IasDetCia    = -1;
 let _p1IasDetMun    = null;
 let _p1IasDetPostos = [];
+let _iasChartData   = null;
 
 function p1IasSetSit(val) { _p1IasDetSit = _p1IasDetSit === val ? null : val; p1ShowKpiDetail('ias'); }
 function p1IasSetCia(idx) {
@@ -219,6 +220,12 @@ const CIA_STRUCT = [
     label: 'FT', sede: 'Votorantim', color: CIA_COR.ft,
     units: [
       { label: 'Força Tática', keys: ['^ft$', 'forca tatica', 'f.t.'] },
+    ]
+  },
+  {
+    label: 'EM', sede: 'Votorantim', color: '#9b6de0',
+    units: [
+      { label: 'Estado Maior', keys: ['em -', 'estado maior', '^em$'] },
     ]
   },
 ];
@@ -807,7 +814,7 @@ function renderP1() {
         ${badge(label, cor)}
         <div>
           <span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${pm?.posto||''}</span>
-          <span style="font-size:20px;font-weight:700;color:var(--tx);margin-left:6px">${pm?.nome_guerra||pm?.nome||a.re}</span>
+          <span style="font-size:20px;font-weight:700;color:var(--tx);margin-left:6px;cursor:pointer" onclick="openProntuario('${_esc2(a.re)}')">${pm?.nome_guerra||pm?.nome||a.re}</span>
           ${pm?.opm ? `<div style="font-size:17px;color:var(--tx3);margin-top:2px">${pm.opm}</div>` : ''}
         </div>
         <div style="font-size:19px;color:var(--tx3);text-align:right;white-space:nowrap">Inicia em <b style="color:${cor}">${diasAte}d</b> · ${fmtDate(a.inicio)} → ${fmtDate(a.termino)}</div>
@@ -1574,6 +1581,8 @@ function p1ShowKpiDetail(tipo) {
       const cntApto = baseList.filter(x => x.s === 'apto').length;
       const cntSemR = baseList.filter(x => x.s === 'semreg').length;
 
+      _iasChartData = { cntVenc, cntVend, cntApto, cntSemR, baseList };
+
       // ── Helpers de botão ─────────────────────────────────────
       const btnBase = (lbl, _cnt, cor, on, onclick) =>
         `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
@@ -1607,6 +1616,8 @@ function p1ShowKpiDetail(tipo) {
         return btnBase(p, cnt, '#c8a84b', on, `p1IasTogPosto('${p.replace(/'/g,"\\'")}')`)
       }).join('');
 
+      const anyFilter = _p1IasDetSit !== null || _p1IasDetCia >= 0 || !!_p1IasDetMun || _p1IasDetPostos.length > 0;
+
       const SIT_COR = { vencido:'#f07878', vencendo:'#c8a84b', apto:'#4bc87a', semreg:'#606880' };
       const SIT_LBL = { vencido:'VENCIDA', vencendo:'VENCENDO', apto:'APTO', semreg:'SEM REG.' };
       const thead = `<thead><tr>
@@ -1627,10 +1638,26 @@ function p1ShowKpiDetail(tipo) {
 
       const tabelaIasHtml = p1SomenteQuantitativo()
         ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
-        : `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">${thead}<tbody>${rowsHtml}</tbody></table></div>`;
-      html = wrapDetail(`IAS · Inspeção Anual de Saúde — ${filtered.length}`, null, '#5a9de0', closeBtn, `
+        : !anyFilter
+          ? `<div style="padding:20px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ Selecione um filtro acima para ver a listagem individual</div>`
+          : `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">${thead}<tbody>${rowsHtml}</tbody></table></div>`;
+
+      const iasChartsHtml = `
+        <div style="display:grid;grid-template-columns:220px 1fr;gap:16px;padding:0 0 16px;border-bottom:1px solid var(--bd);margin-bottom:12px;align-items:start">
+          <div>
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">Situação Geral</div>
+            <canvas id="ias-chart-status" width="210" height="210"></canvas>
+          </div>
+          <div>
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">Apto × Vencida por Unidade</div>
+            <canvas id="ias-chart-unidade" height="210"></canvas>
+          </div>
+        </div>`;
+
+      html = wrapDetail(`IAS · Inspeção Anual de Saúde — ${anyFilter ? filtered.length + ' filtrado(s) de ' + baseList.length : baseList.length}`, null, '#5a9de0', closeBtn, `
+        ${iasChartsHtml}
         ${gridRow('SITUAÇÃO', sitBtns)}
-        ${ciaBtns  ? gridRow('CIA', ciaBtns) : ''}
+        ${ciaBtns  ? gridRow('UNIDADE', ciaBtns) : ''}
         ${munBtns  ? gridRow('MUNICÍPIO', munBtns) : ''}
         ${postoBtns? gridRow('POSTO / GRAD.', postoBtns) : ''}
         ${tabelaIasHtml}`);
@@ -1967,8 +1994,61 @@ function p1ShowKpiDetail(tipo) {
   }
 
   document.getElementById('p1d-body').innerHTML = html;
+  if (tipo === 'ias' && _iasChartData) requestAnimationFrame(() => _renderIasCharts(_iasChartData));
   mo.classList.add('on');
   document.body.style.overflow = 'hidden';
+}
+
+function _renderIasCharts({ cntVenc, cntVend, cntApto, cntSemR, baseList }) {
+  const cDonut = document.getElementById('ias-chart-status');
+  if (cDonut) {
+    const existing = typeof Chart !== 'undefined' && Chart.getChart ? Chart.getChart(cDonut) : null;
+    if (existing) existing.destroy();
+    new Chart(cDonut.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Vencida', 'Vencendo', 'Apto', 'Sem Reg.'],
+        datasets: [{ data: [cntVenc, cntVend, cntApto, cntSemR], backgroundColor: ['#f07878','#c8a84b','#4bc87a','#60688099'], borderWidth: 0 }]
+      },
+      options: {
+        responsive: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.7)', font: { size: 11 }, padding: 8, boxWidth: 12 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } }
+        },
+        cutout: '55%'
+      }
+    });
+  }
+
+  const cBar = document.getElementById('ias-chart-unidade');
+  if (cBar && typeof CIA_STRUCT !== 'undefined') {
+    const existing = typeof Chart !== 'undefined' && Chart.getChart ? Chart.getChart(cBar) : null;
+    if (existing) existing.destroy();
+    const labels   = CIA_STRUCT.map(c => c.label);
+    const aptoData = CIA_STRUCT.map((_, i) => baseList.filter(x => x.ciaIdx === i && x.s === 'apto').length);
+    const vencData = CIA_STRUCT.map((_, i) => baseList.filter(x => x.ciaIdx === i && x.s === 'vencido').length);
+    const vendData = CIA_STRUCT.map((_, i) => baseList.filter(x => x.ciaIdx === i && x.s === 'vencendo').length);
+    new Chart(cBar.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Apto',     data: aptoData, backgroundColor: '#4bc87a55', borderColor: '#4bc87a', borderWidth: 1 },
+          { label: 'Vencendo', data: vendData, backgroundColor: '#c8a84b55', borderColor: '#c8a84b', borderWidth: 1 },
+          { label: 'Vencida',  data: vencData, backgroundColor: '#f0787855', borderColor: '#f07878', borderWidth: 1 },
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: 'rgba(255,255,255,.7)', font: { size: 11 }, boxWidth: 12 } } },
+        scales: {
+          x: { ticks: { color: 'rgba(255,255,255,.6)', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,.06)' } },
+          y: { ticks: { color: 'rgba(255,255,255,.6)', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,.06)' }, beginAtZero: true }
+        }
+      }
+    });
+  }
 }
 
 // ── Filtro OPM e Busca P1 ────────────────────────────────────────────────────
