@@ -137,11 +137,11 @@ const SECOES_ACESSO_DEF = [
 
 function _secBtn(key, val, active, cor) {
   const on = val === active;
-  const labels = { none: 'Sem acesso', viewer: 'Visualizador', editor: 'Editor' };
+  const labels = { none: 'Sem acesso', viewer: 'Só números', nominal: 'Nominal', editor: 'Editor' };
   const s = on
     ? `background:${cor}33;border:1px solid ${cor}88;color:${cor};font-weight:600`
     : `background:transparent;border:1px solid rgba(255,255,255,.1);color:var(--tx3);font-weight:400`;
-  return `<button onclick="admSetSecAccess('${key}','${val}',this)" data-sec="${key}" data-val="${val}" style="padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;transition:all .12s;${s}">${labels[val]}</button>`;
+  return `<button onclick="admSetSecAccess('${key}','${val}',this)" data-sec="${key}" data-val="${val}" style="padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;transition:all .12s;${s}">${labels[val]||val}</button>`;
 }
 
 function admSetSecAccess(key, val, btn) {
@@ -182,9 +182,16 @@ function openUserEditModal(id) {
 
   document.getElementById('admu-secoes').innerHTML = SECOES_ACESSO_DEF.map(({ key, label, cor }) => {
     const cur = sa[key] || 'none';
-    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,.025);border-radius:6px">
-      <div style="flex:1;font-size:13px;color:var(--tx);font-weight:600">${label}</div>
-      <div style="display:flex;gap:4px">${['none','viewer','editor'].map(v => _secBtn(key, v, cur, cor)).join('')}</div>
+    // P1 tem nível extra "nominal" para controle de dados individuais
+    const vals = key === 'p1' ? ['none','viewer','nominal','editor'] : ['none','viewer','editor'];
+    const hint = key === 'p1'
+      ? `<div style="font-size:10px;color:var(--tx3);margin-top:3px;font-family:'DM Mono',monospace">Só números: totais · Nominal: vê nomes · Editor: vê + edita</div>`
+      : '';
+    return `<div style="padding:8px 10px;background:rgba(255,255,255,.025);border-radius:6px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="flex:1;font-size:13px;color:var(--tx);font-weight:600">${label}</div>
+        <div style="display:flex;gap:4px">${vals.map(v => _secBtn(key, v, cur, cor)).join('')}</div>
+      </div>${hint}
     </div>`;
   }).join('');
 

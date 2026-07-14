@@ -45,8 +45,14 @@ let p1ClosingPronto  = false;// flag: acabou de fechar prontuário — evita fec
 let p1UnitClickOut   = null; // handler de click fora do detalhe de unidade
 let p1KpiClickOut    = null; // handler de click fora do detalhe de KPI
 
-// Comandantes visualizam apenas dados quantitativos (sem listagem nominal)
-const p1ModoComandante = () => ['comandante','comandante_cia'].includes(currentRole());
+// Retorna true se o usuário deve ver apenas dados quantitativos (sem nomes individuais).
+// admin, ti e p1 sempre veem tudo; demais roles dependem de secoes_acesso.p1:
+//   'nominal' ou 'editor' → vê nomes | 'viewer' ou ausente → só números
+const p1SomenteQuantitativo = () => {
+  const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
+  if (['admin','ti','p1'].includes(u.role || '')) return false;
+  return !['nominal','editor'].includes((u.secoes_acesso || {}).p1 || '');
+};
 
 // Estado dos filtros do detalhe Total Efetivo
 let _p1TotalDetCia    = -1;
@@ -276,7 +282,7 @@ function renderP1() {
 
   // Esconde busca nominal para comandantes
   const _searchWrap = document.getElementById('p1-search')?.parentElement;
-  if (_searchWrap) _searchWrap.style.display = p1ModoComandante() ? 'none' : '';
+  if (_searchWrap) _searchWrap.style.display = p1SomenteQuantitativo() ? 'none' : '';
 
   if (!p1Data.length) {
     kpisEl.innerHTML = '';
@@ -596,7 +602,7 @@ function renderP1() {
       return n ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${CATS[k]}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${CATS_COLOR[k]}">${n}</span></div>` : '';
     }).filter(Boolean).join('');
 
-    const unitBtns = p1ModoComandante() ? '' : cia.units.map((u, ui) => {
+    const unitBtns = p1SomenteQuantitativo() ? '' : cia.units.map((u, ui) => {
       const upms = getPms(u.keys);
       if (!upms.length) return '';
       const us = statsOf(upms);
@@ -821,13 +827,13 @@ function renderP1() {
       ${items.sort((a,b)=>a.order-b.order).map(i=>i.html).join('')}
     </div>`;
 
-  const bottomSection = p1ModoComandante() ? '' :
+  const bottomSection = p1SomenteQuantitativo() ? '' :
     mkBlock('Em Afastamento', '#e05555', nowItems) +
     mkBlock('Próximos Afastamentos — 30 dias', '#5a9de0', nextItems);
 
   bodyEl.innerHTML = claroSection + `
     <div style="margin-bottom:6px">
-      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia${p1ModoComandante() ? '' : ' <span style="font-weight:400">· clique na sub-unidade para ver os PMs</span>'}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia${p1SomenteQuantitativo() ? '' : ' <span style="font-weight:400">· clique na sub-unidade para ver os PMs</span>'}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
         ${ciaCards}${unmatchedCards}
       </div>
@@ -837,7 +843,7 @@ function renderP1() {
 
   // Mostra botão exportar quando há dados (oculto para comandantes — exportação contém dados nominais)
   const btnE = document.getElementById('btn-exportar-p1');
-  if (btnE) btnE.style.display = p1ModoComandante() ? 'none' : 'inline-block';
+  if (btnE) btnE.style.display = p1SomenteQuantitativo() ? 'none' : 'inline-block';
 }
 
 // ── Upload modal P1
@@ -1169,7 +1175,7 @@ function p1ShowKpiDetail(tipo) {
       </tr>`;
     }).join('');
 
-    const tabelaTotalHtml = p1ModoComandante()
+    const tabelaTotalHtml = p1SomenteQuantitativo()
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
       : `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
           <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thL}">Status</th></tr></thead>
@@ -1253,7 +1259,7 @@ function p1ShowKpiDetail(tipo) {
       <td style="${tdS}">${r.opm||'—'}</td>
     </tr>`).join('') || `<tr><td colspan="4" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`;
 
-    const tabelaAptosHtml = p1ModoComandante()
+    const tabelaAptosHtml = p1SomenteQuantitativo()
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
       : `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">${thead}<tbody>${rowsHtml}</tbody></table></div>`;
 
@@ -1290,7 +1296,7 @@ function p1ShowKpiDetail(tipo) {
         </tr>`;
       });
     });
-    const tabelaAfastHtml = p1ModoComandante()
+    const tabelaAfastHtml = p1SomenteQuantitativo()
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${ativos.length}</div>`
       : `<table style="width:100%;border-collapse:collapse">
           <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Início</th><th style="${thR}">Dias Rest.</th></tr></thead>
@@ -1376,7 +1382,7 @@ function p1ShowKpiDetail(tipo) {
     const semRestr = (groups['__sem__'] || []).length;
     if (semRestr) inner += `<tr><td colspan="6" style="padding:10px 12px;border-top:1px solid var(--bd2);color:var(--tx3);font-size:19px">Sem restrição: ${semRestr} PMs</td></tr>`;
     const totalRestr = dataFilt.length - semRestr;
-    const tabelaRestrHtml = p1ModoComandante()
+    const tabelaRestrHtml = p1SomenteQuantitativo()
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${totalRestr}</div>`
       : `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
           <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Válida até</th><th style="${thR}">Restam</th></tr></thead>
@@ -1510,7 +1516,7 @@ function p1ShowKpiDetail(tipo) {
         ${smCard('venc',     'Vencidos',                 vencidos.length, vencidos.length?'#e05555' : 'var(--tx3)')}
       </div>`;
 
-    const eapTabelasHtml = p1ModoComandante()
+    const eapTabelasHtml = p1SomenteQuantitativo()
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA</div>`
       : `<div style="display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 14px;border-bottom:1px solid var(--bd2)">
           ${pill('feitos',   'Realizaram ('   + feitos.length    + ')', false)}
@@ -1619,7 +1625,7 @@ function p1ShowKpiDetail(tipo) {
         </tr>`;
       }).join('') || `<tr><td colspan="6" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`;
 
-      const tabelaIasHtml = p1ModoComandante()
+      const tabelaIasHtml = p1SomenteQuantitativo()
         ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
         : `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">${thead}<tbody>${rowsHtml}</tbody></table></div>`;
       html = wrapDetail(`IAS · Inspeção Anual de Saúde — ${filtered.length}`, null, '#5a9de0', closeBtn, `
@@ -1659,7 +1665,7 @@ function p1ShowKpiDetail(tipo) {
     </tr></thead>`;
 
     let inner = '';
-    if (p1ModoComandante()) {
+    if (p1SomenteQuantitativo()) {
       inner = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:14px 12px">
         <div style="background:var(--bg2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:8px;padding:14px 16px">
           <div style="font-family:'DM Mono',monospace;font-size:15px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Em Gozo</div>
@@ -1975,7 +1981,7 @@ function p1SetFiltroOpm(opm) {
 let p1SearchIdx = -1; // índice selecionado no dropdown
 
 function p1SearchInput(val) {
-  if (p1ModoComandante()) return;
+  if (p1SomenteQuantitativo()) return;
   const drop = document.getElementById('p1-search-drop');
   if (!drop) return;
   const q = (val || '').trim().toLowerCase();
@@ -2068,7 +2074,7 @@ function p1SearchHide() {
 // ── Prontuário Individual ────────────────────────────────────────────────────
 
 async function openProntuario(re) {
-  if (p1ModoComandante()) return;
+  if (p1SomenteQuantitativo()) return;
   const mo = document.getElementById('pronto-mo');
   if (!mo) return;
   mo.style.display = 'flex';
