@@ -538,7 +538,7 @@ function buildLogsTable(rows) {
       <th style="${thS}">DATA / HORA</th>
       <th style="${thS}">USUÁRIO</th>
       <th style="${thS}">RE</th>
-      <th style="${thS}">ROLE</th>
+      <th style="${thS}">SEÇÃO</th>
       <th style="${thS}">AÇÃO</th>
       <th style="${thS}">DETALHE</th>
       <th style="${thS}">IP</th>
@@ -549,7 +549,7 @@ function buildLogsTable(rows) {
       <td style="${tdS};font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);white-space:nowrap">${escHtml(dt)}</td>
       <td style="${tdS};color:#d8dce8;font-weight:500">${escHtml(r.usuario_nome || '—')}</td>
       <td style="${tdS};font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${escHtml(r.matricula || '—')}</td>
-      <td style="${tdS};font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${escHtml(r.role || '—')}</td>
+      <td style="${tdS};font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3)">${escHtml(r.secao || '—')}</td>
       <td style="${tdS}">${_acaoBadge(r.acao || '')}</td>
       <td style="${tdS};color:var(--tx3);font-size:11px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(r.detalhe||'')}">${escHtml(r.detalhe || '—')}</td>
       <td style="${tdS};font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3)">${escHtml(r.ip || '—')}</td>

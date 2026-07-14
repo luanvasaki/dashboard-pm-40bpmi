@@ -160,6 +160,7 @@ async function logAcesso(req, acao, detalhe, userOverride) {
       usuario_nome: u.nome || null,
       matricula:    u.matricula || null,
       role:         u.role || null,
+      secao:        u.secao || null,
       acao,
       detalhe: detalhe || null,
       ip:          fwd || req.socket?.remoteAddress || null,
