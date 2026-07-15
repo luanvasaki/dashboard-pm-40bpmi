@@ -1581,7 +1581,7 @@ function p1ShowKpiDetail(tipo) {
       const cntApto = baseList.filter(x => x.s === 'apto').length;
       const cntSemR = baseList.filter(x => x.s === 'semreg').length;
 
-      _iasChartData = { cntVenc, cntVend, cntApto, cntSemR, baseList };
+      _iasChartData = { filtered, baseList, anyFilter: _p1IasDetSit !== null || _p1IasDetCia >= 0 || !!_p1IasDetMun || _p1IasDetPostos.length > 0 };
 
       // ── Helpers de botão ─────────────────────────────────────
       const btnBase = (lbl, _cnt, cor, on, onclick) =>
@@ -1643,14 +1643,14 @@ function p1ShowKpiDetail(tipo) {
           : `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">${thead}<tbody>${rowsHtml}</tbody></table></div>`;
 
       const iasChartsHtml = `
-        <div style="display:grid;grid-template-columns:220px 1fr;gap:16px;padding:0 0 16px;border-bottom:1px solid var(--bd);margin-bottom:12px;align-items:start">
+        <div style="display:grid;grid-template-columns:310px 1fr;gap:16px;padding:0 0 16px;border-bottom:1px solid var(--bd);margin-bottom:12px;align-items:start">
           <div>
-            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">Situação Geral</div>
-            <canvas id="ias-chart-status" width="210" height="210"></canvas>
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${anyFilter ? 'Situação · filtro ativo' : 'Situação Geral'}</div>
+            <canvas id="ias-chart-status" width="280" height="280"></canvas>
           </div>
           <div>
-            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">Apto × Vencida por Unidade</div>
-            <canvas id="ias-chart-unidade" height="210"></canvas>
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">Apto × Vencida por Unidade (total)</div>
+            <canvas id="ias-chart-unidade" height="160"></canvas>
           </div>
         </div>`;
 
@@ -1999,24 +1999,30 @@ function p1ShowKpiDetail(tipo) {
   document.body.style.overflow = 'hidden';
 }
 
-function _renderIasCharts({ cntVenc, cntVend, cntApto, cntSemR, baseList }) {
+function _renderIasCharts({ filtered, baseList }) {
   const cDonut = document.getElementById('ias-chart-status');
   if (cDonut) {
     const existing = typeof Chart !== 'undefined' && Chart.getChart ? Chart.getChart(cDonut) : null;
     if (existing) existing.destroy();
+    const src = filtered;
+    const dVenc = src.filter(x => x.s === 'vencido').length;
+    const dVend = src.filter(x => x.s === 'vencendo').length;
+    const dApto = src.filter(x => x.s === 'apto').length;
+    const dSemR = src.filter(x => x.s === 'semreg').length;
+    const total = dVenc + dVend + dApto + dSemR;
     new Chart(cDonut.getContext('2d'), {
       type: 'doughnut',
       data: {
         labels: ['Vencida', 'Vencendo', 'Apto', 'Sem Reg.'],
-        datasets: [{ data: [cntVenc, cntVend, cntApto, cntSemR], backgroundColor: ['#f07878','#c8a84b','#4bc87a','#60688099'], borderWidth: 0 }]
+        datasets: [{ data: [dVenc, dVend, dApto, dSemR], backgroundColor: ['#f07878','#c8a84b','#4bc87a','#60688099'], borderWidth: 0 }]
       },
       options: {
         responsive: false,
         plugins: {
-          legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.7)', font: { size: 11 }, padding: 8, boxWidth: 12 } },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } }
+          legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.7)', font: { size: 12 }, padding: 10, boxWidth: 14 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} (${total ? Math.round(ctx.parsed/total*100) : 0}%)` } }
         },
-        cutout: '55%'
+        cutout: '52%'
       }
     });
   }
