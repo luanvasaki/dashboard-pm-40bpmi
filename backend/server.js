@@ -743,8 +743,10 @@ app.post('/api/upload/ocorrencias', requireAuth, requireRole('admin', 'p3', 'ti'
       tipo_local:      (r.TipoLocal || '').trim(),
     })).filter(r => r.data_ocorrencia && r.rubrica);
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
-    const { error: delError } = await supabase.from(OCORRENCIAS_TABLE).delete().gte('created_at', '2000-01-01');
-    if (delError) throw new Error('Erro ao limpar registros antigos: ' + delError.message);
+    const { error: do1 } = await supabase.from(OCORRENCIAS_TABLE).delete().not('numero_bo', 'is', null);
+    if (do1) throw new Error('Erro ao limpar registros antigos: ' + do1.message);
+    const { error: do2 } = await supabase.from(OCORRENCIAS_TABLE).delete().is('numero_bo', null);
+    if (do2) throw new Error('Erro ao limpar registros antigos: ' + do2.message);
     const BATCH = 500;
     let total = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
@@ -1057,8 +1059,10 @@ app.post('/api/afastamentos/upload', requireAuth, requireRole('admin', 'p3'), as
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique RE, Tipo, Início e Término.' });
 
-    const { error: delAfst } = await supabase.from(AFASTAMENTOS_TABLE).delete().gte('created_at', '2000-01-01');
-    if (delAfst) throw new Error(delAfst.message);
+    const { error: da1 } = await supabase.from(AFASTAMENTOS_TABLE).delete().not('re', 'is', null);
+    if (da1) throw new Error(da1.message);
+    const { error: da2 } = await supabase.from(AFASTAMENTOS_TABLE).delete().is('re', null);
+    if (da2) throw new Error(da2.message);
     const BATCH = 500;
     let inserted = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
@@ -1870,8 +1874,10 @@ app.post('/api/upload/uis-restricoes', requireAuth, requireRole('admin', 'p1', '
       });
     }
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
-    const { error: delErr } = await supabase.from('uis_restricoes').delete().gte('created_at', '2000-01-01');
-    if (delErr) throw new Error('Erro ao limpar registros antigos: ' + delErr.message);
+    const { error: du1 } = await supabase.from('uis_restricoes').delete().not('re', 'is', null);
+    if (du1) throw new Error('Erro ao limpar registros antigos: ' + du1.message);
+    const { error: du2 } = await supabase.from('uis_restricoes').delete().is('re', null);
+    if (du2) throw new Error('Erro ao limpar registros antigos: ' + du2.message);
     const BATCH = 500;
     let total = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
@@ -2010,8 +2016,10 @@ app.post('/api/upload/ias', requireAuth, requireRole('admin', 'p1', 'ti'), async
       });
     }
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
-    const { error: delErr } = await supabase.from('ias_registros').delete().gte('created_at', '2000-01-01');
-    if (delErr) throw new Error('Erro ao limpar registros antigos: ' + delErr.message);
+    const { error: di1 } = await supabase.from('ias_registros').delete().not('re', 'is', null);
+    if (di1) throw new Error('Erro ao limpar registros antigos: ' + di1.message);
+    const { error: di2 } = await supabase.from('ias_registros').delete().is('re', null);
+    if (di2) throw new Error('Erro ao limpar registros antigos: ' + di2.message);
     const BATCH = 500;
     let total = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
