@@ -1733,7 +1733,7 @@ function p1ShowKpiDetail(tipo) {
   }
 
   else if (tipo === 'quadro') {
-    const excl = s => /cfp|uis\s*m[eé]d|uis\s*odonto|sede\s*em|\bem\b/i.test(s||'');
+    const excl = s => /cfp|uis\s*m[eé]d|uis\s*odonto|^em$/i.test((s||'').trim());
     const qRows = p1Quadro.filter(q => !excl(q.opm) && !excl(q.municipio));
 
     // Inferir CIA a partir do p1Data (cruza por OPM ou municipio)
