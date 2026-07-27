@@ -963,20 +963,16 @@ app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3', 'p1'), a
     };
 
     const rows = records.map(r => ({
-      opm:               gf(r, 'OPM', 'opm'),
-      posto:             gf(r, 'Posto', 'posto', 'Posto / Grad', 'posto / grad'),
-      re:                gf(r, 'RE', 're'),
-      nome:              gf(r, 'Nome', 'nome', 'Nome Completo', 'nome completo'),
-      funcao:            gf(r, 'Funcao', 'funcao', 'Função', 'função'),
-      genero:            gf(r, 'Genero', 'genero', 'Gênero', 'gênero'),
-      nome_guerra:       gf(r, 'NomeGuerra', 'nomeguerra', 'Nome de Guerra', 'nome de guerra'),
-      data_eap:          parseDateBR(gf(r, 'DataEAP', 'dataeap', 'DATA EAP', 'data eap')) || null,
-      possui_restricao:  gf(r, 'PossuiRestricao', 'possui_restricao', 'Possui Restrição', 'possui restrição'),
-      tipos_restricao:   gf(r, 'TiposRestricao', 'tipos_restricao', 'Tipos de Restrição', 'tipos de restrição'),
-      restricao_inicio:  parseDateBR(gf(r, 'RestricaoInicio', 'restricao_inicio', 'Restrição Inicio', 'restrição inicio')) || null,
-      restricao_termino: parseDateBR(gf(r, 'RestricaoTermino', 'restricao_termino', 'Restrição Término', 'restrição término')) || null,
-      taf:               gf(r, 'TAF', 'taf') || null,
-      tat:               gf(r, 'TAT', 'tat') || null,
+      opm:        gf(r, 'OPM', 'opm'),
+      posto:      gf(r, 'Posto', 'posto', 'Posto / Grad', 'posto / grad'),
+      re:         gf(r, 'RE', 're'),
+      nome:       gf(r, 'Nome', 'nome', 'Nome Completo', 'nome completo'),
+      funcao:     gf(r, 'Funcao', 'funcao', 'Função', 'função'),
+      genero:     gf(r, 'Genero', 'genero', 'Gênero', 'gênero'),
+      nome_guerra: gf(r, 'NomeGuerra', 'nomeguerra', 'Nome de Guerra', 'nome de guerra'),
+      data_eap:   parseDateBR(gf(r, 'DataEAP', 'dataeap', 'DATA EAP', 'data eap')) || null,
+      taf:        gf(r, 'TAF', 'taf') || null,
+      tat:        gf(r, 'TAT', 'tat') || null,
     })).filter(r => r.nome && r.posto);
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique as colunas do CSV.' });
