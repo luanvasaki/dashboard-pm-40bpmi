@@ -975,8 +975,10 @@ app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3', 'p1'), a
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique as colunas do CSV.' });
 
-    const { error: delErr } = await supabase.from(EFETIVO_TABLE).delete().gte('created_at', '2000-01-01');
-    if (delErr) throw new Error(delErr.message);
+    const { error: d1 } = await supabase.from(EFETIVO_TABLE).delete().not('nome', 'is', null);
+    if (d1) throw new Error(d1.message);
+    const { error: d2 } = await supabase.from(EFETIVO_TABLE).delete().is('nome', null);
+    if (d2) throw new Error(d2.message);
 
     const BATCH = 500;
     let inserted = 0;
