@@ -864,7 +864,20 @@
         <select id="evol-mun-crime" name="evol-mun-crime" autocomplete="off" onchange="renderEvolMuns()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-size:20px;font-weight:700;cursor:pointer"></select>
       </div>
     </div>
-    <canvas id="c-evol-muns" style="height:220px;max-height:220px"></canvas>
+    <canvas id="c-evol-muns" style="height:440px;max-height:440px"></canvas>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-head">
+      <div class="card-title" style="display:flex;align-items:center;gap:12px;font-size:19px;font-weight:700;flex-wrap:wrap">
+        Comparativo Anual
+        <select id="comp-anos-crime" name="comp-anos-crime" autocomplete="off" onchange="renderComparacaoAnos()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-size:20px;font-weight:700;cursor:pointer"></select>
+        <span style="font-size:18px;color:var(--tx3);font-weight:400">Ano A</span>
+        <select id="comp-anos-a" name="comp-anos-a" autocomplete="off" onchange="renderComparacaoAnos()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-size:20px;font-weight:700;cursor:pointer"></select>
+        <span style="font-size:18px;color:var(--tx3);font-weight:400">vs</span>
+        <select id="comp-anos-b" name="comp-anos-b" autocomplete="off" onchange="renderComparacaoAnos()" style="background:var(--s2);border:1px solid var(--bd2);color:var(--tx);padding:4px 10px;border-radius:4px;font-size:20px;font-weight:700;cursor:pointer"></select>
+      </div>
+    </div>
+    <canvas id="c-comp-anos" style="height:380px;max-height:380px"></canvas>
   </div>
 
 </div>

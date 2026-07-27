@@ -107,6 +107,8 @@ function renderVisao() {
     CRIMES.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
   }
   renderEvolMuns();
+  _initCompAnosSelects();
+  renderComparacaoAnos();
   renderVisaoHeatmap();
   renderInsights();
 
@@ -290,6 +292,104 @@ function renderEvolMuns() {
       responsive: true,
       plugins: {
         legend: { position: 'bottom', labels: { boxWidth: 20, padding: 18, font: { size: 22 }, usePointStyle: true, color: '#ffffff' } }
+      },
+      scales: {
+        x: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } } },
+        y: { grid: GR, beginAtZero: true, ticks: { stepSize: 1, color: '#ffffff', font: { size: 22 } } }
+      }
+    }
+  });
+}
+
+// Inicializa os selects de crime e anos do comparativo (roda uma única vez)
+function _initCompAnosSelects() {
+  const selCrime = document.getElementById('comp-anos-crime');
+  const selA     = document.getElementById('comp-anos-a');
+  const selB     = document.getElementById('comp-anos-b');
+  if (!selCrime || !selA || !selB) return;
+
+  if (!selCrime.options.length) {
+    CRIMES.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; selCrime.appendChild(o); });
+  }
+  if (!selA.options.length) {
+    ANOS.forEach((a, i) => {
+      const oA = document.createElement('option'); oA.value = a; oA.textContent = a; if (i === 0) oA.selected = true; selA.appendChild(oA);
+      const oB = document.createElement('option'); oB.value = a; oB.textContent = a; if (i === 1) oB.selected = true; selB.appendChild(oB);
+    });
+  }
+}
+
+// Gráfico de comparação entre dois anos para o crime e escopo selecionados
+function renderComparacaoAnos() {
+  const selCrime = document.getElementById('comp-anos-crime');
+  const selA     = document.getElementById('comp-anos-a');
+  const selB     = document.getElementById('comp-anos-b');
+  if (!selCrime || !selA || !selB) return;
+
+  const crime = selCrime.value || CRIMES[0];
+  const anoA  = parseInt(selA.value);
+  const anoB  = parseInt(selB.value);
+  const sc    = scope('visao');
+
+  const MESES_FIXOS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  const qAno = (ano, mes) => RAW.filter(r =>
+    r.ano === ano && r.crime === crime && r.mes === mes &&
+    (!sc.mun || r.mun === sc.mun) &&
+    (!sc.cia || r.cia === sc.cia)
+  );
+
+  const dadosA = MESES_FIXOS.map(mes => sf(qAno(anoA, mes)));
+  const dadosB = MESES_FIXOS.map(mes => sf(qAno(anoB, mes)));
+
+  // Só mostra até o último mês com dado em qualquer dos dois anos
+  let ultimo = MESES_FIXOS.length - 1;
+  for (let i = MESES_FIXOS.length - 1; i >= 0; i--) {
+    if (dadosA[i] > 0 || dadosB[i] > 0) { ultimo = i; break; }
+  }
+  const labels  = MESES_FIXOS.slice(0, ultimo + 1);
+  const sliceA  = dadosA.slice(0, ultimo + 1);
+  const sliceB  = dadosB.slice(0, ultimo + 1);
+
+  mk('c-comp-anos', {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: String(anoA),
+          data: sliceA,
+          borderColor: '#4a9ee8', backgroundColor: 'rgba(74,158,232,.12)',
+          tension: 0.3, pointRadius: 5, borderWidth: 2.5, fill: true,
+          pointBackgroundColor: '#4a9ee8'
+        },
+        {
+          label: String(anoB),
+          data: sliceB,
+          borderColor: '#e05555', backgroundColor: 'rgba(224,85,85,.10)',
+          tension: 0.3, pointRadius: 5, borderWidth: 2.5, fill: true,
+          borderDash: [6, 3],
+          pointBackgroundColor: '#e05555'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 20, padding: 18, font: { size: 22 }, color: '#ffffff' } },
+        tooltip: {
+          callbacks: {
+            footer(items) {
+              if (items.length < 2) return '';
+              const diff = items[0].raw - items[1].raw;
+              const pct  = items[1].raw > 0 ? ((diff / items[1].raw) * 100).toFixed(0) : '—';
+              const sinal = diff > 0 ? '+' : '';
+              return `Δ ${sinal}${diff} (${sinal}${pct}%)`;
+            }
+          }
+        }
       },
       scales: {
         x: { grid: GR, ticks: { color: '#ffffff', font: { size: 22 } } },
