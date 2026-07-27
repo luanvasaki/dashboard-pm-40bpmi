@@ -743,8 +743,8 @@ app.post('/api/upload/ocorrencias', requireAuth, requireRole('admin', 'p3', 'ti'
       tipo_local:      (r.TipoLocal || '').trim(),
     })).filter(r => r.data_ocorrencia && r.rubrica);
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
-    // Insere primeiro; só apaga os registros antigos após todos os batches terem sucesso
-    const batchStart = new Date().toISOString();
+    const { error: delError } = await supabase.from(OCORRENCIAS_TABLE).delete().gte('created_at', '2000-01-01');
+    if (delError) throw new Error('Erro ao limpar registros antigos: ' + delError.message);
     const BATCH = 500;
     let total = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
@@ -752,8 +752,6 @@ app.post('/api/upload/ocorrencias', requireAuth, requireRole('admin', 'p3', 'ti'
       if (error) throw new Error(error.message);
       total += rows.slice(i, i + BATCH).length;
     }
-    const { error: delError } = await supabase.from(OCORRENCIAS_TABLE).delete().lt('created_at', batchStart);
-    if (delError) throw new Error('Erro ao limpar registros antigos: ' + delError.message);
     await logAcesso(req, 'upload_infocrim', `${total} ocorrências importadas`);
     res.json({ ok: true, inserted: total });
   } catch (err) {
@@ -1057,7 +1055,8 @@ app.post('/api/afastamentos/upload', requireAuth, requireRole('admin', 'p3'), as
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique RE, Tipo, Início e Término.' });
 
-    const batchStart = new Date().toISOString();
+    const { error: delAfst } = await supabase.from(AFASTAMENTOS_TABLE).delete().gte('created_at', '2000-01-01');
+    if (delAfst) throw new Error(delAfst.message);
     const BATCH = 500;
     let inserted = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
@@ -1065,7 +1064,6 @@ app.post('/api/afastamentos/upload', requireAuth, requireRole('admin', 'p3'), as
       if (error) throw new Error(error.message);
       inserted += Math.min(BATCH, rows.length - i);
     }
-    await supabase.from(AFASTAMENTOS_TABLE).delete().lt('created_at', batchStart);
     await logAcesso(req, 'upload_afastamentos', `${inserted} registros importados`);
     res.json({ ok: true, inserted });
   } catch (err) {
@@ -1870,7 +1868,8 @@ app.post('/api/upload/uis-restricoes', requireAuth, requireRole('admin', 'p1', '
       });
     }
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
-    const batchStart = new Date().toISOString();
+    const { error: delErr } = await supabase.from('uis_restricoes').delete().gte('created_at', '2000-01-01');
+    if (delErr) throw new Error('Erro ao limpar registros antigos: ' + delErr.message);
     const BATCH = 500;
     let total = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
@@ -1878,8 +1877,6 @@ app.post('/api/upload/uis-restricoes', requireAuth, requireRole('admin', 'p1', '
       if (error) throw new Error(error.message);
       total += Math.min(BATCH, rows.length - i);
     }
-    const { error: delErr } = await supabase.from('uis_restricoes').delete().lt('created_at', batchStart);
-    if (delErr) throw new Error('Erro ao limpar registros antigos: ' + delErr.message);
     await logAcesso(req, 'upload_uis', `${total} registros importados`);
     res.json({ ok: true, inserted: total });
   } catch (err) {
@@ -2011,7 +2008,8 @@ app.post('/api/upload/ias', requireAuth, requireRole('admin', 'p1', 'ti'), async
       });
     }
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
-    const batchStart = new Date().toISOString();
+    const { error: delErr } = await supabase.from('ias_registros').delete().gte('created_at', '2000-01-01');
+    if (delErr) throw new Error('Erro ao limpar registros antigos: ' + delErr.message);
     const BATCH = 500;
     let total = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
@@ -2019,8 +2017,6 @@ app.post('/api/upload/ias', requireAuth, requireRole('admin', 'p1', 'ti'), async
       if (error) throw new Error(error.message);
       total += Math.min(BATCH, rows.length - i);
     }
-    const { error: delErr } = await supabase.from('ias_registros').delete().lt('created_at', batchStart);
-    if (delErr) throw new Error('Erro ao limpar registros antigos: ' + delErr.message);
     await logAcesso(req, 'upload_ias', `${total} registros importados`);
     res.json({ ok: true, inserted: total });
   } catch (err) {
