@@ -64,6 +64,10 @@ const cookieParser = require('cookie-parser');
 const app  = express();
 const PORT = 3001;
 
+// Confia no 1º hop de proxy (Vercel) para X-Forwarded-For — sem isso, req.ip
+// cai sempre no endereço interno da Vercel e o rate limiter de login vira global.
+app.set('trust proxy', 1);
+
 // ============================================================
 // AUTENTICAÇÃO — JWT
 // Defina JWT_SECRET como variável de ambiente — nunca hardcode
