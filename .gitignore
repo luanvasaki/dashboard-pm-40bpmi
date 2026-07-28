@@ -18,3 +18,8 @@ Thumbs.db
 # Arquivos temporários
 *.log
 .vercel
+
+# Ferramentas locais do Claude Code (skills instaladas via symlink) — não são código do app
+.agents/
+.claude/skills/
+.claude/settings.json
