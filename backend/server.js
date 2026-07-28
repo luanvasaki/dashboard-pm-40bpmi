@@ -57,6 +57,7 @@ const rateLimit    = require('express-rate-limit');
 const path         = require('path');
 const fs           = require('fs');
 const jwt          = require('jsonwebtoken');
+const crypto       = require('crypto');
 const bcrypt       = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 
@@ -537,7 +538,7 @@ app.get('/api/admin/users/pending/count', requireAuth, requireRole('admin', 'p1'
 });
 
 // [PATCH /api/admin/users/:id] — aprova/rejeita status, atualiza seção e secoes_acesso.
-// P1 e P3 podem gerenciar usuários; apenas admin/p3 alteram role diretamente.
+// P1 pode gerenciar status/seção; apenas admin/p3/ti podem alterar secoes_acesso/role (evita auto-escalação).
 // secoes_acesso auto-deriva o role interno para manter compatibilidade com requireRole.
 // Usuários com role 'admin' são protegidos contra qualquer alteração.
 app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'p1', 'p3'), async (req, res) => {
@@ -547,10 +548,11 @@ app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'p1', 'p3'),
   const canAdmin = ['admin', 'p3', 'ti'].includes(req.user.role);
 
   if (status) updates.status = status;
-  if (secao  && canAdmin) updates.secao = secao;
-  if (secao  && !canAdmin) updates.secao = secao; // p1 também pode atualizar seção
+  if (secao) updates.secao = secao; // p1 também pode atualizar seção
 
   if (secoes_acesso !== undefined && typeof secoes_acesso === 'object') {
+    if (!canAdmin) return res.status(403).json({ error: 'Apenas admin/p3/ti podem alterar nível de acesso.' });
+    if (String(req.params.id) === String(req.user.id)) return res.status(403).json({ error: 'Não é possível alterar seu próprio nível de acesso.' });
     updates.secoes_acesso = secoes_acesso;
     // Deriva role automaticamente para manter autorização backend funcional
     const sa = secoes_acesso;
@@ -594,19 +596,23 @@ app.patch('/api/admin/users/:id/posto', requireAuth, requireRole('admin', 'p1', 
   }
 });
 
-// [POST /api/admin/users/:id/reset-senha] — redefine a senha do usuário para sua própria matrícula.
+// [POST /api/admin/users/:id/reset-senha] — redefine a senha do usuário para uma senha temporária aleatória.
+// Restrito a admin/p3 (p1 não pode resetar senha de terceiros — evita takeover de contas p3/ti).
+// Apenas admin pode resetar contas ti (evita p3 escalar via reset de conta ti).
 // Marca reset_senha=true: o frontend obriga troca de senha no próximo login.
-app.post('/api/admin/users/:id/reset-senha', requireAuth, requireRole('admin', 'p1', 'p3'), async (req, res) => {
+app.post('/api/admin/users/:id/reset-senha', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
   try {
     const { data: target } = await supabase.from(USUARIOS_TABLE).select('role, matricula').eq('id', req.params.id).single();
     if (!target) return res.status(404).json({ error: 'Usuário não encontrado' });
     if (target.role === 'admin') return res.status(403).json({ error: 'Usuário protegido' });
-    const hash = await bcrypt.hash(target.matricula, 10);
+    if (target.role === 'ti' && req.user.role !== 'admin') return res.status(403).json({ error: 'Apenas admin pode resetar a senha de uma conta ti.' });
+    const tempSenha = crypto.randomBytes(6).toString('base64url'); // ~8 chars aleatórios
+    const hash = await bcrypt.hash(tempSenha, 10);
     const { error } = await supabase.from(USUARIOS_TABLE).update({ senha_hash: hash, reset_senha: true }).eq('id', req.params.id);
     if (error) throw new Error(error.message);
     await logAcesso(req, 'admin_reset_senha', `ID ${req.params.id} (${target.matricula})`);
-    res.json({ ok: true, matricula: target.matricula });
+    res.json({ ok: true, senhaTemporaria: tempSenha });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1940,7 +1946,7 @@ app.get('/api/uis/stats', requireAuth, async (req, res) => {
 // [GET /api/uis/mapa] — restrições ATIVAS (termino >= hoje), para montar badges no P1.
 // Filtra no backend para garantir comparação correta de datas.
 // Retorna array de { re, codigos, termino, opm } — um registro por RE (o mais recente).
-app.get('/api/uis/mapa', requireAuth, async (req, res) => {
+app.get('/api/uis/mapa', requireAuth, requireRole('admin', 'p1', 'p3', 'ti'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
     const today = new Date().toISOString().slice(0, 10);
@@ -1954,7 +1960,7 @@ app.get('/api/uis/mapa', requireAuth, async (req, res) => {
 // [GET /api/uis/restricoes/:re] — restrições de um PM pelo RE (para integração com P1).
 // O RE passado pode ter dígito verificador (7 digits, efetivo) ou não (5-6, planilha UIS).
 // Busca por match exato primeiro; se não achar, tenta sem o último dígito.
-app.get('/api/uis/restricoes/:re', requireAuth, async (req, res) => {
+app.get('/api/uis/restricoes/:re', requireAuth, requireRole('admin', 'p1', 'p3', 'ti'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
     // RE do efetivo vem como "180673-4" — corta no hífen para obter "180673"
@@ -2050,7 +2056,7 @@ app.get('/api/ias/stats', requireAuth, async (req, res) => {
 });
 
 // [GET /api/ias/mapa] — todos os registros IAS para badges no P1.
-app.get('/api/ias/mapa', requireAuth, async (req, res) => {
+app.get('/api/ias/mapa', requireAuth, requireRole('admin', 'p1', 'p3', 'ti'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
     const all = await fetchAll('ias_registros', {});
@@ -2059,7 +2065,7 @@ app.get('/api/ias/mapa', requireAuth, async (req, res) => {
 });
 
 // [GET /api/ias/:re] — registro IAS de um PM pelo RE.
-app.get('/api/ias/:re', requireAuth, async (req, res) => {
+app.get('/api/ias/:re', requireAuth, requireRole('admin', 'p1', 'p3', 'ti'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
     const reBase = req.params.re.replace(/[^0-9]/g, '');

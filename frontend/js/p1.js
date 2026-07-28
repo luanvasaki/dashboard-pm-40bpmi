@@ -411,7 +411,7 @@ function renderP1() {
   // Tipos de afastamento agrupados
   const tiposCount = {};
   pmAfastados.forEach(r => { (afastHoje[r.re] || []).forEach(a => { tiposCount[a.tipo_afastamento] = (tiposCount[a.tipo_afastamento] || 0) + 1; }); });
-  const _kpiRow = (label, val, color) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:#ffffff;font-size:17px">${label}</span><span style="color:${color};font-weight:700;font-size:20px">${val}</span></div>`;
+  const _kpiRow = (label, val, color) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:#ffffff;font-size:17px">${escHtml(label)}</span><span style="color:${color};font-weight:700;font-size:20px">${val}</span></div>`;
   const tiposSub = Object.entries(tiposCount).map(([t,n]) => _kpiRow(t, n, '#e05555')).join('') || '—';
 
   kpisEl.innerHTML =
@@ -489,7 +489,7 @@ function renderP1() {
   const thL = thS.replace('text-align:right','text-align:left');
   const tdS = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-family:"DM Mono",monospace;font-size:19px;color:var(--tx3);text-align:right';
   const tdL = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:19px;font-weight:600;color:var(--tx)';
-  const badge = (txt, color) => `<span style="padding:3px 9px;border-radius:20px;font-size:19px;font-family:'DM Mono',monospace;background:${color}22;color:${color}">${txt}</span>`;
+  const badge = (txt, color) => `<span style="padding:3px 9px;border-radius:20px;font-size:19px;font-family:'DM Mono',monospace;background:${color}22;color:${color}">${escHtml(txt)}</span>`;
 
   // ── Seção: Afastados agora
   let afastSection = '';
@@ -503,13 +503,13 @@ function renderP1() {
       const _fotoRe = _escB(r.re);
       const _fotoNm = _escB(r.nome_guerra || r.nome);
       const _fotoPt = _escB(r.posto || '');
-      const _av = `<div data-foto-re="${r.re}" data-nome="${(r.nome_guerra||r.nome).replace(/"/g,'&quot;')}" data-posto="${(r.posto||'').replace(/"/g,'&quot;')}" onclick="openProntuario('${_fotoRe}')" style="cursor:pointer;display:inline-block">${p1AvatarSVG(r.nome_guerra||r.nome, r.posto)}</div>`;
+      const _av = `<div data-foto-re="${escHtml(r.re)}" data-nome="${escHtml(r.nome_guerra||r.nome)}" data-posto="${escHtml(r.posto||'')}" onclick="openProntuario('${_fotoRe}')" style="cursor:pointer;display:inline-block">${p1AvatarSVG(r.nome_guerra||r.nome, r.posto)}</div>`;
       return `<tr>
         <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.03);width:44px;vertical-align:middle">${_av}</td>
-        <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx2)">${r.posto || '—'}</td>
-        <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${r.re || '—'}</td>
-        <td style="${tdL};cursor:pointer" onclick="openProntuario('${_fotoRe}')">${r.nome_guerra || r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-        <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${r.opm || '—'}</td>
+        <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx2)">${escHtml(r.posto || '—')}</td>
+        <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${escHtml(r.re || '—')}</td>
+        <td style="${tdL};cursor:pointer" onclick="openProntuario('${_fotoRe}')">${escHtml(r.nome_guerra || r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
+        <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${escHtml(r.opm || '—')}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')}">${badge(tipo, '#e05555')}</td>
         <td style="${tdS}">${fmtDate(ats[0]?.inicio)}</td>
         <td style="${tdS}">${fmtDate(termino)}</td>
@@ -536,8 +536,8 @@ function renderP1() {
       const dias = Math.ceil((new Date(r.restricao_termino) - new Date(hoje)) / 86400000);
       alertItems.push(`<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center">
         ${badge('RESTRIÇÃO', '#c8a84b')}
-        <span style="font-size:19px;color:var(--tx)">${r.nome_guerra || r.nome}</span>
-        <span style="font-size:19px;color:#ffffff">${r.opm || ''}</span>
+        <span style="font-size:19px;color:var(--tx)">${escHtml(r.nome_guerra || r.nome)}</span>
+        <span style="font-size:19px;color:#ffffff">${escHtml(r.opm || '')}</span>
         <span style="font-size:19px;color:#ffffff;margin-left:auto">Vence em <b style="color:#c8a84b">${dias}d</b> — ${fmtDate(r.restricao_termino)}</span>
       </div>`);
     });
@@ -548,8 +548,8 @@ function renderP1() {
       const dias = Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000);
       alertItems.push(`<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center">
         ${badge('RETORNO', '#4bc87a')}
-        <span style="font-size:19px;color:var(--tx)">${pm?.nome_guerra || a.nome || a.re}</span>
-        <span style="font-size:19px;color:#ffffff">${a.tipo_afastamento}</span>
+        <span style="font-size:19px;color:var(--tx)">${escHtml(pm?.nome_guerra || a.nome || a.re)}</span>
+        <span style="font-size:19px;color:#ffffff">${escHtml(a.tipo_afastamento)}</span>
         <span style="font-size:19px;color:#ffffff;margin-left:auto">Retorna em <b style="color:#4bc87a">${dias}d</b> — ${fmtDate(a.termino)}</span>
       </div>`);
     });
@@ -562,8 +562,8 @@ function renderP1() {
       const cor  = isFer(a.tipo_afastamento) ? '#5a9de0' : '#9b6de0';
       alertItems.push(`<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center">
         ${badge(tipo, cor)}
-        <span style="font-size:19px;color:var(--tx2)">${pm?.posto||''}</span>
-        <span style="font-size:19px;color:var(--tx)">${pm?.nome_guerra || pm?.nome || a.re}</span>
+        <span style="font-size:19px;color:var(--tx2)">${escHtml(pm?.posto||'')}</span>
+        <span style="font-size:19px;color:var(--tx)">${escHtml(pm?.nome_guerra || pm?.nome || a.re)}</span>
         <span style="font-size:19px;color:#ffffff;margin-left:auto">Inicia em <b style="color:${cor}">${diasAte}d</b> — ${fmtDate(a.inicio)}</span>
       </div>`);
     });
@@ -672,14 +672,14 @@ function renderP1() {
       const n = count(d, k);
       return n ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${CATS[k]}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${CATS_COLOR[k]}">${n}</span></div>` : '';
     }).filter(Boolean).join('');
-    return `<div class="p1-uc" data-unit="${unit.replace(/"/g,'&quot;')}" onclick="p1ShowUnit('${_esc}')"
+    return `<div class="p1-uc" data-unit="${escHtml(unit)}" onclick="p1ShowUnit('${_esc}')"
       style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${s.color};border-radius:10px;padding:20px;cursor:pointer;transition:all .2s"
       onmouseover="if(!this.classList.contains('sel')){this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)';this.style.transform='translateY(-2px)'}"
       onmouseout="if(!this.classList.contains('sel')){this.style.boxShadow='';this.style.transform=''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
         <div>
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${s.color};letter-spacing:.5px;line-height:1">${unit}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${s.color};letter-spacing:.5px;line-height:1">${escHtml(unit)}</div>
         </div>
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:22px;font-weight:700;color:var(--tx)">${d.length}</span></div>
       </div>
@@ -728,7 +728,7 @@ function renderP1() {
     if (claroData.length) {
       const rows = claroData.map(r => `
         <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.03)">
-          <div style="width:180px;font-size:19px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.unit}</div>
+          <div style="width:180px;font-size:19px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(r.unit)}</div>
           <div style="flex:1;background:rgba(255,255,255,.05);border-radius:4px;height:8px;overflow:hidden">
             <div style="height:100%;width:${r.pct}%;background:${r.pctColor};border-radius:4px;transition:width .4s"></div>
           </div>
@@ -769,9 +769,9 @@ function renderP1() {
       bottomItems.push({ order: 0, html: `<div style="display:grid;grid-template-columns:170px 1fr auto;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);border-left:3px solid #e05555;gap:14px">
         ${badge(tipo.split(',')[0].trim().toUpperCase(), '#e05555')}
         <div>
-          <span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${r.posto||''}</span>
-          <span style="font-size:20px;font-weight:700;color:var(--tx);margin-left:6px;cursor:pointer" onclick="openProntuario('${_esc2(r.re)}')">${r.nome_guerra||r.nome}</span>${uisBadge(r.re)}${iasBadge(r.re)}
-          ${r.opm ? `<div style="font-size:17px;color:var(--tx3);margin-top:2px">${r.opm}</div>` : ''}
+          <span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${escHtml(r.posto||'')}</span>
+          <span style="font-size:20px;font-weight:700;color:var(--tx);margin-left:6px;cursor:pointer" onclick="openProntuario('${_esc2(r.re)}')">${escHtml(r.nome_guerra||r.nome)}</span>${uisBadge(r.re)}${iasBadge(r.re)}
+          ${r.opm ? `<div style="font-size:17px;color:var(--tx3);margin-top:2px">${escHtml(r.opm)}</div>` : ''}
         </div>
         <div style="font-size:19px;color:var(--tx3);text-align:right;white-space:nowrap">${retStr}</div>
       </div>` });
@@ -785,8 +785,8 @@ function renderP1() {
       bottomItems.push({ order: 1, html: `<div style="display:grid;grid-template-columns:170px 1fr auto;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);border-left:3px solid #c8a84b;gap:14px">
         ${badge('RESTRIÇÃO', '#c8a84b')}
         <div>
-          <span style="font-size:20px;font-weight:700;color:var(--tx)">${r.nome_guerra||r.nome}</span>
-          ${r.opm ? `<div style="font-size:17px;color:var(--tx3);margin-top:2px">${r.opm}</div>` : ''}
+          <span style="font-size:20px;font-weight:700;color:var(--tx)">${escHtml(r.nome_guerra||r.nome)}</span>
+          ${r.opm ? `<div style="font-size:17px;color:var(--tx3);margin-top:2px">${escHtml(r.opm)}</div>` : ''}
         </div>
         <div style="font-size:19px;color:var(--tx3);text-align:right;white-space:nowrap">Vence em <b style="color:#c8a84b">${dias}d</b> · ${fmtDate(r.restricao_termino)}</div>
       </div>` });
@@ -813,9 +813,9 @@ function renderP1() {
       bottomItems.push({ order: 3, html: `<div style="display:grid;grid-template-columns:170px 1fr auto;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);border-left:3px solid ${cor};gap:14px">
         ${badge(label, cor)}
         <div>
-          <span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${pm?.posto||''}</span>
-          <span style="font-size:20px;font-weight:700;color:var(--tx);margin-left:6px;cursor:pointer" onclick="openProntuario('${_esc2(a.re)}')">${pm?.nome_guerra||pm?.nome||a.re}</span>
-          ${pm?.opm ? `<div style="font-size:17px;color:var(--tx3);margin-top:2px">${pm.opm}</div>` : ''}
+          <span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${escHtml(pm?.posto||'')}</span>
+          <span style="font-size:20px;font-weight:700;color:var(--tx);margin-left:6px;cursor:pointer" onclick="openProntuario('${_esc2(a.re)}')">${escHtml(pm?.nome_guerra||pm?.nome||a.re)}</span>
+          ${pm?.opm ? `<div style="font-size:17px;color:var(--tx3);margin-top:2px">${escHtml(pm.opm)}</div>` : ''}
         </div>
         <div style="font-size:19px;color:var(--tx3);text-align:right;white-space:nowrap">Inicia em <b style="color:${cor}">${diasAte}d</b> · ${fmtDate(a.inicio)} → ${fmtDate(a.termino)}</div>
       </div>` });
@@ -1159,25 +1159,25 @@ function p1ShowKpiDetail(tipo) {
 
     const munBtns = munList.map(m => {
       const cnt = baseList.filter(x => x.mun === m).length;
-      return btnBase(m, '#5a9de0', _p1TotalDetMun === m, `p1TotalSetMun('${m.replace(/'/g,"\\'")}')`)
+      return btnBase(escHtml(m), '#5a9de0', _p1TotalDetMun === m, `p1TotalSetMun('${escHtml(m).replace(/\\/g,'\\\\')}')`)
     }).join('');
 
     const postoBtns = postoList.map(p => {
       const cnt = baseList.filter(x => x.r.posto === p).length;
       const on  = _p1TotalDetPostos.includes(p);
-      return btnBase(p, '#c8a84b', on, `p1TotalTogPosto('${p.replace(/'/g,"\\'")}')`)
+      return btnBase(escHtml(p), '#c8a84b', on, `p1TotalTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)
     }).join('');
 
     const rows = filtered.map(({r}) => {
       const afst = p1AfastHoje[r.re];
       const s = afst
-        ? `<span style="font-size:19px;padding:3px 9px;border-radius:10px;background:#e0555522;color:#e05555;font-family:'DM Mono',monospace">${afst[0]?.tipo_afastamento||'Afastado'}</span>`
+        ? `<span style="font-size:19px;padding:3px 9px;border-radius:10px;background:#e0555522;color:#e05555;font-family:'DM Mono',monospace">${escHtml(afst[0]?.tipo_afastamento||'Afastado')}</span>`
         : `<span style="font-size:19px;padding:3px 9px;border-radius:10px;background:#4bc87a22;color:#4bc87a;font-family:'DM Mono',monospace">Apto</span>`;
       return `<tr>
-        <td style="${tdS}">${r.posto||'—'}</td>
-        <td style="${tdS}">${r.re}</td>
-        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-        <td style="${tdS}">${r.opm||'—'}</td>
+        <td style="${tdS}">${escHtml(r.posto||'—')}</td>
+        <td style="${tdS}">${escHtml(r.re)}</td>
+        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${escHtml(r.nome_guerra||r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
+        <td style="${tdS}">${escHtml(r.opm||'—')}</td>
         <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03)">${s}</td>
       </tr>`;
     }).join('');
@@ -1246,13 +1246,13 @@ function p1ShowKpiDetail(tipo) {
 
     const munBtns = munList.map(m => {
       const cnt = baseList.filter(x => x.mun === m).length;
-      return btnBase(m, cnt, '#4bc87a', _p1AptosDetMun === m, `p1AptosSetMun('${m.replace(/'/g,"\\'")}')`)
+      return btnBase(escHtml(m), cnt, '#4bc87a', _p1AptosDetMun === m, `p1AptosSetMun('${escHtml(m).replace(/\\/g,'\\\\')}')`)
     }).join('');
 
     const postoBtns = postoList.map(p => {
       const cnt = baseList.filter(x => x.r.posto === p).length;
       const on  = _p1AptosDetPostos.includes(p);
-      return btnBase(p, cnt, '#c8a84b', on, `p1AptosTogPosto('${p.replace(/'/g,"\\'")}')`)
+      return btnBase(escHtml(p), cnt, '#c8a84b', on, `p1AptosTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)
     }).join('');
 
     const thead = `<thead><tr>
@@ -1260,10 +1260,10 @@ function p1ShowKpiDetail(tipo) {
       <th style="${thL}">OPM</th>
     </tr></thead>`;
     const rowsHtml = filtered.map(({r}) => `<tr>
-      <td style="${tdS}">${r.posto||'—'}</td>
-      <td style="${tdS}">${r.re}</td>
-      <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-      <td style="${tdS}">${r.opm||'—'}</td>
+      <td style="${tdS}">${escHtml(r.posto||'—')}</td>
+      <td style="${tdS}">${escHtml(r.re)}</td>
+      <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${escHtml(r.nome_guerra||r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
+      <td style="${tdS}">${escHtml(r.opm||'—')}</td>
     </tr>`).join('') || `<tr><td colspan="4" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`;
 
     const tabelaAptosHtml = p1SomenteQuantitativo()
@@ -1294,10 +1294,10 @@ function p1ShowKpiDetail(tipo) {
         const nm = pm?.nome_guerra || pm?.nome || a.nome || a.re;
         const dias = a.termino ? Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000) : null;
         inner += `<tr>
-          <td style="${tdS}">${pm?.posto||'—'}</td>
-          <td style="${tdS}">${a.re}</td>
-          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(a.re)}')">${nm}</td>
-          <td style="${tdS}">${pm?.opm||a.opm||'—'}</td>
+          <td style="${tdS}">${escHtml(pm?.posto||'—')}</td>
+          <td style="${tdS}">${escHtml(a.re)}</td>
+          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(a.re)}')">${escHtml(nm)}</td>
+          <td style="${tdS}">${escHtml(pm?.opm||a.opm||'—')}</td>
           <td style="${tdS};text-align:right">${fmtD(a.inicio)}</td>
           <td style="${tdS};text-align:right;color:${dias!==null&&dias<=3?'#4bc87a':'var(--tx3)'}">${dias!==null?dias+'d':'—'}</td>
         </tr>`;
@@ -1343,7 +1343,7 @@ function p1ShowKpiDetail(tipo) {
 
     const munBtns = munList.map(m => {
       const cnt = baseList.filter(x => x.mun === m).length;
-      return btnBase(m, '#c8a84b', _p1RestDetMun === m, `p1RestSetMun('${m.replace(/'/g,"\\'")}')`)
+      return btnBase(escHtml(m), '#c8a84b', _p1RestDetMun === m, `p1RestSetMun('${escHtml(m).replace(/\\/g,'\\\\')}')`)
     }).join('');
 
     // Agrupa os PMs filtrados por tipo de restrição
@@ -1367,7 +1367,7 @@ function p1ShowKpiDetail(tipo) {
       const list = groups[grp]; if (!list?.length) return;
       const cor = COR_GRUPO[grp] || '#c8a84b';
       inner += `<tr><td colspan="6" style="padding:10px 12px 4px;border-bottom:1px solid rgba(255,255,255,.04)">
-        <span style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:1px;padding:3px 10px;border-radius:10px;background:${cor}22;color:${cor};text-transform:uppercase">${grp} — ${list.length}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:1px;padding:3px 10px;border-radius:10px;background:${cor}22;color:${cor};text-transform:uppercase">${escHtml(grp)} — ${list.length}</span>
       </td></tr>`;
       list.forEach(r => {
         const uisRecs = hasUisRestr(r.re) ? ((_uisRestMap||{})[uisNormRE(r.re)]||[]) : [];
@@ -1377,10 +1377,10 @@ function p1ShowKpiDetail(tipo) {
         const corD = dias === null ? 'var(--tx3)' : dias <= 0 ? '#e05555' : dias <= 30 ? '#c8a84b' : '#4bc87a';
         const hasTip = hasUisRestr(r.re);
         inner += `<tr>
-          <td style="${tdS}">${r.posto||'—'}</td>
-          <td style="${tdS}">${r.re}</td>
-          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')"${hasTip ? ` onmouseover="uisTipPmOver(event,'${esc(r.re)}')" onmousemove="_uisTipMove(event)" onmouseleave="_uisTipHide()"` : ''}>${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-          <td style="${tdS}">${r.opm||'—'}</td>
+          <td style="${tdS}">${escHtml(r.posto||'—')}</td>
+          <td style="${tdS}">${escHtml(r.re)}</td>
+          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')"${hasTip ? ` onmouseover="uisTipPmOver(event,'${esc(r.re)}')" onmousemove="_uisTipMove(event)" onmouseleave="_uisTipHide()"` : ''}>${escHtml(r.nome_guerra||r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
+          <td style="${tdS}">${escHtml(r.opm||'—')}</td>
           <td style="${tdS};text-align:right">${fmtD(termino)}</td>
           <td style="${tdS};text-align:right;color:${corD};font-weight:700">${dias!==null?(dias<0?'Vencida':dias+'d'):'—'}</td>
         </tr>`;
@@ -1422,7 +1422,7 @@ function p1ShowKpiDetail(tipo) {
 
     const notaCor2  = n => ({ 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#e05555','inapto':'#e05555' })[(n||'').toLowerCase()] || 'var(--tx3)';
     const notaBadge = n => n
-      ? `<span style="font-size:19px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:8px;background:${notaCor2(n)}22;color:${notaCor2(n)}">${n}</span>`
+      ? `<span style="font-size:19px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:8px;background:${notaCor2(n)}22;color:${notaCor2(n)}">${escHtml(n)}</span>`
       : `<span style="color:var(--tx3);font-size:19px">—</span>`;
     const p2 = n => String(n).padStart(2,'0');
     const fmtEap = s => {
@@ -1437,19 +1437,19 @@ function p1ShowKpiDetail(tipo) {
     const thE = 'padding:8px 6px 8px 4px;border-bottom:1px solid rgba(200,168,75,.25);background:rgba(200,168,75,.06);font-family:"DM Mono",monospace;font-size:19px;color:#c8a84b;letter-spacing:1px;text-transform:uppercase;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
 
     const mkRow7 = r => `<tr>
-      <td style="${pC};${cS}">${r.posto||'—'}</td>
-      <td style="${pC};${cS}">${r.re}</td>
-      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-      <td style="${pC};${cS}">${r.opm||'—'}</td>
+      <td style="${pC};${cS}">${escHtml(r.posto||'—')}</td>
+      <td style="${pC};${cS}">${escHtml(r.re)}</td>
+      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${escHtml(r.nome_guerra||r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
+      <td style="${pC};${cS}">${escHtml(r.opm||'—')}</td>
       <td style="${pC};${cS};color:#4bc87a">${fmtEap(r.data_eap)}</td>
       <td style="${pC};text-align:center">${notaBadge(r.taf)}</td>
       <td style="${pC};text-align:center">${notaBadge(r.tat)}</td>
     </tr>`;
     const mkRow5nota = (r, campo, notaFn) => `<tr>
-      <td style="${pC};${cS}">${r.posto||'—'}</td>
-      <td style="${pC};${cS}">${r.re}</td>
-      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-      <td style="${pC};${cS}">${r.opm||'—'}</td>
+      <td style="${pC};${cS}">${escHtml(r.posto||'—')}</td>
+      <td style="${pC};${cS}">${escHtml(r.re)}</td>
+      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${escHtml(r.nome_guerra||r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
+      <td style="${pC};${cS}">${escHtml(r.opm||'—')}</td>
       <td style="${pC};text-align:center">${notaBadge(r[campo])}</td>
     </tr>`;
 
@@ -1472,10 +1472,10 @@ function p1ShowKpiDetail(tipo) {
             ? `<span style="font-size:19px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:8px;background:#e0555522;color:#e05555">Vencido</span>`
             : `<span style="font-size:19px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:8px;background:#c8a84b22;color:#c8a84b">Não realizado</span>`;
           return `<tr>
-            <td style="${pC};${cS}">${r.posto||'—'}</td>
-            <td style="${pC};${cS}">${r.re}</td>
-            <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-            <td style="${pC};${cS}">${r.opm||'—'}</td>
+            <td style="${pC};${cS}">${escHtml(r.posto||'—')}</td>
+            <td style="${pC};${cS}">${escHtml(r.re)}</td>
+            <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${escHtml(r.nome_guerra||r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
+            <td style="${pC};${cS}">${escHtml(r.opm||'—')}</td>
             <td style="${pC}">${sit}</td>
             <td style="${pC};text-align:center">${notaBadge(r.taf)}</td>
             <td style="${pC};text-align:center">${notaBadge(r.tat)}</td>
@@ -1607,13 +1607,13 @@ function p1ShowKpiDetail(tipo) {
 
       const munBtns = munList.map(m => {
         const cnt = baseList.filter(x => x.mun === m).length;
-        return btnBase(m, cnt, '#5a9de0', _p1IasDetMun === m, `p1IasSetMun('${m.replace(/'/g,"\\'")}')`)
+        return btnBase(escHtml(m), cnt, '#5a9de0', _p1IasDetMun === m, `p1IasSetMun('${escHtml(m).replace(/\\/g,'\\\\')}')`)
       }).join('');
 
       const postoBtns = postoList.map(p => {
         const cnt = baseList.filter(x => x.r.posto === p).length;
         const on  = _p1IasDetPostos.includes(p);
-        return btnBase(p, cnt, '#c8a84b', on, `p1IasTogPosto('${p.replace(/'/g,"\\'")}')`)
+        return btnBase(escHtml(p), cnt, '#c8a84b', on, `p1IasTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)
       }).join('');
 
       const anyFilter = _p1IasDetSit !== null || _p1IasDetCia >= 0 || !!_p1IasDetMun || _p1IasDetPostos.length > 0;
@@ -1627,10 +1627,10 @@ function p1ShowKpiDetail(tipo) {
       const rowsHtml = filtered.map(({r, s, rec}) => {
         const cor = SIT_COR[s] || 'var(--tx3)';
         return `<tr>
-          <td style="${tdS}">${r.posto||'—'}</td>
-          <td style="${tdS}">${r.re}</td>
-          <td style="${tdL};cursor:pointer" onclick="openIasPmModal('${esc(iasNormRE(r.re))}');closeP1Detail()">${r.nome_guerra||r.nome}</td>
-          <td style="${tdS}">${r.opm||'—'}</td>
+          <td style="${tdS}">${escHtml(r.posto||'—')}</td>
+          <td style="${tdS}">${escHtml(r.re)}</td>
+          <td style="${tdL};cursor:pointer" onclick="openIasPmModal('${esc(iasNormRE(r.re))}');closeP1Detail()">${escHtml(r.nome_guerra||r.nome)}</td>
+          <td style="${tdS}">${escHtml(r.opm||'—')}</td>
           <td style="${tdS};text-align:right;color:${cor};font-weight:700">${rec?.data_vencimento ? fmtV(rec.data_vencimento) : '—'}</td>
           <td style="${tdS};text-align:right"><span style="padding:2px 8px;border-radius:8px;font-size:15px;background:${cor}22;color:${cor};font-family:'DM Mono',monospace">${SIT_LBL[s]||s}</span></td>
         </tr>`;
@@ -1677,9 +1677,9 @@ function p1ShowKpiDetail(tipo) {
       const nm   = pm?.nome_guerra || pm?.nome || a.nome || a.re;
       const dias = a.termino ? Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000) : null;
       return `<tr>
-        <td style="${tdS}">${a.re}</td>
-        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(a.re)}')">${nm}</td>
-        <td style="${tdS}">${pm?.opm||a.opm||'—'}</td>
+        <td style="${tdS}">${escHtml(a.re)}</td>
+        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(a.re)}')">${escHtml(nm)}</td>
+        <td style="${tdS}">${escHtml(pm?.opm||a.opm||'—')}</td>
         <td style="${tdS};text-align:right">${fmtD(a.inicio)}</td>
         <td style="${tdS};text-align:right">${fmtD(a.termino)}</td>
         ${showDias ? `<td style="${tdS};text-align:right;color:${dias!==null&&dias<=3?'#4bc87a':'var(--tx3)'}">${dias!==null?dias+'d':'—'}</td>` : ''}
@@ -1717,10 +1717,10 @@ function p1ShowKpiDetail(tipo) {
         <table style="width:100%;border-collapse:collapse;margin-bottom:4px">${colH(false)}<tbody>${prox.map(a=>ferRow(a,false)).join('')}</tbody></table>`;
       if (semFer.length) {
         const rows = semFer.map(r => `<tr>
-          <td style="${tdS}">${r.re}</td>
-          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${r.nome_guerra||r.nome}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-          <td style="${tdS}">${r.posto||'—'}</td>
-          <td style="${tdS}">${r.opm||'—'}</td>
+          <td style="${tdS}">${escHtml(r.re)}</td>
+          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${escHtml(r.nome_guerra||r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
+          <td style="${tdS}">${escHtml(r.posto||'—')}</td>
+          <td style="${tdS}">${escHtml(r.opm||'—')}</td>
         </tr>`).join('');
         inner += `
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:#e05555;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Sem Férias em ${anoAtual} — ${semFer.length}</div>
@@ -2095,15 +2095,15 @@ function p1SearchInput(val) {
     const statusColor = afst ? '#e05555' : '#4bc87a';
     const statusTxt   = afst ? (afst[0]?.tipo_afastamento || 'Afastado') : 'Apto';
     const nomePrinc   = r.nome_guerra || r.nome || '—';
-    return `<div data-re="${r.re}" data-i="${i}"
-      onmousedown="p1SearchSelect('${r.re.replace(/'/g,"\\'")}')"
+    return `<div data-re="${escHtml(r.re)}" data-i="${i}"
+      onmousedown="p1SearchSelect('${(r.re||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')"
       onmouseover="p1SearchHover(${i})"
       style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s"
       id="p1-sdrop-${i}">
       <div style="flex-shrink:0">${p1AvatarSVG(nomePrinc, r.posto)}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:19px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${hi(nomePrinc)}</div>
-        <div style="font-size:19px;color:var(--tx3)">${hi(r.nome || '')} · ${r.posto || '—'} · ${r.opm || '—'}</div>
+        <div style="font-size:19px;color:var(--tx3)">${hi(r.nome || '')} · ${escHtml(r.posto || '—')} · ${escHtml(r.opm || '—')}</div>
       </div>
       <div style="font-size:19px;font-family:'DM Mono',monospace;padding:3px 9px;border-radius:10px;background:${statusColor}22;color:${statusColor};white-space:nowrap">${statusTxt}</div>
     </div>`;
@@ -2188,7 +2188,7 @@ async function openProntuario(re) {
   let statusHtml = '';
   if (afsts.length) {
     statusHtml = afsts.map(a =>
-      `<span style="padding:4px 12px;border-radius:20px;background:#e0555522;color:#e05555;font-size:19px;font-family:'DM Mono',monospace">${a.tipo_afastamento}</span>`
+      `<span style="padding:4px 12px;border-radius:20px;background:#e0555522;color:#e05555;font-size:19px;font-family:'DM Mono',monospace">${escHtml(a.tipo_afastamento)}</span>`
     ).join(' ');
   } else if (emRestr) {
     statusHtml = `<span style="padding:4px 12px;border-radius:20px;background:#c8a84b22;color:#c8a84b;font-size:19px;font-family:'DM Mono',monospace">Em Restrição</span>`;
@@ -2216,7 +2216,7 @@ async function openProntuario(re) {
   // Restrição
   let restrHtml = '';
   if (emRestrEfetivo) {
-    restrHtml += `<div style="font-size:19px;color:#c8a84b">${pm.tipos_restricao || 'Sim'}</div>
+    restrHtml += `<div style="font-size:19px;color:#c8a84b">${escHtml(pm.tipos_restricao || 'Sim')}</div>
                   <div style="font-size:19px;color:var(--tx3)">${fmtD(pm.restricao_inicio)} → ${fmtD(pm.restricao_termino)}</div>`;
   }
   if (emRestrUis) {
@@ -2263,7 +2263,7 @@ async function openProntuario(re) {
     if (!nota && !dataTafTat) return `<span style="font-size:19px;color:var(--tx3)">—</span>`;
     const cor = tafVencido ? '#e05555' : notaCor(nota);
     const range = fmtRange(dataTafTat);
-    return `${nota ? `<div style="font-size:19px;font-weight:600;color:${cor}">${nota}</div>` : ''}
+    return `${nota ? `<div style="font-size:19px;font-weight:600;color:${cor}">${escHtml(nota)}</div>` : ''}
             ${range ? `<div style="font-size:19px;color:var(--tx3)">${range}</div>` : ''}
             ${tafVencido ? `<div style="font-size:19px;font-weight:600;color:#e05555;margin-top:2px">⚠ VENCIDO</div>` : ''}`;
   };
@@ -2316,12 +2316,12 @@ async function openProntuario(re) {
         const ativo = a.inicio <= hoje && a.termino >= hoje;
         const tdE = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:19px;color:var(--tx3)';
         return `<tr>
-          <td style="${tdE};font-size:19px;color:${ativo?'var(--tx)':'var(--tx3)'};font-family:inherit">${a.tipo_afastamento || '—'}</td>
+          <td style="${tdE};font-size:19px;color:${ativo?'var(--tx)':'var(--tx3)'};font-family:inherit">${escHtml(a.tipo_afastamento || '—')}</td>
           <td style="${tdE}">${fmtD(a.inicio)}</td>
           <td style="${tdE}">${fmtD(a.termino)}</td>
           <td style="${tdE}">${a.n_dias ? a.n_dias + 'd' : '—'}</td>
-          <td style="${tdE};color:var(--tx2)">${a.nbi || '—'}</td>
-          <td style="${tdE};color:var(--tx2)">${a.bol_g || '—'}</td>
+          <td style="${tdE};color:var(--tx2)">${escHtml(a.nbi || '—')}</td>
+          <td style="${tdE};color:var(--tx2)">${escHtml(a.bol_g || '—')}</td>
           <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04)">${ativo ? '<span style="font-size:19px;padding:2px 8px;border-radius:8px;background:#e0555522;color:#e05555;font-family:DM Mono,monospace">ATIVO</span>' : ''}</td>
         </tr>`;
       }).join('')
@@ -2338,8 +2338,8 @@ async function openProntuario(re) {
       cursosEl.innerHTML = Array.isArray(cursosData) && cursosData.length
         ? cursosData.map(c => `<tr>
             <td style="${tdC};white-space:nowrap">${fmtDc(c.data)}</td>
-            <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx)">${c.nome_curso||'—'}</td>
-            <td style="${tdC}">${c.posto_pm||'—'}</td>
+            <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx)">${escHtml(c.nome_curso||'—')}</td>
+            <td style="${tdC}">${escHtml(c.posto_pm||'—')}</td>
           </tr>`).join('')
         : '<tr><td colspan="3" style="padding:12px 10px;color:var(--tx3);font-size:19px;text-align:center">Nenhum curso registrado.</td></tr>';
     }).catch(() => {
@@ -2618,7 +2618,7 @@ function renderVagasTable() {
       const atual = p1ByUnit[opm]?.length || 0;
       const vagas = vagasMap[opm] !== undefined ? vagasMap[opm] : '';
       return `<tr>
-        <td style="padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.03);font-size:19px;color:var(--tx)">${opm}</td>
+        <td style="padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.03);font-size:19px;color:var(--tx)">${escHtml(opm)}</td>
         <td style="padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.03);text-align:right;font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">${atual}</td>
         <td style="padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.03);text-align:right">
           <input type="number" name="vaga-opm" autocomplete="off" min="0" value="${vagas}" onchange="saveVaga('${opm.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}', this.value, this)"
@@ -2687,7 +2687,7 @@ function p1AvatarSVG(nome, posto) {
   const cat = p1Cat(posto);
   const colors = { cbsd: '#5a9de0', sgt: '#c8a84b', sub: '#4bc87a', of: '#e05555' };
   const bg = colors[cat] || '#607090';
-  const initials = (nome || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+  const initials = escHtml((nome || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join(''));
   return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
     <circle cx="16" cy="16" r="16" fill="${bg}33"/>
     <circle cx="16" cy="16" r="15.5" fill="none" stroke="${bg}" stroke-width="1"/>
@@ -2901,10 +2901,10 @@ function p1ShowPmList(pms, label) {
       ? `<img src="${fotoCached}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.18)">`
       : p1AvatarSVG(r.nome_guerra || r.nome, r.posto).replace('width="32" height="32" viewBox="0 0 32 32"','width="56" height="56" viewBox="0 0 32 32"');
     return `<div onclick="openProntuario('${_re}')" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:12px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)'">
-      <div data-foto-re="${r.re}" data-nome="${(r.nome_guerra||r.nome).replace(/"/g,'&quot;')}" data-posto="${(r.posto||'').replace(/"/g,'&quot;')}">${avatarContent}</div>
-      <div style="font-size:13px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:4px;white-space:nowrap;letter-spacing:.5px">${r.posto || '—'}</div>
-      <div style="font-size:13px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap;letter-spacing:.5px">RE ${r.re}</div>
-      <div style="font-size:16px;font-weight:700;color:var(--tx);line-height:1.3;word-break:break-word;max-width:100%">${r.nome_guerra || r.nome}</div>
+      <div data-foto-re="${escHtml(r.re)}" data-nome="${escHtml(r.nome_guerra||r.nome)}" data-posto="${escHtml(r.posto||'')}">${avatarContent}</div>
+      <div style="font-size:13px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:4px;white-space:nowrap;letter-spacing:.5px">${escHtml(r.posto || '—')}</div>
+      <div style="font-size:13px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap;letter-spacing:.5px">RE ${escHtml(r.re)}</div>
+      <div style="font-size:16px;font-weight:700;color:var(--tx);line-height:1.3;word-break:break-word;max-width:100%">${escHtml(r.nome_guerra || r.nome)}</div>
       <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:2px">
         <div style="font-size:11px;padding:2px 8px;border-radius:10px;background:${statusColor}22;color:${statusColor};font-family:'DM Mono',monospace;white-space:nowrap">${statusTxt}</div>
         ${uisBadge(r.re)}${iasBadge(r.re)}
@@ -2916,7 +2916,7 @@ function p1ShowPmList(pms, label) {
 
   det.innerHTML = `<div id="p1-unit-panel" style="margin-top:14px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px 18px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:var(--gold);text-transform:uppercase">${label} — ${pms.length} militares</div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:var(--gold);text-transform:uppercase">${escHtml(label)} — ${pms.length} militares</div>
       <button onclick="p1CloseUnit()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--tx3);border-radius:4px;padding:3px 10px;cursor:pointer;font-size:19px">✕ Fechar</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">${cards}</div>
@@ -3002,7 +3002,7 @@ function renderHome() {
     if (restrVenc > 0) alertas.push(`<span style="color:#c8a84b">⚠ ${restrVenc} restr. vencem</span>`);
     if (ferGozo > 0)   alertas.push(`<span style="color:#5a9de0">${ferGozo} em férias</span>`);
     if (fer15 > 0)     alertas.push(`<span style="color:#5a9de0">${fer15} férias em 15d</span>`);
-    if (topAfst)       alertas.push(`<span style="color:var(--tx3)">Afst líder: <span style="color:var(--tx2)">${topAfst[0]} (${topAfst[1]})</span></span>`);
+    if (topAfst)       alertas.push(`<span style="color:var(--tx3)">Afst líder: <span style="color:var(--tx2)">${escHtml(topAfst[0])} (${topAfst[1]})</span></span>`);
 
     const allCiaKeys = CIA_STRUCT.flatMap(c => c.units.flatMap(u => u.keys));
     const unmatchedOpms = [...new Set(p1Data.map(r => r.opm).filter(o => o && !_opmMatch(o, allCiaKeys)))];
@@ -3011,7 +3011,7 @@ function renderHome() {
       if (!pms.length) return '';
       const s = stOf(pms);
       return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:${color};width:48px;flex-shrink:0">${label}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:${color};width:48px;flex-shrink:0">${escHtml(label)}</div>
         <div style="flex:1;background:rgba(255,255,255,.06);border-radius:3px;height:6px;overflow:hidden">
           <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:3px"></div>
         </div>
@@ -3089,7 +3089,7 @@ function renderHome() {
       .sort(([, a], [, b]) => (b.a / b.m) - (a.a / a.m));
     const topCritico = crimesAcima[0];
     const criticoTxt = topCritico
-      ? `Crítico em ${mesR}: <span style="color:#e8b840">${topCritico[0]}</span> <span style="color:#e8b840">+${Math.round((topCritico[1].a / topCritico[1].m - 1) * 100)}%</span>`
+      ? `Crítico em ${mesR}: <span style="color:#e8b840">${escHtml(topCritico[0])}</span> <span style="color:#e8b840">+${Math.round((topCritico[1].a / topCritico[1].m - 1) * 100)}%</span>`
       : `<span style="color:#4bc87a">✓ Em ${mesR}, todos os crimes dentro da meta</span>`;
 
     p3Preview = `
@@ -3130,7 +3130,7 @@ function renderHome() {
           const col = ok ? '#4bc87a' : '#e8b840';
           const status = ok ? '✓ Na meta' : '✗ Acima';
           return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0${i<crimesSoma.length-1?';border-bottom:1px solid var(--bd)':''}">
-            <div style="flex:1;font-size:19px;color:#ffffff">${d.c}</div>
+            <div style="flex:1;font-size:19px;color:#ffffff">${escHtml(d.c)}</div>
             <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff">Meta <b style="color:#ffffff">${d.meta}</b></div>
             <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff">Aval <b style="color:${col}">${d.aval}</b></div>
             <div style="font-family:'DM Mono',monospace;font-size:19px;color:${col};width:72px;text-align:right">${status}</div>
@@ -3160,7 +3160,7 @@ function renderHome() {
           const col = item.fora >= 4 ? '#e8b840' : item.fora >= 2 ? '#c8a84b' : '#e0d0a0';
           return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0${i<munRank.length-1?';border-bottom:1px solid var(--bd)':''}">
             <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;width:22px;flex-shrink:0">${i+1}</div>
-            <div style="flex:1;font-size:19px;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.m}</div>
+            <div style="flex:1;font-size:19px;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(item.m)}</div>
             <div style="font-family:'DM Mono',monospace;font-size:19px;color:${col};font-weight:700;white-space:nowrap">${item.fora}/7 ▲</div>
           </div>`;
         }).join('');
@@ -3219,7 +3219,7 @@ function renderHome() {
           const pct = maxTipo > 0 ? Math.round(cnt / maxTipo * 100) : 0;
           return `<div style="margin-bottom:${i<tipoRank.length-1?'12':'0'}px">
             <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-              <div style="font-size:19px;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:76%">${tipo}</div>
+              <div style="font-size:19px;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:76%">${escHtml(tipo)}</div>
               <div style="font-family:'DM Mono',monospace;font-size:19px;color:#e05555;font-weight:700">${cnt}</div>
             </div>
             <div style="background:rgba(255,255,255,.06);border-radius:3px;height:5px"><div style="height:100%;width:${pct}%;background:#e05555;border-radius:3px"></div></div>
@@ -3302,7 +3302,7 @@ function renderHome() {
     <div class="ph">
       <div>
         <div class="ph-tag">40º BPM/I — SISTEMA DE GESTÃO</div>
-        <div class="ph-title">${saudacao}, <span>${nome || 'Usuário'}</span></div>
+        <div class="ph-title">${saudacao}, <span>${escHtml(nome || 'Usuário')}</span></div>
         <div style="font-size:19px;color:#ffffff;margin-top:4px;text-transform:capitalize">${data} · ${hora}</div>
       </div>
     </div>

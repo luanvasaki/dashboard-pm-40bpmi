@@ -164,6 +164,8 @@ function openUserEditModal(id) {
   _editingSecoes = {};
   const me = JSON.parse(localStorage.getItem('auth_user') || '{}');
   const canDelete = ['admin', 'p3', 'ti'].includes(me.role);
+  const canReset  = ['admin', 'p3'].includes(me.role);
+  const canEditAcesso = ['admin', 'p3', 'ti'].includes(me.role);
 
   document.getElementById('admu-re').textContent   = `RE ${u.matricula}`;
   document.getElementById('admu-nome').textContent = u.nome;
@@ -180,7 +182,10 @@ function openUserEditModal(id) {
   const sa = u.secoes_acesso || {};
   SECOES_ACESSO_DEF.forEach(({ key }) => { _editingSecoes[key] = sa[key] || 'none'; });
 
-  document.getElementById('admu-secoes').innerHTML = SECOES_ACESSO_DEF.map(({ key, label, cor }) => {
+  const admuSecoesEl = document.getElementById('admu-secoes');
+  admuSecoesEl.style.opacity = canEditAcesso ? '' : '.5';
+  admuSecoesEl.style.pointerEvents = canEditAcesso ? '' : 'none';
+  admuSecoesEl.innerHTML = SECOES_ACESSO_DEF.map(({ key, label, cor }) => {
     const cur = sa[key] || 'none';
     // P1 tem nível extra "nominal" para controle de dados individuais
     const vals = key === 'p1' ? ['none','viewer','nominal','editor'] : ['none','viewer','editor'];
@@ -205,7 +210,8 @@ function openUserEditModal(id) {
     statusHtml = `<button onclick="admStatusFromModal('approved')" style="padding:5px 12px;background:rgba(61,191,122,.1);border:1px solid rgba(61,191,122,.25);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:12px">Reativar</button>`;
   }
   document.getElementById('admu-status-actions').innerHTML = statusHtml;
-  document.getElementById('admu-btn-del').style.display = canDelete ? 'inline-block' : 'none';
+  document.getElementById('admu-btn-del').style.display   = canDelete ? 'inline-block' : 'none';
+  document.getElementById('admu-btn-reset').style.display = canReset  ? 'inline-block' : 'none';
   document.getElementById('admu-msg').textContent = '';
   document.getElementById('adm-user-mo').style.display = 'flex';
 }
@@ -214,7 +220,10 @@ async function admSaveUserEdit() {
   const id = _editingUserId; if (!id) return;
   const posto = document.getElementById('admu-posto-sel').value;
   const secao = document.getElementById('admu-secao-sel').value;
-  const secoes_acesso = { ..._editingSecoes };
+  const me = JSON.parse(localStorage.getItem('auth_user') || '{}');
+  const canEditAcesso = ['admin', 'p3', 'ti'].includes(me.role);
+  const body = { secao };
+  if (canEditAcesso) body.secoes_acesso = { ..._editingSecoes };
   try {
     if (posto) {
       const r1 = await authFetch(`${API}/admin/users/${id}/posto`, {
@@ -225,11 +234,10 @@ async function admSaveUserEdit() {
     }
     const r2 = await authFetch(`${API}/admin/users/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secao, secoes_acesso })
+      body: JSON.stringify(body)
     });
     if (!r2.ok) throw new Error((await r2.json()).error);
-    if (_admUsersById[id]) { Object.assign(_admUsersById[id], { posto, secao, secoes_acesso }); }
-    const me = JSON.parse(localStorage.getItem('auth_user') || '{}');
+    if (_admUsersById[id]) { Object.assign(_admUsersById[id], { posto, secao, ...(canEditAcesso ? { secoes_acesso: body.secoes_acesso } : {}) }); }
     document.getElementById('adm-users').innerHTML = buildUserTable(_admAllUsers, me);
     showAdmuMsg('Salvo com sucesso.', 'ok');
   } catch (err) { showAdmuMsg(err.message, 'err'); }
@@ -256,12 +264,12 @@ async function admStatusFromModal(status) {
 async function admResetSenhaFromModal() {
   const id = _editingUserId; if (!id) return;
   const u = _admUsersById[id];
-  if (!confirm(`Redefinir a senha de "${u?.nome}"?\n\nA senha temporária será a matrícula do usuário.\nEle será obrigado a criar uma nova senha no próximo login.`)) return;
+  if (!confirm(`Redefinir a senha de "${u?.nome}"?\n\nUma senha temporária aleatória será gerada.\nEle será obrigado a criar uma nova senha no próximo login.`)) return;
   try {
     const res  = await authFetch(`${API}/admin/users/${id}/reset-senha`, { method: 'POST' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    showAdmuMsg(`Senha redefinida. Temporária: matrícula ${data.matricula}`, 'ok');
+    showAdmuMsg(`Senha redefinida. Temporária: ${data.senhaTemporaria}`, 'ok');
   } catch (err) { showAdmuMsg(err.message, 'err'); }
 }
 

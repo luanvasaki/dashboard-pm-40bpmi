@@ -345,12 +345,12 @@ function prodRender() {
       const pct = maxV > 0 ? Math.round(v / maxV * 100) : 0;
       const tooltipRows = (meses || []).map(([m, mv]) =>
         `<div style="display:flex;justify-content:space-between;gap:20px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.06)">
-          <span style="font-size:18px;color:rgba(255,255,255,.7)">${m}</span>
+          <span style="font-size:18px;color:rgba(255,255,255,.7)">${escHtml(m)}</span>
           <span style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:#e8c96a">${mv.toLocaleString('pt-BR')}</span>
         </div>`).join('');
       const tooltipHtml = meses && meses.length
         ? `<div class="prod-rank-tooltip">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${barCor};margin-bottom:8px">${cia}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${barCor};margin-bottom:8px">${escHtml(cia)}</div>
             ${tooltipRows}
             <div style="display:flex;justify-content:space-between;gap:20px;padding:5px 0 0">
               <span style="font-size:18px;font-weight:700;color:#ffffff">Total</span>
@@ -359,7 +359,7 @@ function prodRender() {
           </div>` : '';
       return `<div style="position:relative;margin-bottom:${i < rows.length - 1 ? '16' : '0'}px" class="prod-rank-row">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-          <div style="font-size:22px;color:${barCor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:68%">${i + 1}. ${cia}</div>
+          <div style="font-size:22px;color:${barCor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:68%">${i + 1}. ${escHtml(cia)}</div>
           <div style="font-family:'DM Mono',monospace;font-size:22px;color:${barCor};font-weight:700">${v.toLocaleString('pt-BR')}</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:3px;height:14px;cursor:default"><div style="height:100%;width:${pct}%;background:${barCor};border-radius:3px"></div></div>
@@ -416,12 +416,12 @@ function prodRender() {
     const [ciaTopo, valTopo] = ciaCompRank[0];
     const runners = ciaCompRank.slice(1, 4).map(([c, v]) =>
       `<div style="display:flex;justify-content:space-between;margin-top:12px">
-        <span style="font-size:22px;color:#ffffff">${c}</span>
+        <span style="font-size:22px;color:#ffffff">${escHtml(c)}</span>
         <span style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;font-weight:700">${v.toLocaleString('pt-BR')}</span>
       </div>`).join('');
     insCards.push(`<div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid var(--bd2);border-radius:10px;padding:22px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:12px">CIA em Destaque</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:800;color:var(--gold2);line-height:1.1;margin-bottom:6px">${ciaTopo}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:800;color:var(--gold2);line-height:1.1;margin-bottom:6px">${escHtml(ciaTopo)}</div>
       <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;margin-bottom:14px">${valTopo.toLocaleString('pt-BR')} ações (presos + armas + veíc.)</div>
       ${runners}
     </div>`);
@@ -444,7 +444,7 @@ function prodRender() {
       const pct = maxMes > 0 ? Math.round(v / maxMes * 100) : 0;
       return `<div style="margin-bottom:${i < 4 ? '16' : '0'}px">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-          <div style="font-size:22px;color:#ffffff;font-weight:${i === 0 ? '700' : '400'}">${i + 1}. ${m}</div>
+          <div style="font-size:22px;color:#ffffff;font-weight:${i === 0 ? '700' : '400'}">${i + 1}. ${escHtml(m)}</div>
           <div style="font-family:'DM Mono',monospace;font-size:22px;color:#ffffff;font-weight:700">${v.toLocaleString('pt-BR')}</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:3px;height:8px"><div style="height:100%;width:${pct}%;background:#f0c040;border-radius:3px"></div></div>
@@ -995,7 +995,7 @@ function renderTRModalDetail() {
   const barRow = (name, val, barPct, cor, sub) =>
     `<div style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;gap:8px">
-        <div style="font-size:19px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${name}">${name}</div>
+        <div style="font-size:19px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(name)}">${escHtml(name)}</div>
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:${cor};font-weight:700;flex-shrink:0">${val}</div>
       </div>
       <div style="background:rgba(255,255,255,.06);border-radius:3px;height:8px"><div style="height:100%;width:${Math.min(100,barPct)}%;background:${cor};border-radius:3px"></div></div>
@@ -1007,7 +1007,7 @@ function renderTRModalDetail() {
     const enc = encodeURIComponent(name);
     return `<div style="margin-bottom:12px;cursor:pointer;transition:opacity .15s" onclick="trDrillNat(this,decodeURIComponent('${enc}'),'${sortMode}')" title="Clique para ver desempenho por CIA">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;gap:8px">
-        <div style="font-size:19px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${name}">${name}<span style="font-size:18px;color:var(--tx3);margin-left:6px;vertical-align:middle;user-select:none">▾ CIA</span></div>
+        <div style="font-size:19px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(name)}">${escHtml(name)}<span style="font-size:18px;color:var(--tx3);margin-left:6px;vertical-align:middle;user-select:none">▾ CIA</span></div>
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:${cor};font-weight:700;flex-shrink:0">${val}</div>
       </div>
       <div style="background:rgba(255,255,255,.06);border-radius:3px;height:8px"><div style="height:100%;width:${Math.min(100,barPct)}%;background:${cor};border-radius:3px"></div></div>
@@ -1184,7 +1184,7 @@ function trDrillNat(el, nat, sortMode) {
     const pctCor = d.pct >= 70 ? COR_BOM : d.pct >= 50 ? COR_MED : COR_MAU;
     return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)">
       <div style="width:8px;height:8px;border-radius:50%;background:${ciaCorByName(d.cia)};flex-shrink:0"></div>
-      <div style="flex:1;font-size:18px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.cia}</div>
+      <div style="flex:1;font-size:18px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(d.cia)}</div>
       <div style="font-family:'DM Mono',monospace;font-size:18px;color:${pctCor};font-weight:700;flex-shrink:0">${parseFloat(d.pct.toFixed(1))}%</div>
       <div style="font-size:18px;color:var(--tx3);flex-shrink:0;min-width:58px;text-align:right">${d.taloes.toLocaleString('pt-BR')} tal.</div>
       ${d.fora > 0 ? `<div style="font-size:18px;color:${COR_MAU};flex-shrink:0;min-width:52px;text-align:right">~${d.fora.toLocaleString('pt-BR')} fora</div>` : '<div style="min-width:52px"></div>'}
@@ -1195,7 +1195,7 @@ function trDrillNat(el, nat, sortMode) {
   panel.dataset.drill = 'tr';
   panel.style.cssText = 'background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 14px;margin:-4px 0 14px;animation:fu .15s ease';
   panel.innerHTML =
-    `<div style="font-size:18px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Desempenho por CIA — ${nat}</div>` +
+    `<div style="font-size:18px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Desempenho por CIA — ${escHtml(nat)}</div>` +
     ciaRows +
     `<div style="font-size:18px;color:var(--tx3);margin-top:8px;text-align:right">clique novamente para fechar</div>`;
 
@@ -1279,7 +1279,7 @@ async function renderCursosModalDetail() {
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:8px">
             <div style="font-size:19px;color:var(--tx);display:flex;align-items:center;gap:8px;overflow:hidden">
               <div style="width:9px;height:9px;border-radius:50%;background:${c};flex-shrink:0"></div>
-              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cia}</span>
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(cia)}</span>
             </div>
             <div style="font-family:'DM Mono',monospace;font-size:19px;color:${c};font-weight:700;flex-shrink:0">${n} PM${n !== 1 ? 's' : ''}</div>
           </div>
@@ -1344,7 +1344,7 @@ async function renderCursosModalDetail() {
       <td style="padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.04);text-align:center">
         <span style="font-family:'DM Mono',monospace;font-size:19px;padding:1px 7px;border-radius:8px;background:${cor}22;color:${cor};display:inline-block;margin-bottom:4px">${c.tipo}</span>
         <div style="font-size:19px;font-weight:600;color:var(--tx);display:flex;align-items:center;justify-content:center;gap:8px">
-          <span>${c.nome_curso||'—'}</span>
+          <span>${escHtml(c.nome_curso||'—')}</span>
           ${c.pms.length ? `<span style="font-family:'DM Mono',monospace;font-size:19px;padding:1px 8px;border-radius:8px;background:${COR}22;color:${COR};font-weight:400;white-space:nowrap">${c.pms.length} PM${c.pms.length !== 1 ? 's' : ''}</span>` : ''}
         </div>
       </td>
@@ -1731,8 +1731,8 @@ function renderConsegModalDetail() {
         : `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:22px;color:#e05555">✗</td>`;
     }).join('');
     return `<tr style="border-bottom:1px solid var(--bd2)">
-      <td style="padding:9px 12px;font-size:22px;color:#ffffff;font-weight:600;white-space:nowrap">${mun}</td>
-      <td style="padding:9px 12px;font-size:22px;color:#ffffff">${cia}</td>
+      <td style="padding:9px 12px;font-size:22px;color:#ffffff;font-weight:600;white-space:nowrap">${escHtml(mun)}</td>
+      <td style="padding:9px 12px;font-size:22px;color:#ffffff">${escHtml(cia)}</td>
       ${cells}
     </tr>`;
   }).join('');
@@ -1951,8 +1951,8 @@ function renderPvsModalDetail() {
     const { tooltip } = ctx;
     if (tooltip.opacity === 0) { el.style.opacity = '0'; return; }
     let html = '';
-    if (tooltip.title?.length) html += `<div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.9);margin-bottom:8px">${tooltip.title[0]}</div>`;
-    tooltip.body?.forEach(b => b.lines.forEach(l => { html += `<div style="font-family:'DM Mono',monospace;font-size:18px;color:#f4f6fc">${l.trim()}</div>`; }));
+    if (tooltip.title?.length) html += `<div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.9);margin-bottom:8px">${escHtml(tooltip.title[0])}</div>`;
+    tooltip.body?.forEach(b => b.lines.forEach(l => { html += `<div style="font-family:'DM Mono',monospace;font-size:18px;color:#f4f6fc">${escHtml(l.trim())}</div>`; }));
     if (tooltip.afterBody?.length) {
       tooltip.afterBody.forEach(l => {
         if (l === '') { html += '<div style="height:6px"></div>'; return; }
@@ -1960,7 +1960,7 @@ function renderPvsModalDetail() {
         // Colorir linha de CIA com a cor correspondente
         const ciaM = l.match(/CIA:\s*([\dºa-zA-Z ]+CIA)/i);
         if (ciaM) col = ciaCorByName(ciaM[1].trim()) || col;
-        html += `<div style="font-family:'DM Mono',monospace;font-size:18px;color:${col}">${l}</div>`;
+        html += `<div style="font-family:'DM Mono',monospace;font-size:18px;color:${col}">${escHtml(l)}</div>`;
       });
     }
     el.innerHTML = html;
@@ -2301,7 +2301,7 @@ function renderProdDetail() {
               const det = document.getElementById('pd-mun-detail');
               if (!det) return;
               det.style.display = '';
-              det.innerHTML = `<div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:10px">Naturezas — ${mun}</div><canvas id="pd-mun-nat-ch"></canvas>`;
+              det.innerHTML = `<div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:10px">Naturezas — ${escHtml(mun)}</div><canvas id="pd-mun-nat-ch"></canvas>`;
               if (munDetChart) { munDetChart.destroy(); munDetChart = null; }
               const natCtx = document.getElementById('pd-mun-nat-ch')?.getContext('2d');
               if (natCtx && nats.length) {
@@ -2527,7 +2527,7 @@ function renderProdDetail() {
         natList.forEach((nat, i) => {
           const rowTot = mesesUsados.reduce((s,m) => s+(natMes[nat][m]||0), 0);
           tbl += `<tr style="background:${i%2?'':'rgba(255,255,255,.02)'}">
-            <td style="padding:8px 12px;font-size:19px;color:var(--tx)">${nat}</td>`;
+            <td style="padding:8px 12px;font-size:19px;color:var(--tx)">${escHtml(nat)}</td>`;
           mesesUsados.forEach(m => { const v = natMes[nat][m]||0; tbl += `<td style="padding:8px 12px;text-align:right;font-size:19px;color:${v>0?'var(--tx)':'var(--tx3)'}">${v>0?v:'—'}</td>`; });
           tbl += `<td style="padding:8px 12px;text-align:right;font-size:19px;font-weight:700;color:${cor}">${rowTot}</td></tr>`;
         });
@@ -2641,7 +2641,7 @@ function renderProdDetail() {
       const pct = max > 0 ? Math.round(val/max*100) : 0;
       return `<div style="margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-          <div style="font-size:19px;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:74%">${label}</div>
+          <div style="font-size:19px;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:74%">${escHtml(label)}</div>
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:${c};font-weight:700">${val}</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:2px;height:4px"><div style="height:100%;width:${pct}%;background:${c};border-radius:2px"></div></div>
@@ -2667,8 +2667,8 @@ function renderProdDetail() {
           const nContatos = vsFields.filter(f => o[f] && o[f].trim()).length;
           const quer = simRx.test((o.quer_acompanhamento||'').trim()) ? 'Sim' : naoRx.test((o.quer_acompanhamento||'').trim()) ? 'Não' : '—';
           return `<tr style="background:${i%2?'':'rgba(255,255,255,.02)'}">
-            <td style="padding:5px 8px;font-size:19px;color:var(--tx);white-space:nowrap;overflow:hidden">${o.data_ocorrencia||'—'}</td>
-            <td style="padding:5px 8px;font-size:19px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(o.bairro||'').replace(/"/g,'&quot;')}">${(o.bairro||'—')}</td>
+            <td style="padding:5px 8px;font-size:19px;color:var(--tx);white-space:nowrap;overflow:hidden">${escHtml(o.data_ocorrencia||'—')}</td>
+            <td style="padding:5px 8px;font-size:19px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(o.bairro||'')}">${escHtml(o.bairro||'—')}</td>
             <td style="padding:5px 8px;font-size:19px;color:${quer==='Sim'?'#4bc87a':quer==='Não'?'#f07878':'var(--tx3)'};text-align:center">${quer}</td>
             <td style="padding:5px 8px;font-size:19px;color:${VD_COR2};text-align:center;font-family:'DM Mono',monospace">${nContatos}</td>
           </tr>`;
@@ -3499,7 +3499,7 @@ function renderDDSection() {
         <th style="${thR};text-align:center">Presos</th>
       </tr></thead>
       <tbody>${rankingRows.map(r => `<tr>
-        <td style="${tdR};font-weight:800;color:${ciaCorByName(r.cia)}">${r.cia}</td>
+        <td style="${tdR};font-weight:800;color:${ciaCorByName(r.cia)}">${escHtml(r.cia)}</td>
         <td style="${tdR};text-align:center;color:#ffffff">${r.cTotal}</td>
         <td style="${tdR};text-align:center;color:#ffffff">${r.cAver}</td>
         <td style="${tdR};text-align:center;color:var(--gold2)">${r.cPct}</td>
@@ -3672,7 +3672,7 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
       const cor = donutCors[i];
       const pct = (v, base) => base > 0 ? `<span style="color:#777"> (${((v / base) * 100).toFixed(1)}%)</span>` : '';
       el.innerHTML = `
-        <div style="font-size:19px;font-weight:700;color:${cor};letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid ${cor}44">${DD_CIAS[i]}</div>
+        <div style="font-size:19px;font-weight:700;color:${cor};letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid ${cor}44">${escHtml(DD_CIAS[i])}</div>
         <div style="display:grid;grid-template-columns:auto auto;gap:4px 14px;align-items:baseline">
           <span style="color:#888">Total DDs</span><span style="color:#fff;font-weight:700">${t}${pct(t, total)}</span>
           <span style="color:#888">c/ Êxito</span><span style="color:#5ae09a;font-weight:700">${donutExito[i]}${pct(donutExito[i], t)}</span>
@@ -3729,11 +3729,12 @@ const mesesComDados = new Set(MES_ORD.filter(m => todos.some(r => MES_ORD[new Da
         const pct     = total > 0 ? ((val / total) * 100).toFixed(1) : '0.0';
         const exitPct = val > 0 ? ((exit / val) * 100).toFixed(1) : '0.0';
         const hidden  = ddDonutHidden.has(cia);
-        return `<div onclick="ddToggleDonut('${cia.replace(/'/g, "\\'")}')" title="${hidden ? 'Mostrar' : 'Ocultar'} ${cia} no gráfico" style="display:grid;grid-template-columns:auto 130px 130px;gap:8px;align-items:center;cursor:pointer;opacity:${hidden ? 0.38 : 1};padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+        const ciaJs = (cia||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        return `<div onclick="ddToggleDonut('${ciaJs}')" title="${hidden ? 'Mostrar' : 'Ocultar'} ${escHtml(cia)} no gráfico" style="display:grid;grid-template-columns:auto 130px 130px;gap:8px;align-items:center;cursor:pointer;opacity:${hidden ? 0.38 : 1};padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)">
           <div style="display:flex;align-items:center;gap:8px">
             <div style="width:12px;height:12px;border-radius:2px;background:${hidden ? 'rgba(255,255,255,.2)' : donutCors[i]};flex-shrink:0"></div>
             <div style="width:12px;height:12px;border-radius:2px;background:${hidden ? 'rgba(255,255,255,.2)' : exitoCor};flex-shrink:0"></div>
-            <span style="font-size:21px;color:${hidden ? 'rgba(255,255,255,.35)' : donutCors[i]};font-family:'DM Mono',monospace;font-weight:700">${cia}</span>
+            <span style="font-size:21px;color:${hidden ? 'rgba(255,255,255,.35)' : donutCors[i]};font-family:'DM Mono',monospace;font-weight:700">${escHtml(cia)}</span>
           </div>
           <div style="text-align:right">
             <span style="font-size:22px;color:${hidden ? 'rgba(255,255,255,.35)' : '#ffffff'};font-family:'Barlow Condensed',sans-serif;font-weight:700">${val}</span>

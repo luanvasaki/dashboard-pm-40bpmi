@@ -356,15 +356,15 @@ function _ocorrRenderDedupe(dups, allRows) {
       return `<label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;padding:5px 8px;border-radius:4px;background:${isLast ? 'rgba(90,158,224,0.10)' : 'none'};margin:1px 0">
         <input type="radio" name="${safe}" value="${idx}" ${isLast ? 'checked' : ''} style="margin-top:2px;accent-color:#5a9de0;flex-shrink:0">
         <span style="font-size:13px;line-height:1.5">
-          <span style="color:var(--tx3)">${row.DataOcorrencia || '—'}</span>
+          <span style="color:var(--tx3)">${escHtml(row.DataOcorrencia || '—')}</span>
           &nbsp;·&nbsp;
-          <b style="color:var(--tx)">${row.Rubrica || '—'}</b>
-          ${row.Conduta ? `<span style="color:var(--tx3)"> · ${row.Conduta}</span>` : ''}
+          <b style="color:var(--tx)">${escHtml(row.Rubrica || '—')}</b>
+          ${row.Conduta ? `<span style="color:var(--tx3)"> · ${escHtml(row.Conduta)}</span>` : ''}
         </span>
       </label>`;
     }).join('');
     return `<div style="background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:10px 12px">
-      <div style="font-family:'DM Mono',monospace;font-size:12px;color:#5a9de0;letter-spacing:1px;margin-bottom:6px">BO ${bo} &nbsp;·&nbsp; ${idxs.length} registros</div>
+      <div style="font-family:'DM Mono',monospace;font-size:12px;color:#5a9de0;letter-spacing:1px;margin-bottom:6px">BO ${escHtml(bo)} &nbsp;·&nbsp; ${idxs.length} registros</div>
       ${items}
     </div>`;
   }).join('');
