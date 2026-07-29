@@ -29,14 +29,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS sgp_sync_jobs_bulk_ativo_idx
 ALTER TABLE sgp_sync_jobs ENABLE ROW LEVEL SECURITY;
 
 -- ═══════════════════════════════════════════════════════════════
--- PRÉ-REQUISITO: efetivo_pm.re precisa ser único (o agente faz
--- upsert por RE). Rode a query abaixo ANTES de aplicar a constraint
--- — se ela devolver alguma linha, existem REs duplicados no efetivo
--- atual e a criação da constraint vai falhar até isso ser corrigido:
+-- OPCIONAL (não bloqueia o agente): efetivo_pm.re idealmente seria
+-- único. O agente não depende disso — ele checa se o RE já existe
+-- antes de decidir entre update/insert, então funciona mesmo com
+-- dados antigos duplicados por erro de digitação.
+--
+-- Se quiser corrigir e criar a constraint no futuro, rode primeiro:
 --
 --   SELECT re, COUNT(*) FROM efetivo_pm GROUP BY re HAVING COUNT(*) > 1;
 --
--- Só depois de confirmar que não há duplicados, rode:
+-- Corrija os RE incorretos que aparecerem e só então rode:
 --
 --   CREATE UNIQUE INDEX IF NOT EXISTS efetivo_pm_re_idx ON efetivo_pm (re);
 -- ═══════════════════════════════════════════════════════════════

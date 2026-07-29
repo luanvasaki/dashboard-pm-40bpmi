@@ -71,7 +71,8 @@ async function buscarDadosPM(re6) {
   const funcaoPrincipal = funcoes.find(f => f.Principal === 'S') || funcoes[0];
 
   return {
-    re:          String(result.numeroREPM),
+    // efetivo_pm guarda o RE com dígito verificador (ex: "151626-4").
+    re:          `${result.numeroREPM}-${trim(result.digitoREPM)}`,
     nome:        trim(result.nomePM),
     nome_guerra: trim(result.nomeGuePM),
     genero:      trim(result.sexoPM),
@@ -98,11 +99,24 @@ async function buscarFotoPM(re6) {
   return `data:${sniffMime(base64)};base64,${base64}`;
 }
 
+// Não depende de constraint única no banco (efetivo_pm pode ter RE duplicado
+// por erro de digitação antigo) — checa se existe e decide update ou insert.
+async function upsertEfetivo(dados) {
+  const { data: existentes, error: erroBusca } = await supabase.from('efetivo_pm').select('id').eq('re', dados.re);
+  if (erroBusca) throw new Error(`Falha ao consultar efetivo_pm: ${erroBusca.message}`);
+
+  if (existentes.length) {
+    const { error } = await supabase.from('efetivo_pm').update(dados).eq('re', dados.re);
+    if (error) throw new Error(`Falha ao atualizar efetivo_pm: ${error.message}`);
+  } else {
+    const { error } = await supabase.from('efetivo_pm').insert(dados);
+    if (error) throw new Error(`Falha ao inserir em efetivo_pm: ${error.message}`);
+  }
+}
+
 async function sincronizarUmRE(re6) {
   const dados = await buscarDadosPM(re6);
-
-  const { error: erroEfetivo } = await supabase.from('efetivo_pm').upsert(dados, { onConflict: 're' });
-  if (erroEfetivo) throw new Error(`Falha ao gravar efetivo_pm: ${erroEfetivo.message}`);
+  await upsertEfetivo(dados);
 
   try {
     const foto = await buscarFotoPM(re6);
