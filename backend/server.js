@@ -1007,6 +1007,58 @@ app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3', 'p1'), a
 });
 
 // ═══════════════════════════════════════════════════════════════
+// ROTAS P1 — SINCRONIZAÇÃO COM O SGP (WSSCPM)
+// Cria pedidos numa fila (sgp_sync_jobs) que só é processada pelo agente
+// rodando no computador do batalhão (único ponto com acesso à intranet
+// da PM). Este backend nunca chama o WSSCPM diretamente.
+// ═══════════════════════════════════════════════════════════════
+const SGP_SYNC_TABLE = 'sgp_sync_jobs';
+
+// [POST /api/efetivo/sync] — cria um pedido de sincronização (RE único ou efetivo completo).
+app.post('/api/efetivo/sync', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+    const { tipo, re } = req.body;
+    if (!['single', 'bulk'].includes(tipo)) return res.status(400).json({ error: 'tipo deve ser "single" ou "bulk".' });
+    if (tipo === 'single' && !/^\d{6}$/.test(String(re || ''))) {
+      return res.status(400).json({ error: 'Informe os 6 dígitos do RE (sem o dígito verificador).' });
+    }
+
+    const { data, error } = await supabase.from(SGP_SYNC_TABLE).insert({
+      tipo,
+      re: tipo === 'single' ? re : null,
+      solicitado_por: req.user.nome || req.user.matricula,
+    }).select().single();
+
+    if (error) {
+      // Índice único impede 2 pedidos "bulk" simultâneos — devolve mensagem amigável.
+      if (error.code === '23505') return res.status(409).json({ error: 'Já existe uma atualização de efetivo completo em andamento.' });
+      throw new Error(error.message);
+    }
+    await logAcesso(req, 'sgp_sync_pedido', tipo === 'single' ? `RE ${re}` : 'efetivo completo');
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// [GET /api/efetivo/sync/status] — últimos pedidos, para o dashboard acompanhar o andamento.
+app.get('/api/efetivo/sync/status', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
+  try {
+    if (!supabase) return res.json([]);
+    const { data, error } = await supabase
+      .from(SGP_SYNC_TABLE)
+      .select('*')
+      .order('criado_em', { ascending: false })
+      .limit(10);
+    if (error) throw new Error(error.message);
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
 // ROTAS P1 — AFASTAMENTOS
 // Gerencia afastamentos de PMs (férias, licenças, etc.)
 // ═══════════════════════════════════════════════════════════════

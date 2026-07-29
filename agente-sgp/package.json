@@ -1,0 +1,14 @@
+{
+  "name": "agente-sgp-40bpmi",
+  "version": "1.0.0",
+  "description": "Agente que roda no computador do batalhão (intranet PM) e sincroniza efetivo_pm/fotos_pm com o webservice WSSCPM.",
+  "main": "agente.js",
+  "scripts": {
+    "start": "node agente.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.99.1",
+    "dotenv": "^17.4.2",
+    "fast-xml-parser": "^4.5.0"
+  }
+}

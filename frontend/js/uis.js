@@ -554,11 +554,11 @@ function renderUisPmContent(restricoes) {
 let _uisRestMap = null; // cache: { reNorm → array de restrições ATIVAS }
 
 // Normaliza RE para chave de lookup — cobre todos os formatos do PM-SP:
-//   "180673-4"  (6 dígitos + hífen + dígito verificador) → "180673"
+//   "180673-4"  (6 dígitos + hífen + dígito verificador)   → "180673"
 //   "1806734"   (7 dígitos sem hífen = base + verificador) → "180673"
-//   "180673"    (6 dígitos sem verificador)               → "180673"
-//   "98098-3"   (5 dígitos + hífen + verificador)         → "98098"
-//   "98098"     (5 dígitos sem verificador)               → "98098"
+//   "180673"    (6 dígitos sem verificador)                → "180673"
+//   "98098-3"   (5 dígitos + hífen + verificador)          → "98098"
+//   "98098"     (5 dígitos sem verificador)                → "98098"
 function uisNormRE(re) {
   const s = String(re || '');
   if (s.includes('-')) return s.split('-')[0].replace(/\D/g, '');

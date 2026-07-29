@@ -1,0 +1,42 @@
+-- Tabela: sgp_sync_jobs
+-- Fila de pedidos de sincronização com o webservice WSSCPM (SOAP, intranet PM).
+-- O backend (Vercel) só cria/lê pedidos aqui — quem processa é o agente
+-- rodando no computador do batalhão, que é o único ponto com acesso à
+-- intranet da PM (webservices.intranet.policiamilitar.sp.gov.br).
+--
+-- tipo='single' → busca/atualiza 1 RE específico (campo re preenchido)
+-- tipo='bulk'   → reconsulta todos os REs já existentes em efetivo_pm
+
+CREATE TABLE IF NOT EXISTS sgp_sync_jobs (
+  id              BIGSERIAL PRIMARY KEY,
+  tipo            TEXT NOT NULL CHECK (tipo IN ('single', 'bulk')),
+  re              TEXT,
+  status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'done', 'error')),
+  resultado       JSONB,
+  solicitado_por  TEXT,
+  criado_em       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  atualizado_em   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS sgp_sync_jobs_status_idx ON sgp_sync_jobs (status, criado_em);
+
+-- Garante que só exista 1 pedido "bulk" pendente/em processamento por vez
+CREATE UNIQUE INDEX IF NOT EXISTS sgp_sync_jobs_bulk_ativo_idx
+  ON sgp_sync_jobs (tipo)
+  WHERE tipo = 'bulk' AND status IN ('pending', 'processing');
+
+-- RLS: habilita (backend usa service_role key, bypassa RLS)
+ALTER TABLE sgp_sync_jobs ENABLE ROW LEVEL SECURITY;
+
+-- ═══════════════════════════════════════════════════════════════
+-- PRÉ-REQUISITO: efetivo_pm.re precisa ser único (o agente faz
+-- upsert por RE). Rode a query abaixo ANTES de aplicar a constraint
+-- — se ela devolver alguma linha, existem REs duplicados no efetivo
+-- atual e a criação da constraint vai falhar até isso ser corrigido:
+--
+--   SELECT re, COUNT(*) FROM efetivo_pm GROUP BY re HAVING COUNT(*) > 1;
+--
+-- Só depois de confirmar que não há duplicados, rode:
+--
+--   CREATE UNIQUE INDEX IF NOT EXISTS efetivo_pm_re_idx ON efetivo_pm (re);
+-- ═══════════════════════════════════════════════════════════════

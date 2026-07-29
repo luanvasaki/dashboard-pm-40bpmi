@@ -873,6 +873,102 @@ function p1UplClickOut(e) {
   if (e.target === document.getElementById('p1-upl-mo')) closeP1Upload();
 }
 
+// ═══════════════════════════════════════════════════════════════
+// SINCRONIZAÇÃO VIA SGP (WSSCPM) — pedidos processados pelo agente
+// rodando no computador do batalhão, não pelo backend.
+// ═══════════════════════════════════════════════════════════════
+let p1SgpPollTimer = null;
+
+function openP1SgpModal() {
+  document.getElementById('p1-sgp-mo').style.display = 'flex';
+  document.getElementById('p1-sgp-re').value = '';
+  document.getElementById('p1-sgp-msg').textContent = '';
+  p1SgpRefreshStatus();
+  if (p1SgpPollTimer) clearInterval(p1SgpPollTimer);
+  p1SgpPollTimer = setInterval(p1SgpRefreshStatus, 5000);
+}
+
+function closeP1SgpModal() {
+  document.getElementById('p1-sgp-mo').style.display = 'none';
+  if (p1SgpPollTimer) { clearInterval(p1SgpPollTimer); p1SgpPollTimer = null; }
+}
+
+function p1SgpClickOut(e) {
+  if (e.target === document.getElementById('p1-sgp-mo')) closeP1SgpModal();
+}
+
+async function p1SgpRequestSingle() {
+  const msg = document.getElementById('p1-sgp-msg');
+  const re = document.getElementById('p1-sgp-re').value.trim();
+  if (!/^\d{6}$/.test(re)) { msg.innerHTML = '<span style="color:#f07878">Digite os 6 dígitos do RE, sem o dígito verificador.</span>'; return; }
+  msg.innerHTML = '<span style="color:var(--tx3)">Enviando pedido...</span>';
+  try {
+    const res = await authFetch(`${API}/efetivo/sync`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo: 'single', re })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao criar pedido.');
+    msg.innerHTML = '<span style="color:#4bc87a">Pedido enviado — aguardando o agente do batalhão processar.</span>';
+    p1SgpRefreshStatus();
+  } catch (err) {
+    msg.innerHTML = `<span style="color:#f07878">${escHtml(err.message)}</span>`;
+  }
+}
+
+async function p1SgpRequestBulk() {
+  const msg = document.getElementById('p1-sgp-msg');
+  if (!confirm('Isso vai reconsultar todo o efetivo cadastrado, um por um. Pode levar bastante tempo. Continuar?')) return;
+  msg.innerHTML = '<span style="color:var(--tx3)">Enviando pedido...</span>';
+  try {
+    const res = await authFetch(`${API}/efetivo/sync`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo: 'bulk' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao criar pedido.');
+    msg.innerHTML = '<span style="color:#4bc87a">Pedido enviado — aguardando o agente do batalhão processar.</span>';
+    p1SgpRefreshStatus();
+  } catch (err) {
+    msg.innerHTML = `<span style="color:#f07878">${escHtml(err.message)}</span>`;
+  }
+}
+
+function p1SgpStatusLabel(status) {
+  const map = {
+    pending:    ['aguardando', '#e8c96a'],
+    processing: ['processando', '#5a9de0'],
+    done:       ['concluído', '#4bc87a'],
+    error:      ['erro', '#f07878'],
+  };
+  const [label, color] = map[status] || [status, 'var(--tx3)'];
+  return `<span style="color:${color}">${label}</span>`;
+}
+
+async function p1SgpRefreshStatus() {
+  const el = document.getElementById('p1-sgp-lista');
+  if (!el) return;
+  try {
+    const jobs = await authFetch(`${API}/efetivo/sync/status`).then(r => r.json());
+    if (!jobs.length) { el.innerHTML = '<span style="color:var(--tx3)">Nenhum pedido ainda.</span>'; return; }
+    el.innerHTML = jobs.map(j => {
+      const desc = j.tipo === 'single' ? `RE ${escHtml(j.re)}` : 'Efetivo completo';
+      const quando = new Date(j.criado_em).toLocaleString('pt-BR');
+      let detalhe = '';
+      if (j.status === 'done' && j.resultado) {
+        detalhe = j.tipo === 'bulk'
+          ? ` — ${j.resultado.atualizados}/${j.resultado.total} atualizados${j.resultado.erros?.length ? `, ${j.resultado.erros.length} erro(s)` : ''}`
+          : ` — ${escHtml(j.resultado.nome || '')}`;
+      } else if (j.status === 'error' && j.resultado?.erro) {
+        detalhe = ` — ${escHtml(j.resultado.erro)}`;
+      }
+      return `<div style="padding:6px 0;border-bottom:1px solid var(--bd)">${desc} · ${p1SgpStatusLabel(j.status)}${detalhe}<br><span style="color:var(--tx3);font-size:16px">${quando} · ${escHtml(j.solicitado_por || '')}</span></div>`;
+    }).join('');
+  } catch {
+    el.innerHTML = '<span style="color:#f07878">Erro ao carregar status.</span>';
+  }
+}
+
 function p1FileChange() {
   const file = document.getElementById('p1-upl-file').files[0];
   const prev = document.getElementById('p1-upl-preview');
@@ -3326,7 +3422,8 @@ function updateSidebarImports(section) {
     el.innerHTML = `
       <button onclick="openP1Upload()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Efetivo</button>
       <button onclick="openAfUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Afastamentos</button>
-      <button onclick="openQuadroUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(75,200,122,.12);border:1px solid rgba(75,200,122,.3);color:#4bc87a;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Quadro de Claros</button>`;
+      <button onclick="openQuadroUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(75,200,122,.12);border:1px solid rgba(75,200,122,.3);color:#4bc87a;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Quadro de Claros</button>
+      <button onclick="openP1SgpModal()" style="margin-top:4px;width:100%;padding:6px;background:rgba(90,224,154,.12);border:1px solid rgba(90,224,154,.3);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">⇄ Sincronizar via SGP</button>`;
   } else if (section === 'uis') {
     if (!isP1) { el.innerHTML = ''; return; }
     el.innerHTML = `
