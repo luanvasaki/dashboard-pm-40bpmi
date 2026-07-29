@@ -77,10 +77,11 @@ async function buscarDadosPM(re6) {
     nome_guerra: trim(result.nomeGuePM),
     genero:      trim(result.sexoPM),
     posto:       trim(result.codigoPostoGraduacaoPM?.siglaPostoGraduacaoPM),
-    // Se o "opm" no seu banco também incluir a Cia (ex: "40.BPM/I - 1ª Cia"),
-    // concatene aqui com result.codigoOPMAtualPM?.descricaoNivel04OPMCIA.
-    opm:         trim(result.codigoOPMAtualPM?.descricaoNivel03OPMBatalhao),
     funcao:      trim(funcaoPrincipal?.descricaoFuncaoPM) || null,
+    // OPM propositalmente de fora: quem define a lotação de cada PM é a
+    // planilha de efetivo geral, não a busca na intranet — o WSSCPM mostra
+    // a OPM atual "real" da pessoa, que pode divergir (transferências) do
+    // que a planilha do batalhão registra, e não queremos sobrescrever isso.
   };
 }
 
@@ -99,19 +100,19 @@ async function buscarFotoPM(re6) {
   return `data:${sniffMime(base64)};base64,${base64}`;
 }
 
-// Não depende de constraint única no banco (efetivo_pm pode ter RE duplicado
-// por erro de digitação antigo) — checa se existe e decide update ou insert.
+// Só atualiza gente que já está no efetivo (adicionado pela planilha).
+// Nunca insere PM novo — quem entra/sai do efetivo é decidido pela
+// planilha de efetivo geral, não por essa sincronização.
 async function upsertEfetivo(dados) {
   const { data: existentes, error: erroBusca } = await supabase.from('efetivo_pm').select('id').eq('re', dados.re);
   if (erroBusca) throw new Error(`Falha ao consultar efetivo_pm: ${erroBusca.message}`);
 
-  if (existentes.length) {
-    const { error } = await supabase.from('efetivo_pm').update(dados).eq('re', dados.re);
-    if (error) throw new Error(`Falha ao atualizar efetivo_pm: ${error.message}`);
-  } else {
-    const { error } = await supabase.from('efetivo_pm').insert(dados);
-    if (error) throw new Error(`Falha ao inserir em efetivo_pm: ${error.message}`);
+  if (!existentes.length) {
+    throw new Error(`RE ${dados.re} não está no efetivo — adicione pela planilha antes de sincronizar.`);
   }
+
+  const { error } = await supabase.from('efetivo_pm').update(dados).eq('re', dados.re);
+  if (error) throw new Error(`Falha ao atualizar efetivo_pm: ${error.message}`);
 }
 
 async function sincronizarUmRE(re6) {
