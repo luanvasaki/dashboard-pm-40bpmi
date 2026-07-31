@@ -248,11 +248,13 @@ function p1Cat(posto) {
 // Normaliza a descrição livre de afastamento (vinda do CSV ou do WSSCPM,
 // que traz muitas variações de texto) num grupo fixo, usado tanto no
 // resumo compacto do KPI quanto no detalhe expandido.
-const P1_TIPO_COLOR = { Férias:'#5a9de0', LP:'#9b59b6', LSV:'#e67e22', Conval:'#e74c3c',
+const P1_TIPO_COLOR = { Férias:'#5a9de0', Dispensa:'#26a69a', Agregação:'#8e6dc9', LP:'#9b59b6', LSV:'#e67e22', Conval:'#e74c3c',
   Núpcias:'#f1c40f', Luto:'#95a5a6', Maternidade:'#e91e63', Paternidade:'#2196f3', LTS:'#e05555', Outros:'#607090' };
 function p1CatTipo(t) {
   const tl = (t || '').toLowerCase();
   if (/f[eé]rias/.test(tl)) return 'Férias';
+  if (/dispensa/.test(tl)) return 'Dispensa';
+  if (/agrega[cç][aã]o/.test(tl)) return 'Agregação';
   if (/\blp\b|licen[cç]a.pr[eê]mio|premio/.test(tl)) return 'LP';
   if (/\blsv\b|sem.vencimento/.test(tl)) return 'LSV';
   if (/conval/.test(tl)) return 'Conval';
@@ -429,9 +431,8 @@ function renderP1() {
     </div>`;
   };
 
-  // Tipos de afastamento agrupados (normalizados, senão a lista de tipos em
-  // texto livre do WSSCPM deixa esse card gigante) — mostra só os 3 maiores
-  // grupos e soma o resto em "Outros tipos", pra manter o card compacto.
+  // Tipos de afastamento agrupados (normalizados pelas mesmas categorias do
+  // detalhe) — mostra todos os tipos que existirem hoje, cada um com seu total.
   const tiposCount = {};
   pmAfastados.forEach(r => { (afastHoje[r.re] || []).forEach(a => {
     const c = p1CatTipo(a.tipo_afastamento);
@@ -439,12 +440,7 @@ function renderP1() {
   }); });
   const _kpiRow = (label, val, color) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:#ffffff;font-size:17px">${escHtml(label)}</span><span style="color:${color};font-weight:700;font-size:20px">${val}</span></div>`;
   const tiposEntries = Object.entries(tiposCount).sort(([,a],[,b]) => b - a);
-  const TIPOS_TOP_N = 3;
-  const tiposResto = tiposEntries.slice(TIPOS_TOP_N).reduce((s,[,n]) => s + n, 0);
-  const tiposSub = (
-    tiposEntries.slice(0, TIPOS_TOP_N).map(([t,n]) => _kpiRow(t, n, P1_TIPO_COLOR[t] || '#e05555')).join('') +
-    (tiposResto ? _kpiRow('Outros tipos', tiposResto, 'var(--tx3)') : '')
-  ) || '—';
+  const tiposSub = tiposEntries.map(([t,n]) => _kpiRow(t, n, P1_TIPO_COLOR[t] || '#e05555')).join('') || '—';
 
   kpisEl.innerHTML =
     kpiCard('Total Efetivo', total,
