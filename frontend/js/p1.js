@@ -275,6 +275,8 @@ async function loadP1() {
     ]);
     if (renderingP1) renderP1();
     renderHome();
+    p1SetupFotoObserver();
+    p1LoadFotosVisiveis();
   } catch (err) {
     if (kpis) kpis.innerHTML = `<div style="color:#f07878;font-size:19px">${err.message}</div>`;
   }
@@ -2799,6 +2801,47 @@ function renderAvatarEl(el, re, foto) {
   } else {
     el.innerHTML = p1AvatarSVG(el.dataset.nome || '', el.dataset.posto || '');
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CARREGAMENTO AUTOMÁTICO DE FOTOS NAS MINIATURAS
+// Busca em lote só as fotos de quem está de fato visível na tela
+// (respeitando os filtros de CIA/EM/FT/etc já aplicados), em vez de
+// carregar todo o efetivo de uma vez ou exigir clique em cada PM.
+// ═══════════════════════════════════════════════════════════════
+let p1FotoObserver = null;
+let p1FotoDebounce = null;
+
+function p1LoadFotosVisiveis() {
+  const els = document.querySelectorAll('[data-foto-re]');
+  const pendentes = new Set();
+  els.forEach(el => {
+    const re = el.dataset.fotoRe;
+    if (re && !(re in p1Fotos)) pendentes.add(re);
+  });
+  if (!pendentes.size) return;
+
+  authFetch(`${API}/p1/fotos/lote`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ res: [...pendentes] })
+  }).then(r => r.json()).then(mapa => {
+    pendentes.forEach(re => { p1Fotos[re] = mapa[re] || null; });
+    document.querySelectorAll('[data-foto-re]').forEach(el => {
+      const re = el.dataset.fotoRe;
+      if (re in p1Fotos) renderAvatarEl(el, re, p1Fotos[re]);
+    });
+  }).catch(() => {});
+}
+
+// Observa qualquer mudança nas listas do P1 e recarrega fotos automaticamente
+// (troca de filtro, novo upload, etc.) — dispara uma única vez por rajada de mudanças.
+function p1SetupFotoObserver() {
+  if (p1FotoObserver) return;
+  p1FotoObserver = new MutationObserver(() => {
+    clearTimeout(p1FotoDebounce);
+    p1FotoDebounce = setTimeout(p1LoadFotosVisiveis, 150);
+  });
+  p1FotoObserver.observe(document.body, { childList: true, subtree: true });
 }
 
 // Abre modal de foto para um PM

@@ -1162,6 +1162,25 @@ app.get('/api/p1/foto/:re', requireAuth, async (req, res) => {
   }
 });
 
+// [POST /api/p1/fotos/lote] — retorna foto_base64 de vários RE de uma vez (evita 1 chamada por PM na tela).
+app.post('/api/p1/fotos/lote', requireAuth, async (req, res) => {
+  try {
+    if (!supabase) return res.json({});
+    const { res: listaRe } = req.body;
+    if (!Array.isArray(listaRe) || !listaRe.length) return res.json({});
+    const { data, error } = await supabase
+      .from(FOTOS_TABLE)
+      .select('re, foto_base64')
+      .in('re', listaRe.slice(0, 500));
+    if (error) throw new Error(error.message);
+    const mapa = {};
+    (data || []).forEach(r => { mapa[r.re] = r.foto_base64; });
+    res.json(mapa);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // [POST /api/p1/foto/:re] — faz upsert da foto (insert ou update pelo RE). Requer role p1 ou admin.
 app.post('/api/p1/foto/:re', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
   try {

@@ -70,7 +70,7 @@ async function buscarDadosPM(re6) {
   const funcoes = asArray(result.funcoesPM?.Funcao);
   const funcaoPrincipal = funcoes.find(f => f.Principal === 'S') || funcoes[0];
 
-  return {
+  const dados = {
     // efetivo_pm guarda o RE com dígito verificador (ex: "151626-4").
     re:          `${result.numeroREPM}-${trim(result.digitoREPM)}`,
     nome:        trim(result.nomePM),
@@ -83,6 +83,12 @@ async function buscarDadosPM(re6) {
     // a OPM atual "real" da pessoa, que pode divergir (transferências) do
     // que a planilha do batalhão registra, e não queremos sobrescrever isso.
   };
+
+  // CPF só é usado na hora, pra buscar afastamentos — nunca é salvo em lugar nenhum.
+  const docCpf = asArray(result.Documentos?.FuncionarioDocumento).find(d => Number(d.codigoTipoDocumento) === 1);
+  const cpf = docCpf ? `${trim(docCpf.Numero)}${trim(docCpf.DigitoDocumento)}` : null;
+
+  return { dados, cpf };
 }
 
 // Assinatura dos primeiros bytes do arquivo decide PNG vs JPEG.
@@ -100,11 +106,49 @@ async function buscarFotoPM(re6) {
   return `data:${sniffMime(base64)};base64,${base64}`;
 }
 
+// ProcuraAfastamentosPorCPF e BuscaAfastamentoPorOPMeData estão com um bug
+// no servidor da PM (erro de configuração de log, fora do nosso controle) —
+// ProcuraAfastamentosSemRestricaoPorCPF é a que funciona, mesmo dado equivalente.
+// Só extraímos datas/descrição/dias — nenhum dado médico (Trauma/Acidente/Parecer).
+async function buscarAfastamentosPM(cpf) {
+  const parsed = await soapCall('ProcuraAfastamentosSemRestricaoPorCPF', 'pmCPF', cpf);
+  const result = parsed?.Envelope?.Body?.ProcuraAfastamentosSemRestricaoPorCPFResponse?.ProcuraAfastamentosSemRestricaoPorCPFResult;
+  if (!result) return [];
+
+  const linhas = [];
+  for (const item of asArray(result.ListaAfastamento?.Afastamento)) {
+    linhas.push({
+      tipo_afastamento: trim(item.Descricao),
+      inicio:  item.DataInicial ? String(item.DataInicial).slice(0, 10) : null,
+      termino: item.DataFinal ? String(item.DataFinal).slice(0, 10) : null,
+      n_dias:  item.QuantidadeDia ?? null,
+    });
+  }
+  for (const item of asArray(result.ListaAgregacao?.Agregacao)) {
+    linhas.push({
+      tipo_afastamento: trim(item.Descricao),
+      inicio:  item.DataInicial ? String(item.DataInicial).slice(0, 10) : null,
+      termino: item.DataFinal ? String(item.DataFinal).slice(0, 10) : null,
+      n_dias:  null,
+    });
+  }
+  for (const item of asArray(result.ListaLicencaTratamentoSaude?.LicencaTratamentoSaude)) {
+    linhas.push({
+      tipo_afastamento: trim(item.Descricao) || 'LICENÇA TRATAMENTO DE SAÚDE',
+      inicio:  item.DataInicial ? String(item.DataInicial).slice(0, 10) : null,
+      termino: item.DataFinal ? String(item.DataFinal).slice(0, 10) : null,
+      n_dias:  null,
+    });
+  }
+  return linhas;
+}
+
 // Só atualiza gente que já está no efetivo (adicionado pela planilha).
 // Nunca insere PM novo — quem entra/sai do efetivo é decidido pela
 // planilha de efetivo geral, não por essa sincronização.
+// Devolve a OPM já cadastrada, pra reaproveitar nos afastamentos.
 async function upsertEfetivo(dados) {
-  const { data: existentes, error: erroBusca } = await supabase.from('efetivo_pm').select('id').eq('re', dados.re);
+  const { data: existentes, error: erroBusca } = await supabase.from('efetivo_pm').select('id, opm').eq('re', dados.re);
   if (erroBusca) throw new Error(`Falha ao consultar efetivo_pm: ${erroBusca.message}`);
 
   if (!existentes.length) {
@@ -113,11 +157,29 @@ async function upsertEfetivo(dados) {
 
   const { error } = await supabase.from('efetivo_pm').update(dados).eq('re', dados.re);
   if (error) throw new Error(`Falha ao atualizar efetivo_pm: ${error.message}`);
+
+  return existentes[0].opm;
+}
+
+// Substitui todos os afastamentos desse RE pelos que vieram agora do WSSCPM
+// (mesma lógica de "substituição completa" do upload manual de CSV, só que
+// aplicada a 1 pessoa por vez em vez da tabela inteira).
+async function sincronizarAfastamentos(dados, cpf, opm) {
+  if (!cpf) return;
+  const linhas = await buscarAfastamentosPM(cpf);
+
+  const { error: erroDelete } = await supabase.from('afastamentos_pm').delete().eq('re', dados.re);
+  if (erroDelete) throw new Error(`Falha ao limpar afastamentos_pm: ${erroDelete.message}`);
+  if (!linhas.length) return;
+
+  const rows = linhas.map(l => ({ ...l, re: dados.re, nome: dados.nome, opm: opm || '' }));
+  const { error: erroInsert } = await supabase.from('afastamentos_pm').insert(rows);
+  if (erroInsert) throw new Error(`Falha ao gravar afastamentos_pm: ${erroInsert.message}`);
 }
 
 async function sincronizarUmRE(re6) {
-  const dados = await buscarDadosPM(re6);
-  await upsertEfetivo(dados);
+  const { dados, cpf } = await buscarDadosPM(re6);
+  const opm = await upsertEfetivo(dados);
 
   try {
     const foto = await buscarFotoPM(re6);
@@ -130,6 +192,13 @@ async function sincronizarUmRE(re6) {
   } catch (err) {
     // Foto é melhor-esforço — não derruba a sincronização do resto dos dados.
     console.error(`  (foto) erro ao buscar RE ${re6}: ${err.message}`);
+  }
+
+  try {
+    await sincronizarAfastamentos(dados, cpf, opm);
+  } catch (err) {
+    // Afastamentos também é melhor-esforço — mesma lógica da foto.
+    console.error(`  (afastamentos) erro no RE ${re6}: ${err.message}`);
   }
 
   return dados;
