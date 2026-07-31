@@ -505,9 +505,9 @@ function renderP1() {
       const _fotoRe = _escB(r.re);
       const _fotoNm = _escB(r.nome_guerra || r.nome);
       const _fotoPt = _escB(r.posto || '');
-      const _av = `<div data-foto-re="${escHtml(r.re)}" data-nome="${escHtml(r.nome_guerra||r.nome)}" data-posto="${escHtml(r.posto||'')}" onclick="openProntuario('${_fotoRe}')" style="cursor:pointer;display:inline-block">${p1AvatarSVG(r.nome_guerra||r.nome, r.posto)}</div>`;
+      const _av = `<div data-foto-re="${escHtml(r.re)}" data-nome="${escHtml(r.nome_guerra||r.nome)}" data-posto="${escHtml(r.posto||'')}" data-size="40" onclick="openProntuario('${_fotoRe}')" style="cursor:pointer;display:inline-block">${p1AvatarSVG(r.nome_guerra||r.nome, r.posto, 40)}</div>`;
       return `<tr>
-        <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.03);width:44px;vertical-align:middle">${_av}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.03);width:52px;vertical-align:middle">${_av}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx2)">${escHtml(r.posto || '—')}</td>
         <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${escHtml(r.re || '—')}</td>
         <td style="${tdL};cursor:pointer" onclick="openProntuario('${_fotoRe}')">${escHtml(r.nome_guerra || r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
@@ -2781,25 +2781,26 @@ function exportarSituacao() {
 // ── Módulo de Fotos PM ───────────────────────────────────────────────────────
 
 // Gera avatar SVG com iniciais coloridas por posto
-function p1AvatarSVG(nome, posto) {
+function p1AvatarSVG(nome, posto, size = 32) {
   const cat = p1Cat(posto);
   const colors = { cbsd: '#5a9de0', sgt: '#c8a84b', sub: '#4bc87a', of: '#e05555' };
   const bg = colors[cat] || '#607090';
   const initials = escHtml((nome || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join(''));
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-    <circle cx="16" cy="16" r="16" fill="${bg}33"/>
-    <circle cx="16" cy="16" r="15.5" fill="none" stroke="${bg}" stroke-width="1"/>
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 32 32">
+    <rect x="1" y="1" width="30" height="30" rx="7" fill="${bg}33" stroke="${bg}" stroke-width="1"/>
     <text x="16" y="21" text-anchor="middle" fill="${bg}" font-family="DM Mono,monospace" font-size="14" font-weight="600">${initials}</text>
   </svg>`;
 }
 
-// Atualiza um elemento avatar com foto real ou SVG de initials
+// Atualiza um elemento avatar com foto real ou SVG de initials.
+// Tamanho vem do atributo data-size do elemento (cada tela define o seu).
 function renderAvatarEl(el, re, foto) {
   if (!el) return;
+  const size = Number(el.dataset.size) || 32;
   if (foto) {
-    el.innerHTML = `<img src="${foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(255,255,255,.18)">`;
+    el.innerHTML = `<img src="${foto}" style="width:${size}px;height:${size}px;border-radius:7px;object-fit:cover;border:1.5px solid rgba(255,255,255,.18)">`;
   } else {
-    el.innerHTML = p1AvatarSVG(el.dataset.nome || '', el.dataset.posto || '');
+    el.innerHTML = p1AvatarSVG(el.dataset.nome || '', el.dataset.posto || '', size);
   }
 }
 
@@ -3037,10 +3038,10 @@ function p1ShowPmList(pms, label) {
     const _re         = escA(r.re || '');
     const fotoCached  = p1Fotos[r.re];
     const avatarContent = fotoCached
-      ? `<img src="${fotoCached}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.18)">`
-      : p1AvatarSVG(r.nome_guerra || r.nome, r.posto).replace('width="32" height="32" viewBox="0 0 32 32"','width="56" height="56" viewBox="0 0 32 32"');
+      ? `<img src="${fotoCached}" style="width:72px;height:72px;border-radius:9px;object-fit:cover;border:2px solid rgba(255,255,255,.18)">`
+      : p1AvatarSVG(r.nome_guerra || r.nome, r.posto, 72);
     return `<div onclick="openProntuario('${_re}')" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:12px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)'">
-      <div data-foto-re="${escHtml(r.re)}" data-nome="${escHtml(r.nome_guerra||r.nome)}" data-posto="${escHtml(r.posto||'')}">${avatarContent}</div>
+      <div data-foto-re="${escHtml(r.re)}" data-nome="${escHtml(r.nome_guerra||r.nome)}" data-posto="${escHtml(r.posto||'')}" data-size="72">${avatarContent}</div>
       <div style="font-size:13px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:4px;white-space:nowrap;letter-spacing:.5px">${escHtml(r.posto || '—')}</div>
       <div style="font-size:13px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap;letter-spacing:.5px">RE ${escHtml(r.re)}</div>
       <div style="font-size:16px;font-weight:700;color:var(--tx);line-height:1.3;word-break:break-word;max-width:100%">${escHtml(r.nome_guerra || r.nome)}</div>
