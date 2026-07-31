@@ -245,6 +245,25 @@ function p1Cat(posto) {
   return 'of'; // Asp, Ten, Cap, Maj, TC, Cel
 }
 
+// Normaliza a descrição livre de afastamento (vinda do CSV ou do WSSCPM,
+// que traz muitas variações de texto) num grupo fixo, usado tanto no
+// resumo compacto do KPI quanto no detalhe expandido.
+const P1_TIPO_COLOR = { Férias:'#5a9de0', LP:'#9b59b6', LSV:'#e67e22', Conval:'#e74c3c',
+  Núpcias:'#f1c40f', Luto:'#95a5a6', Maternidade:'#e91e63', Paternidade:'#2196f3', LTS:'#e05555', Outros:'#607090' };
+function p1CatTipo(t) {
+  const tl = (t || '').toLowerCase();
+  if (/f[eé]rias/.test(tl)) return 'Férias';
+  if (/\blp\b|licen[cç]a.pr[eê]mio|premio/.test(tl)) return 'LP';
+  if (/\blsv\b|sem.vencimento/.test(tl)) return 'LSV';
+  if (/conval/.test(tl)) return 'Conval';
+  if (/n[uú]pcia/.test(tl)) return 'Núpcias';
+  if (/luto/.test(tl)) return 'Luto';
+  if (/maternidade/.test(tl)) return 'Maternidade';
+  if (/paternidade/.test(tl)) return 'Paternidade';
+  if (/\blts\b|licen[cç]a.trat|tratamento.sa/.test(tl)) return 'LTS';
+  return 'Outros';
+}
+
 // Carrega todos os dados do P1 em paralelo: efetivo, afastamentos, vagas e quadro
 // Chamada ao entrar na seção P1 via goSection('p1') e após qualquer upload
 async function loadP1() {
@@ -410,11 +429,22 @@ function renderP1() {
     </div>`;
   };
 
-  // Tipos de afastamento agrupados
+  // Tipos de afastamento agrupados (normalizados, senão a lista de tipos em
+  // texto livre do WSSCPM deixa esse card gigante) — mostra só os 3 maiores
+  // grupos e soma o resto em "Outros tipos", pra manter o card compacto.
   const tiposCount = {};
-  pmAfastados.forEach(r => { (afastHoje[r.re] || []).forEach(a => { tiposCount[a.tipo_afastamento] = (tiposCount[a.tipo_afastamento] || 0) + 1; }); });
+  pmAfastados.forEach(r => { (afastHoje[r.re] || []).forEach(a => {
+    const c = p1CatTipo(a.tipo_afastamento);
+    tiposCount[c] = (tiposCount[c] || 0) + 1;
+  }); });
   const _kpiRow = (label, val, color) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:#ffffff;font-size:17px">${escHtml(label)}</span><span style="color:${color};font-weight:700;font-size:20px">${val}</span></div>`;
-  const tiposSub = Object.entries(tiposCount).map(([t,n]) => _kpiRow(t, n, '#e05555')).join('') || '—';
+  const tiposEntries = Object.entries(tiposCount).sort(([,a],[,b]) => b - a);
+  const TIPOS_TOP_N = 3;
+  const tiposResto = tiposEntries.slice(TIPOS_TOP_N).reduce((s,[,n]) => s + n, 0);
+  const tiposSub = (
+    tiposEntries.slice(0, TIPOS_TOP_N).map(([t,n]) => _kpiRow(t, n, P1_TIPO_COLOR[t] || '#e05555')).join('') +
+    (tiposResto ? _kpiRow('Outros tipos', tiposResto, 'var(--tx3)') : '')
+  ) || '—';
 
   kpisEl.innerHTML =
     kpiCard('Total Efetivo', total,
@@ -1188,21 +1218,8 @@ function p1ShowKpiDetail(tipo) {
   const reSetF   = new Set(dataF.map(r => r.re));
   const esc      = s => (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 
-  const TIPO_COLOR = { Férias:'#5a9de0', LP:'#9b59b6', LSV:'#e67e22', Conval:'#e74c3c',
-    Núpcias:'#f1c40f', Luto:'#95a5a6', Maternidade:'#e91e63', Paternidade:'#2196f3', LTS:'#e05555', Outros:'#607090' };
-  const catTipo = t => {
-    const tl = (t||'').toLowerCase();
-    if (/f[eé]rias/.test(tl)) return 'Férias';
-    if (/\blp\b|licen[cç]a.pr[eê]mio|premio/.test(tl)) return 'LP';
-    if (/\blsv\b|sem.vencimento/.test(tl)) return 'LSV';
-    if (/conval/.test(tl)) return 'Conval';
-    if (/n[uú]pcia/.test(tl)) return 'Núpcias';
-    if (/luto/.test(tl)) return 'Luto';
-    if (/maternidade/.test(tl)) return 'Maternidade';
-    if (/paternidade/.test(tl)) return 'Paternidade';
-    if (/\blts\b|licen[cç]a.trat|tratamento.sa/.test(tl)) return 'LTS';
-    return 'Outros';
-  };
+  const TIPO_COLOR = P1_TIPO_COLOR;
+  const catTipo = p1CatTipo;
 
   const closeBtn = ''; // botão ✕ fica no header do modal
 
@@ -1380,33 +1397,37 @@ function p1ShowKpiDetail(tipo) {
     const groups = {};
     ativos.forEach(a => { const c = catTipo(a.tipo_afastamento); (groups[c] = groups[c]||[]).push(a); });
     const ORDER = ['Férias','LP','LSV','Conval','Núpcias','Luto','Maternidade','Paternidade','LTS','Outros'];
+
+    // Cards com foto, agrupados por tipo — mesmo padrão visual da grade por CIA.
     let inner = '';
     ORDER.forEach(cat => {
       const list = groups[cat]; if (!list?.length) return;
       const color = TIPO_COLOR[cat];
-      inner += `<tr><td colspan="5" style="padding:10px 12px 4px;border-bottom:1px solid rgba(255,255,255,.04)">
-        <span style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:1px;padding:3px 10px;border-radius:10px;background:${color}22;color:${color};text-transform:uppercase">${cat} — ${list.length}</span>
-      </td></tr>`;
-      list.forEach(a => {
+      const cards = list.map(a => {
         const pm = p1Data.find(r => r.re === a.re);
         const nm = pm?.nome_guerra || pm?.nome || a.nome || a.re;
         const dias = a.termino ? Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000) : null;
-        inner += `<tr>
-          <td style="${tdS}">${escHtml(pm?.posto||'—')}</td>
-          <td style="${tdS}">${escHtml(a.re)}</td>
-          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(a.re)}')">${escHtml(nm)}</td>
-          <td style="${tdS}">${escHtml(pm?.opm||a.opm||'—')}</td>
-          <td style="${tdS};text-align:right">${fmtD(a.inicio)}</td>
-          <td style="${tdS};text-align:right;color:${dias!==null&&dias<=3?'#4bc87a':'var(--tx3)'}">${dias!==null?dias+'d':'—'}</td>
-        </tr>`;
-      });
+        const fotoCached = p1Fotos[a.re];
+        const avatarContent = fotoCached
+          ? `<img src="${fotoCached}" style="width:56px;height:56px;border-radius:8px;object-fit:cover;border:2px solid rgba(255,255,255,.18)">`
+          : p1AvatarSVG(nm, pm?.posto, 56);
+        return `<div onclick="openProntuario('${esc(a.re)}')" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='${color}'" onmouseout="this.style.borderColor='var(--bd)'">
+          <div data-foto-re="${escHtml(a.re)}" data-nome="${escHtml(nm)}" data-posto="${escHtml(pm?.posto||'')}" data-size="56">${avatarContent}</div>
+          <div style="font-size:12px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:.5px">${escHtml(pm?.posto || '—')} · RE ${escHtml(a.re)}</div>
+          <div style="font-size:15px;font-weight:700;color:var(--tx);line-height:1.25;word-break:break-word">${escHtml(nm)}</div>
+          <div style="font-size:12px;font-family:'DM Mono',monospace;color:${dias!==null&&dias<=3?'#4bc87a':'var(--tx3)'}">${fmtD(a.inicio)} → ${dias!==null ? dias+'d rest.' : fmtD(a.termino)}</div>
+        </div>`;
+      }).join('');
+      inner += `<div style="margin-bottom:16px">
+        <div style="margin-bottom:8px"><span style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:1px;padding:3px 10px;border-radius:10px;background:${color}22;color:${color};text-transform:uppercase">${cat} — ${list.length}</span></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">${cards}</div>
+      </div>`;
     });
-    const tabelaAfastHtml = p1SomenteQuantitativo()
+
+    const conteudoAfastHtml = p1SomenteQuantitativo()
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${ativos.length}</div>`
-      : `<table style="width:100%;border-collapse:collapse">
-          <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Início</th><th style="${thR}">Dias Rest.</th></tr></thead>
-          <tbody>${inner}</tbody></table>`;
-    html = wrapDetail('Afastamentos Ativos', ativos.length, '#e05555', closeBtn, tabelaAfastHtml);
+      : (inner || `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:19px">Nenhum afastamento ativo hoje.</div>`);
+    html = wrapDetail('Afastamentos Ativos', ativos.length, '#e05555', closeBtn, conteudoAfastHtml);
   }
 
   else if (tipo === 'restricao') {
