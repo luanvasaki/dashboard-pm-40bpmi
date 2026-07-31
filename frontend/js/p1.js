@@ -41,6 +41,7 @@ let p1Vagas      = [];   // efetivo fixado por OPM
 let p1Quadro     = [];   // quadro fixado do efetivo (por posto)
 let p1FiltroOpm  = '';   // filtro ativo por OPM
 let prontoCurrentRe  = '';   // RE do prontuário aberto
+let prontoExtratoFull = [];  // afastamentos do PM aberto, sem filtro (base p/ os selects)
 let p1ClosingPronto  = false;// flag: acabou de fechar prontuário — evita fechar painel CIA
 let p1UnitClickOut   = null; // handler de click fora do detalhe de unidade
 let p1KpiClickOut    = null; // handler de click fora do detalhe de KPI
@@ -2424,24 +2425,10 @@ async function openProntuario(re) {
     } catch (_) { p1Fotos[re] = null; }
   }
 
-  // Extrato cronológico
-  const extrato = p1Afasts.filter(a => a.re === re).sort((a, b) => (b.inicio || '').localeCompare(a.inicio || ''));
-  const extratoHtml = extrato.length
-    ? extrato.map(a => {
-        const ativo = a.inicio <= hoje && a.termino >= hoje;
-        const tdE = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:19px;color:var(--tx3)';
-        return `<tr>
-          <td style="${tdE};font-size:19px;color:${ativo?'var(--tx)':'var(--tx3)'};font-family:inherit">${escHtml(a.tipo_afastamento || '—')}</td>
-          <td style="${tdE}">${fmtD(a.inicio)}</td>
-          <td style="${tdE}">${fmtD(a.termino)}</td>
-          <td style="${tdE}">${a.n_dias ? a.n_dias + 'd' : '—'}</td>
-          <td style="${tdE};color:var(--tx2)">${escHtml(a.nbi || '—')}</td>
-          <td style="${tdE};color:var(--tx2)">${escHtml(a.bol_g || '—')}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04)">${ativo ? '<span style="font-size:19px;padding:2px 8px;border-radius:8px;background:#e0555522;color:#e05555;font-family:DM Mono,monospace">ATIVO</span>' : ''}</td>
-        </tr>`;
-      }).join('')
-    : '<tr><td colspan="7" style="padding:14px 10px;color:var(--tx3);font-size:19px;text-align:center">Nenhum afastamento registrado.</td></tr>';
-  document.getElementById('pronto-extrato').innerHTML = extratoHtml;
+  // Extrato cronológico — carrega tudo e popula os filtros de ano/tipo
+  prontoExtratoFull = p1Afasts.filter(a => a.re === re).sort((a, b) => (b.inicio || '').localeCompare(a.inicio || ''));
+  prontoPopulaFiltrosExtrato();
+  prontoRenderExtrato();
 
   // Cursos institucionais
   const cursosEl = document.getElementById('pronto-cursos');
@@ -2461,6 +2448,53 @@ async function openProntuario(re) {
       cursosEl.innerHTML = '<tr><td colspan="3" style="padding:12px 10px;color:var(--tx3);font-size:19px;text-align:center">—</td></tr>';
     });
   }
+}
+
+// Monta as opções dos selects de ano e tipo com base no que existe
+// no extrato dessa pessoa (não mostra opção de ano/tipo que ela nunca teve).
+function prontoPopulaFiltrosExtrato() {
+  const anoSel  = document.getElementById('pronto-extrato-ano');
+  const tipoSel = document.getElementById('pronto-extrato-tipo');
+  if (!anoSel || !tipoSel) return;
+
+  const anos = [...new Set(prontoExtratoFull.map(a => (a.inicio || '').slice(0, 4)).filter(Boolean))].sort((a,b) => b - a);
+  anoSel.innerHTML = '<option value="">Todos os anos</option>' + anos.map(a => `<option value="${a}">${a}</option>`).join('');
+
+  const tipos = [...new Set(prontoExtratoFull.map(a => p1CatTipo(a.tipo_afastamento)))].sort();
+  tipoSel.innerHTML = '<option value="">Todos os tipos</option>' + tipos.map(t => `<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('');
+
+  anoSel.value = ''; tipoSel.value = '';
+}
+
+// Filtra prontoExtratoFull pelos selects de ano/tipo e redesenha a tabela.
+function prontoRenderExtrato() {
+  const tbody = document.getElementById('pronto-extrato');
+  if (!tbody) return;
+  const ano  = document.getElementById('pronto-extrato-ano')?.value || '';
+  const tipo = document.getElementById('pronto-extrato-tipo')?.value || '';
+  const hoje = new Date().toISOString().split('T')[0];
+  const fmtD = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
+
+  const extrato = prontoExtratoFull.filter(a =>
+    (!ano  || (a.inicio || '').startsWith(ano)) &&
+    (!tipo || p1CatTipo(a.tipo_afastamento) === tipo)
+  );
+
+  tbody.innerHTML = extrato.length
+    ? extrato.map(a => {
+        const ativo = a.inicio <= hoje && a.termino >= hoje;
+        const tdE = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:19px;color:var(--tx3)';
+        return `<tr>
+          <td style="${tdE};font-size:19px;color:${ativo?'var(--tx)':'var(--tx3)'};font-family:inherit">${escHtml(a.tipo_afastamento || '—')}</td>
+          <td style="${tdE}">${fmtD(a.inicio)}</td>
+          <td style="${tdE}">${fmtD(a.termino)}</td>
+          <td style="${tdE}">${a.n_dias ? a.n_dias + 'd' : '—'}</td>
+          <td style="${tdE};color:var(--tx2)">${escHtml(a.nbi || '—')}</td>
+          <td style="${tdE};color:var(--tx2)">${escHtml(a.bol_g || '—')}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04)">${ativo ? '<span style="font-size:19px;padding:2px 8px;border-radius:8px;background:#e0555522;color:#e05555;font-family:DM Mono,monospace">ATIVO</span>' : ''}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="7" style="padding:14px 10px;color:var(--tx3);font-size:19px;text-align:center">Nenhum afastamento encontrado com esse filtro.</td></tr>';
 }
 
 function closeProntuario() {

@@ -511,6 +511,10 @@
     <!-- Extrato cronológico -->
     <div style="border-top:1px solid var(--bd);padding-top:16px">
       <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px">Extrato de Afastamentos</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <select id="pronto-extrato-ano" onchange="prontoRenderExtrato()" style="padding:5px 8px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:4px;font-size:19px"></select>
+        <select id="pronto-extrato-tipo" onchange="prontoRenderExtrato()" style="padding:5px 8px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:4px;font-size:19px"></select>
+      </div>
       <div style="overflow-x:auto;max-height:260px;overflow-y:auto">
         <table style="width:100%;border-collapse:collapse">
           <thead><tr>
