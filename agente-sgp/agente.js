@@ -165,8 +165,12 @@ async function upsertEfetivo(dados) {
 // (mesma lógica de "substituição completa" do upload manual de CSV, só que
 // aplicada a 1 pessoa por vez em vez da tabela inteira).
 async function sincronizarAfastamentos(dados, cpf, opm) {
-  if (!cpf) return;
+  if (!cpf) {
+    console.log(`  (afastamentos) RE ${dados.re}: CPF não encontrado nos Documentos do WSSCPM, pulando.`);
+    return;
+  }
   const linhas = await buscarAfastamentosPM(cpf);
+  console.log(`  (afastamentos) RE ${dados.re}: ${linhas.length} registro(s) encontrado(s) no WSSCPM.`);
 
   const { error: erroDelete } = await supabase.from('afastamentos_pm').delete().eq('re', dados.re);
   if (erroDelete) throw new Error(`Falha ao limpar afastamentos_pm: ${erroDelete.message}`);
