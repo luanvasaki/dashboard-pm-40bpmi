@@ -188,20 +188,17 @@ async function sincronizarAfastamentos(dados, cpf, opm) {
     if (erroInsert) throw new Error(`Falha ao gravar afastamentos_pm: ${erroInsert.message}`);
   }
 
-  // Só atualiza a restrição se houver uma agregação ATIVA hoje — se não houver,
-  // deixa o que já estiver em efetivo_pm (não apaga restrição cadastrada manualmente
-  // que o WSSCPM não conhece).
+  // WSSCPM é a fonte única pra restrição agora — substitui sempre, mesmo pra
+  // limpar (se não houver agregação ativa hoje, marca como sem restrição,
+  // não mantém o que a planilha tinha antes).
   const hoje = new Date().toISOString().slice(0, 10);
   const ativa = restricoes.find(r => r.inicio && r.termino && r.inicio <= hoje && r.termino >= hoje);
-  if (ativa) {
-    const { error: erroRestr } = await supabase.from('efetivo_pm').update({
-      possui_restricao: 'S',
-      tipos_restricao: ativa.tipo,
-      restricao_inicio: ativa.inicio,
-      restricao_termino: ativa.termino,
-    }).eq('re', dados.re);
-    if (erroRestr) throw new Error(`Falha ao gravar restrição em efetivo_pm: ${erroRestr.message}`);
-  }
+  const { error: erroRestr } = await supabase.from('efetivo_pm').update(
+    ativa
+      ? { possui_restricao: 'S', tipos_restricao: ativa.tipo, restricao_inicio: ativa.inicio, restricao_termino: ativa.termino }
+      : { possui_restricao: 'N', tipos_restricao: null, restricao_inicio: null, restricao_termino: null }
+  ).eq('re', dados.re);
+  if (erroRestr) throw new Error(`Falha ao gravar restrição em efetivo_pm: ${erroRestr.message}`);
 }
 
 async function sincronizarUmRE(re6) {
