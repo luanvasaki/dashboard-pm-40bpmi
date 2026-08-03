@@ -85,8 +85,13 @@ async function buscarDadosPM(re6) {
   };
 
   // CPF só é usado na hora, pra buscar afastamentos — nunca é salvo em lugar nenhum.
+  // O parser de XML trata Numero/DigitoDocumento como número, o que apaga zero(s)
+  // à esquerda quando o CPF começa com 0 — repõe com padStart no tamanho fixo
+  // do CPF (9 dígitos + 2 dígitos verificadores).
   const docCpf = asArray(result.Documentos?.FuncionarioDocumento).find(d => Number(d.codigoTipoDocumento) === 1);
-  const cpf = docCpf ? `${trim(docCpf.Numero)}${trim(docCpf.DigitoDocumento)}` : null;
+  const cpf = docCpf
+    ? `${String(docCpf.Numero).padStart(9, '0')}${String(trim(docCpf.DigitoDocumento)).padStart(2, '0')}`
+    : null;
 
   return { dados, cpf };
 }
