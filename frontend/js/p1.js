@@ -139,8 +139,57 @@ let _p1AptosDetMun    = null;
 let _p1AptosDetPostos = [];
 
 // Estado dos filtros do detalhe Restrições
-let _p1RestDetCia = -1;
-let _p1RestDetMun = null;
+let _p1RestDetCia    = -1;
+let _p1RestDetMun    = null;
+let _p1RestDetPostos = [];
+function p1RestTogPosto(val) {
+  const i = _p1RestDetPostos.indexOf(val);
+  if (i >= 0) _p1RestDetPostos.splice(i, 1); else _p1RestDetPostos.push(val);
+  p1ShowKpiDetail('restricao');
+}
+
+// Estado dos filtros do detalhe Afastamentos Ativos
+let _p1AfastDetMun    = null;
+let _p1AfastDetPostos = [];
+function p1AfastSetMun(val) { _p1AfastDetMun = _p1AfastDetMun === val ? null : val; p1ShowKpiDetail('afastados'); }
+function p1AfastTogPosto(val) {
+  const i = _p1AfastDetPostos.indexOf(val);
+  if (i >= 0) _p1AfastDetPostos.splice(i, 1); else _p1AfastDetPostos.push(val);
+  p1ShowKpiDetail('afastados');
+}
+
+// Estado dos filtros do detalhe EAP/TAF/TAT
+let _p1EapDetMun    = null;
+let _p1EapDetPostos = [];
+function p1EapSetMun(val) { _p1EapDetMun = _p1EapDetMun === val ? null : val; p1ShowKpiDetail('eap'); }
+function p1EapTogPosto(val) {
+  const i = _p1EapDetPostos.indexOf(val);
+  if (i >= 0) _p1EapDetPostos.splice(i, 1); else _p1EapDetPostos.push(val);
+  p1ShowKpiDetail('eap');
+}
+
+// Estado dos filtros do detalhe Controle de Férias
+let _p1FeriasDetMun    = null;
+let _p1FeriasDetPostos = [];
+function p1FeriasSetMun(val) { _p1FeriasDetMun = _p1FeriasDetMun === val ? null : val; p1ShowKpiDetail('ferias'); }
+function p1FeriasTogPosto(val) {
+  const i = _p1FeriasDetPostos.indexOf(val);
+  if (i >= 0) _p1FeriasDetPostos.splice(i, 1); else _p1FeriasDetPostos.push(val);
+  p1ShowKpiDetail('ferias');
+}
+
+// Estado do filtro do bloco "Em Afastamento" na home do P1
+let _p1HomeAfastMun    = null;
+let _p1HomeAfastPostos = [];
+function p1HomeAfastSetMun(val) {
+  _p1HomeAfastMun = _p1HomeAfastMun === val ? null : val;
+  renderP1();
+}
+function p1HomeAfastTogPosto(val) {
+  const i = _p1HomeAfastPostos.indexOf(val);
+  if (i >= 0) _p1HomeAfastPostos.splice(i, 1); else _p1HomeAfastPostos.push(val);
+  renderP1();
+}
 
 function p1RestSetCia(idx) {
   if (_p1RestDetCia === idx) {
@@ -832,40 +881,41 @@ function renderP1() {
   const _esc2 = s => (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   let bottomItems = [];
 
-  // Quem ESTÁ afastado agora
-  if (pmAfastados.length) {
-    pmAfastados.forEach(r => {
-      const ats = afastHoje[r.re] || [];
-      const tipo = ats.map(a => a.tipo_afastamento).join(', ') || 'Afastado';
-      const termino = ats[0]?.termino || '';
-      const diasRest = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : null;
-      const retStr = diasRest !== null ? `retorna em <b style="color:#e05555">${diasRest}d</b> · ${fmtDate(termino)}` : fmtDate(termino)||'—';
-      bottomItems.push({ order: 0, html: `<div style="display:grid;grid-template-columns:170px 1fr auto;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);border-left:3px solid #e05555;gap:14px">
-        ${badge(tipo.split(',')[0].trim().toUpperCase(), '#e05555')}
-        <div>
-          <span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${escHtml(r.posto||'')}</span>
-          <span style="font-size:20px;font-weight:700;color:var(--tx);margin-left:6px;cursor:pointer" onclick="openProntuario('${_esc2(r.re)}')">${escHtml(r.nome_guerra||r.nome)}</span>${uisBadge(r.re)}${iasBadge(r.re)}
-          ${r.opm ? `<div style="font-size:17px;color:var(--tx3);margin-top:2px">${escHtml(r.opm)}</div>` : ''}
-        </div>
-        <div style="font-size:19px;color:var(--tx3);text-align:right;white-space:nowrap">${retStr}</div>
-      </div>` });
-    });
-  }
+  // Quem ESTÁ afastado agora — grade de fotos com filtro de posto/cidade.
+  // Restrição (Agregação) não entra aqui — isso é status de "trabalhando com
+  // limitação", não ausência; fica só no perfil do PM e no KPI de Restrições.
+  const getMunHome = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
+  const munListHome   = [...new Set(pmAfastados.map(r => getMunHome(r.opm)).filter(Boolean))].sort();
+  const postoListHome = [...new Set(pmAfastados.map(r => r.posto).filter(Boolean))].sort((a,b) => p1PostoRank(a)-p1PostoRank(b));
 
-  // Alertas existentes (restrições, retornos, férias/LP em 30d)
-  if (vencendoRestricao.length) {
-    vencendoRestricao.forEach(r => {
-      const dias = Math.ceil((new Date(r.restricao_termino) - new Date(hoje)) / 86400000);
-      bottomItems.push({ order: 1, html: `<div style="display:grid;grid-template-columns:170px 1fr auto;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);border-left:3px solid #c8a84b;gap:14px">
-        ${badge('RESTRIÇÃO', '#c8a84b')}
-        <div>
-          <span style="font-size:20px;font-weight:700;color:var(--tx)">${escHtml(r.nome_guerra||r.nome)}</span>
-          ${r.opm ? `<div style="font-size:17px;color:var(--tx3);margin-top:2px">${escHtml(r.opm)}</div>` : ''}
-        </div>
-        <div style="font-size:19px;color:var(--tx3);text-align:right;white-space:nowrap">Vence em <b style="color:#c8a84b">${dias}d</b> · ${fmtDate(r.restricao_termino)}</div>
-      </div>` });
-    });
-  }
+  let pmAfastadosFiltrados = pmAfastados;
+  if (_p1HomeAfastMun)          pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => getMunHome(r.opm) === _p1HomeAfastMun);
+  if (_p1HomeAfastPostos.length) pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => _p1HomeAfastPostos.includes(r.posto));
+
+  const btnHomeAfast = (lbl, on, onclick, cor) =>
+    `<button onclick="${onclick}" style="padding:5px 12px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;white-space:nowrap">${lbl}</button>`;
+  const munBtnsHome   = munListHome.map(m => btnHomeAfast(escHtml(m), _p1HomeAfastMun === m, `p1HomeAfastSetMun('${escHtml(m).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')`, '#5a9de0')).join('');
+  const postoBtnsHome = postoListHome.map(p => btnHomeAfast(escHtml(p), _p1HomeAfastPostos.includes(p), `p1HomeAfastTogPosto('${escHtml(p).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')`, '#c8a84b')).join('');
+
+  const homeAfastInfo = r => {
+    const ats = afastHoje[r.re] || [];
+    const tipo = (ats.map(a => a.tipo_afastamento).join(', ') || 'Afastado').split(',')[0].trim();
+    const termino = ats[0]?.termino || '';
+    const diasRest = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : null;
+    return `<div style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:6px;background:#e0555522;color:#e05555;display:inline-block">${escHtml(tipo.toUpperCase())}</div>
+      <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--tx3);margin-top:2px">${diasRest!==null ? diasRest+'d rest.' : (fmtDate(termino)||'—')}</div>`;
+  };
+
+  const emAfastamentoHtml = !pmAfastados.length ? '' : `
+    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-top:14px;overflow:hidden">
+      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#e05555;padding:10px 16px 8px;text-transform:uppercase;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px">
+        <span>Em Afastamento</span>
+        <span style="background:#e0555528;color:#e05555;border-radius:20px;padding:1px 10px;font-size:17px;letter-spacing:0">${pmAfastadosFiltrados.length}${pmAfastadosFiltrados.length !== pmAfastados.length ? ' de ' + pmAfastados.length : ''}</span>
+      </div>
+      ${(munBtnsHome || postoBtnsHome) ? `<div style="display:flex;flex-wrap:wrap;gap:6px;padding:12px 16px;border-bottom:1px solid var(--bd)">${munBtnsHome}${postoBtnsHome}</div>` : ''}
+      <div style="padding:14px 16px">${p1CardGrid(pmAfastadosFiltrados, homeAfastInfo)}</div>
+    </div>`;
+
   if (afastEm30.length) {
     const TIPO_COR = t => {
       const tl = (t||'').toLowerCase();
@@ -896,7 +946,6 @@ function renderP1() {
     });
   }
 
-  const nowItems  = bottomItems.filter(i => i.order <= 1); // afastados agora + restrições
   const nextItems = bottomItems.filter(i => i.order >= 3); // próximos afastamentos
 
   const mkBlock = (titulo, cor, items) => !items.length ? '' : `
@@ -909,7 +958,7 @@ function renderP1() {
     </div>`;
 
   const bottomSection = p1SomenteQuantitativo() ? '' :
-    mkBlock('Em Afastamento', '#e05555', nowItems) +
+    emAfastamentoHtml +
     mkBlock('Próximos Afastamentos — 30 dias', '#5a9de0', nextItems);
 
   bodyEl.innerHTML = claroSection + `
@@ -1217,7 +1266,10 @@ function closeP1Detail() {
   _p1TotalDetCia = -1; _p1TotalDetGen = null; _p1TotalDetMun = null; _p1TotalDetPostos = [];
   _p1IasDetSit = null; _p1IasDetCia = -1; _p1IasDetMun = null; _p1IasDetPostos = [];
   _p1AptosDetCia = -1; _p1AptosDetMun = null; _p1AptosDetPostos = [];
-  _p1RestDetCia = -1; _p1RestDetMun = null;
+  _p1RestDetCia = -1; _p1RestDetMun = null; _p1RestDetPostos = [];
+  _p1AfastDetMun = null; _p1AfastDetPostos = [];
+  _p1EapDetMun = null; _p1EapDetPostos = [];
+  _p1FeriasDetMun = null; _p1FeriasDetPostos = [];
 }
 
 
@@ -1238,9 +1290,10 @@ function p1DetailClickOut(e) {
 // Grade de cards com foto (mesmo padrão da grade por CIA), usada em todos os
 // detalhes de KPI no lugar de tabela de texto. `info` é um HTML opcional
 // (status, datas, etc.) mostrado embaixo do nome — cada tela passa o seu.
+// Sempre ordenado por antiguidade (Coronel → Soldado, RE menor primeiro em empate).
 function p1CardGrid(pms, info, onclickFn) {
   const escB = s => (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  const cards = pms.map(r => {
+  const cards = p1OrdenarPorAntiguidade(pms).map(r => {
     const nm = r.nome_guerra || r.nome || r.re;
     const fotoCached = p1Fotos[r.re];
     const avatarContent = fotoCached
@@ -1441,7 +1494,25 @@ function p1ShowKpiDetail(tipo) {
   }
 
   else if (tipo === 'afastados') {
-    const ativos = p1Afasts.filter(a => a.inicio <= hoje && a.termino >= hoje && reSetF.has(a.re));
+    const btnBase = (lbl, cor, on, onclick) =>
+      `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
+    const gridRow = (lbl, btns) =>
+      `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
+      </div>`;
+    const getMunAfast = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
+
+    let ativos = p1Afasts.filter(a => a.inicio <= hoje && a.termino >= hoje && reSetF.has(a.re));
+    const munListAfast   = [...new Set(ativos.map(a => getMunAfast(p1Data.find(r => r.re === a.re)?.opm)).filter(Boolean))].sort();
+    const postoListAfast = [...new Set(ativos.map(a => p1Data.find(r => r.re === a.re)?.posto).filter(Boolean))].sort((a,b) => p1PostoRank(a)-p1PostoRank(b));
+
+    if (_p1AfastDetMun)           ativos = ativos.filter(a => getMunAfast(p1Data.find(r => r.re === a.re)?.opm) === _p1AfastDetMun);
+    if (_p1AfastDetPostos.length) ativos = ativos.filter(a => _p1AfastDetPostos.includes(p1Data.find(r => r.re === a.re)?.posto));
+
+    const munBtnsAfast   = munListAfast.map(m => btnBase(escHtml(m), '#5a9de0', _p1AfastDetMun === m, `p1AfastSetMun('${escHtml(m).replace(/\\/g,'\\\\')}')`)).join('');
+    const postoBtnsAfast = postoListAfast.map(p => btnBase(escHtml(p), '#c8a84b', _p1AfastDetPostos.includes(p), `p1AfastTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)).join('');
+
     const groups = {};
     ativos.forEach(a => { const c = catTipo(a.tipo_afastamento); (groups[c] = groups[c]||[]).push(a); });
     const ORDER = ['Férias','LP','LSV','Conval','Núpcias','Luto','Maternidade','Paternidade','LTS','Outros'];
@@ -1451,31 +1522,28 @@ function p1ShowKpiDetail(tipo) {
     ORDER.forEach(cat => {
       const list = groups[cat]; if (!list?.length) return;
       const color = TIPO_COLOR[cat];
-      const cards = list.map(a => {
+      const cardData = list.map(a => {
         const pm = p1Data.find(r => r.re === a.re);
-        const nm = pm?.nome_guerra || pm?.nome || a.nome || a.re;
+        return { re: a.re, nome: pm?.nome || a.nome, nome_guerra: pm?.nome_guerra, posto: pm?.posto, _afast: a };
+      });
+      const afastInfo = r => {
+        const a = r._afast;
         const dias = a.termino ? Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000) : null;
-        const fotoCached = p1Fotos[a.re];
-        const avatarContent = fotoCached
-          ? `<img src="${fotoCached}" style="width:56px;height:56px;border-radius:8px;object-fit:cover;border:2px solid rgba(255,255,255,.18)">`
-          : p1AvatarSVG(nm, pm?.posto, 56);
-        return `<div onclick="openProntuario('${esc(a.re)}')" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='${color}'" onmouseout="this.style.borderColor='var(--bd)'">
-          <div data-foto-re="${escHtml(a.re)}" data-nome="${escHtml(nm)}" data-posto="${escHtml(pm?.posto||'')}" data-size="56">${avatarContent}</div>
-          <div style="font-size:12px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:.5px">${escHtml(pm?.posto || '—')} · RE ${escHtml(a.re)}</div>
-          <div style="font-size:15px;font-weight:700;color:var(--tx);line-height:1.25;word-break:break-word">${escHtml(nm)}</div>
-          <div style="font-size:12px;font-family:'DM Mono',monospace;color:${dias!==null&&dias<=3?'#4bc87a':'var(--tx3)'}">${fmtD(a.inicio)} → ${dias!==null ? dias+'d rest.' : fmtD(a.termino)}</div>
-        </div>`;
-      }).join('');
+        return `<div style="font-size:12px;font-family:'DM Mono',monospace;color:${dias!==null&&dias<=3?'#4bc87a':'var(--tx3)'}">${fmtD(a.inicio)} → ${dias!==null ? dias+'d rest.' : fmtD(a.termino)}</div>`;
+      };
       inner += `<div style="margin-bottom:16px">
         <div style="margin-bottom:8px"><span style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:1px;padding:3px 10px;border-radius:10px;background:${color}22;color:${color};text-transform:uppercase">${cat} — ${list.length}</span></div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">${cards}</div>
+        ${p1CardGrid(cardData, afastInfo)}
       </div>`;
     });
 
     const conteudoAfastHtml = p1SomenteQuantitativo()
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${ativos.length}</div>`
       : (inner || `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:19px">Nenhum afastamento ativo hoje.</div>`);
-    html = wrapDetail('Afastamentos Ativos', ativos.length, '#e05555', closeBtn, conteudoAfastHtml);
+    html = wrapDetail('Afastamentos Ativos', ativos.length, '#e05555', closeBtn, `
+      ${munBtnsAfast   ? gridRow('MUNICÍPIO', munBtnsAfast) : ''}
+      ${postoBtnsAfast ? gridRow('POSTO / GRAD.', postoBtnsAfast) : ''}
+      ${conteudoAfastHtml}`);
   }
 
   else if (tipo === 'restricao') {
@@ -1487,11 +1555,13 @@ function p1ShowKpiDetail(tipo) {
 
     const baseList = dataF.map(r => ({ r, ciaIdx: getCiaRest(r.opm), mun: getMunRest(r.opm) }));
     const munList  = [...new Set(baseList.map(x => x.mun).filter(Boolean))].sort();
+    const postoList = [...new Set(baseList.map(x => x.r.posto).filter(Boolean))].sort((a,b) => p1PostoRank(a)-p1PostoRank(b));
 
-    // Aplica filtros CIA e Município
+    // Aplica filtros CIA, Município e Posto
     let filtrados = baseList;
-    if (_p1RestDetCia >= 0) filtrados = filtrados.filter(x => x.ciaIdx === _p1RestDetCia);
-    if (_p1RestDetMun)      filtrados = filtrados.filter(x => x.mun === _p1RestDetMun);
+    if (_p1RestDetCia >= 0)       filtrados = filtrados.filter(x => x.ciaIdx === _p1RestDetCia);
+    if (_p1RestDetMun)            filtrados = filtrados.filter(x => x.mun === _p1RestDetMun);
+    if (_p1RestDetPostos.length)  filtrados = filtrados.filter(x => _p1RestDetPostos.includes(x.r.posto));
     const filtSet = new Set(filtrados.map(x => x.r.re));
     const dataFilt = dataF.filter(r => filtSet.has(r.re));
 
@@ -1511,6 +1581,11 @@ function p1ShowKpiDetail(tipo) {
     const munBtns = munList.map(m => {
       const cnt = baseList.filter(x => x.mun === m).length;
       return btnBase(escHtml(m), '#c8a84b', _p1RestDetMun === m, `p1RestSetMun('${escHtml(m).replace(/\\/g,'\\\\')}')`)
+    }).join('');
+
+    const postoBtns = postoList.map(p => {
+      const on = _p1RestDetPostos.includes(p);
+      return btnBase(escHtml(p), '#c8a84b', on, `p1RestTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)
     }).join('');
 
     // Agrupa os PMs filtrados por tipo de restrição
@@ -1553,12 +1628,31 @@ function p1ShowKpiDetail(tipo) {
       : (inner || `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:19px">Nenhum resultado.</div>`)
         + (semRestr ? `<div style="padding-top:10px;border-top:1px solid var(--bd2);color:var(--tx3);font-size:19px">Sem restrição: ${semRestr} PMs</div>` : '');
     html = wrapDetail('Em Restrição', totalRestr, '#c8a84b', closeBtn, `
-      ${ciaBtns  ? gridRow('CIA', ciaBtns) : ''}
-      ${munBtns  ? gridRow('MUNICÍPIO', munBtns) : ''}
+      ${ciaBtns   ? gridRow('CIA', ciaBtns) : ''}
+      ${munBtns   ? gridRow('MUNICÍPIO', munBtns) : ''}
+      ${postoBtns ? gridRow('POSTO / GRAD.', postoBtns) : ''}
       ${tabelaRestrHtml}`);
   }
 
   else if (tipo === 'eap') {
+    const btnBase = (lbl, cor, on, onclick) =>
+      `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
+    const gridRow = (lbl, btns) =>
+      `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
+      </div>`;
+    const getMunEap = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
+    const munListEap   = [...new Set(dataF.map(r => getMunEap(r.opm)).filter(Boolean))].sort();
+    const postoListEap = [...new Set(dataF.map(r => r.posto).filter(Boolean))].sort((a,b) => p1PostoRank(a)-p1PostoRank(b));
+
+    let dataFEap = dataF;
+    if (_p1EapDetMun)           dataFEap = dataFEap.filter(r => getMunEap(r.opm) === _p1EapDetMun);
+    if (_p1EapDetPostos.length) dataFEap = dataFEap.filter(r => _p1EapDetPostos.includes(r.posto));
+
+    const munBtnsEap   = munListEap.map(m => btnBase(escHtml(m), '#5a9de0', _p1EapDetMun === m, `p1EapSetMun('${escHtml(m).replace(/\\/g,'\\\\')}')`)).join('');
+    const postoBtnsEap = postoListEap.map(p => btnBase(escHtml(p), '#c8a84b', _p1EapDetPostos.includes(p), `p1EapTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)).join('');
+
     const isEapOk = r => { const d = r.data_eap ? new Date(r.data_eap) : null; return d && !isNaN(d) && d.getUTCFullYear() === anoAtual; };
     const taftatVencFn = pm => {
       if (!pm.data_eap) return false;
@@ -1566,14 +1660,14 @@ function p1ShowKpiDetail(tipo) {
       lim.setFullYear(lim.getFullYear() + 1);
       return new Date() > lim;
     };
-    const feitos   = dataF.filter(r => isEapOk(r)).sort((a,b) => (a.data_eap||'').localeCompare(b.data_eap||''));
-    const pend     = dataF.filter(r => !isEapOk(r));
+    const feitos   = dataFEap.filter(r => isEapOk(r)).sort((a,b) => (a.data_eap||'').localeCompare(b.data_eap||''));
+    const pend     = dataFEap.filter(r => !isEapOk(r));
     const REPROV_D = new Set(['inapto','ruim']);
-    const inapTAF  = dataF.filter(r => REPROV_D.has((r.taf||'').toLowerCase().trim()));
-    const inapTAT  = dataF.filter(r => REPROV_D.has((r.tat||'').toLowerCase().trim()));
-    const vencidos = dataF.filter(taftatVencFn);
+    const inapTAF  = dataFEap.filter(r => REPROV_D.has((r.taf||'').toLowerCase().trim()));
+    const inapTAT  = dataFEap.filter(r => REPROV_D.has((r.tat||'').toLowerCase().trim()));
+    const vencidos = dataFEap.filter(taftatVencFn);
     const lim365   = (() => { const d = new Date(); d.setDate(d.getDate() - 365); return d; })();
-    const aptos365 = dataF.filter(r =>
+    const aptos365 = dataFEap.filter(r =>
       r.data_eap && new Date(r.data_eap) >= lim365 && !REPROV_D.has((r.taf||'').toLowerCase().trim())
     );
 
@@ -1631,7 +1725,8 @@ function p1ShowKpiDetail(tipo) {
 
     const eapTabelasHtml = p1SomenteQuantitativo()
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA</div>`
-      : `<div style="display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 14px;border-bottom:1px solid var(--bd2)">
+      : `${munBtnsEap || postoBtnsEap ? `<div style="padding:0 12px 14px">${munBtnsEap ? gridRow('MUNICÍPIO', munBtnsEap) : ''}${postoBtnsEap ? gridRow('POSTO / GRAD.', postoBtnsEap) : ''}</div>` : ''}
+        <div style="display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 14px;border-bottom:1px solid var(--bd2)">
           ${pill('feitos',   'Realizaram ('   + feitos.length    + ')', false)}
           ${pill('aptos365', 'Aptos 365d ('   + aptos365.length  + ')', false)}
           ${pill('pend',     'Pendentes ('    + pend.length      + ')', false)}
@@ -1761,12 +1856,38 @@ function p1ShowKpiDetail(tipo) {
   }
 
   else if (tipo === 'ferias') {
+    const btnBase = (lbl, cor, on, onclick) =>
+      `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
+    const gridRow = (lbl, btns) =>
+      `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
+      </div>`;
+    const getMunFer = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
+    const pmOfFer = re => p1Data.find(r => r.re === re);
+
     const afastsF = p1FiltroOpm ? p1Afasts.filter(a => reSetF.has(a.re)) : p1Afasts;
     const em15s   = (() => { const d = new Date(); d.setDate(d.getDate()+15); return d.toISOString().split('T')[0]; })();
-    const gozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && a.termino >= hoje);
-    const prox    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio > hoje && a.inicio <= em15s);
+    let gozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && a.termino >= hoje);
+    let prox    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio > hoje && a.inicio <= em15s);
     const resFer  = new Set(p1Afasts.filter(a => isFer(a.tipo_afastamento) && (a.inicio||'').startsWith(String(anoAtual))).map(a => a.re));
-    const semFer  = dataF.filter(r => !resFer.has(r.re));
+    let semFer  = dataF.filter(r => !resFer.has(r.re));
+
+    const munListFer   = [...new Set(dataF.map(r => getMunFer(r.opm)).filter(Boolean))].sort();
+    const postoListFer = [...new Set(dataF.map(r => r.posto).filter(Boolean))].sort((a,b) => p1PostoRank(a)-p1PostoRank(b));
+    if (_p1FeriasDetMun) {
+      gozo   = gozo.filter(a => getMunFer(pmOfFer(a.re)?.opm) === _p1FeriasDetMun);
+      prox   = prox.filter(a => getMunFer(pmOfFer(a.re)?.opm) === _p1FeriasDetMun);
+      semFer = semFer.filter(r => getMunFer(r.opm) === _p1FeriasDetMun);
+    }
+    if (_p1FeriasDetPostos.length) {
+      gozo   = gozo.filter(a => _p1FeriasDetPostos.includes(pmOfFer(a.re)?.posto));
+      prox   = prox.filter(a => _p1FeriasDetPostos.includes(pmOfFer(a.re)?.posto));
+      semFer = semFer.filter(r => _p1FeriasDetPostos.includes(r.posto));
+    }
+    const munBtnsFer   = munListFer.map(m => btnBase(escHtml(m), '#5a9de0', _p1FeriasDetMun === m, `p1FeriasSetMun('${escHtml(m).replace(/\\/g,'\\\\')}')`)).join('');
+    const postoBtnsFer = postoListFer.map(p => btnBase(escHtml(p), '#c8a84b', _p1FeriasDetPostos.includes(p), `p1FeriasTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)).join('');
+    const filtroBarFer = (munBtnsFer || postoBtnsFer) ? `<div style="padding:14px 14px 0">${munBtnsFer ? gridRow('MUNICÍPIO', munBtnsFer) : ''}${postoBtnsFer ? gridRow('POSTO / GRAD.', postoBtnsFer) : ''}</div>` : '';
 
     // Junta o registro de afastamento com o cadastro da pessoa, pra virar card.
     const ferCardData = list => list.map(a => {
@@ -1810,7 +1931,7 @@ function p1ShowKpiDetail(tipo) {
           <div style="padding:0 12px 12px">${p1CardGrid(semFer)}</div>`;
       }
     }
-    html = wrapDetail('Controle de Férias', null, '#5a9de0', closeBtn, inner);
+    html = wrapDetail('Controle de Férias', null, '#5a9de0', closeBtn, filtroBarFer + inner);
   }
 
   else if (tipo === 'quadro') {
