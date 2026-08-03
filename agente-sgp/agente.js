@@ -192,7 +192,8 @@ async function sincronizarAfastamentos(dados, cpf, opm) {
   // limpar (se não houver agregação ativa hoje, marca como sem restrição,
   // não mantém o que a planilha tinha antes).
   const hoje = new Date().toISOString().slice(0, 10);
-  const ativa = restricoes.find(r => r.inicio && r.termino && r.inicio <= hoje && r.termino >= hoje);
+  // Restrição sem término definido (em aberto, sem previsão de acabar) continua ativa.
+  const ativa = restricoes.find(r => r.inicio && r.inicio <= hoje && (!r.termino || r.termino >= hoje));
   const { error: erroRestr } = await supabase.from('efetivo_pm').update(
     ativa
       ? { possui_restricao: 'S', tipos_restricao: ativa.tipo, restricao_inicio: ativa.inicio, restricao_termino: ativa.termino }
