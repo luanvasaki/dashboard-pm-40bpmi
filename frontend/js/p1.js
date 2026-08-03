@@ -1235,6 +1235,30 @@ function p1DetailClickOut(e) {
   if (e.target === document.getElementById('p1-detail-mo')) closeP1Detail();
 }
 
+// Grade de cards com foto (mesmo padrão da grade por CIA), usada em todos os
+// detalhes de KPI no lugar de tabela de texto. `info` é um HTML opcional
+// (status, datas, etc.) mostrado embaixo do nome — cada tela passa o seu.
+function p1CardGrid(pms, info, onclickFn) {
+  const escB = s => (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const cards = pms.map(r => {
+    const nm = r.nome_guerra || r.nome || r.re;
+    const fotoCached = p1Fotos[r.re];
+    const avatarContent = fotoCached
+      ? `<img src="${fotoCached}" style="width:56px;height:56px;border-radius:8px;object-fit:cover;border:2px solid rgba(255,255,255,.18)">`
+      : p1AvatarSVG(nm, r.posto, 56);
+    const click = onclickFn ? onclickFn(r) : `openProntuario('${escB(r.re)}')`;
+    return `<div onclick="${click}" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)'">
+      <div data-foto-re="${escHtml(r.re)}" data-nome="${escHtml(nm)}" data-posto="${escHtml(r.posto||'')}" data-size="56">${avatarContent}</div>
+      <div style="font-size:12px;color:var(--tx3);font-family:'DM Mono',monospace;letter-spacing:.5px">${escHtml(r.posto || '—')} · RE ${escHtml(r.re)}</div>
+      <div style="font-size:15px;font-weight:700;color:var(--tx);line-height:1.25;word-break:break-word">${escHtml(nm)}${uisBadge(r.re)}${iasBadge(r.re)}</div>
+      ${info ? info(r) : ''}
+    </div>`;
+  }).join('');
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">
+    ${cards || '<div style="padding:16px;text-align:center;color:var(--tx3);grid-column:1/-1">Nenhum resultado.</div>'}
+  </div>`;
+}
+
 function p1ShowKpiDetail(tipo) {
   const mo = document.getElementById('p1-detail-mo');
   if (!mo) return;
@@ -1325,26 +1349,17 @@ function p1ShowKpiDetail(tipo) {
       return btnBase(escHtml(p), '#c8a84b', on, `p1TotalTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)
     }).join('');
 
-    const rows = filtered.map(({r}) => {
+    const totalInfo = r => {
       const afst = p1AfastHoje[r.re];
       const s = afst
-        ? `<span style="font-size:19px;padding:3px 9px;border-radius:10px;background:#e0555522;color:#e05555;font-family:'DM Mono',monospace">${escHtml(afst[0]?.tipo_afastamento||'Afastado')}</span>`
-        : `<span style="font-size:19px;padding:3px 9px;border-radius:10px;background:#4bc87a22;color:#4bc87a;font-family:'DM Mono',monospace">Apto</span>`;
-      return `<tr>
-        <td style="${tdS}">${escHtml(r.posto||'—')}</td>
-        <td style="${tdS}">${escHtml(r.re)}</td>
-        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${escHtml(r.nome_guerra||r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-        <td style="${tdS}">${escHtml(r.opm||'—')}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03)">${s}</td>
-      </tr>`;
-    }).join('');
+        ? `<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#e0555522;color:#e05555;font-family:'DM Mono',monospace">${escHtml(afst[0]?.tipo_afastamento||'Afastado')}</span>`
+        : `<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#4bc87a22;color:#4bc87a;font-family:'DM Mono',monospace">Apto</span>`;
+      return `<div style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace">${escHtml(r.opm||'—')}</div>${s}`;
+    };
 
     const tabelaTotalHtml = p1SomenteQuantitativo()
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
-      : `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
-          <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thL}">Status</th></tr></thead>
-          <tbody>${rows||`<tr><td colspan="5" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`}</tbody>
-        </table></div>`;
+      : p1CardGrid(filtered.map(({r}) => r), totalInfo);
 
     html = wrapDetail('Todo o Efetivo', filtered.length, '#c8a84b', closeBtn, `
       ${ciaBtns    ? gridRow('CIA', ciaBtns) : ''}
@@ -1412,20 +1427,11 @@ function p1ShowKpiDetail(tipo) {
       return btnBase(escHtml(p), cnt, '#c8a84b', on, `p1AptosTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)
     }).join('');
 
-    const thead = `<thead><tr>
-      <th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th>
-      <th style="${thL}">OPM</th>
-    </tr></thead>`;
-    const rowsHtml = filtered.map(({r}) => `<tr>
-      <td style="${tdS}">${escHtml(r.posto||'—')}</td>
-      <td style="${tdS}">${escHtml(r.re)}</td>
-      <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${escHtml(r.nome_guerra||r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-      <td style="${tdS}">${escHtml(r.opm||'—')}</td>
-    </tr>`).join('') || `<tr><td colspan="4" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`;
+    const aptosInfo = r => `<div style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace">${escHtml(r.opm||'—')}</div>`;
 
     const tabelaAptosHtml = p1SomenteQuantitativo()
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
-      : `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">${thead}<tbody>${rowsHtml}</tbody></table></div>`;
+      : p1CardGrid(filtered.map(({r}) => r), aptosInfo);
 
     html = wrapDetail(`Aptos Operacional — ${filtered.length}`, null, '#4bc87a', closeBtn, `
       ${ciaBtns   ? gridRow('CIA', ciaBtns) : ''}
@@ -1527,35 +1533,25 @@ function p1ShowKpiDetail(tipo) {
     ORDER.forEach(grp => {
       const list = groups[grp]; if (!list?.length) return;
       const cor = COR_GRUPO[grp] || '#c8a84b';
-      inner += `<tr><td colspan="6" style="padding:10px 12px 4px;border-bottom:1px solid rgba(255,255,255,.04)">
-        <span style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:1px;padding:3px 10px;border-radius:10px;background:${cor}22;color:${cor};text-transform:uppercase">${escHtml(grp)} — ${list.length}</span>
-      </td></tr>`;
-      list.forEach(r => {
+      const restrInfo = r => {
         const uisRecs = hasUisRestr(r.re) ? ((_uisRestMap||{})[uisNormRE(r.re)]||[]) : [];
         let termino = r.restricao_termino || null;
         if (!termino && uisRecs.length) termino = uisRecs.map(x=>x.termino).filter(Boolean).sort().pop() || null;
         const dias = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : null;
         const corD = dias === null ? 'var(--tx3)' : dias <= 0 ? '#e05555' : dias <= 30 ? '#c8a84b' : '#4bc87a';
-        const hasTip = hasUisRestr(r.re);
-        inner += `<tr>
-          <td style="${tdS}">${escHtml(r.posto||'—')}</td>
-          <td style="${tdS}">${escHtml(r.re)}</td>
-          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')"${hasTip ? ` onmouseover="uisTipPmOver(event,'${esc(r.re)}')" onmousemove="_uisTipMove(event)" onmouseleave="_uisTipHide()"` : ''}>${escHtml(r.nome_guerra||r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-          <td style="${tdS}">${escHtml(r.opm||'—')}</td>
-          <td style="${tdS};text-align:right">${fmtD(termino)}</td>
-          <td style="${tdS};text-align:right;color:${corD};font-weight:700">${dias!==null?(dias<0?'Vencida':dias+'d'):'—'}</td>
-        </tr>`;
-      });
+        return `<div style="font-size:11px;font-family:'DM Mono',monospace;color:${corD};font-weight:700">${dias!==null ? (dias<0?'Vencida':dias+'d rest.') : fmtD(termino)}</div>`;
+      };
+      inner += `<div style="margin-bottom:16px">
+        <div style="margin-bottom:8px"><span style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:1px;padding:3px 10px;border-radius:10px;background:${cor}22;color:${cor};text-transform:uppercase">${escHtml(grp)} — ${list.length}</span></div>
+        ${p1CardGrid(list, restrInfo)}
+      </div>`;
     });
     const semRestr = (groups['__sem__'] || []).length;
-    if (semRestr) inner += `<tr><td colspan="6" style="padding:10px 12px;border-top:1px solid var(--bd2);color:var(--tx3);font-size:19px">Sem restrição: ${semRestr} PMs</td></tr>`;
     const totalRestr = dataFilt.length - semRestr;
     const tabelaRestrHtml = p1SomenteQuantitativo()
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${totalRestr}</div>`
-      : `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
-          <thead><tr><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th><th style="${thR}">Válida até</th><th style="${thR}">Restam</th></tr></thead>
-          <tbody>${inner||`<tr><td colspan="6" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`}</tbody>
-        </table></div>`;
+      : (inner || `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:19px">Nenhum resultado.</div>`)
+        + (semRestr ? `<div style="padding-top:10px;border-top:1px solid var(--bd2);color:var(--tx3);font-size:19px">Sem restrição: ${semRestr} PMs</div>` : '');
     html = wrapDetail('Em Restrição', totalRestr, '#c8a84b', closeBtn, `
       ${ciaBtns  ? gridRow('CIA', ciaBtns) : ''}
       ${munBtns  ? gridRow('MUNICÍPIO', munBtns) : ''}
@@ -1582,9 +1578,9 @@ function p1ShowKpiDetail(tipo) {
     );
 
     const notaCor2  = n => ({ 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#e05555','inapto':'#e05555' })[(n||'').toLowerCase()] || 'var(--tx3)';
-    const notaBadge = n => n
-      ? `<span style="font-size:19px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:8px;background:${notaCor2(n)}22;color:${notaCor2(n)}">${escHtml(n)}</span>`
-      : `<span style="color:var(--tx3);font-size:19px">—</span>`;
+    const notaBadgeSm = n => n
+      ? `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:6px;background:${notaCor2(n)}22;color:${notaCor2(n)}">${escHtml(n)}</span>`
+      : `<span style="color:var(--tx3);font-size:10px">—</span>`;
     const p2 = n => String(n).padStart(2,'0');
     const fmtEap = s => {
       if (!s) return '—';
@@ -1592,75 +1588,24 @@ function p1ShowKpiDetail(tipo) {
       const d3 = new Date(d); d3.setUTCDate(d3.getUTCDate() + 2);
       return `${p2(d.getUTCDate())} à ${p2(d3.getUTCDate())}/${p2(d3.getUTCMonth()+1)}/${d3.getUTCFullYear()}`;
     };
-    const cS  = 'font-family:"DM Mono",monospace;font-size:19px;color:var(--tx3)';
-    const cL  = 'font-size:19px;font-weight:600;color:var(--tx)';
-    const pC  = 'padding:8px 6px 8px 4px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-    const thE = 'padding:8px 6px 8px 4px;border-bottom:1px solid rgba(200,168,75,.25);background:rgba(200,168,75,.06);font-family:"DM Mono",monospace;font-size:19px;color:#c8a84b;letter-spacing:1px;text-transform:uppercase;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
 
-    const mkRow7 = r => `<tr>
-      <td style="${pC};${cS}">${escHtml(r.posto||'—')}</td>
-      <td style="${pC};${cS}">${escHtml(r.re)}</td>
-      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${escHtml(r.nome_guerra||r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-      <td style="${pC};${cS}">${escHtml(r.opm||'—')}</td>
-      <td style="${pC};${cS};color:#4bc87a">${fmtEap(r.data_eap)}</td>
-      <td style="${pC};text-align:center">${notaBadge(r.taf)}</td>
-      <td style="${pC};text-align:center">${notaBadge(r.tat)}</td>
-    </tr>`;
-    const mkRow5nota = (r, campo, notaFn) => `<tr>
-      <td style="${pC};${cS}">${escHtml(r.posto||'—')}</td>
-      <td style="${pC};${cS}">${escHtml(r.re)}</td>
-      <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${escHtml(r.nome_guerra||r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-      <td style="${pC};${cS}">${escHtml(r.opm||'—')}</td>
-      <td style="${pC};text-align:center">${notaBadge(r[campo])}</td>
-    </tr>`;
+    // Info do card: data do EAP (ou situação) + badges de TAF/TAT.
+    const infoEapDatas = dateFn => r => `
+      <div style="font-size:10px;color:#4bc87a;font-family:'DM Mono',monospace">${dateFn(r)}</div>
+      <div style="display:flex;gap:6px;justify-content:center;margin-top:2px;font-size:10px;color:var(--tx3)">TAF ${notaBadgeSm(r.taf)} TAT ${notaBadgeSm(r.tat)}</div>`;
+    const infoEapPend = r => {
+      const sit = taftatVencFn(r)
+        ? `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:6px;background:#e0555522;color:#e05555">Vencido</span>`
+        : `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:6px;background:#c8a84b22;color:#c8a84b">Não realizado</span>`;
+      return `<div>${sit}</div><div style="display:flex;gap:6px;justify-content:center;margin-top:2px;font-size:10px;color:var(--tx3)">TAF ${notaBadgeSm(r.taf)} TAT ${notaBadgeSm(r.tat)}</div>`;
+    };
+    const infoEapNota = campo => r => `<div style="margin-top:2px">${notaBadgeSm(r[campo])}</div>`;
 
-    const thead7 = (cols) => `<thead><tr>${cols.map(c=>`<th style="${thE}${c.center?';text-align:center':''}">${c.l}</th>`).join('')}</tr></thead>`;
-    const colg7  = `<colgroup><col style="width:17%"><col style="width:11%"><col style="width:24%"><col style="width:18%"><col style="width:15%"><col style="width:7%"><col style="width:8%"></colgroup>`;
-    const colg5  = `<colgroup><col style="width:20%"><col style="width:13%"><col style="width:37%"><col style="width:22%"><col style="width:8%"></colgroup>`;
-
-    const tblFeitos = `
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-        ${colg7}${thead7([{l:'Posto'},{l:'RE'},{l:'Nome'},{l:'OPM'},{l:'Período'},{l:'TAF',center:true},{l:'TAT',center:true}])}
-        <tbody>${feitos.map(mkRow7).join('')||`<tr><td colspan="7" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum realizado ainda</td></tr>`}</tbody>
-      </table>`;
-
-    const tblPend = `
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-        ${colg7}${thead7([{l:'Posto'},{l:'RE'},{l:'Nome'},{l:'OPM'},{l:'Situação'},{l:'TAF',center:true},{l:'TAT',center:true}])}
-        <tbody>${pend.map(r => {
-          const venc = taftatVencFn(r);
-          const sit = venc
-            ? `<span style="font-size:19px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:8px;background:#e0555522;color:#e05555">Vencido</span>`
-            : `<span style="font-size:19px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:8px;background:#c8a84b22;color:#c8a84b">Não realizado</span>`;
-          return `<tr>
-            <td style="${pC};${cS}">${escHtml(r.posto||'—')}</td>
-            <td style="${pC};${cS}">${escHtml(r.re)}</td>
-            <td style="${pC};${cL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${escHtml(r.nome_guerra||r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-            <td style="${pC};${cS}">${escHtml(r.opm||'—')}</td>
-            <td style="${pC}">${sit}</td>
-            <td style="${pC};text-align:center">${notaBadge(r.taf)}</td>
-            <td style="${pC};text-align:center">${notaBadge(r.tat)}</td>
-          </tr>`;
-        }).join('')||`<tr><td colspan="7" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Todos realizaram ✓</td></tr>`}</tbody>
-      </table>`;
-
-    const tblInapTAF = `
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-        ${colg5}${thead7([{l:'Posto'},{l:'RE'},{l:'Nome'},{l:'OPM'},{l:'TAF',center:true}])}
-        <tbody>${inapTAF.map(r => mkRow5nota(r,'taf')).join('')||`<tr><td colspan="5" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum inapto no TAF</td></tr>`}</tbody>
-      </table>`;
-
-    const tblInapTAT = `
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-        ${colg5}${thead7([{l:'Posto'},{l:'RE'},{l:'Nome'},{l:'OPM'},{l:'TAT',center:true}])}
-        <tbody>${inapTAT.map(r => mkRow5nota(r,'tat')).join('')||`<tr><td colspan="5" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum inapto no TAT</td></tr>`}</tbody>
-      </table>`;
-
-    const tblVenc = `
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-        ${colg7}${thead7([{l:'Posto'},{l:'RE'},{l:'Nome'},{l:'OPM'},{l:'Último EAP'},{l:'TAF',center:true},{l:'TAT',center:true}])}
-        <tbody>${vencidos.map(mkRow7).join('')||`<tr><td colspan="7" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum vencido</td></tr>`}</tbody>
-      </table>`;
+    const tblFeitos   = feitos.length   ? p1CardGrid(feitos,   infoEapDatas(r => fmtEap(r.data_eap))) : `<div style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum realizado ainda</div>`;
+    const tblPend     = pend.length     ? p1CardGrid(pend,     infoEapPend) : `<div style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Todos realizaram ✓</div>`;
+    const tblInapTAF  = inapTAF.length  ? p1CardGrid(inapTAF,  infoEapNota('taf')) : `<div style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum inapto no TAF</div>`;
+    const tblInapTAT  = inapTAT.length  ? p1CardGrid(inapTAT,  infoEapNota('tat')) : `<div style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum inapto no TAT</div>`;
+    const tblVenc     = vencidos.length ? p1CardGrid(vencidos, infoEapDatas(r => fmtEap(r.data_eap))) : `<div style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum vencido</div>`;
 
     // Cartão de resumo clicável
     const smCard = (key, label, val, cor) =>
@@ -1696,11 +1641,7 @@ function p1ShowKpiDetail(tipo) {
         </div>
         <div id="eap-tbl-feitos"   style="display:none;padding:0 12px 12px">${tblFeitos}</div>
         <div id="eap-tbl-aptos365" style="display:none;padding:0 12px 12px">
-          <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-            ${`<colgroup><col style="width:17%"><col style="width:11%"><col style="width:24%"><col style="width:18%"><col style="width:15%"><col style="width:7%"><col style="width:8%"></colgroup>`}
-            <thead><tr>${[{l:'Posto'},{l:'RE'},{l:'Nome'},{l:'OPM'},{l:'Período'},{l:'TAF',center:true},{l:'TAT',center:true}].map(c=>`<th style="${thE}${c.center?';text-align:center':''}">${c.l}</th>`).join('')}</tr></thead>
-            <tbody>${aptos365.map(mkRow7).join('')||`<tr><td colspan="7" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum apto nos últimos 365 dias</td></tr>`}</tbody>
-          </table>
+          ${aptos365.length ? p1CardGrid(aptos365, infoEapDatas(r => fmtEap(r.data_eap))) : `<div style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum apto nos últimos 365 dias</div>`}
         </div>
         <div id="eap-tbl-pend"    style="display:none;padding:0 12px 12px">${tblPend}</div>
         <div id="eap-tbl-inaptaf" style="display:none;padding:0 12px 12px">${tblInapTAF}</div>
@@ -1781,27 +1722,21 @@ function p1ShowKpiDetail(tipo) {
 
       const SIT_COR = { vencido:'#f07878', vencendo:'#c8a84b', apto:'#4bc87a', semreg:'#606880' };
       const SIT_LBL = { vencido:'VENCIDA', vencendo:'VENCENDO', apto:'APTO', semreg:'SEM REG.' };
-      const thead = `<thead><tr>
-        <th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome</th>
-        <th style="${thL}">OPM</th><th style="${thR}">Vencimento</th><th style="${thR}">Situação</th>
-      </tr></thead>`;
-      const rowsHtml = filtered.map(({r, s, rec}) => {
+      const iasRecByRe = {};
+      filtered.forEach(({r, s, rec}) => { iasRecByRe[r.re] = { s, rec }; });
+      const iasInfo = r => {
+        const { s, rec } = iasRecByRe[r.re] || {};
         const cor = SIT_COR[s] || 'var(--tx3)';
-        return `<tr>
-          <td style="${tdS}">${escHtml(r.posto||'—')}</td>
-          <td style="${tdS}">${escHtml(r.re)}</td>
-          <td style="${tdL};cursor:pointer" onclick="openIasPmModal('${esc(iasNormRE(r.re))}');closeP1Detail()">${escHtml(r.nome_guerra||r.nome)}</td>
-          <td style="${tdS}">${escHtml(r.opm||'—')}</td>
-          <td style="${tdS};text-align:right;color:${cor};font-weight:700">${rec?.data_vencimento ? fmtV(rec.data_vencimento) : '—'}</td>
-          <td style="${tdS};text-align:right"><span style="padding:2px 8px;border-radius:8px;font-size:15px;background:${cor}22;color:${cor};font-family:'DM Mono',monospace">${SIT_LBL[s]||s}</span></td>
-        </tr>`;
-      }).join('') || `<tr><td colspan="6" style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum resultado</td></tr>`;
+        return `<div style="font-size:10px;font-family:'DM Mono',monospace;color:${cor};font-weight:700">${rec?.data_vencimento ? fmtV(rec.data_vencimento) : '—'}</div>
+          <span style="padding:1px 6px;border-radius:6px;font-size:10px;background:${cor}22;color:${cor};font-family:'DM Mono',monospace;margin-top:2px;display:inline-block">${SIT_LBL[s]||s||'—'}</span>`;
+      };
+      const iasClick = r => `openIasPmModal('${String(iasNormRE(r.re)).replace(/'/g,"\\'")}');closeP1Detail()`;
 
       const tabelaIasHtml = p1SomenteQuantitativo()
         ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
         : !anyFilter
           ? `<div style="padding:20px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ Selecione um filtro acima para ver a listagem individual</div>`
-          : `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">${thead}<tbody>${rowsHtml}</tbody></table></div>`;
+          : p1CardGrid(filtered.map(({r}) => r), iasInfo, iasClick);
 
       const iasChartsHtml = `
         <div style="display:grid;grid-template-columns:310px 1fr;gap:16px;padding:0 0 16px;border-bottom:1px solid var(--bd);margin-bottom:12px;align-items:start">
@@ -1833,24 +1768,17 @@ function p1ShowKpiDetail(tipo) {
     const resFer  = new Set(p1Afasts.filter(a => isFer(a.tipo_afastamento) && (a.inicio||'').startsWith(String(anoAtual))).map(a => a.re));
     const semFer  = dataF.filter(r => !resFer.has(r.re));
 
-    const ferRow = (a, showDias) => {
-      const pm   = p1Data.find(r => r.re === a.re);
-      const nm   = pm?.nome_guerra || pm?.nome || a.nome || a.re;
+    // Junta o registro de afastamento com o cadastro da pessoa, pra virar card.
+    const ferCardData = list => list.map(a => {
+      const pm = p1Data.find(r => r.re === a.re);
+      return { re: a.re, nome: pm?.nome || a.nome, nome_guerra: pm?.nome_guerra, posto: pm?.posto, opm: pm?.opm || a.opm, _afast: a };
+    });
+    const ferInfo = showDias => r => {
+      const a = r._afast;
       const dias = a.termino ? Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000) : null;
-      return `<tr>
-        <td style="${tdS}">${escHtml(a.re)}</td>
-        <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(a.re)}')">${escHtml(nm)}</td>
-        <td style="${tdS}">${escHtml(pm?.opm||a.opm||'—')}</td>
-        <td style="${tdS};text-align:right">${fmtD(a.inicio)}</td>
-        <td style="${tdS};text-align:right">${fmtD(a.termino)}</td>
-        ${showDias ? `<td style="${tdS};text-align:right;color:${dias!==null&&dias<=3?'#4bc87a':'var(--tx3)'}">${dias!==null?dias+'d':'—'}</td>` : ''}
-      </tr>`;
+      return `<div style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace">${escHtml(r.opm||'—')}</div>
+        <div style="font-size:10px;font-family:'DM Mono',monospace;color:${showDias && dias!==null && dias<=3?'#4bc87a':'var(--tx3)'}">${fmtD(a.inicio)} → ${showDias && dias!==null ? dias+'d rest.' : fmtD(a.termino)}</div>`;
     };
-    const colH = (showDias) => `<thead><tr>
-      <th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">OPM</th>
-      <th style="${thR}">Início</th><th style="${thR}">Término</th>
-      ${showDias?`<th style="${thR}">Dias Rest.</th>`:''}
-    </tr></thead>`;
 
     let inner = '';
     if (p1SomenteQuantitativo()) {
@@ -1872,22 +1800,14 @@ function p1ShowKpiDetail(tipo) {
     } else {
       if (gozo.length) inner += `
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:#5a9de0;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Em Gozo — ${gozo.length}</div>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:4px">${colH(true)}<tbody>${gozo.map(a=>ferRow(a,true)).join('')}</tbody></table>`;
+        <div style="padding:0 12px 12px">${p1CardGrid(ferCardData(gozo), ferInfo(true))}</div>`;
       if (prox.length) inner += `
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:#c8a84b;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Iniciando em 15 dias — ${prox.length}</div>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:4px">${colH(false)}<tbody>${prox.map(a=>ferRow(a,false)).join('')}</tbody></table>`;
+        <div style="padding:0 12px 12px">${p1CardGrid(ferCardData(prox), ferInfo(false))}</div>`;
       if (semFer.length) {
-        const rows = semFer.map(r => `<tr>
-          <td style="${tdS}">${escHtml(r.re)}</td>
-          <td style="${tdL};cursor:pointer" onclick="openProntuario('${esc(r.re)}')">${escHtml(r.nome_guerra||r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-          <td style="${tdS}">${escHtml(r.posto||'—')}</td>
-          <td style="${tdS}">${escHtml(r.opm||'—')}</td>
-        </tr>`).join('');
         inner += `
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:#e05555;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Sem Férias em ${anoAtual} — ${semFer.length}</div>
-          <table style="width:100%;border-collapse:collapse">
-            <thead><tr><th style="${thL}">RE</th><th style="${thL}">Nome</th><th style="${thL}">Posto</th><th style="${thL}">OPM</th></tr></thead>
-            <tbody>${rows}</tbody></table>`;
+          <div style="padding:0 12px 12px">${p1CardGrid(semFer)}</div>`;
       }
     }
     html = wrapDetail('Controle de Férias', null, '#5a9de0', closeBtn, inner);
