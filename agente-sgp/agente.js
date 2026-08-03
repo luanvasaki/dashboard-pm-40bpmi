@@ -139,7 +139,7 @@ async function buscarAfastamentosPM(cpf) {
   }
   for (const item of asArray(result.ListaLicencaTratamentoSaude?.LicencaTratamentoSaude)) {
     linhas.push({
-      tipo_afastamento: trim(item.Descricao) || 'LICENÇA TRATAMENTO DE SAÚDE',
+      tipo_afastamento: trim(item.Descricao) || 'LTS',
       inicio:  item.DataInicial ? String(item.DataInicial).slice(0, 10) : null,
       termino: item.DataFinal ? String(item.DataFinal).slice(0, 10) : null,
       n_dias:  null,

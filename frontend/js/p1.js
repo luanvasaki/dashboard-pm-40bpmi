@@ -306,6 +306,12 @@ function p1CatTipo(t) {
   return 'Outros';
 }
 
+// Texto pra exibir no lugar do tipo de afastamento — encurta "Licença
+// para Tratamento de Saúde" (nome bem longo que vem assim do WSSCPM) para "LTS".
+function p1TipoLabel(tipo) {
+  return p1CatTipo(tipo) === 'LTS' ? 'LTS' : (tipo || '—');
+}
+
 // Carrega todos os dados do P1 em paralelo: efetivo, afastamentos, vagas e quadro
 // Chamada ao entrar na seção P1 via goSection('p1') e após qualquer upload
 async function loadP1() {
@@ -2524,7 +2530,7 @@ function prontoRenderExtrato() {
         const ativo = a.inicio <= hoje && a.termino >= hoje;
         const tdE = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:19px;color:var(--tx3)';
         return `<tr>
-          <td style="${tdE};font-size:19px;color:${ativo?'var(--tx)':'var(--tx3)'};font-family:inherit">${escHtml(a.tipo_afastamento || '—')}</td>
+          <td style="${tdE};font-size:19px;color:${ativo?'var(--tx)':'var(--tx3)'};font-family:inherit">${escHtml(p1TipoLabel(a.tipo_afastamento))}</td>
           <td style="${tdE}">${fmtD(a.inicio)}</td>
           <td style="${tdE}">${fmtD(a.termino)}</td>
           <td style="${tdE}">${a.n_dias ? a.n_dias + 'd' : '—'}</td>
