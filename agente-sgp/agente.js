@@ -115,37 +115,40 @@ async function buscarFotoPM(re6) {
 // no servidor da PM (erro de configuração de log, fora do nosso controle) —
 // ProcuraAfastamentosSemRestricaoPorCPF é a que funciona, mesmo dado equivalente.
 // Só extraímos datas/descrição/dias — nenhum dado médico (Trauma/Acidente/Parecer).
+//
+// A ListaAgregacao NÃO é afastamento de verdade — traz status tipo "APTO COM
+// RESTRIÇÃO" (a pessoa está trabalhando, só com restrição a alguns tipos de
+// serviço). Por isso vem separada: vira restrição no efetivo_pm, não afastamento.
 async function buscarAfastamentosPM(cpf) {
   const parsed = await soapCall('ProcuraAfastamentosSemRestricaoPorCPF', 'pmCPF', cpf);
   const result = parsed?.Envelope?.Body?.ProcuraAfastamentosSemRestricaoPorCPFResponse?.ProcuraAfastamentosSemRestricaoPorCPFResult;
-  if (!result) return [];
+  if (!result) return { afastamentos: [], restricoes: [] };
 
-  const linhas = [];
+  const afastamentos = [];
   for (const item of asArray(result.ListaAfastamento?.Afastamento)) {
-    linhas.push({
+    afastamentos.push({
       tipo_afastamento: trim(item.Descricao),
       inicio:  item.DataInicial ? String(item.DataInicial).slice(0, 10) : null,
       termino: item.DataFinal ? String(item.DataFinal).slice(0, 10) : null,
       n_dias:  item.QuantidadeDia ?? null,
     });
   }
-  for (const item of asArray(result.ListaAgregacao?.Agregacao)) {
-    linhas.push({
-      tipo_afastamento: trim(item.Descricao),
-      inicio:  item.DataInicial ? String(item.DataInicial).slice(0, 10) : null,
-      termino: item.DataFinal ? String(item.DataFinal).slice(0, 10) : null,
-      n_dias:  null,
-    });
-  }
   for (const item of asArray(result.ListaLicencaTratamentoSaude?.LicencaTratamentoSaude)) {
-    linhas.push({
+    afastamentos.push({
       tipo_afastamento: trim(item.Descricao) || 'LTS',
       inicio:  item.DataInicial ? String(item.DataInicial).slice(0, 10) : null,
       termino: item.DataFinal ? String(item.DataFinal).slice(0, 10) : null,
       n_dias:  null,
     });
   }
-  return linhas;
+
+  const restricoes = asArray(result.ListaAgregacao?.Agregacao).map(item => ({
+    tipo:    trim(item.Descricao),
+    inicio:  item.DataInicial ? String(item.DataInicial).slice(0, 10) : null,
+    termino: item.DataFinal ? String(item.DataFinal).slice(0, 10) : null,
+  }));
+
+  return { afastamentos, restricoes };
 }
 
 // Só atualiza gente que já está no efetivo (adicionado pela planilha).
@@ -174,16 +177,31 @@ async function sincronizarAfastamentos(dados, cpf, opm) {
     console.log(`  (afastamentos) RE ${dados.re}: CPF não encontrado nos Documentos do WSSCPM, pulando.`);
     return;
   }
-  const linhas = await buscarAfastamentosPM(cpf);
-  console.log(`  (afastamentos) RE ${dados.re}: ${linhas.length} registro(s) encontrado(s) no WSSCPM.`);
+  const { afastamentos, restricoes } = await buscarAfastamentosPM(cpf);
+  console.log(`  (afastamentos) RE ${dados.re}: ${afastamentos.length} afastamento(s), ${restricoes.length} agregação/restrição(ões) no WSSCPM.`);
 
   const { error: erroDelete } = await supabase.from('afastamentos_pm').delete().eq('re', dados.re);
   if (erroDelete) throw new Error(`Falha ao limpar afastamentos_pm: ${erroDelete.message}`);
-  if (!linhas.length) return;
+  if (afastamentos.length) {
+    const rows = afastamentos.map(l => ({ ...l, re: dados.re, nome: dados.nome, opm: opm || '' }));
+    const { error: erroInsert } = await supabase.from('afastamentos_pm').insert(rows);
+    if (erroInsert) throw new Error(`Falha ao gravar afastamentos_pm: ${erroInsert.message}`);
+  }
 
-  const rows = linhas.map(l => ({ ...l, re: dados.re, nome: dados.nome, opm: opm || '' }));
-  const { error: erroInsert } = await supabase.from('afastamentos_pm').insert(rows);
-  if (erroInsert) throw new Error(`Falha ao gravar afastamentos_pm: ${erroInsert.message}`);
+  // Só atualiza a restrição se houver uma agregação ATIVA hoje — se não houver,
+  // deixa o que já estiver em efetivo_pm (não apaga restrição cadastrada manualmente
+  // que o WSSCPM não conhece).
+  const hoje = new Date().toISOString().slice(0, 10);
+  const ativa = restricoes.find(r => r.inicio && r.termino && r.inicio <= hoje && r.termino >= hoje);
+  if (ativa) {
+    const { error: erroRestr } = await supabase.from('efetivo_pm').update({
+      possui_restricao: 'S',
+      tipos_restricao: ativa.tipo,
+      restricao_inicio: ativa.inicio,
+      restricao_termino: ativa.termino,
+    }).eq('re', dados.re);
+    if (erroRestr) throw new Error(`Falha ao gravar restrição em efetivo_pm: ${erroRestr.message}`);
+  }
 }
 
 async function sincronizarUmRE(re6) {
