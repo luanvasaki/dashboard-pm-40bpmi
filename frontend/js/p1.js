@@ -246,6 +246,45 @@ function p1Cat(posto) {
   return 'of'; // Asp, Ten, Cap, Maj, TC, Cel
 }
 
+// Ordena por antiguidade: Coronel primeiro, Soldado por último. Ordem mais
+// específica primeiro (1º Ten antes de Ten genérico, etc.) — quem não bater
+// em nada vai pro fim da lista em vez de quebrar a ordenação.
+const P1_POSTO_ORDEM = [
+  /\bcel\b|coronel/,
+  /\btc\b|tenente.?coronel/,
+  /\bmaj\b|major/,
+  /\bcap\b|capit[aã]o/,
+  /\b1\s*ten\b|primeiro.?tenente/,
+  /\b2\s*ten\b|segundo.?tenente/,
+  /\bten\b|tenente/,
+  /\basp\b|aspirante/,
+  /\bsub\s*ten\b|\bst\b|subtenente/,
+  /\b1\s*sgt\b|primeiro.?sargento/,
+  /\b2\s*sgt\b|segundo.?sargento/,
+  /\b3\s*sgt\b|terceiro.?sargento/,
+  /\bsgt\b|sargento/,
+  /\bcb\b|cabo/,
+  /\bsd\b|soldado/,
+];
+function p1PostoRank(posto) {
+  const p = (posto || '').toLowerCase().replace(/[º°ª]/g, '');
+  const idx = P1_POSTO_ORDEM.findIndex(re => re.test(p));
+  return idx === -1 ? 999 : idx;
+}
+
+// Extrai só a parte numérica do RE (ignora o dígito verificador) pra comparar.
+function p1ReNum(re) {
+  return parseInt(String(re || '').match(/\d+/)?.[0] || '0', 10);
+}
+
+function p1OrdenarPorAntiguidade(pms) {
+  return pms.slice().sort((a, b) => {
+    const ra = p1PostoRank(a.posto), rb = p1PostoRank(b.posto);
+    if (ra !== rb) return ra - rb;
+    return p1ReNum(a.re) - p1ReNum(b.re);
+  });
+}
+
 // Normaliza a descrição livre de afastamento (vinda do CSV ou do WSSCPM,
 // que traz muitas variações de texto) num grupo fixo, usado tanto no
 // resumo compacto do KPI quanto no detalhe expandido.
@@ -3080,6 +3119,7 @@ function p1ShowUnit(unit) {
 function p1ShowPmList(pms, label) {
   const det = document.getElementById('p1-unit-detail');
   if (!det) return;
+  pms = p1OrdenarPorAntiguidade(pms);
   const escA = s => (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 
   const cards = pms.map(r => {
