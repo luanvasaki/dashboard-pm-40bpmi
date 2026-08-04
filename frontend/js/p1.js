@@ -55,191 +55,52 @@ const p1SomenteQuantitativo = () => {
   return !['nominal','editor'].includes((u.secoes_acesso || {}).p1 || '');
 };
 
-// Estado dos filtros do detalhe Total Efetivo
-let _p1TotalDetCia    = -1;
-let _p1TotalDetGen    = null; // null | 'F' | 'M'
-let _p1TotalDetMun    = null;
-let _p1TotalDetPostos = [];
+// Estado dos filtros de CIA/Cidade/Graduação de cada detalhe de KPI do P1 —
+// todos usam o mesmo padrão de 3 seletores integrados (p1FiltroCMP). Gênero
+// (Total Efetivo) e Situação (IAS) são filtros à parte, específicos daquela tela.
+let _p1TotalDetCia = -1, _p1TotalDetMun = null, _p1TotalDetPosto = null, _p1TotalDetGen = null;
+function p1TotalSetCia(val)   { _p1TotalDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('total'); }
+function p1TotalSetMun(val)   { _p1TotalDetMun = val || null; p1ShowKpiDetail('total'); }
+function p1TotalSetPosto(val) { _p1TotalDetPosto = val || null; p1ShowKpiDetail('total'); }
+function p1TotalSetGen(val)   { _p1TotalDetGen = _p1TotalDetGen === val ? null : val; p1ShowKpiDetail('total'); }
 
-function _p1TotalMunCia(mun) {
-  // Retorna o índice CIA de uma cidade, olhando no p1Data
-  if (!mun || typeof CIA_STRUCT === 'undefined') return -1;
-  const pm = p1Data.find(r => { const p = (r.opm||'').split(' - '); return (p.length > 1 ? p[p.length-1].trim() : null) === mun; });
-  if (!pm) return -1;
-  return CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(pm.opm, c.units.flatMap(u => u.keys)));
-}
+let _p1IasDetCia = -1, _p1IasDetMun = null, _p1IasDetPosto = null, _p1IasDetSit = null;
+let _iasChartData = null;
+function p1IasSetCia(val)   { _p1IasDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('ias'); }
+function p1IasSetMun(val)   { _p1IasDetMun = val || null; p1ShowKpiDetail('ias'); }
+function p1IasSetPosto(val) { _p1IasDetPosto = val || null; p1ShowKpiDetail('ias'); }
+function p1IasSetSit(val)   { _p1IasDetSit = _p1IasDetSit === val ? null : val; p1ShowKpiDetail('ias'); }
 
-function p1TotalSetCia(idx) {
-  if (_p1TotalDetCia === idx) {
-    _p1TotalDetCia = -1;
-  } else {
-    _p1TotalDetCia = idx;
-    // Limpa cidade se não pertencer à CIA escolhida
-    if (_p1TotalDetMun && _p1TotalMunCia(_p1TotalDetMun) !== idx) _p1TotalDetMun = null;
-  }
-  p1ShowKpiDetail('total');
-}
+let _p1AptosDetCia = -1, _p1AptosDetMun = null, _p1AptosDetPosto = null;
+function p1AptosSetCia(val)   { _p1AptosDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('aptos'); }
+function p1AptosSetMun(val)   { _p1AptosDetMun = val || null; p1ShowKpiDetail('aptos'); }
+function p1AptosSetPosto(val) { _p1AptosDetPosto = val || null; p1ShowKpiDetail('aptos'); }
 
-function p1TotalSetGen(val) { _p1TotalDetGen = _p1TotalDetGen === val ? null : val; p1ShowKpiDetail('total'); }
+let _p1RestDetCia = -1, _p1RestDetMun = null, _p1RestDetPosto = null;
+function p1RestSetCia(val)   { _p1RestDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('restricao'); }
+function p1RestSetMun(val)   { _p1RestDetMun = val || null; p1ShowKpiDetail('restricao'); }
+function p1RestSetPosto(val) { _p1RestDetPosto = val || null; p1ShowKpiDetail('restricao'); }
 
-function p1TotalSetMun(val) {
-  if (_p1TotalDetMun === val) {
-    _p1TotalDetMun = null;
-  } else {
-    _p1TotalDetMun = val;
-    // Acende automaticamente a CIA correspondente à cidade
-    const ciaIdx = _p1TotalMunCia(val);
-    if (ciaIdx >= 0) _p1TotalDetCia = ciaIdx;
-  }
-  p1ShowKpiDetail('total');
-}
+let _p1AfastDetCia = -1, _p1AfastDetMun = null, _p1AfastDetPosto = null;
+function p1AfastSetCia(val)   { _p1AfastDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('afastados'); }
+function p1AfastSetMun(val)   { _p1AfastDetMun = val || null; p1ShowKpiDetail('afastados'); }
+function p1AfastSetPosto(val) { _p1AfastDetPosto = val || null; p1ShowKpiDetail('afastados'); }
 
-function p1TotalTogPosto(val) {
-  const i = _p1TotalDetPostos.indexOf(val);
-  if (i >= 0) _p1TotalDetPostos.splice(i, 1); else _p1TotalDetPostos.push(val);
-  p1ShowKpiDetail('total');
-}
+let _p1EapDetCia = -1, _p1EapDetMun = null, _p1EapDetPosto = null;
+function p1EapSetCia(val)   { _p1EapDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('eap'); }
+function p1EapSetMun(val)   { _p1EapDetMun = val || null; p1ShowKpiDetail('eap'); }
+function p1EapSetPosto(val) { _p1EapDetPosto = val || null; p1ShowKpiDetail('eap'); }
 
-// Estado dos filtros do detalhe IAS
-let _p1IasDetSit    = null;
-let _p1IasDetCia    = -1;
-let _p1IasDetMun    = null;
-let _p1IasDetPostos = [];
-let _iasChartData   = null;
+let _p1FeriasDetCia = -1, _p1FeriasDetMun = null, _p1FeriasDetPosto = null;
+function p1FeriasSetCia(val)   { _p1FeriasDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('ferias'); }
+function p1FeriasSetMun(val)   { _p1FeriasDetMun = val || null; p1ShowKpiDetail('ferias'); }
+function p1FeriasSetPosto(val) { _p1FeriasDetPosto = val || null; p1ShowKpiDetail('ferias'); }
 
-function p1IasSetSit(val) { _p1IasDetSit = _p1IasDetSit === val ? null : val; p1ShowKpiDetail('ias'); }
-function p1IasSetCia(idx) {
-  if (_p1IasDetCia === idx) {
-    _p1IasDetCia = -1;
-  } else {
-    _p1IasDetCia = idx;
-    if (_p1IasDetMun && _p1TotalMunCia(_p1IasDetMun) !== idx) _p1IasDetMun = null;
-  }
-  p1ShowKpiDetail('ias');
-}
-function p1IasSetMun(val) {
-  if (_p1IasDetMun === val) {
-    _p1IasDetMun = null;
-  } else {
-    _p1IasDetMun = val;
-    const ciaIdx = _p1TotalMunCia(val);
-    if (ciaIdx >= 0) _p1IasDetCia = ciaIdx;
-  }
-  p1ShowKpiDetail('ias');
-}
-function p1IasTogPosto(val) {
-  const i = _p1IasDetPostos.indexOf(val);
-  if (i >= 0) _p1IasDetPostos.splice(i, 1); else _p1IasDetPostos.push(val);
-  p1ShowKpiDetail('ias');
-}
-
-// Estado dos filtros do detalhe Aptos Operacional
-let _p1AptosDetCia    = -1;
-let _p1AptosDetMun    = null;
-let _p1AptosDetPostos = [];
-
-// Estado dos filtros do detalhe Restrições
-let _p1RestDetCia    = -1;
-let _p1RestDetMun    = null;
-let _p1RestDetPostos = [];
-function p1RestTogPosto(val) {
-  const i = _p1RestDetPostos.indexOf(val);
-  if (i >= 0) _p1RestDetPostos.splice(i, 1); else _p1RestDetPostos.push(val);
-  p1ShowKpiDetail('restricao');
-}
-
-// Estado dos filtros do detalhe Afastamentos Ativos
-let _p1AfastDetMun    = null;
-let _p1AfastDetPostos = [];
-function p1AfastSetMun(val) { _p1AfastDetMun = _p1AfastDetMun === val ? null : val; p1ShowKpiDetail('afastados'); }
-function p1AfastTogPosto(val) {
-  const i = _p1AfastDetPostos.indexOf(val);
-  if (i >= 0) _p1AfastDetPostos.splice(i, 1); else _p1AfastDetPostos.push(val);
-  p1ShowKpiDetail('afastados');
-}
-
-// Estado dos filtros do detalhe EAP/TAF/TAT
-let _p1EapDetMun    = null;
-let _p1EapDetPostos = [];
-function p1EapSetMun(val) { _p1EapDetMun = _p1EapDetMun === val ? null : val; p1ShowKpiDetail('eap'); }
-function p1EapTogPosto(val) {
-  const i = _p1EapDetPostos.indexOf(val);
-  if (i >= 0) _p1EapDetPostos.splice(i, 1); else _p1EapDetPostos.push(val);
-  p1ShowKpiDetail('eap');
-}
-
-// Estado dos filtros do detalhe Controle de Férias
-let _p1FeriasDetMun    = null;
-let _p1FeriasDetPostos = [];
-function p1FeriasSetMun(val) { _p1FeriasDetMun = _p1FeriasDetMun === val ? null : val; p1ShowKpiDetail('ferias'); }
-function p1FeriasTogPosto(val) {
-  const i = _p1FeriasDetPostos.indexOf(val);
-  if (i >= 0) _p1FeriasDetPostos.splice(i, 1); else _p1FeriasDetPostos.push(val);
-  p1ShowKpiDetail('ferias');
-}
-
-// Estado do filtro do bloco "Em Afastamento" na home do P1 — 3 seletores
-// integrados (CIA e Cidade se filtram mutuamente; Graduação cascata dos dois).
-let _p1HomeAfastCia   = -1;
-let _p1HomeAfastMun   = null;
-let _p1HomeAfastPosto = null;
-function p1HomeAfastSetCia(val) {
-  _p1HomeAfastCia = (val === '' || val == null) ? -1 : parseInt(val, 10);
-  renderP1();
-}
-function p1HomeAfastSetMun(val) {
-  _p1HomeAfastMun = val || null;
-  renderP1();
-}
-function p1HomeAfastSetPosto(val) {
-  _p1HomeAfastPosto = val || null;
-  renderP1();
-}
-
-function p1RestSetCia(idx) {
-  if (_p1RestDetCia === idx) {
-    _p1RestDetCia = -1;
-  } else {
-    _p1RestDetCia = idx;
-    if (_p1RestDetMun && _p1TotalMunCia(_p1RestDetMun) !== idx) _p1RestDetMun = null;
-  }
-  p1ShowKpiDetail('restricao');
-}
-function p1RestSetMun(val) {
-  if (_p1RestDetMun === val) {
-    _p1RestDetMun = null;
-  } else {
-    _p1RestDetMun = val;
-    const ciaIdx = _p1TotalMunCia(val);
-    if (ciaIdx >= 0) _p1RestDetCia = ciaIdx;
-  }
-  p1ShowKpiDetail('restricao');
-}
-
-function p1AptosSetCia(idx) {
-  if (_p1AptosDetCia === idx) {
-    _p1AptosDetCia = -1;
-  } else {
-    _p1AptosDetCia = idx;
-    if (_p1AptosDetMun && _p1TotalMunCia(_p1AptosDetMun) !== idx) _p1AptosDetMun = null;
-  }
-  p1ShowKpiDetail('aptos');
-}
-function p1AptosSetMun(val) {
-  if (_p1AptosDetMun === val) {
-    _p1AptosDetMun = null;
-  } else {
-    _p1AptosDetMun = val;
-    const ciaIdx = _p1TotalMunCia(val);
-    if (ciaIdx >= 0) _p1AptosDetCia = ciaIdx;
-  }
-  p1ShowKpiDetail('aptos');
-}
-function p1AptosTogPosto(val) {
-  const i = _p1AptosDetPostos.indexOf(val);
-  if (i >= 0) _p1AptosDetPostos.splice(i, 1); else _p1AptosDetPostos.push(val);
-  p1ShowKpiDetail('aptos');
-}
+// Estado do filtro do bloco "Em Afastamento" na home do P1
+let _p1HomeAfastCia = -1, _p1HomeAfastMun = null, _p1HomeAfastPosto = null;
+function p1HomeAfastSetCia(val)   { _p1HomeAfastCia = (val === '' || val == null) ? -1 : parseInt(val, 10); renderP1(); }
+function p1HomeAfastSetMun(val)   { _p1HomeAfastMun = val || null; renderP1(); }
+function p1HomeAfastSetPosto(val) { _p1HomeAfastPosto = val || null; renderP1(); }
 
 function hasUisRestr(re) {
   return typeof uisNormRE === 'function' && !!_uisRestMap?.[uisNormRE(re)]?.length;
@@ -901,44 +762,15 @@ function renderP1() {
   // limitação", não ausência; fica só no perfil do PM e no KPI de Restrições.
   const getMunHome = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
   const getCiaHome = opm => (typeof CIA_STRUCT === 'undefined' || !opm) ? -1 : CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
-  const baseHome = pmAfastados.map(r => ({ r, ciaIdx: getCiaHome(r.opm), mun: getMunHome(r.opm) }));
+  const baseHome = pmAfastados.map(r => ({ r, ciaIdx: getCiaHome(r.opm), mun: getMunHome(r.opm), posto: r.posto }));
 
-  // CIA e Cidade se filtram mutuamente: as opções de um consideram a seleção
-  // atual do outro. Se a seleção guardada ficar inválida (ex: trocou de CIA
-  // e a cidade escolhida não existe mais nela), ela é limpa automaticamente.
-  const munListHome = [...new Set((_p1HomeAfastCia >= 0 ? baseHome.filter(x => x.ciaIdx === _p1HomeAfastCia) : baseHome).map(x => x.mun).filter(Boolean))].sort();
-  if (_p1HomeAfastMun && !munListHome.includes(_p1HomeAfastMun)) _p1HomeAfastMun = null;
-
-  const ciaOptsHome = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.map((c, i) => ({
-    idx: i, label: c.label,
-    cnt: (_p1HomeAfastMun ? baseHome.filter(x => x.mun === _p1HomeAfastMun) : baseHome).filter(x => x.ciaIdx === i).length,
-  })).filter(o => o.cnt > 0) : [];
-  if (_p1HomeAfastCia >= 0 && !ciaOptsHome.some(o => o.idx === _p1HomeAfastCia)) _p1HomeAfastCia = -1;
+  const filtroHome = p1FiltroCMP(baseHome, _p1HomeAfastCia, _p1HomeAfastMun, _p1HomeAfastPosto, 'p1HomeAfastSetCia', 'p1HomeAfastSetMun', 'p1HomeAfastSetPosto');
+  _p1HomeAfastCia = filtroHome.cia; _p1HomeAfastMun = filtroHome.mun; _p1HomeAfastPosto = filtroHome.posto;
 
   let pmAfastadosFiltrados = pmAfastados;
   if (_p1HomeAfastCia >= 0) pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => getCiaHome(r.opm) === _p1HomeAfastCia);
   if (_p1HomeAfastMun)      pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => getMunHome(r.opm) === _p1HomeAfastMun);
-
-  const postoListHome = [...new Set(pmAfastadosFiltrados.map(r => r.posto).filter(Boolean))].sort((a,b) => p1PostoRank(a)-p1PostoRank(b));
-  if (_p1HomeAfastPosto && !postoListHome.includes(_p1HomeAfastPosto)) _p1HomeAfastPosto = null;
-  if (_p1HomeAfastPosto) pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => r.posto === _p1HomeAfastPosto);
-
-  const selHome = (label, options, onchange) => `
-    <div style="display:flex;flex-direction:column;gap:4px;min-width:150px;flex:1">
-      <label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;text-transform:uppercase">${label}</label>
-      <select onchange="${onchange}" style="padding:7px 10px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-family:'DM Mono',monospace;font-size:13px;cursor:pointer;width:100%">
-        ${options}
-      </select>
-    </div>`;
-  const ciaSelectHome = selHome('CIA',
-    `<option value="">Todas</option>` + ciaOptsHome.map(o => `<option value="${o.idx}" ${_p1HomeAfastCia===o.idx?'selected':''}>${escHtml(o.label)} (${o.cnt})</option>`).join(''),
-    `p1HomeAfastSetCia(this.value)`);
-  const munSelectHome = selHome('CIDADE',
-    `<option value="">Todas</option>` + munListHome.map(m => `<option value="${escHtml(m)}" ${_p1HomeAfastMun===m?'selected':''}>${escHtml(m)}</option>`).join(''),
-    `p1HomeAfastSetMun(this.value)`);
-  const postoSelectHome = selHome('GRADUAÇÃO',
-    `<option value="">Todas</option>` + postoListHome.map(p => `<option value="${escHtml(p)}" ${_p1HomeAfastPosto===p?'selected':''}>${escHtml(p)}</option>`).join(''),
-    `p1HomeAfastSetPosto(this.value)`);
+  if (_p1HomeAfastPosto)    pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => r.posto === _p1HomeAfastPosto);
 
   const homeAfastInfo = r => {
     const ats = afastHoje[r.re] || [];
@@ -955,7 +787,7 @@ function renderP1() {
         <span>Em Afastamento</span>
         <span style="background:#e0555528;color:#e05555;border-radius:20px;padding:1px 10px;font-size:17px;letter-spacing:0">${pmAfastadosFiltrados.length}${pmAfastadosFiltrados.length !== pmAfastados.length ? ' de ' + pmAfastados.length : ''}</span>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:12px;padding:12px 16px;border-bottom:1px solid var(--bd)">${ciaSelectHome}${munSelectHome}${postoSelectHome}</div>
+      ${filtroHome.html}
       <div style="padding:14px 16px">${p1CardGrid(pmAfastadosFiltrados, homeAfastInfo)}</div>
     </div>`;
 
@@ -1306,13 +1138,13 @@ function wrapDetail(_title, _count, _color, _closeBtn, inner) {
 function closeP1Detail() {
   const mo = document.getElementById('p1-detail-mo');
   if (mo) { mo.classList.remove('on'); document.body.style.overflow = ''; }
-  _p1TotalDetCia = -1; _p1TotalDetGen = null; _p1TotalDetMun = null; _p1TotalDetPostos = [];
-  _p1IasDetSit = null; _p1IasDetCia = -1; _p1IasDetMun = null; _p1IasDetPostos = [];
-  _p1AptosDetCia = -1; _p1AptosDetMun = null; _p1AptosDetPostos = [];
-  _p1RestDetCia = -1; _p1RestDetMun = null; _p1RestDetPostos = [];
-  _p1AfastDetMun = null; _p1AfastDetPostos = [];
-  _p1EapDetMun = null; _p1EapDetPostos = [];
-  _p1FeriasDetMun = null; _p1FeriasDetPostos = [];
+  _p1TotalDetCia = -1; _p1TotalDetGen = null; _p1TotalDetMun = null; _p1TotalDetPosto = null;
+  _p1IasDetSit = null; _p1IasDetCia = -1; _p1IasDetMun = null; _p1IasDetPosto = null;
+  _p1AptosDetCia = -1; _p1AptosDetMun = null; _p1AptosDetPosto = null;
+  _p1RestDetCia = -1; _p1RestDetMun = null; _p1RestDetPosto = null;
+  _p1AfastDetCia = -1; _p1AfastDetMun = null; _p1AfastDetPosto = null;
+  _p1EapDetCia = -1; _p1EapDetMun = null; _p1EapDetPosto = null;
+  _p1FeriasDetCia = -1; _p1FeriasDetMun = null; _p1FeriasDetPosto = null;
 }
 
 
@@ -1328,6 +1160,44 @@ function eapFiltroSet(key) {
 
 function p1DetailClickOut(e) {
   if (e.target === document.getElementById('p1-detail-mo')) closeP1Detail();
+}
+
+// Filtro padrão (CIA / Cidade / Graduação) usado em todo detalhe de KPI do
+// P1 que lista PMs — 3 seletores integrados: CIA e Cidade se filtram
+// mutuamente (a lista de opções de um considera a seleção atual do outro),
+// Graduação cascata dos dois. Autocorrige sozinho seleção que ficou inválida
+// (ex: cidade que não existe mais na CIA recém-escolhida).
+// `base` é [{ ciaIdx, mun, posto }] já enriquecido pelo chamador.
+function p1FiltroCMP(base, cia, mun, posto, setCiaFn, setMunFn, setPostoFn) {
+  const munOpts = [...new Set((cia >= 0 ? base.filter(x => x.ciaIdx === cia) : base).map(x => x.mun).filter(Boolean))].sort();
+  if (mun && !munOpts.includes(mun)) mun = null;
+
+  const ciaOpts = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.map((c, i) => ({
+    idx: i, label: c.label,
+    cnt: (mun ? base.filter(x => x.mun === mun) : base).filter(x => x.ciaIdx === i).length,
+  })).filter(o => o.cnt > 0) : [];
+  if (cia >= 0 && !ciaOpts.some(o => o.idx === cia)) cia = -1;
+
+  let filtBase = base;
+  if (cia >= 0) filtBase = filtBase.filter(x => x.ciaIdx === cia);
+  if (mun)      filtBase = filtBase.filter(x => x.mun === mun);
+  const postoOpts = [...new Set(filtBase.map(x => x.posto).filter(Boolean))].sort((a,b) => p1PostoRank(a)-p1PostoRank(b));
+  if (posto && !postoOpts.includes(posto)) posto = null;
+
+  const sel = (label, options, onchange) => `
+    <div style="display:flex;flex-direction:column;gap:4px;min-width:150px;flex:1">
+      <label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;text-transform:uppercase">${label}</label>
+      <select onchange="${onchange}" style="padding:7px 10px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-family:'DM Mono',monospace;font-size:13px;cursor:pointer;width:100%">
+        ${options}
+      </select>
+    </div>`;
+  const html = `<div style="display:flex;flex-wrap:wrap;gap:12px;padding:12px 16px;border-bottom:1px solid var(--bd)">
+    ${sel('CIA', `<option value="">Todas</option>` + ciaOpts.map(o => `<option value="${o.idx}" ${cia===o.idx?'selected':''}>${escHtml(o.label)} (${o.cnt})</option>`).join(''), `${setCiaFn}(this.value)`)}
+    ${sel('CIDADE', `<option value="">Todas</option>` + munOpts.map(m => `<option value="${escHtml(m)}" ${mun===m?'selected':''}>${escHtml(m)}</option>`).join(''), `${setMunFn}(this.value)`)}
+    ${sel('GRADUAÇÃO', `<option value="">Todas</option>` + postoOpts.map(p => `<option value="${escHtml(p)}" ${posto===p?'selected':''}>${escHtml(p)}</option>`).join(''), `${setPostoFn}(this.value)`)}
+  </div>`;
+
+  return { cia, mun, posto, html };
 }
 
 // Grade de cards com foto (mesmo padrão da grade por CIA), usada em todos os
@@ -1400,21 +1270,19 @@ function p1ShowKpiDetail(tipo) {
     };
     const getMunTot = opm => { if (!opm) return null; const p = opm.split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
 
-    const _pH = [/cel/i,/\btc\b/i,/maj/i,/cap/i,/1.{0,4}ten/i,/2.{0,4}ten/i,/asp/i,/sub.?ten|^st$|st pm/i,/1.{0,4}sgt/i,/2.{0,4}sgt/i,/3.{0,4}sgt/i,/\bcb\b|cabo/i,/\bsd\b|soldado/i];
-    const _pR = p => { const n=(p||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); const i=_pH.findIndex(r=>r.test(n)); return i<0?999:i; };
+    const baseList = dataF.map(r => ({ r, ciaIdx: getCiaTot(r.opm), gen: genNorm(r.genero), mun: getMunTot(r.opm), posto: r.posto }));
 
-    const baseList = dataF.map(r => ({ r, ciaIdx: getCiaTot(r.opm), gen: genNorm(r.genero), mun: getMunTot(r.opm) }));
+    const cntF = baseList.filter(x => x.gen === 'F').length;
+    const cntM = baseList.filter(x => x.gen === 'M').length;
 
-    const cntF      = baseList.filter(x => x.gen === 'F').length;
-    const cntM      = baseList.filter(x => x.gen === 'M').length;
-    const munList   = [...new Set(baseList.map(x => x.mun).filter(Boolean))].sort();
-    const postoList = [...new Set(dataF.map(r => r.posto).filter(Boolean))].sort((a,b) => _pR(a)-_pR(b));
+    const filtro = p1FiltroCMP(baseList, _p1TotalDetCia, _p1TotalDetMun, _p1TotalDetPosto, 'p1TotalSetCia', 'p1TotalSetMun', 'p1TotalSetPosto');
+    _p1TotalDetCia = filtro.cia; _p1TotalDetMun = filtro.mun; _p1TotalDetPosto = filtro.posto;
 
     let filtered = baseList;
-    if (_p1TotalDetCia >= 0)      filtered = filtered.filter(x => x.ciaIdx === _p1TotalDetCia);
-    if (_p1TotalDetGen)           filtered = filtered.filter(x => x.gen === _p1TotalDetGen);
-    if (_p1TotalDetMun)           filtered = filtered.filter(x => x.mun === _p1TotalDetMun);
-    if (_p1TotalDetPostos.length) filtered = filtered.filter(x => _p1TotalDetPostos.includes(x.r.posto));
+    if (_p1TotalDetCia >= 0) filtered = filtered.filter(x => x.ciaIdx === _p1TotalDetCia);
+    if (_p1TotalDetGen)      filtered = filtered.filter(x => x.gen === _p1TotalDetGen);
+    if (_p1TotalDetMun)      filtered = filtered.filter(x => x.mun === _p1TotalDetMun);
+    if (_p1TotalDetPosto)    filtered = filtered.filter(x => x.posto === _p1TotalDetPosto);
 
     const btnBase = (lbl, cor, on, onclick) =>
       `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
@@ -1424,26 +1292,10 @@ function p1ShowKpiDetail(tipo) {
         <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
       </div>`;
 
-    const ciaBtns = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.map((c, i) => {
-      const cnt = baseList.filter(x => x.ciaIdx === i).length;
-      return btnBase(`${c.label} <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cnt}</span>`, c.color, _p1TotalDetCia === i, `p1TotalSetCia(${i})`);
-    }).join('') : '';
-
     const genBtns = [
       btnBase(`FEMININO <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cntF}</span>`, '#e91e8c', _p1TotalDetGen === 'F', "p1TotalSetGen('F')"),
       btnBase(`MASCULINO <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cntM}</span>`, '#5a9de0', _p1TotalDetGen === 'M', "p1TotalSetGen('M')"),
     ].join('');
-
-    const munBtns = munList.map(m => {
-      const cnt = baseList.filter(x => x.mun === m).length;
-      return btnBase(escHtml(m), '#5a9de0', _p1TotalDetMun === m, `p1TotalSetMun('${escHtml(m).replace(/\\/g,'\\\\')}')`)
-    }).join('');
-
-    const postoBtns = postoList.map(p => {
-      const cnt = baseList.filter(x => x.r.posto === p).length;
-      const on  = _p1TotalDetPostos.includes(p);
-      return btnBase(escHtml(p), '#c8a84b', on, `p1TotalTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)
-    }).join('');
 
     const totalInfo = r => {
       const afst = p1AfastHoje[r.re];
@@ -1458,9 +1310,7 @@ function p1ShowKpiDetail(tipo) {
       : p1CardGrid(filtered.map(({r}) => r), totalInfo);
 
     html = wrapDetail('Todo o Efetivo', filtered.length, '#c8a84b', closeBtn, `
-      ${ciaBtns    ? gridRow('CIA', ciaBtns) : ''}
-      ${munBtns    ? gridRow('MUNICÍPIO', munBtns) : ''}
-      ${postoBtns  ? gridRow('POSTO / GRAD.', postoBtns) : ''}
+      ${filtro.html}
       ${gridRow('GÊNERO', genBtns)}
       ${tabelaTotalHtml}`);
   }
@@ -1485,43 +1335,16 @@ function p1ShowKpiDetail(tipo) {
       ...dataF.filter(r => iasStatus(r.re) === 'vencido').map(r => r.re),
     ]);
     const baseList = dataF.filter(r => !naoAptosRe.has(r.re)).map(r => ({
-      r, mun: getMun(r.opm), ciaIdx: getCia(r.opm)
+      r, mun: getMun(r.opm), ciaIdx: getCia(r.opm), posto: r.posto
     }));
 
-    const munList   = [...new Set(baseList.map(x => x.mun).filter(Boolean))].sort();
-    const _pH = [/cel/i,/\btc\b/i,/maj/i,/cap/i,/1.{0,4}ten/i,/2.{0,4}ten/i,/asp/i,/sub.?ten|^st$|st pm/i,/1.{0,4}sgt/i,/2.{0,4}sgt/i,/3.{0,4}sgt/i,/\bcb\b|cabo/i,/\bsd\b|soldado/i];
-    const _pR = p => { const n=(p||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); const i=_pH.findIndex(r=>r.test(n)); return i<0?999:i; };
-    const postoList = [...new Set(baseList.map(x => x.r.posto).filter(Boolean))].sort((a,b) => _pR(a)-_pR(b));
+    const filtro = p1FiltroCMP(baseList, _p1AptosDetCia, _p1AptosDetMun, _p1AptosDetPosto, 'p1AptosSetCia', 'p1AptosSetMun', 'p1AptosSetPosto');
+    _p1AptosDetCia = filtro.cia; _p1AptosDetMun = filtro.mun; _p1AptosDetPosto = filtro.posto;
 
     let filtered = baseList;
-    if (_p1AptosDetCia >= 0)      filtered = filtered.filter(x => x.ciaIdx === _p1AptosDetCia);
-    if (_p1AptosDetMun)           filtered = filtered.filter(x => x.mun === _p1AptosDetMun);
-    if (_p1AptosDetPostos.length) filtered = filtered.filter(x => _p1AptosDetPostos.includes(x.r.posto));
-
-    // ── Helpers de botão ───────────────────────────────────────
-    const btnBase = (lbl, _cnt, cor, on, onclick) =>
-      `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
-    const gridRow = (lbl, btns) =>
-      `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
-        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
-      </div>`;
-
-    const ciaBtns = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.map((c,i) => {
-      const cnt = baseList.filter(x => x.ciaIdx === i).length;
-      return btnBase(c.label, cnt, c.color, _p1AptosDetCia === i, `p1AptosSetCia(${i})`);
-    }).join('') : '';
-
-    const munBtns = munList.map(m => {
-      const cnt = baseList.filter(x => x.mun === m).length;
-      return btnBase(escHtml(m), cnt, '#4bc87a', _p1AptosDetMun === m, `p1AptosSetMun('${escHtml(m).replace(/\\/g,'\\\\')}')`)
-    }).join('');
-
-    const postoBtns = postoList.map(p => {
-      const cnt = baseList.filter(x => x.r.posto === p).length;
-      const on  = _p1AptosDetPostos.includes(p);
-      return btnBase(escHtml(p), cnt, '#c8a84b', on, `p1AptosTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)
-    }).join('');
+    if (_p1AptosDetCia >= 0) filtered = filtered.filter(x => x.ciaIdx === _p1AptosDetCia);
+    if (_p1AptosDetMun)      filtered = filtered.filter(x => x.mun === _p1AptosDetMun);
+    if (_p1AptosDetPosto)    filtered = filtered.filter(x => x.posto === _p1AptosDetPosto);
 
     const aptosInfo = r => `<div style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace">${escHtml(r.opm||'—')}</div>`;
 
@@ -1530,31 +1353,27 @@ function p1ShowKpiDetail(tipo) {
       : p1CardGrid(filtered.map(({r}) => r), aptosInfo);
 
     html = wrapDetail(`Aptos Operacional — ${filtered.length}`, null, '#4bc87a', closeBtn, `
-      ${ciaBtns   ? gridRow('CIA', ciaBtns) : ''}
-      ${munBtns   ? gridRow('MUNICÍPIO', munBtns) : ''}
-      ${postoBtns ? gridRow('POSTO / GRAD.', postoBtns) : ''}
+      ${filtro.html}
       ${tabelaAptosHtml}`);
   }
 
   else if (tipo === 'afastados') {
-    const btnBase = (lbl, cor, on, onclick) =>
-      `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
-    const gridRow = (lbl, btns) =>
-      `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
-        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
-      </div>`;
     const getMunAfast = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
+    const getCiaAfast = opm => (typeof CIA_STRUCT === 'undefined' || !opm) ? -1 : CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
 
-    let ativos = p1Afasts.filter(a => !p1EhRestricao(a) && a.inicio <= hoje && a.termino >= hoje && reSetF.has(a.re));
-    const munListAfast   = [...new Set(ativos.map(a => getMunAfast(p1Data.find(r => r.re === a.re)?.opm)).filter(Boolean))].sort();
-    const postoListAfast = [...new Set(ativos.map(a => p1Data.find(r => r.re === a.re)?.posto).filter(Boolean))].sort((a,b) => p1PostoRank(a)-p1PostoRank(b));
+    const ativosBase = p1Afasts.filter(a => !p1EhRestricao(a) && a.inicio <= hoje && a.termino >= hoje && reSetF.has(a.re)).map(a => {
+      const pm = p1Data.find(r => r.re === a.re);
+      return { a, ciaIdx: getCiaAfast(pm?.opm), mun: getMunAfast(pm?.opm), posto: pm?.posto };
+    });
 
-    if (_p1AfastDetMun)           ativos = ativos.filter(a => getMunAfast(p1Data.find(r => r.re === a.re)?.opm) === _p1AfastDetMun);
-    if (_p1AfastDetPostos.length) ativos = ativos.filter(a => _p1AfastDetPostos.includes(p1Data.find(r => r.re === a.re)?.posto));
+    const filtro = p1FiltroCMP(ativosBase, _p1AfastDetCia, _p1AfastDetMun, _p1AfastDetPosto, 'p1AfastSetCia', 'p1AfastSetMun', 'p1AfastSetPosto');
+    _p1AfastDetCia = filtro.cia; _p1AfastDetMun = filtro.mun; _p1AfastDetPosto = filtro.posto;
 
-    const munBtnsAfast   = munListAfast.map(m => btnBase(escHtml(m), '#5a9de0', _p1AfastDetMun === m, `p1AfastSetMun('${escHtml(m).replace(/\\/g,'\\\\')}')`)).join('');
-    const postoBtnsAfast = postoListAfast.map(p => btnBase(escHtml(p), '#c8a84b', _p1AfastDetPostos.includes(p), `p1AfastTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)).join('');
+    let ativosFiltrados = ativosBase;
+    if (_p1AfastDetCia >= 0) ativosFiltrados = ativosFiltrados.filter(x => x.ciaIdx === _p1AfastDetCia);
+    if (_p1AfastDetMun)      ativosFiltrados = ativosFiltrados.filter(x => x.mun === _p1AfastDetMun);
+    if (_p1AfastDetPosto)    ativosFiltrados = ativosFiltrados.filter(x => x.posto === _p1AfastDetPosto);
+    const ativos = ativosFiltrados.map(x => x.a);
 
     const groups = {};
     ativos.forEach(a => {
@@ -1593,8 +1412,7 @@ function p1ShowKpiDetail(tipo) {
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${ativos.length}</div>`
       : (inner || `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:19px">Nenhum afastamento ativo hoje.</div>`);
     html = wrapDetail('Afastamentos Ativos', ativos.length, '#e05555', closeBtn, `
-      ${munBtnsAfast   ? gridRow('MUNICÍPIO', munBtnsAfast) : ''}
-      ${postoBtnsAfast ? gridRow('POSTO / GRAD.', postoBtnsAfast) : ''}
+      ${filtro.html}
       ${conteudoAfastHtml}`);
   }
 
@@ -1605,40 +1423,18 @@ function p1ShowKpiDetail(tipo) {
     };
     const getMunRest = opm => { if (!opm) return null; const p = opm.split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
 
-    const baseList = dataF.map(r => ({ r, ciaIdx: getCiaRest(r.opm), mun: getMunRest(r.opm) }));
-    const munList  = [...new Set(baseList.map(x => x.mun).filter(Boolean))].sort();
-    const postoList = [...new Set(baseList.map(x => x.r.posto).filter(Boolean))].sort((a,b) => p1PostoRank(a)-p1PostoRank(b));
+    const baseList = dataF.map(r => ({ r, ciaIdx: getCiaRest(r.opm), mun: getMunRest(r.opm), posto: r.posto }));
+
+    const filtro = p1FiltroCMP(baseList, _p1RestDetCia, _p1RestDetMun, _p1RestDetPosto, 'p1RestSetCia', 'p1RestSetMun', 'p1RestSetPosto');
+    _p1RestDetCia = filtro.cia; _p1RestDetMun = filtro.mun; _p1RestDetPosto = filtro.posto;
 
     // Aplica filtros CIA, Município e Posto
     let filtrados = baseList;
-    if (_p1RestDetCia >= 0)       filtrados = filtrados.filter(x => x.ciaIdx === _p1RestDetCia);
-    if (_p1RestDetMun)            filtrados = filtrados.filter(x => x.mun === _p1RestDetMun);
-    if (_p1RestDetPostos.length)  filtrados = filtrados.filter(x => _p1RestDetPostos.includes(x.r.posto));
+    if (_p1RestDetCia >= 0)  filtrados = filtrados.filter(x => x.ciaIdx === _p1RestDetCia);
+    if (_p1RestDetMun)       filtrados = filtrados.filter(x => x.mun === _p1RestDetMun);
+    if (_p1RestDetPosto)     filtrados = filtrados.filter(x => x.posto === _p1RestDetPosto);
     const filtSet = new Set(filtrados.map(x => x.r.re));
     const dataFilt = dataF.filter(r => filtSet.has(r.re));
-
-    const btnBase = (lbl, cor, on, onclick) =>
-      `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
-    const gridRow = (lbl, btns) =>
-      `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
-        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
-      </div>`;
-
-    const ciaBtns = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.map((c, i) => {
-      const cnt = baseList.filter(x => x.ciaIdx === i).length;
-      return btnBase(`${c.label} <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cnt}</span>`, c.color, _p1RestDetCia === i, `p1RestSetCia(${i})`);
-    }).join('') : '';
-
-    const munBtns = munList.map(m => {
-      const cnt = baseList.filter(x => x.mun === m).length;
-      return btnBase(escHtml(m), '#c8a84b', _p1RestDetMun === m, `p1RestSetMun('${escHtml(m).replace(/\\/g,'\\\\')}')`)
-    }).join('');
-
-    const postoBtns = postoList.map(p => {
-      const on = _p1RestDetPostos.includes(p);
-      return btnBase(escHtml(p), '#c8a84b', on, `p1RestTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)
-    }).join('');
 
     // Agrupa os PMs filtrados por tipo de restrição
     const groups = {};
@@ -1680,30 +1476,23 @@ function p1ShowKpiDetail(tipo) {
       : (inner || `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:19px">Nenhum resultado.</div>`)
         + (semRestr ? `<div style="padding-top:10px;border-top:1px solid var(--bd2);color:var(--tx3);font-size:19px">Sem restrição: ${semRestr} PMs</div>` : '');
     html = wrapDetail('Em Restrição', totalRestr, '#c8a84b', closeBtn, `
-      ${ciaBtns   ? gridRow('CIA', ciaBtns) : ''}
-      ${munBtns   ? gridRow('MUNICÍPIO', munBtns) : ''}
-      ${postoBtns ? gridRow('POSTO / GRAD.', postoBtns) : ''}
+      ${filtro.html}
       ${tabelaRestrHtml}`);
   }
 
   else if (tipo === 'eap') {
-    const btnBase = (lbl, cor, on, onclick) =>
-      `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
-    const gridRow = (lbl, btns) =>
-      `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
-        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
-      </div>`;
     const getMunEap = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
-    const munListEap   = [...new Set(dataF.map(r => getMunEap(r.opm)).filter(Boolean))].sort();
-    const postoListEap = [...new Set(dataF.map(r => r.posto).filter(Boolean))].sort((a,b) => p1PostoRank(a)-p1PostoRank(b));
+    const getCiaEap = opm => (typeof CIA_STRUCT === 'undefined' || !opm) ? -1 : CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
+    const baseEap = dataF.map(r => ({ r, ciaIdx: getCiaEap(r.opm), mun: getMunEap(r.opm), posto: r.posto }));
 
-    let dataFEap = dataF;
-    if (_p1EapDetMun)           dataFEap = dataFEap.filter(r => getMunEap(r.opm) === _p1EapDetMun);
-    if (_p1EapDetPostos.length) dataFEap = dataFEap.filter(r => _p1EapDetPostos.includes(r.posto));
+    const filtroEap = p1FiltroCMP(baseEap, _p1EapDetCia, _p1EapDetMun, _p1EapDetPosto, 'p1EapSetCia', 'p1EapSetMun', 'p1EapSetPosto');
+    _p1EapDetCia = filtroEap.cia; _p1EapDetMun = filtroEap.mun; _p1EapDetPosto = filtroEap.posto;
 
-    const munBtnsEap   = munListEap.map(m => btnBase(escHtml(m), '#5a9de0', _p1EapDetMun === m, `p1EapSetMun('${escHtml(m).replace(/\\/g,'\\\\')}')`)).join('');
-    const postoBtnsEap = postoListEap.map(p => btnBase(escHtml(p), '#c8a84b', _p1EapDetPostos.includes(p), `p1EapTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)).join('');
+    let baseEapFiltrado = baseEap;
+    if (_p1EapDetCia >= 0) baseEapFiltrado = baseEapFiltrado.filter(x => x.ciaIdx === _p1EapDetCia);
+    if (_p1EapDetMun)      baseEapFiltrado = baseEapFiltrado.filter(x => x.mun === _p1EapDetMun);
+    if (_p1EapDetPosto)    baseEapFiltrado = baseEapFiltrado.filter(x => x.posto === _p1EapDetPosto);
+    const dataFEap = baseEapFiltrado.map(x => x.r);
 
     const isEapOk = r => { const d = r.data_eap ? new Date(r.data_eap) : null; return d && !isNaN(d) && d.getUTCFullYear() === anoAtual; };
     const taftatVencFn = pm => {
@@ -1777,8 +1566,8 @@ function p1ShowKpiDetail(tipo) {
 
     const eapTabelasHtml = p1SomenteQuantitativo()
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA</div>`
-      : `${munBtnsEap || postoBtnsEap ? `<div style="padding:0 12px 14px">${munBtnsEap ? gridRow('MUNICÍPIO', munBtnsEap) : ''}${postoBtnsEap ? gridRow('POSTO / GRAD.', postoBtnsEap) : ''}</div>` : ''}
-        <div style="display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 14px;border-bottom:1px solid var(--bd2)">
+      : `${filtroEap.html}
+        <div style="display:flex;gap:6px;flex-wrap:wrap;padding:12px;border-bottom:1px solid var(--bd2)">
           ${pill('feitos',   'Realizaram ('   + feitos.length    + ')', false)}
           ${pill('aptos365', 'Aptos 365d ('   + aptos365.length  + ')', false)}
           ${pill('pend',     'Pendentes ('    + pend.length      + ')', false)}
@@ -1811,28 +1600,27 @@ function p1ShowKpiDetail(tipo) {
       const baseList = dataF.map(r => {
         const s = iasStatus(r.re) || 'semreg';
         const rec = _iasMap[iasNormRE(r.re)];
-        return { r, s, rec, mun: getMun(r.opm), ciaIdx: getCia(r.opm) };
+        return { r, s, rec, mun: getMun(r.opm), ciaIdx: getCia(r.opm), posto: r.posto };
       });
 
-      const munList   = [...new Set(baseList.map(x => x.mun).filter(Boolean))].sort();
-      const _pH = [/cel/i,/\btc\b/i,/maj/i,/cap/i,/1.{0,4}ten/i,/2.{0,4}ten/i,/asp/i,/sub.?ten|^st$|st pm/i,/1.{0,4}sgt/i,/2.{0,4}sgt/i,/3.{0,4}sgt/i,/\bcb\b|cabo/i,/\bsd\b|soldado/i];
-      const _pR = p => { const n=(p||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); const i=_pH.findIndex(r=>r.test(n)); return i<0?999:i; };
-      const postoList = [...new Set(dataF.map(r => r.posto).filter(Boolean))].sort((a,b) => _pR(a)-_pR(b));
+      const filtroIas = p1FiltroCMP(baseList, _p1IasDetCia, _p1IasDetMun, _p1IasDetPosto, 'p1IasSetCia', 'p1IasSetMun', 'p1IasSetPosto');
+      _p1IasDetCia = filtroIas.cia; _p1IasDetMun = filtroIas.mun; _p1IasDetPosto = filtroIas.posto;
 
       let filtered = baseList;
-      if (_p1IasDetSit)           filtered = filtered.filter(x => x.s === _p1IasDetSit);
-      if (_p1IasDetCia >= 0)      filtered = filtered.filter(x => x.ciaIdx === _p1IasDetCia);
-      if (_p1IasDetMun)           filtered = filtered.filter(x => x.mun === _p1IasDetMun);
-      if (_p1IasDetPostos.length) filtered = filtered.filter(x => _p1IasDetPostos.includes(x.r.posto));
+      if (_p1IasDetSit)      filtered = filtered.filter(x => x.s === _p1IasDetSit);
+      if (_p1IasDetCia >= 0) filtered = filtered.filter(x => x.ciaIdx === _p1IasDetCia);
+      if (_p1IasDetMun)      filtered = filtered.filter(x => x.mun === _p1IasDetMun);
+      if (_p1IasDetPosto)    filtered = filtered.filter(x => x.posto === _p1IasDetPosto);
 
       const cntVenc = baseList.filter(x => x.s === 'vencido').length;
       const cntVend = baseList.filter(x => x.s === 'vencendo').length;
       const cntApto = baseList.filter(x => x.s === 'apto').length;
       const cntSemR = baseList.filter(x => x.s === 'semreg').length;
 
-      _iasChartData = { filtered, baseList, anyFilter: _p1IasDetSit !== null || _p1IasDetCia >= 0 || !!_p1IasDetMun || _p1IasDetPostos.length > 0 };
+      const anyFilter = _p1IasDetSit !== null || _p1IasDetCia >= 0 || !!_p1IasDetMun || !!_p1IasDetPosto;
+      _iasChartData = { filtered, baseList, anyFilter };
 
-      // ── Helpers de botão ─────────────────────────────────────
+      // ── Helpers de botão (só pra Situação, que não faz parte do filtro CIA/Cidade/Graduação) ─
       const btnBase = (lbl, _cnt, cor, on, onclick) =>
         `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
 
@@ -1848,24 +1636,6 @@ function p1ShowKpiDetail(tipo) {
         btnBase('APTO',      cntApto, '#4bc87a', _p1IasDetSit==='apto',     "p1IasSetSit('apto')"),
         btnBase('SEM REG.',  cntSemR, '#606880', _p1IasDetSit==='semreg',   "p1IasSetSit('semreg')"),
       ].join('');
-
-      const ciaBtns = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.map((c,i) => {
-        const cnt = baseList.filter(x => x.ciaIdx === i).length;
-        return btnBase(c.label, cnt, c.color, _p1IasDetCia === i, `p1IasSetCia(${i})`);
-      }).join('') : '';
-
-      const munBtns = munList.map(m => {
-        const cnt = baseList.filter(x => x.mun === m).length;
-        return btnBase(escHtml(m), cnt, '#5a9de0', _p1IasDetMun === m, `p1IasSetMun('${escHtml(m).replace(/\\/g,'\\\\')}')`)
-      }).join('');
-
-      const postoBtns = postoList.map(p => {
-        const cnt = baseList.filter(x => x.r.posto === p).length;
-        const on  = _p1IasDetPostos.includes(p);
-        return btnBase(escHtml(p), cnt, '#c8a84b', on, `p1IasTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)
-      }).join('');
-
-      const anyFilter = _p1IasDetSit !== null || _p1IasDetCia >= 0 || !!_p1IasDetMun || _p1IasDetPostos.length > 0;
 
       const SIT_COR = { vencido:'#f07878', vencendo:'#c8a84b', apto:'#4bc87a', semreg:'#606880' };
       const SIT_LBL = { vencido:'VENCIDA', vencendo:'VENCENDO', apto:'APTO', semreg:'SEM REG.' };
@@ -1900,22 +1670,14 @@ function p1ShowKpiDetail(tipo) {
       html = wrapDetail(`IAS · Inspeção Anual de Saúde — ${anyFilter ? filtered.length + ' filtrado(s) de ' + baseList.length : baseList.length}`, null, '#5a9de0', closeBtn, `
         ${iasChartsHtml}
         ${gridRow('SITUAÇÃO', sitBtns)}
-        ${ciaBtns  ? gridRow('UNIDADE', ciaBtns) : ''}
-        ${munBtns  ? gridRow('MUNICÍPIO', munBtns) : ''}
-        ${postoBtns? gridRow('POSTO / GRAD.', postoBtns) : ''}
+        ${filtroIas.html}
         ${tabelaIasHtml}`);
     }
   }
 
   else if (tipo === 'ferias') {
-    const btnBase = (lbl, cor, on, onclick) =>
-      `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
-    const gridRow = (lbl, btns) =>
-      `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
-        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
-      </div>`;
     const getMunFer = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
+    const getCiaFer = opm => (typeof CIA_STRUCT === 'undefined' || !opm) ? -1 : CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
     const pmOfFer = re => p1Data.find(r => r.re === re);
 
     const afastsF = p1FiltroOpm ? p1Afasts.filter(a => reSetF.has(a.re)) : p1Afasts;
@@ -1925,21 +1687,26 @@ function p1ShowKpiDetail(tipo) {
     const resFer  = new Set(p1Afasts.filter(a => isFer(a.tipo_afastamento) && (a.inicio||'').startsWith(String(anoAtual))).map(a => a.re));
     let semFer  = dataF.filter(r => !resFer.has(r.re));
 
-    const munListFer   = [...new Set(dataF.map(r => getMunFer(r.opm)).filter(Boolean))].sort();
-    const postoListFer = [...new Set(dataF.map(r => r.posto).filter(Boolean))].sort((a,b) => p1PostoRank(a)-p1PostoRank(b));
+    const baseFer = dataF.map(r => ({ r, ciaIdx: getCiaFer(r.opm), mun: getMunFer(r.opm), posto: r.posto }));
+    const filtroFer = p1FiltroCMP(baseFer, _p1FeriasDetCia, _p1FeriasDetMun, _p1FeriasDetPosto, 'p1FeriasSetCia', 'p1FeriasSetMun', 'p1FeriasSetPosto');
+    _p1FeriasDetCia = filtroFer.cia; _p1FeriasDetMun = filtroFer.mun; _p1FeriasDetPosto = filtroFer.posto;
+
+    if (_p1FeriasDetCia >= 0) {
+      gozo   = gozo.filter(a => getCiaFer(pmOfFer(a.re)?.opm) === _p1FeriasDetCia);
+      prox   = prox.filter(a => getCiaFer(pmOfFer(a.re)?.opm) === _p1FeriasDetCia);
+      semFer = semFer.filter(r => getCiaFer(r.opm) === _p1FeriasDetCia);
+    }
     if (_p1FeriasDetMun) {
       gozo   = gozo.filter(a => getMunFer(pmOfFer(a.re)?.opm) === _p1FeriasDetMun);
       prox   = prox.filter(a => getMunFer(pmOfFer(a.re)?.opm) === _p1FeriasDetMun);
       semFer = semFer.filter(r => getMunFer(r.opm) === _p1FeriasDetMun);
     }
-    if (_p1FeriasDetPostos.length) {
-      gozo   = gozo.filter(a => _p1FeriasDetPostos.includes(pmOfFer(a.re)?.posto));
-      prox   = prox.filter(a => _p1FeriasDetPostos.includes(pmOfFer(a.re)?.posto));
-      semFer = semFer.filter(r => _p1FeriasDetPostos.includes(r.posto));
+    if (_p1FeriasDetPosto) {
+      gozo   = gozo.filter(a => pmOfFer(a.re)?.posto === _p1FeriasDetPosto);
+      prox   = prox.filter(a => pmOfFer(a.re)?.posto === _p1FeriasDetPosto);
+      semFer = semFer.filter(r => r.posto === _p1FeriasDetPosto);
     }
-    const munBtnsFer   = munListFer.map(m => btnBase(escHtml(m), '#5a9de0', _p1FeriasDetMun === m, `p1FeriasSetMun('${escHtml(m).replace(/\\/g,'\\\\')}')`)).join('');
-    const postoBtnsFer = postoListFer.map(p => btnBase(escHtml(p), '#c8a84b', _p1FeriasDetPostos.includes(p), `p1FeriasTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)).join('');
-    const filtroBarFer = (munBtnsFer || postoBtnsFer) ? `<div style="padding:14px 14px 0">${munBtnsFer ? gridRow('MUNICÍPIO', munBtnsFer) : ''}${postoBtnsFer ? gridRow('POSTO / GRAD.', postoBtnsFer) : ''}</div>` : '';
+    const filtroBarFer = filtroFer.html;
 
     // Junta o registro de afastamento com o cadastro da pessoa, pra virar card.
     const ferCardData = list => list.map(a => {
