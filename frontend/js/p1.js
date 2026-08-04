@@ -178,16 +178,21 @@ function p1FeriasTogPosto(val) {
   p1ShowKpiDetail('ferias');
 }
 
-// Estado do filtro do bloco "Em Afastamento" na home do P1
-let _p1HomeAfastMun    = null;
-let _p1HomeAfastPostos = [];
-function p1HomeAfastSetMun(val) {
-  _p1HomeAfastMun = _p1HomeAfastMun === val ? null : val;
+// Estado do filtro do bloco "Em Afastamento" na home do P1 — 3 seletores
+// integrados (CIA e Cidade se filtram mutuamente; Graduação cascata dos dois).
+let _p1HomeAfastCia   = -1;
+let _p1HomeAfastMun   = null;
+let _p1HomeAfastPosto = null;
+function p1HomeAfastSetCia(val) {
+  _p1HomeAfastCia = (val === '' || val == null) ? -1 : parseInt(val, 10);
   renderP1();
 }
-function p1HomeAfastTogPosto(val) {
-  const i = _p1HomeAfastPostos.indexOf(val);
-  if (i >= 0) _p1HomeAfastPostos.splice(i, 1); else _p1HomeAfastPostos.push(val);
+function p1HomeAfastSetMun(val) {
+  _p1HomeAfastMun = val || null;
+  renderP1();
+}
+function p1HomeAfastSetPosto(val) {
+  _p1HomeAfastPosto = val || null;
   renderP1();
 }
 
@@ -895,17 +900,45 @@ function renderP1() {
   // Restrição (Agregação) não entra aqui — isso é status de "trabalhando com
   // limitação", não ausência; fica só no perfil do PM e no KPI de Restrições.
   const getMunHome = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
-  const munListHome   = [...new Set(pmAfastados.map(r => getMunHome(r.opm)).filter(Boolean))].sort();
-  const postoListHome = [...new Set(pmAfastados.map(r => r.posto).filter(Boolean))].sort((a,b) => p1PostoRank(a)-p1PostoRank(b));
+  const getCiaHome = opm => (typeof CIA_STRUCT === 'undefined' || !opm) ? -1 : CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
+  const baseHome = pmAfastados.map(r => ({ r, ciaIdx: getCiaHome(r.opm), mun: getMunHome(r.opm) }));
+
+  // CIA e Cidade se filtram mutuamente: as opções de um consideram a seleção
+  // atual do outro. Se a seleção guardada ficar inválida (ex: trocou de CIA
+  // e a cidade escolhida não existe mais nela), ela é limpa automaticamente.
+  const munListHome = [...new Set((_p1HomeAfastCia >= 0 ? baseHome.filter(x => x.ciaIdx === _p1HomeAfastCia) : baseHome).map(x => x.mun).filter(Boolean))].sort();
+  if (_p1HomeAfastMun && !munListHome.includes(_p1HomeAfastMun)) _p1HomeAfastMun = null;
+
+  const ciaOptsHome = typeof CIA_STRUCT !== 'undefined' ? CIA_STRUCT.map((c, i) => ({
+    idx: i, label: c.label,
+    cnt: (_p1HomeAfastMun ? baseHome.filter(x => x.mun === _p1HomeAfastMun) : baseHome).filter(x => x.ciaIdx === i).length,
+  })).filter(o => o.cnt > 0) : [];
+  if (_p1HomeAfastCia >= 0 && !ciaOptsHome.some(o => o.idx === _p1HomeAfastCia)) _p1HomeAfastCia = -1;
 
   let pmAfastadosFiltrados = pmAfastados;
-  if (_p1HomeAfastMun)          pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => getMunHome(r.opm) === _p1HomeAfastMun);
-  if (_p1HomeAfastPostos.length) pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => _p1HomeAfastPostos.includes(r.posto));
+  if (_p1HomeAfastCia >= 0) pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => getCiaHome(r.opm) === _p1HomeAfastCia);
+  if (_p1HomeAfastMun)      pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => getMunHome(r.opm) === _p1HomeAfastMun);
 
-  const btnHomeAfast = (lbl, on, onclick, cor) =>
-    `<button onclick="${onclick}" style="padding:5px 12px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;white-space:nowrap">${lbl}</button>`;
-  const munBtnsHome   = munListHome.map(m => btnHomeAfast(escHtml(m), _p1HomeAfastMun === m, `p1HomeAfastSetMun('${escHtml(m).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')`, '#5a9de0')).join('');
-  const postoBtnsHome = postoListHome.map(p => btnHomeAfast(escHtml(p), _p1HomeAfastPostos.includes(p), `p1HomeAfastTogPosto('${escHtml(p).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')`, '#c8a84b')).join('');
+  const postoListHome = [...new Set(pmAfastadosFiltrados.map(r => r.posto).filter(Boolean))].sort((a,b) => p1PostoRank(a)-p1PostoRank(b));
+  if (_p1HomeAfastPosto && !postoListHome.includes(_p1HomeAfastPosto)) _p1HomeAfastPosto = null;
+  if (_p1HomeAfastPosto) pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => r.posto === _p1HomeAfastPosto);
+
+  const selHome = (label, options, onchange) => `
+    <div style="display:flex;flex-direction:column;gap:4px;min-width:150px;flex:1">
+      <label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;text-transform:uppercase">${label}</label>
+      <select onchange="${onchange}" style="padding:7px 10px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-family:'DM Mono',monospace;font-size:13px;cursor:pointer;width:100%">
+        ${options}
+      </select>
+    </div>`;
+  const ciaSelectHome = selHome('CIA',
+    `<option value="">Todas</option>` + ciaOptsHome.map(o => `<option value="${o.idx}" ${_p1HomeAfastCia===o.idx?'selected':''}>${escHtml(o.label)} (${o.cnt})</option>`).join(''),
+    `p1HomeAfastSetCia(this.value)`);
+  const munSelectHome = selHome('CIDADE',
+    `<option value="">Todas</option>` + munListHome.map(m => `<option value="${escHtml(m)}" ${_p1HomeAfastMun===m?'selected':''}>${escHtml(m)}</option>`).join(''),
+    `p1HomeAfastSetMun(this.value)`);
+  const postoSelectHome = selHome('GRADUAÇÃO',
+    `<option value="">Todas</option>` + postoListHome.map(p => `<option value="${escHtml(p)}" ${_p1HomeAfastPosto===p?'selected':''}>${escHtml(p)}</option>`).join(''),
+    `p1HomeAfastSetPosto(this.value)`);
 
   const homeAfastInfo = r => {
     const ats = afastHoje[r.re] || [];
@@ -922,7 +955,7 @@ function renderP1() {
         <span>Em Afastamento</span>
         <span style="background:#e0555528;color:#e05555;border-radius:20px;padding:1px 10px;font-size:17px;letter-spacing:0">${pmAfastadosFiltrados.length}${pmAfastadosFiltrados.length !== pmAfastados.length ? ' de ' + pmAfastados.length : ''}</span>
       </div>
-      ${(munBtnsHome || postoBtnsHome) ? `<div style="display:flex;flex-wrap:wrap;gap:6px;padding:12px 16px;border-bottom:1px solid var(--bd)">${munBtnsHome}${postoBtnsHome}</div>` : ''}
+      <div style="display:flex;flex-wrap:wrap;gap:12px;padding:12px 16px;border-bottom:1px solid var(--bd)">${ciaSelectHome}${munSelectHome}${postoSelectHome}</div>
       <div style="padding:14px 16px">${p1CardGrid(pmAfastadosFiltrados, homeAfastInfo)}</div>
     </div>`;
 
