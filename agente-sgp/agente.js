@@ -46,8 +46,12 @@ async function soapCall(operation, paramName, paramValue) {
   return xmlParser.parse(text);
 }
 
+// O XML do WSSCPM às vezes vem com acentos em forma decomposta (NFD — "ç" como
+// "c" + acento separado), que parece idêntico visualmente mas não bate em
+// regex com acento literal (ex: /restri[cç][aã]o/). normalize('NFC') resolve
+// isso de uma vez pra qualquer texto que passe por aqui.
 function trim(v) {
-  return typeof v === 'string' ? v.trim() : v;
+  return typeof v === 'string' ? v.trim().normalize('NFC') : v;
 }
 
 // funcoesPM.Funcao vem como objeto único quando o PM só tem 1 função, e como
