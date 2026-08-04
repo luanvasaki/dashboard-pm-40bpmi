@@ -119,19 +119,33 @@ async function buscarFotoPM(re6) {
 // A ListaAgregacao NÃO é afastamento de verdade — traz status tipo "APTO COM
 // RESTRIÇÃO" (a pessoa está trabalhando, só com restrição a alguns tipos de
 // serviço). Por isso vem separada: vira restrição no efetivo_pm, não afastamento.
+// Algumas "restrições" (ex: APTO COM RESTRIÇÃO) não vêm só pela ListaAgregacao —
+// às vezes aparecem como um item comum dentro da ListaAfastamento, com a
+// descrição indicando restrição. Detectamos pelo texto e desviamos pra
+// restricoes em vez de tratar como afastamento de verdade.
+const isRestricaoDescricao = (desc) => /restri[cç][aã]o/i.test(desc || '');
+
 async function buscarAfastamentosPM(cpf) {
   const parsed = await soapCall('ProcuraAfastamentosSemRestricaoPorCPF', 'pmCPF', cpf);
   const result = parsed?.Envelope?.Body?.ProcuraAfastamentosSemRestricaoPorCPFResponse?.ProcuraAfastamentosSemRestricaoPorCPFResult;
   if (!result) return { afastamentos: [], restricoes: [] };
 
   const afastamentos = [];
+  const restricoes = [];
+
   for (const item of asArray(result.ListaAfastamento?.Afastamento)) {
-    afastamentos.push({
-      tipo_afastamento: trim(item.Descricao),
-      inicio:  item.DataInicial ? String(item.DataInicial).slice(0, 10) : null,
-      termino: item.DataFinal ? String(item.DataFinal).slice(0, 10) : null,
-      n_dias:  item.QuantidadeDia ?? null,
-    });
+    const desc = trim(item.Descricao);
+    const inicio  = item.DataInicial ? String(item.DataInicial).slice(0, 10) : null;
+    const termino = item.DataFinal ? String(item.DataFinal).slice(0, 10) : null;
+    if (isRestricaoDescricao(desc)) {
+      restricoes.push({ tipo: desc, inicio, termino });
+    } else {
+      afastamentos.push({
+        tipo_afastamento: desc,
+        inicio, termino,
+        n_dias: item.QuantidadeDia ?? null,
+      });
+    }
   }
   for (const item of asArray(result.ListaLicencaTratamentoSaude?.LicencaTratamentoSaude)) {
     afastamentos.push({
@@ -142,11 +156,13 @@ async function buscarAfastamentosPM(cpf) {
     });
   }
 
-  const restricoes = asArray(result.ListaAgregacao?.Agregacao).map(item => ({
-    tipo:    trim(item.Descricao),
-    inicio:  item.DataInicial ? String(item.DataInicial).slice(0, 10) : null,
-    termino: item.DataFinal ? String(item.DataFinal).slice(0, 10) : null,
-  }));
+  for (const item of asArray(result.ListaAgregacao?.Agregacao)) {
+    restricoes.push({
+      tipo:    trim(item.Descricao),
+      inicio:  item.DataInicial ? String(item.DataInicial).slice(0, 10) : null,
+      termino: item.DataFinal ? String(item.DataFinal).slice(0, 10) : null,
+    });
+  }
 
   return { afastamentos, restricoes };
 }
@@ -178,7 +194,7 @@ async function sincronizarAfastamentos(dados, cpf, opm) {
     return;
   }
   const { afastamentos, restricoes } = await buscarAfastamentosPM(cpf);
-  console.log(`  (afastamentos) RE ${dados.re}: ${afastamentos.length} afastamento(s), ${restricoes.length} agregação/restrição(ões) no WSSCPM.`);
+  console.log(`  (afastamentos) RE ${dados.re}: ${afastamentos.length} afastamento(s), ${restricoes.length} restrição(ões) no WSSCPM.`);
   restricoes.forEach(r => console.log(`    - tipo="${r.tipo}" inicio=${r.inicio} termino=${r.termino}`));
 
   const { error: erroDelete } = await supabase.from('afastamentos_pm').delete().eq('re', dados.re);
