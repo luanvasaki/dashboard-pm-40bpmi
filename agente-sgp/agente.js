@@ -194,13 +194,21 @@ async function sincronizarAfastamentos(dados, cpf, opm) {
     return;
   }
   const { afastamentos, restricoes } = await buscarAfastamentosPM(cpf);
-  console.log(`  (afastamentos) RE ${dados.re}: ${afastamentos.length} afastamento(s), ${restricoes.length} restrição(ões) no WSSCPM.`);
+  console.log(`  (afastamentos) RE ${dados.re}: ${afastamentos.length} afastamento(s), ${restricoes.length} restrição(ões) no WSSCPM (também gravadas no assentamento).`);
   restricoes.forEach(r => console.log(`    - tipo="${r.tipo}" inicio=${r.inicio} termino=${r.termino}`));
 
   const { error: erroDelete } = await supabase.from('afastamentos_pm').delete().eq('re', dados.re);
   if (erroDelete) throw new Error(`Falha ao limpar afastamentos_pm: ${erroDelete.message}`);
-  if (afastamentos.length) {
-    const rows = afastamentos.map(l => ({ ...l, re: dados.re, nome: dados.nome, opm: opm || '' }));
+  // Restrições também entram no assentamento (afastamentos_pm), pra aparecer
+  // no extrato individual do PM — além de alimentar o flag de restrição em
+  // efetivo_pm (abaixo). Não é "afastamento de verdade" no sentido de ausência,
+  // mas o usuário quer visibilidade dela no histórico da pessoa.
+  const restricoesComoLinha = restricoes.map(r => ({
+    tipo_afastamento: r.tipo, inicio: r.inicio, termino: r.termino, n_dias: null,
+  }));
+  const todasLinhas = [...afastamentos, ...restricoesComoLinha];
+  if (todasLinhas.length) {
+    const rows = todasLinhas.map(l => ({ ...l, re: dados.re, nome: dados.nome, opm: opm || '' }));
     const { error: erroInsert } = await supabase.from('afastamentos_pm').insert(rows);
     if (erroInsert) throw new Error(`Falha ao gravar afastamentos_pm: ${erroInsert.message}`);
   }
@@ -211,6 +219,7 @@ async function sincronizarAfastamentos(dados, cpf, opm) {
   const hoje = new Date().toISOString().slice(0, 10);
   // Restrição sem término definido (em aberto, sem previsão de acabar) continua ativa.
   const ativa = restricoes.find(r => r.inicio && r.inicio <= hoje && (!r.termino || r.termino >= hoje));
+  console.log(`  (restrição) RE ${dados.re}: hoje=${hoje}, ativa=${ativa ? `tipo="${ativa.tipo}" ${ativa.inicio}→${ativa.termino}` : 'nenhuma'}`);
   const { error: erroRestr } = await supabase.from('efetivo_pm').update(
     ativa
       ? { possui_restricao: 'S', tipos_restricao: ativa.tipo, restricao_inicio: ativa.inicio, restricao_termino: ativa.termino }
