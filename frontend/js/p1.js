@@ -526,14 +526,14 @@ function renderP1() {
     </div>`;
   };
 
-  // Tipos de afastamento agrupados (normalizados pelas mesmas categorias do
-  // detalhe) — mostra todos os tipos que existirem hoje, cada um com seu total.
+  // Tipos de afastamento agrupados — na frente do card só Férias/LP/LTS
+  // aparecem por nome, o resto entra em "Outros" (detalhe expandido mostra
+  // a quebra completa por tipo).
   const tiposCount = {};
+  const TIPOS_FRENTE_KPI = ['Férias', 'LP', 'LTS'];
   pmAfastados.forEach(r => { (afastHoje[r.re] || []).forEach(a => {
     const c = p1CatTipo(a.tipo_afastamento);
-    // Sem categoria fixa reconhecida: agrupa pelo texto real do tipo (não
-    // amontoa tudo num "Outros" genérico que esconde o que realmente é).
-    const label = c === 'Outros' ? ((a.tipo_afastamento || '').trim() || 'Outros') : c;
+    const label = TIPOS_FRENTE_KPI.includes(c) ? c : 'Outros';
     tiposCount[label] = (tiposCount[label] || 0) + 1;
   }); });
   const _kpiRow = (label, val, color) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:#ffffff;font-size:17px">${escHtml(label)}</span><span style="color:${color};font-weight:700;font-size:20px">${val}</span></div>`;
