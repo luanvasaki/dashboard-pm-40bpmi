@@ -972,18 +972,36 @@ app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3', 'p1'), a
       return '';
     };
 
-    const rows = records.map(r => ({
-      opm:        gf(r, 'OPM', 'opm'),
-      posto:      gf(r, 'Posto', 'posto', 'Posto / Grad', 'posto / grad'),
-      re:         gf(r, 'RE', 're'),
-      nome:       gf(r, 'Nome', 'nome', 'Nome Completo', 'nome completo'),
-      funcao:     gf(r, 'Funcao', 'funcao', 'Função', 'função'),
-      genero:     gf(r, 'Genero', 'genero', 'Gênero', 'gênero'),
-      nome_guerra: gf(r, 'NomeGuerra', 'nomeguerra', 'Nome de Guerra', 'nome de guerra'),
-      data_eap:   parseDateBR(gf(r, 'DataEAP', 'dataeap', 'DATA EAP', 'data eap')) || null,
-      taf:        gf(r, 'TAF', 'taf') || null,
-      tat:        gf(r, 'TAT', 'tat') || null,
-    })).filter(r => r.nome && r.posto);
+    // Restrição é alimentada só pelo SGP (sincronização via WSSCPM), nunca
+    // pela planilha — guarda os valores atuais antes de apagar a tabela pra
+    // não perdê-los no reinsert (o INSERT abaixo não tem esses campos).
+    const { data: restricaoAntes, error: erroRestrAntes } = await supabase
+      .from(EFETIVO_TABLE)
+      .select('re, possui_restricao, tipos_restricao, restricao_inicio, restricao_termino');
+    if (erroRestrAntes) throw new Error(erroRestrAntes.message);
+    const restricaoPorRe = {};
+    (restricaoAntes || []).forEach(r => { restricaoPorRe[r.re] = r; });
+
+    const rows = records.map(r => {
+      const re = gf(r, 'RE', 're');
+      const rAntes = restricaoPorRe[re];
+      return {
+        opm:        gf(r, 'OPM', 'opm'),
+        posto:      gf(r, 'Posto', 'posto', 'Posto / Grad', 'posto / grad'),
+        re,
+        nome:       gf(r, 'Nome', 'nome', 'Nome Completo', 'nome completo'),
+        funcao:     gf(r, 'Funcao', 'funcao', 'Função', 'função'),
+        genero:     gf(r, 'Genero', 'genero', 'Gênero', 'gênero'),
+        nome_guerra: gf(r, 'NomeGuerra', 'nomeguerra', 'Nome de Guerra', 'nome de guerra'),
+        data_eap:   parseDateBR(gf(r, 'DataEAP', 'dataeap', 'DATA EAP', 'data eap')) || null,
+        taf:        gf(r, 'TAF', 'taf') || null,
+        tat:        gf(r, 'TAT', 'tat') || null,
+        possui_restricao:  rAntes?.possui_restricao ?? null,
+        tipos_restricao:   rAntes?.tipos_restricao ?? null,
+        restricao_inicio:  rAntes?.restricao_inicio ?? null,
+        restricao_termino: rAntes?.restricao_termino ?? null,
+      };
+    }).filter(r => r.nome && r.posto);
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique as colunas do CSV.' });
 
