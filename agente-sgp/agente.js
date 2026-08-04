@@ -179,6 +179,7 @@ async function sincronizarAfastamentos(dados, cpf, opm) {
   }
   const { afastamentos, restricoes } = await buscarAfastamentosPM(cpf);
   console.log(`  (afastamentos) RE ${dados.re}: ${afastamentos.length} afastamento(s), ${restricoes.length} agregação/restrição(ões) no WSSCPM.`);
+  restricoes.forEach(r => console.log(`    - tipo="${r.tipo}" inicio=${r.inicio} termino=${r.termino}`));
 
   const { error: erroDelete } = await supabase.from('afastamentos_pm').delete().eq('re', dados.re);
   if (erroDelete) throw new Error(`Falha ao limpar afastamentos_pm: ${erroDelete.message}`);
