@@ -531,11 +531,14 @@ function renderP1() {
   const tiposCount = {};
   pmAfastados.forEach(r => { (afastHoje[r.re] || []).forEach(a => {
     const c = p1CatTipo(a.tipo_afastamento);
-    tiposCount[c] = (tiposCount[c] || 0) + 1;
+    // Sem categoria fixa reconhecida: agrupa pelo texto real do tipo (não
+    // amontoa tudo num "Outros" genérico que esconde o que realmente é).
+    const label = c === 'Outros' ? ((a.tipo_afastamento || '').trim() || 'Outros') : c;
+    tiposCount[label] = (tiposCount[label] || 0) + 1;
   }); });
   const _kpiRow = (label, val, color) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:#ffffff;font-size:17px">${escHtml(label)}</span><span style="color:${color};font-weight:700;font-size:20px">${val}</span></div>`;
   const tiposEntries = Object.entries(tiposCount).sort(([,a],[,b]) => b - a);
-  const tiposSub = tiposEntries.map(([t,n]) => _kpiRow(t, n, P1_TIPO_COLOR[t] || '#e05555')).join('') || '—';
+  const tiposSub = tiposEntries.map(([t,n]) => _kpiRow(t, n, P1_TIPO_COLOR[t] || '#607090')).join('') || '—';
 
   kpisEl.innerHTML =
     kpiCard('Total Efetivo', total,
@@ -1514,14 +1517,22 @@ function p1ShowKpiDetail(tipo) {
     const postoBtnsAfast = postoListAfast.map(p => btnBase(escHtml(p), '#c8a84b', _p1AfastDetPostos.includes(p), `p1AfastTogPosto('${escHtml(p).replace(/\\/g,'\\\\')}')`)).join('');
 
     const groups = {};
-    ativos.forEach(a => { const c = catTipo(a.tipo_afastamento); (groups[c] = groups[c]||[]).push(a); });
-    const ORDER = ['Férias','LP','LSV','Conval','Núpcias','Luto','Maternidade','Paternidade','LTS','Outros'];
+    ativos.forEach(a => {
+      const cat = catTipo(a.tipo_afastamento);
+      // Sem categoria fixa reconhecida: agrupa pelo texto real do tipo em vez
+      // de amontoar tudo num "Outros" genérico que esconde o que realmente é.
+      const key = cat === 'Outros' ? ((a.tipo_afastamento || '').trim() || 'Outros') : cat;
+      (groups[key] = groups[key]||[]).push(a);
+    });
+    const KNOWN_ORDER = ['Férias','LP','LSV','Conval','Núpcias','Luto','Maternidade','Paternidade','LTS'];
+    const outrosKeys = Object.keys(groups).filter(k => !KNOWN_ORDER.includes(k)).sort((a,b) => groups[b].length - groups[a].length);
+    const ORDER = [...KNOWN_ORDER, ...outrosKeys];
 
     // Cards com foto, agrupados por tipo — mesmo padrão visual da grade por CIA.
     let inner = '';
     ORDER.forEach(cat => {
       const list = groups[cat]; if (!list?.length) return;
-      const color = TIPO_COLOR[cat];
+      const color = TIPO_COLOR[cat] || '#607090';
       const cardData = list.map(a => {
         const pm = p1Data.find(r => r.re === a.re);
         return { re: a.re, nome: pm?.nome || a.nome, nome_guerra: pm?.nome_guerra, posto: pm?.posto, _afast: a };
@@ -1529,10 +1540,11 @@ function p1ShowKpiDetail(tipo) {
       const afastInfo = r => {
         const a = r._afast;
         const dias = a.termino ? Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000) : null;
-        return `<div style="font-size:12px;font-family:'DM Mono',monospace;color:${dias!==null&&dias<=3?'#4bc87a':'var(--tx3)'}">${fmtD(a.inicio)} → ${dias!==null ? dias+'d rest.' : fmtD(a.termino)}</div>`;
+        return `<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--tx3)">${escHtml(a.tipo_afastamento || '—')}</div>
+                <div style="font-size:12px;font-family:'DM Mono',monospace;color:${dias!==null&&dias<=3?'#4bc87a':'var(--tx3)'}">${fmtD(a.inicio)} → ${dias!==null ? dias+'d rest.' : fmtD(a.termino)}</div>`;
       };
       inner += `<div style="margin-bottom:16px">
-        <div style="margin-bottom:8px"><span style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:1px;padding:3px 10px;border-radius:10px;background:${color}22;color:${color};text-transform:uppercase">${cat} — ${list.length}</span></div>
+        <div style="margin-bottom:8px"><span style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:1px;padding:3px 10px;border-radius:10px;background:${color}22;color:${color};text-transform:uppercase">${escHtml(cat)} — ${list.length}</span></div>
         ${p1CardGrid(cardData, afastInfo)}
       </div>`;
     });
