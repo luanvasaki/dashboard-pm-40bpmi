@@ -361,6 +361,13 @@ function p1TipoLabel(tipo) {
   return p1CatTipo(tipo) === 'LTS' ? 'LTS' : (tipo || '—');
 }
 
+// Linhas de afastamentos_pm sincronizadas do WSSCPM que na verdade são
+// restrição (ex: Agregação/"Apto com Restrição"), não ausência de verdade —
+// ficam no assentamento pra histórico, mas não contam como "afastado" em
+// nenhum KPI/lista de afastamento ativo. Quem controla isso é o KPI de
+// Restrições (efetivo_pm.possui_restricao, alimentado só pelo SGP).
+const p1EhRestricao = a => !!a.restricao;
+
 // Carrega todos os dados do P1 em paralelo: efetivo, afastamentos, vagas e quadro
 // Chamada ao entrar na seção P1 via goSection('p1') e após qualquer upload
 async function loadP1() {
@@ -426,7 +433,7 @@ function renderP1() {
   // Afastamentos ativos hoje por RE
   const afastHoje = {};
   p1Afasts.forEach(a => {
-    if (a.inicio && a.termino && a.inicio <= hoje && a.termino >= hoje) {
+    if (!p1EhRestricao(a) && a.inicio && a.termino && a.inicio <= hoje && a.termino >= hoje) {
       if (!afastHoje[a.re]) afastHoje[a.re] = [];
       afastHoje[a.re].push(a);
     }
@@ -506,7 +513,7 @@ function renderP1() {
   const em7 = new Date(); em7.setDate(em7.getDate() + 7);
   const em7s = em7.toISOString().split('T')[0];
   const retornando = p1Afasts.filter(a =>
-    a.inicio <= hoje && a.termino >= hoje && a.termino <= em7s
+    !p1EhRestricao(a) && a.inicio <= hoje && a.termino >= hoje && a.termino <= em7s
   );
 
   const CATS = { cbsd: 'Cb / Sd', sgt: 'Sargentos', sub: 'Subtenentes', of: 'Oficiais' };
@@ -1440,7 +1447,7 @@ function p1ShowKpiDetail(tipo) {
     };
 
     const naoAptosRe = new Set([
-      ...p1Afasts.filter(a => a.inicio <= hoje && a.termino >= hoje && reSetF.has(a.re)).map(a => a.re),
+      ...p1Afasts.filter(a => !p1EhRestricao(a) && a.inicio <= hoje && a.termino >= hoje && reSetF.has(a.re)).map(a => a.re),
       ...dataF.filter(r => _isAdmRestr(r.re)).map(r => r.re),
       ...dataF.filter(r => iasStatus(r.re) === 'vencido').map(r => r.re),
     ]);
@@ -1506,7 +1513,7 @@ function p1ShowKpiDetail(tipo) {
       </div>`;
     const getMunAfast = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
 
-    let ativos = p1Afasts.filter(a => a.inicio <= hoje && a.termino >= hoje && reSetF.has(a.re));
+    let ativos = p1Afasts.filter(a => !p1EhRestricao(a) && a.inicio <= hoje && a.termino >= hoje && reSetF.has(a.re));
     const munListAfast   = [...new Set(ativos.map(a => getMunAfast(p1Data.find(r => r.re === a.re)?.opm)).filter(Boolean))].sort();
     const postoListAfast = [...new Set(ativos.map(a => p1Data.find(r => r.re === a.re)?.posto).filter(Boolean))].sort((a,b) => p1PostoRank(a)-p1PostoRank(b));
 
@@ -3246,7 +3253,7 @@ function renderHome() {
     const today = new Date().toISOString().split('T')[0];
     const afH = {};
     (p1Afasts || []).forEach(a => {
-      if (a.inicio <= today && (!a.termino || a.termino >= today)) {
+      if (!p1EhRestricao(a) && a.inicio <= today && (!a.termino || a.termino >= today)) {
         if (!afH[a.re]) afH[a.re] = [];
         afH[a.re].push(a);
       }
@@ -3465,7 +3472,7 @@ function renderHome() {
       const today3 = new Date().toISOString().split('T')[0];
       const afH3 = {};
       (p1Afasts || []).forEach(a => {
-        if (a.inicio <= today3 && (!a.termino || a.termino >= today3)) {
+        if (!p1EhRestricao(a) && a.inicio <= today3 && (!a.termino || a.termino >= today3)) {
           if (!afH3[a.re]) afH3[a.re] = [];
           afH3[a.re].push(a);
         }

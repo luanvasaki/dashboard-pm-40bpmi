@@ -201,12 +201,14 @@ async function sincronizarAfastamentos(dados, cpf, opm) {
   if (erroDelete) throw new Error(`Falha ao limpar afastamentos_pm: ${erroDelete.message}`);
   // Restrições também entram no assentamento (afastamentos_pm), pra aparecer
   // no extrato individual do PM — além de alimentar o flag de restrição em
-  // efetivo_pm (abaixo). Não é "afastamento de verdade" no sentido de ausência,
-  // mas o usuário quer visibilidade dela no histórico da pessoa.
+  // efetivo_pm (abaixo). Marcadas com restricao=true pra não contarem como
+  // afastamento de verdade em nenhum KPI (coluna precisa existir — ver
+  // add_restricao_afastamentos_pm.sql).
   const restricoesComoLinha = restricoes.map(r => ({
-    tipo_afastamento: r.tipo, inicio: r.inicio, termino: r.termino, n_dias: null,
+    tipo_afastamento: r.tipo, inicio: r.inicio, termino: r.termino, n_dias: null, restricao: true,
   }));
-  const todasLinhas = [...afastamentos, ...restricoesComoLinha];
+  const afastamentosComFlag = afastamentos.map(a => ({ ...a, restricao: false }));
+  const todasLinhas = [...afastamentosComFlag, ...restricoesComoLinha];
   if (todasLinhas.length) {
     const rows = todasLinhas.map(l => ({ ...l, re: dados.re, nome: dados.nome, opm: opm || '' }));
     const { error: erroInsert } = await supabase.from('afastamentos_pm').insert(rows);
