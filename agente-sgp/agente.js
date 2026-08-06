@@ -120,14 +120,20 @@ async function buscarFotoPM(re6) {
 // ProcuraAfastamentosSemRestricaoPorCPF é a que funciona, mesmo dado equivalente.
 // Só extraímos datas/descrição/dias — nenhum dado médico (Trauma/Acidente/Parecer).
 //
-// A ListaAgregacao NÃO é afastamento de verdade — traz status tipo "APTO COM
-// RESTRIÇÃO" (a pessoa está trabalhando, só com restrição a alguns tipos de
-// serviço). Por isso vem separada: vira restrição no efetivo_pm, não afastamento.
+// A ListaAgregacao normalmente traz status tipo "APTO COM RESTRIÇÃO" (a
+// pessoa está trabalhando, só com restrição a alguns tipos de serviço) —
+// vira restrição no efetivo_pm, não afastamento. Mas também é usada pra
+// motivos administrativos que são afastamento de verdade (ver
+// isAusenciaNaAgregacao abaixo), então o texto ainda precisa ser checado.
 // Algumas "restrições" (ex: APTO COM RESTRIÇÃO) não vêm só pela ListaAgregacao —
 // às vezes aparecem como um item comum dentro da ListaAfastamento, com a
 // descrição indicando restrição. Detectamos pelo texto e desviamos pra
 // restricoes em vez de tratar como afastamento de verdade.
 const isRestricaoDescricao = (desc) => /restri[cç][aã]o/i.test(desc || '');
+// Agregação também é usada pra motivos puramente administrativos que são
+// afastamento de verdade (ausência), não restrição de serviço — ex: LSV
+// (Licença Sem Vencimento). Esses ficam de fora do tratamento de restrição.
+const isAusenciaNaAgregacao = (desc) => /\blsv\b|sem\s*venc/i.test(desc || '');
 
 async function buscarAfastamentosPM(cpf) {
   const parsed = await soapCall('ProcuraAfastamentosSemRestricaoPorCPF', 'pmCPF', cpf);
@@ -163,11 +169,14 @@ async function buscarAfastamentosPM(cpf) {
   }
 
   for (const item of asArray(result.ListaAgregacao?.Agregacao)) {
-    restricoes.push({
-      tipo:    trim(item.Descricao),
-      inicio:  item.DataInicial ? String(item.DataInicial).slice(0, 10) : null,
-      termino: item.DataFinal ? String(item.DataFinal).slice(0, 10) : null,
-    });
+    const desc = trim(item.Descricao);
+    const inicio  = item.DataInicial ? String(item.DataInicial).slice(0, 10) : null;
+    const termino = item.DataFinal ? String(item.DataFinal).slice(0, 10) : null;
+    if (isAusenciaNaAgregacao(desc)) {
+      afastamentos.push({ tipo_afastamento: desc, inicio, termino, n_dias: null });
+    } else {
+      restricoes.push({ tipo: desc, inicio, termino });
+    }
   }
 
   return { afastamentos, restricoes };
