@@ -1146,69 +1146,8 @@ app.get('/api/afastamentos', requireAuth, async (req, res) => {
   }
 });
 
-// [POST /api/afastamentos/upload] — substitui todos os afastamentos pelo CSV enviado.
-// Requer RE, Tipo, Início e Término para considerar o registro válido.
-app.post('/api/afastamentos/upload', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
-  try {
-    if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
-    const { records } = req.body;
-    if (!Array.isArray(records) || !records.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
-
-    const gf = (r, ...names) => {
-      for (const name of names) {
-        const k = Object.keys(r).find(k => k.toLowerCase() === name.toLowerCase());
-        if (k) return (r[k] || '').toString().trim();
-      }
-      return '';
-    };
-
-    // Converte DD/MM/YYYY ou DD/MM/YY para YYYY-MM-DD
-    const parseDate = s => {
-      if (!s) return null;
-      // Já está em ISO
-      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-      const p = s.split('/');
-      if (p.length !== 3) return null;
-      const [d, m, y] = p;
-      const yr = y.length === 2 ? '20' + y : y;
-      return `${yr}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-    };
-
-    const rows = records.map(r => ({
-      re:               gf(r, 'RE', 're'),
-      nome:             gf(r, 'Nome', 'nome', 'Nome Completo'),
-      opm:              gf(r, 'OPM', 'opm'),
-      tipo_afastamento: gf(r, 'Tipo', 'tipo', 'Tipo de Afastamento', 'TipoAfastamento'),
-      n_dias:           parseInt(gf(r, 'NDias', 'n_dias', 'N° de dias', 'N de dias', 'Nº de dias')) || null,
-      inicio:           parseDate(gf(r, 'Inicio', 'inicio', 'Início')),
-      termino:          parseDate(gf(r, 'Termino', 'termino', 'Término')),
-      nbi:              gf(r, 'NBI', 'nbi'),
-      bol_g:            gf(r, 'BolG', 'bol_g', 'Bol G', 'Bol. G'),
-      sipa:             gf(r, 'SIPA', 'sipa'),
-      sgp:              gf(r, 'SGP', 'sgp'),
-      paf:              gf(r, 'PAF', 'paf'),
-      obs:              gf(r, 'Obs', 'obs', 'Observação', 'Observacao'),
-    })).filter(r => r.re && r.tipo_afastamento && r.inicio && r.termino);
-
-    if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique RE, Tipo, Início e Término.' });
-
-    const { error: da1 } = await supabase.from(AFASTAMENTOS_TABLE).delete().not('re', 'is', null);
-    if (da1) throw new Error(da1.message);
-    const { error: da2 } = await supabase.from(AFASTAMENTOS_TABLE).delete().is('re', null);
-    if (da2) throw new Error(da2.message);
-    const BATCH = 500;
-    let inserted = 0;
-    for (let i = 0; i < rows.length; i += BATCH) {
-      const { error } = await supabase.from(AFASTAMENTOS_TABLE).insert(rows.slice(i, i + BATCH));
-      if (error) throw new Error(error.message);
-      inserted += Math.min(BATCH, rows.length - i);
-    }
-    await logAcesso(req, 'upload_afastamentos', `${inserted} registros importados`);
-    res.json({ ok: true, inserted });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// Upload manual de afastamentos removido — a partir daqui afastamentos_pm é
+// alimentada exclusivamente pela sincronização via WSSCPM (agente-sgp).
 
 // ═══════════════════════════════════════════════════════════════
 // ROTAS P1 — FOTOS DE PMs
@@ -2127,65 +2066,8 @@ app.get('/api/uis/restricoes/:re', requireAuth, requireRole('admin', 'p1', 'p3',
 // RE é normalizado sem dígito verificador (igual ao UIS).
 // ═══════════════════════════════════════════════════════════════
 
-// [POST /api/upload/ias] — importa CSV da IAS.
-// Colunas: POST/GRAD, RE (com dígito), QRA, FUNÇÃO, SEX, ANIVERSARIO, MÉDICO, DENTISTA, VENCIMENTO
-// Estratégia: substitui tudo (delete + insert).
-app.post('/api/upload/ias', requireAuth, requireRole('admin', 'p1', 'ti'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
-  const { records } = req.body;
-  if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
-  const nk = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
-  const gf = (r, ...keys) => {
-    for (const k of keys) {
-      const hit = Object.entries(r).find(([ck]) => nk(ck) === nk(k));
-      if (hit && hit[1] != null) return String(hit[1]).trim();
-    }
-    const frags = keys.map(nk);
-    const hit2 = Object.entries(r).find(([ck]) => frags.some(f => nk(ck).includes(f)));
-    return hit2 ? String(hit2[1]||'').trim() : '';
-  };
-  try {
-    const rows = [];
-    const seen = new Set();
-    for (const r of records) {
-      // RE vem com dígito verificador: "180673-4" ou "1806734" → normaliza para "180673"
-      const reRaw = gf(r, 're').replace(/[^0-9]/g, '');
-      const re = reRaw.length >= 7 ? reRaw.slice(0, reRaw.length - 1) : reRaw;
-      if (!re) continue;
-      if (seen.has(re)) continue;
-      seen.add(re);
-      rows.push({
-        re,
-        nome:             gf(r, 'nome', 'nome completo') || null,
-        posto:            gf(r, 'posto', 'post/grad', 'posto/grad', 'grad') || null,
-        funcao:           gf(r, 'funcao', 'função') || null,
-        genero:           gf(r, 'sex', 'sexo', 'genero', 'gênero') || null,
-        nome_guerra:      gf(r, 'qra', 'nome de guerra', 'nome_guerra') || null,
-        data_aniversario: gf(r, 'aniversario', 'aniversário') || null,
-        data_medico:      parseDateBR(gf(r, 'medico', 'médico')) || null,
-        data_dentista:    parseDateBR(gf(r, 'dentista')) || null,
-        data_vencimento:  parseDateBR(gf(r, 'vencimento')) || null,
-      });
-    }
-    if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
-    const { error: di1 } = await supabase.from('ias_registros').delete().not('re', 'is', null);
-    if (di1) throw new Error('Erro ao limpar registros antigos: ' + di1.message);
-    const { error: di2 } = await supabase.from('ias_registros').delete().is('re', null);
-    if (di2) throw new Error('Erro ao limpar registros antigos: ' + di2.message);
-    const BATCH = 500;
-    let total = 0;
-    for (let i = 0; i < rows.length; i += BATCH) {
-      const { error } = await supabase.from('ias_registros').insert(rows.slice(i, i + BATCH));
-      if (error) throw new Error(error.message);
-      total += Math.min(BATCH, rows.length - i);
-    }
-    await logAcesso(req, 'upload_ias', `${total} registros importados`);
-    res.json({ ok: true, inserted: total });
-  } catch (err) {
-    console.error('IAS upload error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
+// Upload manual de IAS removido — a partir daqui ias_registros é alimentada
+// exclusivamente pela sincronização via SGP-DP (agente-sgp, sessão colada).
 
 // [GET /api/ias/stats] — estatísticas gerais para a seção UIS/IAS (somente números).
 app.get('/api/ias/stats', requireAuth, async (req, res) => {

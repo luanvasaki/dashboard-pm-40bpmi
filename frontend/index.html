@@ -441,26 +441,6 @@
   </div>
 </div>
 
-<!-- MODAL UPLOAD AFASTAMENTOS P1 -->
-<div id="af-upl-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;align-items:center;justify-content:center;padding:20px" onclick="afUplClickOut(event)">
-  <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:28px;width:100%;max-width:520px">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px;margin-bottom:6px">IMPORTAR <span style="color:#5a9de0">AFASTAMENTOS</span></div>
-    <div style="font-size:19px;color:var(--tx3);margin-bottom:16px;line-height:1.7">
-      Colunas obrigatórias: <b style="color:var(--tx)">RE · Tipo de Afastamento · Início · Término</b><br>
-      Opcionais: OPM, Nome, N° de dias, NBI, Bol G, SIPA, SGP, PAF, Obs.<br>
-      Datas no formato <b style="color:var(--tx)">DD/MM/AAAA</b>.<br>
-      <span style="color:#e8c96a">⚠ O upload substitui todos os afastamentos anteriores.</span>
-    </div>
-    <input type="file" id="af-upl-file" name="af-upl-file" accept=".csv" onchange="afFileChange()" style="display:block;margin-bottom:14px;color:var(--tx);font-size:19px;width:100%">
-    <div id="af-upl-preview" style="font-size:19px;color:var(--tx3);margin-bottom:14px;min-height:18px"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button onclick="closeAfUpload()" style="padding:7px 18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:4px;cursor:pointer;font-size:19px">Cancelar</button>
-      <button id="af-upl-btn" onclick="afConfirmUpload()" disabled style="padding:7px 18px;background:rgba(90,157,224,.2);border:1px solid rgba(90,157,224,.4);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600;opacity:.5">Importar</button>
-    </div>
-    <div id="af-upl-msg" style="margin-top:12px;font-size:19px;min-height:18px"></div>
-  </div>
-</div>
-
 <!-- MODAL PRONTUÁRIO PM -->
 <div id="pronto-mo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:10500;align-items:center;justify-content:center;padding:20px;overflow-y:auto" onclick="prontoClickOut(event)">
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:26px;width:100%;max-width:820px;margin:auto">
@@ -1041,34 +1021,6 @@
 </div>
 
 <!-- MODAL UPLOAD IAS -->
-<div id="ias-upl-mo" class="upl-mo" onclick="if(event.target===this)closeIasModal()">
-  <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:12px;width:min(540px,95vw);padding:28px;display:flex;flex-direction:column;gap:18px">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">IMPORTAÇÃO</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800">INSPEÇÃO ANUAL DE <span style="color:#5a9de0">SAÚDE</span></div>
-      </div>
-      <button onclick="closeIasModal()" style="background:var(--s3);border:1px solid var(--bd);color:var(--tx2);border-radius:4px;padding:6px 14px;cursor:pointer;font-size:19px">✕</button>
-    </div>
-    <label style="border:2px dashed var(--bd2);border-radius:8px;padding:24px;text-align:center;cursor:pointer;display:block" onclick="document.getElementById('ias-file').click()">
-      <input type="file" id="ias-file" name="ias-file" accept=".csv" style="display:none" onchange="handleIasFile(this)">
-      <div style="font-size:28px;margin-bottom:8px">📂</div>
-      <div style="font-weight:600;color:var(--tx);margin-bottom:4px">Selecione a planilha IAS</div>
-      <div style="font-size:19px;color:var(--tx3)">Colunas: POST/GRAD · <b style="color:#5a9de0">RE</b> (com dígito) · QRA · FUNÇÃO · SEX · ANIVERSARIO · <b style="color:#5a9de0">MÉDICO</b> · DENTISTA · <b style="color:#5a9de0">VENCIMENTO</b></div>
-      <div style="margin-top:8px;font-size:19px;color:#c8a84b">⚠ O upload substitui todos os registros IAS anteriores.</div>
-    </label>
-    <div id="ias-preview" style="display:none;background:var(--s2);border-radius:6px;padding:12px;font-size:19px">
-      <b id="ias-fn" style="color:var(--tx)">—</b><br>
-      <span style="color:var(--tx3)">Registros válidos: </span><b id="ias-rows" style="color:#5a9de0">—</b>
-    </div>
-    <div id="ias-msg" style="font-size:19px;display:none"></div>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button onclick="closeIasModal()" style="padding:9px 20px;border-radius:6px;border:1px solid var(--bd2);background:none;color:var(--tx2);cursor:pointer;font-size:19px">Cancelar</button>
-      <button id="ias-confirm" onclick="confirmIasUpload()" disabled style="padding:9px 20px;border-radius:6px;border:none;background:#1a4a8a;color:#fff;cursor:pointer;font-size:19px;font-weight:600">Importar</button>
-    </div>
-  </div>
-</div>
-
 <!-- MODAL IAS DO PM (aberto ao clicar no badge IAS no P1) -->
 <div id="ias-pm-mo" class="upl-mo" style="z-index:10100" onclick="if(event.target===this)closeIasPmModal()">
   <div style="background:var(--s1);border:1px solid var(--bd2);border-radius:12px;width:min(520px,95vw);padding:28px;display:flex;flex-direction:column;gap:16px;max-height:90vh;overflow-y:auto">

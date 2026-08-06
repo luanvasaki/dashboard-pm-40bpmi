@@ -33,7 +33,6 @@ function closeSidebarMobile() {
 let p1Data       = [];
 let p1Afasts     = [];   // afastamentos carregados do Supabase
 let p1Parsed     = [];   // CSV efetivo aguardando confirmação
-let p1AfParsed   = [];   // CSV afastamentos aguardando confirmação
 let p1Fotos      = {};   // RE → foto_base64 | null
 let p1ByUnit     = {};   // OPM → PM[] (populado em renderP1)
 let p1AfastHoje  = {};   // RE → afastamentos ativos hoje (populado em renderP1)
@@ -1070,11 +1069,6 @@ function p1FileChange() {
     'genero': 'Genero', 'gênero': 'Genero',
     'nome de guerra': 'NomeGuerra',
     'data eap': 'DataEAP',
-    'possui restrição': 'PossuiRestricao', 'possui restricao': 'PossuiRestricao',
-    'tipos de restrição': 'TiposRestricao', 'tipos de restricao': 'TiposRestricao',
-    'restrição inicio': 'RestricaoInicio', 'restricao inicio': 'RestricaoInicio',
-    'restrição término': 'RestricaoTermino', 'restricao termino': 'RestricaoTermino',
-    'restrição termino': 'RestricaoTermino'
   };
 
   Papa.parse(file, {
@@ -1130,82 +1124,6 @@ async function p1ConfirmUpload() {
     msg.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`;
     btn.disabled = false;
     btn.style.opacity = '1';
-  }
-}
-
-// ── Upload Afastamentos
-function openAfUpload() {
-  const mo = document.getElementById('af-upl-mo');
-  mo.style.display = 'flex';
-  document.getElementById('af-upl-file').value = '';
-  document.getElementById('af-upl-preview').textContent = '';
-  document.getElementById('af-upl-msg').textContent = '';
-  document.getElementById('af-upl-btn').disabled = true;
-  document.getElementById('af-upl-btn').style.opacity = '.5';
-  p1AfParsed = [];
-}
-function closeAfUpload() { document.getElementById('af-upl-mo').style.display = 'none'; }
-function afUplClickOut(e) { if (e.target === document.getElementById('af-upl-mo')) closeAfUpload(); }
-
-function afFileChange() {
-  const file = document.getElementById('af-upl-file').files[0];
-  const prev = document.getElementById('af-upl-preview');
-  const btn  = document.getElementById('af-upl-btn');
-  p1AfParsed = [];
-  btn.disabled = true; btn.style.opacity = '.5';
-  prev.innerHTML = ''; document.getElementById('af-upl-msg').innerHTML = '';
-  if (!file) return;
-  const HEADER_MAP = {
-    're': 'RE', 'nome': 'Nome', 'nome completo': 'Nome', 'opm': 'OPM',
-    'tipo de afastamento': 'Tipo', 'tipo afastamento': 'Tipo', 'tipo': 'Tipo',
-    'n° de dias': 'NDias', 'nº de dias': 'NDias', 'n de dias': 'NDias', 'n_dias': 'NDias', 'dias': 'NDias',
-    'início': 'Inicio', 'inicio': 'Inicio',
-    'término': 'Termino', 'termino': 'Termino',
-    'nbi': 'NBI', 'bol g': 'BolG', 'bol. g': 'BolG', 'bolg': 'BolG',
-    'sipa': 'SIPA', 'sgp': 'SGP', 'paf': 'PAF',
-    'obs': 'Obs', 'observação': 'Obs', 'observacao': 'Obs'
-  };
-  Papa.parse(file, {
-    header: true, skipEmptyLines: true,
-    transformHeader: h => HEADER_MAP[h.trim().toLowerCase()] || h.trim(),
-    complete: r => {
-      if (!r.data.length) { prev.innerHTML = '<span style="color:#f07878">Arquivo vazio.</span>'; return; }
-      const required = ['RE', 'Tipo', 'Inicio', 'Termino'];
-      const missing  = required.filter(c => !Object.keys(r.data[0]).includes(c));
-      if (missing.length) {
-        prev.innerHTML = `<span style="color:#f07878">Colunas ausentes: <b>${missing.join(', ')}</b>.<br>Esperadas: RE, Tipo de Afastamento, Início, Término.</span>`;
-        return;
-      }
-      p1AfParsed = r.data.map(row => { const n = {}; Object.entries(row).forEach(([k,v]) => { n[k] = (v||'').trim(); }); return n; })
-        .filter(row => row.RE && row.Tipo && row.Inicio && row.Termino);
-      const tipos = [...new Set(p1AfParsed.map(r => r.Tipo).filter(Boolean))];
-      prev.innerHTML = `<span style="color:#4bc87a">✓ <b>${p1AfParsed.length}</b> registros lidos — tipos: ${tipos.join(', ')}.</span>`;
-      btn.disabled = false; btn.style.opacity = '1';
-    },
-    error: err => { prev.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`; }
-  });
-}
-
-async function afConfirmUpload() {
-  const btn = document.getElementById('af-upl-btn');
-  const msg = document.getElementById('af-upl-msg');
-  if (!p1AfParsed.length) return;
-  btn.disabled = true; btn.style.opacity = '.5';
-  msg.innerHTML = '<span style="color:var(--tx3)">Enviando...</span>';
-  try {
-    const res = await authFetch(`${API}/afastamentos/upload`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ records: p1AfParsed })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
-    msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.inserted} afastamentos importados.</span>`;
-    registraUpload();
-    await loadP1();
-    setTimeout(closeAfUpload, 1500);
-  } catch (err) {
-    msg.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`;
-    btn.disabled = false; btn.style.opacity = '1';
   }
 }
 
@@ -3502,14 +3420,12 @@ function updateSidebarImports(section) {
     if (!isP1) { el.innerHTML = ''; return; }
     el.innerHTML = `
       <button onclick="openP1Upload()" style="width:100%;padding:6px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.25);color:var(--gold);border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Efetivo</button>
-      <button onclick="openAfUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Afastamentos</button>
       <button onclick="openQuadroUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(75,200,122,.12);border:1px solid rgba(75,200,122,.3);color:#4bc87a;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Quadro de Claros</button>
       <button onclick="openP1SgpModal()" style="margin-top:4px;width:100%;padding:6px;background:rgba(90,224,154,.12);border:1px solid rgba(90,224,154,.3);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">⇄ Sincronizar via SGP</button>`;
   } else if (section === 'uis') {
     if (!isP1) { el.innerHTML = ''; return; }
     el.innerHTML = `
-      <button onclick="openUisModal()" style="width:100%;padding:6px;background:rgba(90,224,154,.12);border:1px solid rgba(90,224,154,.3);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Restrições UIS</button>
-      <button onclick="openIasModal()" style="margin-top:4px;width:100%;padding:6px;background:rgba(90,157,224,.12);border:1px solid rgba(90,157,224,.3);color:#5a9de0;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar IAS</button>`;
+      <button onclick="openUisModal()" style="width:100%;padding:6px;background:rgba(90,224,154,.12);border:1px solid rgba(90,224,154,.3);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Restrições UIS</button>`;
   } else if (section === 'p3') {
     if (!isP3) { el.innerHTML = ''; return; }
     el.innerHTML = `
