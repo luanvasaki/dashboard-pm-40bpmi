@@ -1037,23 +1037,25 @@ app.post('/api/efetivo/sync', requireAuth, requireRole('admin', 'p1'), async (re
   try {
     if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
     const { tipo, re } = req.body;
-    if (!['single', 'bulk'].includes(tipo)) return res.status(400).json({ error: 'tipo deve ser "single" ou "bulk".' });
-    if (tipo === 'single' && !/^\d{6}$/.test(String(re || ''))) {
+    const TIPOS_VALIDOS = ['single', 'bulk', 'ias_single', 'ias_bulk'];
+    if (!TIPOS_VALIDOS.includes(tipo)) return res.status(400).json({ error: `tipo deve ser um de: ${TIPOS_VALIDOS.join(', ')}.` });
+    const ehSingle = tipo === 'single' || tipo === 'ias_single';
+    if (ehSingle && !/^\d{6}$/.test(String(re || ''))) {
       return res.status(400).json({ error: 'Informe os 6 dígitos do RE (sem o dígito verificador).' });
     }
 
     const { data, error } = await supabase.from(SGP_SYNC_TABLE).insert({
       tipo,
-      re: tipo === 'single' ? re : null,
+      re: ehSingle ? re : null,
       solicitado_por: req.user.nome || req.user.matricula,
     }).select().single();
 
     if (error) {
-      // Índice único impede 2 pedidos "bulk" simultâneos — devolve mensagem amigável.
-      if (error.code === '23505') return res.status(409).json({ error: 'Já existe uma atualização de efetivo completo em andamento.' });
+      // Índice único impede 2 pedidos "bulk"/"ias_bulk" simultâneos (do mesmo tipo) — devolve mensagem amigável.
+      if (error.code === '23505') return res.status(409).json({ error: 'Já existe uma atualização desse tipo em andamento.' });
       throw new Error(error.message);
     }
-    await logAcesso(req, 'sgp_sync_pedido', tipo === 'single' ? `RE ${re}` : 'efetivo completo');
+    await logAcesso(req, 'sgp_sync_pedido', ehSingle ? `${tipo} RE ${re}` : tipo);
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1071,6 +1073,57 @@ app.get('/api/efetivo/sync/status', requireAuth, requireRole('admin', 'p1'), asy
       .limit(10);
     if (error) throw new Error(error.message);
     res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// ROTAS P1 — SESSÃO DO SGP-DP (pra sincronizar IAS)
+// O SGP-DP exige login (diferente do WSSCPM) e o cookie de sessão é
+// HttpOnly — não dá pra capturar automaticamente via bookmarklet. O
+// usuário cola o cookie manualmente aqui, o agente do batalhão "pega
+// carona" nele pra buscar a IAS em nome do usuário logado. Sessão dura
+// ~24h (mesmo tempo da sessão real do SGP-DP).
+//
+// ⚠ O valor do cookie NUNCA é devolvido pra tela — só o agente (que usa a
+// service_role key, direto no Supabase) consegue ler o valor real.
+// ═══════════════════════════════════════════════════════════════
+const SGP_DP_SESSAO_TABLE = 'sgp_dp_sessao';
+
+// [PUT /api/sgp-dp/sessao] — salva o cookie colado pelo usuário.
+app.put('/api/sgp-dp/sessao', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+    const { cookie } = req.body;
+    if (!cookie || typeof cookie !== 'string' || cookie.trim().length < 20) {
+      return res.status(400).json({ error: 'Cole o valor completo do cookie de sessão do SGP-DP.' });
+    }
+    const { error } = await supabase.from(SGP_DP_SESSAO_TABLE).upsert({
+      id: 1,
+      cookie: cookie.trim(),
+      atualizado_em: new Date().toISOString(),
+      atualizado_por: req.user.nome || req.user.matricula,
+    }, { onConflict: 'id' });
+    if (error) throw new Error(error.message);
+    await logAcesso(req, 'sgp_dp_sessao_atualizada', '');
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// [GET /api/sgp-dp/sessao/status] — quando a sessão foi salva e por quem (nunca o valor do cookie).
+app.get('/api/sgp-dp/sessao/status', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
+  try {
+    if (!supabase) return res.json({ atualizado_em: null, atualizado_por: null });
+    const { data, error } = await supabase
+      .from(SGP_DP_SESSAO_TABLE)
+      .select('atualizado_em, atualizado_por')
+      .eq('id', 1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    res.json(data || { atualizado_em: null, atualizado_por: null });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

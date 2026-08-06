@@ -881,7 +881,11 @@ function openP1SgpModal() {
   document.getElementById('p1-sgp-mo').style.display = 'flex';
   document.getElementById('p1-sgp-re').value = '';
   document.getElementById('p1-sgp-msg').textContent = '';
+  document.getElementById('p1-sgpdp-re').value = '';
+  document.getElementById('p1-sgpdp-cookie').value = '';
+  document.getElementById('p1-sgpdp-msg').textContent = '';
   p1SgpRefreshStatus();
+  p1SgpDpStatusSessao();
   if (p1SgpPollTimer) clearInterval(p1SgpPollTimer);
   p1SgpPollTimer = setInterval(p1SgpRefreshStatus, 5000);
 }
@@ -932,6 +936,79 @@ async function p1SgpRequestBulk() {
   }
 }
 
+// ── IAS via SGP-DP (sessão colada manualmente, cookie nunca volta pra tela) ──
+async function p1SgpDpStatusSessao() {
+  const el = document.getElementById('p1-sgpdp-status');
+  if (!el) return;
+  try {
+    const st = await authFetch(`${API}/sgp-dp/sessao/status`).then(r => r.json());
+    if (!st.atualizado_em) { el.innerHTML = '<span style="color:#c8a84b">Nenhuma sessão salva ainda.</span>'; return; }
+    const quando = new Date(st.atualizado_em);
+    const horas = Math.floor((Date.now() - quando.getTime()) / 3600000);
+    const cor = horas >= 24 ? '#f07878' : horas >= 20 ? '#c8a84b' : '#4bc87a';
+    el.innerHTML = `<span style="color:${cor}">Sessão salva há ${horas}h</span> por ${escHtml(st.atualizado_por || '—')}${horas >= 20 ? ' — pode estar perto de expirar (dura ~24h)' : ''}`;
+  } catch {
+    el.innerHTML = '<span style="color:#f07878">Erro ao carregar status da sessão.</span>';
+  }
+}
+
+async function p1SgpDpSalvarSessao() {
+  const msg = document.getElementById('p1-sgpdp-msg');
+  const cookie = document.getElementById('p1-sgpdp-cookie').value.trim();
+  if (cookie.length < 20) { msg.innerHTML = '<span style="color:#f07878">Cole o valor completo do cookie.</span>'; return; }
+  msg.innerHTML = '<span style="color:var(--tx3)">Salvando...</span>';
+  try {
+    const res = await authFetch(`${API}/sgp-dp/sessao`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cookie })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao salvar sessão.');
+    msg.innerHTML = '<span style="color:#4bc87a">Sessão salva.</span>';
+    document.getElementById('p1-sgpdp-cookie').value = '';
+    p1SgpDpStatusSessao();
+  } catch (err) {
+    msg.innerHTML = `<span style="color:#f07878">${escHtml(err.message)}</span>`;
+  }
+}
+
+async function p1SgpIasRequestSingle() {
+  const msg = document.getElementById('p1-sgpdp-msg');
+  const re = document.getElementById('p1-sgpdp-re').value.trim();
+  if (!/^\d{6}$/.test(re)) { msg.innerHTML = '<span style="color:#f07878">Digite os 6 dígitos do RE, sem o dígito verificador.</span>'; return; }
+  msg.innerHTML = '<span style="color:var(--tx3)">Enviando pedido...</span>';
+  try {
+    const res = await authFetch(`${API}/efetivo/sync`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo: 'ias_single', re })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao criar pedido.');
+    msg.innerHTML = '<span style="color:#4bc87a">Pedido enviado — aguardando o agente do batalhão processar.</span>';
+    p1SgpRefreshStatus();
+  } catch (err) {
+    msg.innerHTML = `<span style="color:#f07878">${escHtml(err.message)}</span>`;
+  }
+}
+
+async function p1SgpIasRequestBulk() {
+  const msg = document.getElementById('p1-sgpdp-msg');
+  if (!confirm('Isso vai reconsultar a IAS de todo o efetivo cadastrado, um por um. Pode levar bastante tempo e a sessão do SGP-DP pode expirar no meio (dura ~24h). Continuar?')) return;
+  msg.innerHTML = '<span style="color:var(--tx3)">Enviando pedido...</span>';
+  try {
+    const res = await authFetch(`${API}/efetivo/sync`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo: 'ias_bulk' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao criar pedido.');
+    msg.innerHTML = '<span style="color:#4bc87a">Pedido enviado — aguardando o agente do batalhão processar.</span>';
+    p1SgpRefreshStatus();
+  } catch (err) {
+    msg.innerHTML = `<span style="color:#f07878">${escHtml(err.message)}</span>`;
+  }
+}
+
 function p1SgpStatusLabel(status) {
   const map = {
     pending:    ['aguardando', '#e8c96a'],
@@ -950,12 +1027,15 @@ async function p1SgpRefreshStatus() {
     const jobs = await authFetch(`${API}/efetivo/sync/status`).then(r => r.json());
     if (!jobs.length) { el.innerHTML = '<span style="color:var(--tx3)">Nenhum pedido ainda.</span>'; return; }
     el.innerHTML = jobs.map(j => {
-      const desc = j.tipo === 'single' ? `RE ${escHtml(j.re)}` : 'Efetivo completo';
+      const ehIas = j.tipo === 'ias_single' || j.tipo === 'ias_bulk';
+      const ehSingle = j.tipo === 'single' || j.tipo === 'ias_single';
+      const prefixo = ehIas ? 'IAS · ' : '';
+      const desc = ehSingle ? `${prefixo}RE ${escHtml(j.re)}` : `${prefixo}Efetivo completo`;
       const quando = new Date(j.criado_em).toLocaleString('pt-BR');
       let detalhe = '';
       if (j.status === 'done' && j.resultado) {
-        detalhe = j.tipo === 'bulk'
-          ? ` — ${j.resultado.atualizados}/${j.resultado.total} atualizados${j.resultado.erros?.length ? `, ${j.resultado.erros.length} erro(s)` : ''}`
+        detalhe = !ehSingle
+          ? ` — ${j.resultado.atualizados}/${j.resultado.total} atualizados${j.resultado.erros?.length ? `, ${j.resultado.erros.length} erro(s)` : ''}${j.resultado.abortado ? ` — ${escHtml(j.resultado.abortado)}` : ''}`
           : ` — ${escHtml(j.resultado.nome || '')}`;
       } else if (j.status === 'error' && j.resultado?.erro) {
         detalhe = ` — ${escHtml(j.resultado.erro)}`;

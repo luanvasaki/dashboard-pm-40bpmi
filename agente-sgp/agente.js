@@ -272,6 +272,145 @@ async function sincronizarUmRE(re6) {
   return dados;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// IAS (Inspeção Anual de Saúde) — via SGP-DP, não WSSCPM.
+// O SGP-DP exige login e o cookie de sessão é HttpOnly (não dá pra capturar
+// via bookmarklet). O usuário cola o cookie manualmente no dashboard, e o
+// agente usa esse cookie pra "pegar carona" na sessão dele. Sessão dura
+// ~24h — se expirar no meio de uma atualização em lote, aborta o resto
+// com uma mensagem clara em vez de gerar 1 erro por pessoa restante.
+//
+// Descoberto via inspeção do Network do navegador (não documentado, sem
+// WSDL como o WSSCPM):
+//   1. POST /SGP/FindPM — "seleciona" a pessoa no contexto da sessão.
+//   2. POST /InspecaoAnual/ConsultarInspecaoAnualPorRE — devolve o
+//      histórico de IAS da pessoa selecionada no passo 1 (corpo vazio,
+//      não recebe o RE — depende do contexto setado pelo FindPM).
+// ═══════════════════════════════════════════════════════════════
+const SGPDP_BASE = 'https://sgp-prod.intranet.policiamilitar.sp.gov.br';
+
+async function buscarSessaoSgpDp() {
+  const { data, error } = await supabase.from('sgp_dp_sessao').select('cookie').eq('id', 1).maybeSingle();
+  if (error) throw new Error(`Falha ao consultar sessão do SGP-DP: ${error.message}`);
+  if (!data?.cookie) throw new Error('Nenhuma sessão do SGP-DP salva ainda — cole o cookie no dashboard antes de sincronizar a IAS.');
+  return data.cookie;
+}
+
+// Erro específico pra sessão expirada/inválida, tratado diferente de erro
+// "essa pessoa específica falhou" — aborta o lote inteiro em vez de repetir
+// o mesmo erro 350 vezes.
+class SessaoSgpDpInvalidaError extends Error {}
+
+async function sgpDpFindPM(re6, cookie) {
+  const res = await fetch(`${SGPDP_BASE}/SGP/FindPM`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
+    body: JSON.stringify({ valor: re6, url: '/RotinasAnuais/RotinasAnuais', sist: 'Sistema de Gestão de Pessoas', modulo: 'CADASTRO' }),
+    redirect: 'manual',
+  });
+  // Sessão expirada normalmente vira redirect pra tela de login.
+  if (res.status >= 300 && res.status < 400) throw new SessaoSgpDpInvalidaError('SGP-DP redirecionou pra login — sessão expirada, cole o cookie de novo.');
+  if (!res.ok) throw new Error(`SGP-DP FindPM RE ${re6} HTTP ${res.status}`);
+}
+
+async function sgpDpConsultarIas(re6, cookie) {
+  const res = await fetch(`${SGPDP_BASE}/InspecaoAnual/ConsultarInspecaoAnualPorRE`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
+    body: '{}',
+    redirect: 'manual',
+  });
+  if (res.status >= 300 && res.status < 400) throw new SessaoSgpDpInvalidaError('SGP-DP redirecionou pra login — sessão expirada, cole o cookie de novo.');
+  if (!res.ok) throw new Error(`SGP-DP ConsultarInspecaoAnualPorRE RE ${re6} HTTP ${res.status}`);
+  const text = await res.text();
+  let json;
+  try { json = JSON.parse(text); }
+  catch { throw new SessaoSgpDpInvalidaError('SGP-DP não devolveu JSON (provavelmente sessão expirada) — cole o cookie de novo.'); }
+  return json?.lista?.listInspecao || [];
+}
+
+// Devolve só o registro do ano mais recente — é o que o dashboard usa hoje
+// (data_medico/data_dentista/data_vencimento), sem guardar o histórico completo.
+async function buscarIasPM(re6, cookie) {
+  await sgpDpFindPM(re6, cookie);
+  const lista = await sgpDpConsultarIas(re6, cookie);
+  if (!lista.length) return null;
+  const maisRecente = lista.reduce((a, b) => (b.Ano > a.Ano ? b : a));
+  return {
+    data_medico:     maisRecente.DataInspecaoMedica ? String(maisRecente.DataInspecaoMedica).slice(0, 10) : null,
+    data_dentista:   maisRecente.DataInspecaoOdonto ? String(maisRecente.DataInspecaoOdonto).slice(0, 10) : null,
+    data_vencimento: maisRecente.DataValidade ? String(maisRecente.DataValidade).slice(0, 10) : null,
+  };
+}
+
+// pmEfetivo = { re, nome, posto, opm, genero, nome_guerra } (linha de efetivo_pm).
+// ias_registros.re é guardado só com 6 dígitos (sem dígito verificador) —
+// mesma normalização usada em iasNormRE/uisNormRE no frontend.
+async function sincronizarIasUmRE(pmEfetivo, cookie) {
+  const re6 = String(pmEfetivo.re).slice(0, 6);
+  const ias = await buscarIasPM(re6, cookie);
+  if (!ias) {
+    console.log(`  (IAS) RE ${re6}: nenhum registro de Inspeção Anual encontrado no SGP-DP.`);
+    return;
+  }
+
+  const linha = {
+    re: re6,
+    nome: pmEfetivo.nome,
+    posto: pmEfetivo.posto,
+    opm: pmEfetivo.opm,
+    genero: pmEfetivo.genero,
+    nome_guerra: pmEfetivo.nome_guerra,
+    ...ias,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: existentes, error: erroBusca } = await supabase.from('ias_registros').select('id').eq('re', re6);
+  if (erroBusca) throw new Error(`Falha ao consultar ias_registros: ${erroBusca.message}`);
+
+  if (existentes.length) {
+    const { error } = await supabase.from('ias_registros').update(linha).eq('id', existentes[0].id);
+    if (error) throw new Error(`Falha ao atualizar ias_registros: ${error.message}`);
+  } else {
+    const { error } = await supabase.from('ias_registros').insert(linha);
+    if (error) throw new Error(`Falha ao gravar ias_registros: ${error.message}`);
+  }
+  console.log(`  (IAS) RE ${re6}: vencimento=${ias.data_vencimento || 'sem data'}.`);
+}
+
+async function processarJobIasSingle(job) {
+  const re6 = String(job.re).slice(0, 6);
+  const cookie = await buscarSessaoSgpDp();
+  const { data: pm, error } = await supabase.from('efetivo_pm').select('re, nome, posto, opm, genero, nome_guerra').like('re', `${re6}%`).limit(1);
+  if (error) throw new Error(`Falha ao consultar efetivo_pm: ${error.message}`);
+  if (!pm.length) throw new Error(`RE ${re6} não está no efetivo.`);
+  await sincronizarIasUmRE(pm[0], cookie);
+  return { ok: true, re: pm[0].re, nome: pm[0].nome };
+}
+
+async function processarJobIasBulk() {
+  const cookie = await buscarSessaoSgpDp();
+  const { data: efetivo, error } = await supabase.from('efetivo_pm').select('re, nome, posto, opm, genero, nome_guerra');
+  if (error) throw new Error(`Falha ao ler efetivo_pm: ${error.message}`);
+
+  const resultado = { total: efetivo.length, atualizados: 0, erros: [] };
+  for (const pm of efetivo) {
+    try {
+      await sincronizarIasUmRE(pm, cookie);
+      resultado.atualizados++;
+    } catch (err) {
+      if (err instanceof SessaoSgpDpInvalidaError) {
+        resultado.erros.push({ re: pm.re, erro: err.message });
+        resultado.abortado = 'Sessão do SGP-DP expirou no meio da atualização — cole o cookie de novo e rode de novo (só quem já foi atualizado fica salvo).';
+        break;
+      }
+      resultado.erros.push({ re: pm.re, erro: err.message });
+    }
+    await sleep(CALL_DELAY_MS);
+  }
+  return resultado;
+}
+
 async function processarJobSingle(job) {
   const re6 = String(job.re).slice(0, 6);
   const dados = await sincronizarUmRE(re6);
@@ -310,8 +449,15 @@ async function processarProximoJob() {
 
   await supabase.from('sgp_sync_jobs').update({ status: 'processing', atualizado_em: new Date().toISOString() }).eq('id', job.id);
 
+  const PROCESSADORES = {
+    bulk:       () => processarJobBulk(),
+    single:     () => processarJobSingle(job),
+    ias_bulk:   () => processarJobIasBulk(),
+    ias_single: () => processarJobIasSingle(job),
+  };
+
   try {
-    const resultado = job.tipo === 'bulk' ? await processarJobBulk() : await processarJobSingle(job);
+    const resultado = await PROCESSADORES[job.tipo]();
     await supabase.from('sgp_sync_jobs').update({
       status: 'done', resultado, atualizado_em: new Date().toISOString(),
     }).eq('id', job.id);
