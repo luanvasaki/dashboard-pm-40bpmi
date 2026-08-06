@@ -152,12 +152,14 @@ async function buscarAfastamentosPM(cpf) {
     }
   }
   for (const item of asArray(result.ListaLicencaTratamentoSaude?.LicencaTratamentoSaude)) {
-    afastamentos.push({
-      tipo_afastamento: trim(item.Descricao) || 'LTS',
-      inicio:  item.DataInicial ? String(item.DataInicial).slice(0, 10) : null,
-      termino: item.DataFinal ? String(item.DataFinal).slice(0, 10) : null,
-      n_dias:  null,
-    });
+    const desc = trim(item.Descricao) || 'LTS';
+    const inicio  = item.DataInicial ? String(item.DataInicial).slice(0, 10) : null;
+    const termino = item.DataFinal ? String(item.DataFinal).slice(0, 10) : null;
+    if (isRestricaoDescricao(desc)) {
+      restricoes.push({ tipo: desc, inicio, termino });
+    } else {
+      afastamentos.push({ tipo_afastamento: desc, inicio, termino, n_dias: null });
+    }
   }
 
   for (const item of asArray(result.ListaAgregacao?.Agregacao)) {
@@ -166,6 +168,16 @@ async function buscarAfastamentosPM(cpf) {
       inicio:  item.DataInicial ? String(item.DataInicial).slice(0, 10) : null,
       termino: item.DataFinal ? String(item.DataFinal).slice(0, 10) : null,
     });
+  }
+
+  // DEBUG temporário: só loga quando existe algo com "restri" em qualquer
+  // lista bruta do XML, pra confirmar de onde vem quando o filtro não pega
+  // (evita poluir o log de todo mundo). Remover depois de confirmado.
+  const afastRaw = asArray(result.ListaAfastamento?.Afastamento).map(i => trim(i.Descricao));
+  const ltsRaw    = asArray(result.ListaLicencaTratamentoSaude?.LicencaTratamentoSaude).map(i => trim(i.Descricao));
+  if ([...afastRaw, ...ltsRaw].some(d => /restri/i.test(d))) {
+    console.log(`    [debug] ListaAfastamento bruta: ${afastRaw.join(' | ') || '(vazia)'}`);
+    console.log(`    [debug] ListaLicencaTratamentoSaude bruta: ${ltsRaw.join(' | ') || '(vazia)'}`);
   }
 
   return { afastamentos, restricoes };
