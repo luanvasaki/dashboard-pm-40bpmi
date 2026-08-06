@@ -170,16 +170,6 @@ async function buscarAfastamentosPM(cpf) {
     });
   }
 
-  // DEBUG temporário: só loga quando existe algo com "restri" em qualquer
-  // lista bruta do XML, pra confirmar de onde vem quando o filtro não pega
-  // (evita poluir o log de todo mundo). Remover depois de confirmado.
-  const afastRaw = asArray(result.ListaAfastamento?.Afastamento).map(i => trim(i.Descricao));
-  const ltsRaw    = asArray(result.ListaLicencaTratamentoSaude?.LicencaTratamentoSaude).map(i => trim(i.Descricao));
-  if ([...afastRaw, ...ltsRaw].some(d => /restri/i.test(d))) {
-    console.log(`    [debug] ListaAfastamento bruta: ${afastRaw.join(' | ') || '(vazia)'}`);
-    console.log(`    [debug] ListaLicencaTratamentoSaude bruta: ${ltsRaw.join(' | ') || '(vazia)'}`);
-  }
-
   return { afastamentos, restricoes };
 }
 
