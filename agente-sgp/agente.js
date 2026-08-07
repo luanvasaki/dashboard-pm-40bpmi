@@ -301,25 +301,44 @@ async function buscarSessaoSgpDp() {
 // o mesmo erro 350 vezes.
 class SessaoSgpDpInvalidaError extends Error {}
 
+// Sem timeout, uma chamada que trava (rede instável, servidor não responde)
+// travava o lote inteiro pra sempre — 20s é bem folgado pra uma resposta
+// normal do SGP-DP (que costuma responder em menos de 1s).
+const SGPDP_TIMEOUT_MS = 20000;
+
 async function sgpDpFindPM(re6, cookie) {
-  const res = await fetch(`${SGPDP_BASE}/SGP/FindPM`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
-    body: JSON.stringify({ valor: re6, url: '/RotinasAnuais/RotinasAnuais', sist: 'Sistema de Gestão de Pessoas', modulo: 'CADASTRO' }),
-    redirect: 'manual',
-  });
+  let res;
+  try {
+    res = await fetch(`${SGPDP_BASE}/SGP/FindPM`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
+      body: JSON.stringify({ valor: re6, url: '/RotinasAnuais/RotinasAnuais', sist: 'Sistema de Gestão de Pessoas', modulo: 'CADASTRO' }),
+      redirect: 'manual',
+      signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
+    });
+  } catch (err) {
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') throw new Error(`SGP-DP FindPM RE ${re6}: sem resposta em ${SGPDP_TIMEOUT_MS/1000}s.`);
+    throw err;
+  }
   // Sessão expirada normalmente vira redirect pra tela de login.
   if (res.status >= 300 && res.status < 400) throw new SessaoSgpDpInvalidaError('SGP-DP redirecionou pra login — sessão expirada, cole o cookie de novo.');
   if (!res.ok) throw new Error(`SGP-DP FindPM RE ${re6} HTTP ${res.status}`);
 }
 
 async function sgpDpConsultarIas(re6, cookie) {
-  const res = await fetch(`${SGPDP_BASE}/InspecaoAnual/ConsultarInspecaoAnualPorRE`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
-    body: '{}',
-    redirect: 'manual',
-  });
+  let res;
+  try {
+    res = await fetch(`${SGPDP_BASE}/InspecaoAnual/ConsultarInspecaoAnualPorRE`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
+      body: '{}',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
+    });
+  } catch (err) {
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') throw new Error(`SGP-DP ConsultarInspecaoAnualPorRE RE ${re6}: sem resposta em ${SGPDP_TIMEOUT_MS/1000}s.`);
+    throw err;
+  }
   if (res.status >= 300 && res.status < 400) throw new SessaoSgpDpInvalidaError('SGP-DP redirecionou pra login — sessão expirada, cole o cookie de novo.');
   if (!res.ok) throw new Error(`SGP-DP ConsultarInspecaoAnualPorRE RE ${re6} HTTP ${res.status}`);
   const text = await res.text();
@@ -348,6 +367,7 @@ async function buscarIasPM(re6, cookie) {
 // mesma normalização usada em iasNormRE/uisNormRE no frontend.
 async function sincronizarIasUmRE(pmEfetivo, cookie) {
   const re6 = String(pmEfetivo.re).slice(0, 6);
+  console.log(`  (IAS) RE ${re6}: consultando...`);
   const ias = await buscarIasPM(re6, cookie);
   if (!ias) {
     console.log(`  (IAS) RE ${re6}: nenhum registro de Inspeção Anual encontrado no SGP-DP.`);
