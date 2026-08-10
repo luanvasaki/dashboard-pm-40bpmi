@@ -435,6 +435,19 @@
       <div id="p1-sgpdp-msg" style="font-size:19px;margin-top:10px;min-height:18px"></div>
     </div>
 
+    <div style="border-top:1px solid var(--bd);margin-top:18px;padding-top:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px;margin-bottom:6px">CURSOS <span style="color:#9de05a">VIA SGP-DP</span></div>
+      <div style="font-size:19px;color:var(--tx3);margin-bottom:10px;line-height:1.7">
+        Usa a mesma sessão do SGP-DP colada acima. Substitui por completo o histórico de cursos institucionais de cada PM (nota, conceito, boletim, datas).
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input type="text" id="p1-sgpdp-cursos-re" placeholder="RE (6 dígitos, sem dígito verificador)" maxlength="6" style="flex:1;padding:7px 10px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:4px;font-size:19px">
+        <button onclick="p1SgpCursosRequestSingle()" style="padding:7px 16px;background:rgba(157,224,90,.15);border:1px solid rgba(157,224,90,.35);color:#9de05a;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600;white-space:nowrap">Buscar RE</button>
+      </div>
+      <button onclick="p1SgpCursosRequestBulk()" style="width:100%;padding:8px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.3);color:var(--gold);border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">Atualizar cursos do efetivo completo</button>
+      <div id="p1-sgpdp-cursos-msg" style="font-size:19px;margin-top:10px;min-height:18px"></div>
+    </div>
+
     <div style="display:flex;justify-content:flex-end;margin-top:14px">
       <button onclick="closeP1SgpModal()" style="padding:7px 18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:4px;cursor:pointer;font-size:19px">Fechar</button>
     </div>
@@ -527,14 +540,25 @@
         </table>
       </div>
     </div>
-    <!-- Cursos Institucionais -->
+    <!-- Cursos Institucionais e Externos -->
     <div style="border-top:1px solid var(--bd);padding-top:16px;margin-top:16px">
-      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px">Cursos Institucionais</div>
-      <div style="overflow-x:auto;max-height:200px;overflow-y:auto">
+      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px">Cursos</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <select id="pronto-cursos-origem" onchange="prontoRenderCursos()" style="padding:5px 8px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:4px;font-size:19px">
+          <option value="">Todos</option>
+          <option value="interno">Internos</option>
+          <option value="externo">Externos</option>
+          <option value="manual">Manuais</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto;max-height:220px;overflow-y:auto">
         <table style="width:100%;border-collapse:collapse">
           <thead><tr>
             <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">DATA</th>
             <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">CURSO</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">TIPO</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">NOTA</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">DETALHE</th>
             <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">POSTO</th>
           </tr></thead>
           <tbody id="pronto-cursos"></tbody>

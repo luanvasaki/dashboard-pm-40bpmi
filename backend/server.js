@@ -112,8 +112,9 @@ function parseDateBR(s){ if(!s)return null; const[d,m,y]=(s||'').split('/'); if(
 // Converte string de hora "H:MM" ou "HH:MM:SS" para "HH:MM" com zero à esquerda.
 function parseHora(s){ if(!s||!s.trim())return null; const p=s.trim().split(':'); return p.length<2?null:`${p[0].padStart(2,'0')}:${p[1].padStart(2,'0')}`; }
 
-// Faz parse do campo de PMs de cursos, que tem formato "Posto PM RE Nome; Posto PM RE Nome".
-// Retorna array de objetos { posto_pm, re_pm, nome_pm } — um por PM separado por ';'.
+// Faz parse do campo de PMs de cursos (upload manual), que tem formato
+// "Posto PM RE Nome; Posto PM RE Nome". Retorna array de objetos
+// { posto_pm, re_pm, nome_pm } — um por PM separado por ';'.
 function parsePMsField(pmField) {
   if (!pmField || !pmField.trim()) return [];
   return pmField.split(';').map(s => s.trim()).filter(Boolean).map(entry => {
@@ -1037,9 +1038,9 @@ app.post('/api/efetivo/sync', requireAuth, requireRole('admin', 'p1'), async (re
   try {
     if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
     const { tipo, re } = req.body;
-    const TIPOS_VALIDOS = ['single', 'bulk', 'ias_single', 'ias_bulk'];
+    const TIPOS_VALIDOS = ['single', 'bulk', 'ias_single', 'ias_bulk', 'cursos_single', 'cursos_bulk'];
     if (!TIPOS_VALIDOS.includes(tipo)) return res.status(400).json({ error: `tipo deve ser um de: ${TIPOS_VALIDOS.join(', ')}.` });
-    const ehSingle = tipo === 'single' || tipo === 'ias_single';
+    const ehSingle = tipo === 'single' || tipo === 'ias_single' || tipo === 'cursos_single';
     if (ehSingle && !/^\d{6}$/.test(String(re || ''))) {
       return res.status(400).json({ error: 'Informe os 6 dígitos do RE (sem o dígito verificador).' });
     }
@@ -2105,11 +2106,17 @@ app.get('/api/ias/:re', requireAuth, requireRole('admin', 'p1', 'p3', 'ti'), asy
 
 // ═══════════════════════════════════════════════════════════════
 // ROTAS P3 — CURSOS INSTITUCIONAIS
-// Histórico de cursos por PM: ofício, data, nome do curso, posto e RE.
-// O campo PM é um texto com vários PMs separados por ';' (parsePMsField).
+// Histórico de cursos por PM: data, nome do curso, posto, RE, nota,
+// conceito, boletim etc. Fonte principal é a sincronização via SGP-DP
+// (agente-sgp, sessão colada — mesmo mecanismo do IAS), que grava linhas
+// com origem 'interno'/'externo'. Mas nem todo curso está no SGP-DP —
+// upload manual de CSV continua existindo (origem 'manual') para esses
+// casos; a sincronização nunca apaga linhas com origem='manual'.
 // ═══════════════════════════════════════════════════════════════
 
-// [POST /api/upload/cursos] — importa CSV de cursos. Apaga os anos presentes antes de inserir.
+// [POST /api/upload/cursos] — importa CSV de cursos que não vêm do SGP-DP.
+// Apaga só as linhas manuais (origem='manual') dos anos presentes antes de
+// inserir — nunca toca nas linhas geradas pela sincronização SGP-DP.
 // Um curso pode gerar N linhas na tabela — uma por PM listado no campo PM/interessados.
 app.post('/api/upload/cursos', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
@@ -2141,18 +2148,17 @@ app.post('/api/upload/cursos', requireAuth, requireRole('admin', 'p3'), async (r
         mes = _MESES_PT[parseInt(m) - 1] || '';
       }
       const pms = parsePMsField(pmField);
+      const base = { boletim_curso: nOficio || null, data: parsed, nome_curso: nomeCurso, ano, mes, origem: 'manual' };
       if (!pms.length) {
-        rows.push({ n_oficio: nOficio || null, data: parsed, nome_curso: nomeCurso, ano, mes, re_pm: null, posto_pm: null, nome_pm: null });
+        rows.push({ ...base, re_pm: null, posto_pm: null, nome_pm: null });
       } else {
-        for (const pm of pms) {
-          rows.push({ n_oficio: nOficio || null, data: parsed, nome_curso: nomeCurso, ano, mes, ...pm });
-        }
+        for (const pm of pms) rows.push({ ...base, ...pm });
       }
     }
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
     const anos = [...new Set(rows.map(r => r.ano).filter(a => a > 0))];
     for (const ano of anos) {
-      const { error: delErr } = await supabase.from('prod_cursos').delete().eq('ano', ano);
+      const { error: delErr } = await supabase.from('prod_cursos').delete().eq('ano', ano).eq('origem', 'manual');
       if (delErr) throw new Error(delErr.message);
     }
     const BATCH = 500;

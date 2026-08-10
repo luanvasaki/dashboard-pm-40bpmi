@@ -638,7 +638,7 @@ function openProdUpl(tipo) {
     'entorpecentes':    'Colunas: Ano · Mês · CIA · Entorpecente · Unidade de Medida · Quantidade de Entorpecentes',
     'visita-solidaria': 'Colunas: Data da ocorrência · Cia PM · Nome da Vitima · Parentesco do Agressor · ...',
     'tempo-resposta':   'Colunas: Ano · Mês · CIA · Natureza Final · Qtde Talões · % Talões HD-HCL até 20min · % BOe',
-    'cursos':           'Colunas: Nº do Ofício · Data · Curso · PM (formato: Posto PM RE Nome; Posto PM RE Nome; ...)',
+    'cursos':           'Cursos que não vêm do SGP-DP (upload manual). Colunas: Nº do Ofício · Data · Curso · PM (formato: Posto PM RE Nome; Posto PM RE Nome; ...)',
     'pvs':              'Colunas: ano · cia · municipio · bairros_com_pvs · nucleos_total · familias_atendidas · modal_residencial · modal_comercial · modal_escolar · modal_rural · modal_empresarial · nota_eficacia · tem_cadastro · pm_whatsapp · reunioes_semestrais · visitas_solidarias',
     'conseg':           'Colunas: Mês / Ano (MM/AAAA) · Cia · Município · Houve Reunião (Sim/Não) · Data da última reunião · Providências Adatodas · Data da Reunião',
   };
@@ -1202,7 +1202,8 @@ function trDrillNat(el, nat, sortMode) {
   el.insertAdjacentElement('afterend', panel);
 }
 
-function tipoCurso(nome) {
+function tipoCurso(nome, origem) {
+  if (origem === 'externo') return 'Externo';
   const nl = (nome||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
   if (/^cep\s*[-–]/.test(nl)) return 'CEP';
   if (/^eep\s*[-–]/.test(nl) || /estagio de especializacao/.test(nl)) return 'EEP';
@@ -1218,9 +1219,10 @@ const TIPO_COR = {
   'Habilitação': '#9b6de0',
   'Adaptação':   '#4bc8a0',
   'Instrução':   '#e05a8a',
+  'Externo':     '#e8c96a',
   'Outros':      '#607090'
 };
-const TIPO_ORD = ['CEP','EEP','Habilitação','Adaptação','Instrução','Outros'];
+const TIPO_ORD = ['CEP','EEP','Habilitação','Adaptação','Instrução','Externo','Outros'];
 
 async function renderCursosModalDetail() {
   const COR = '#9de05a';
@@ -1245,7 +1247,7 @@ async function renderCursosModalDetail() {
   const cursosMap = new Map();
   rows.forEach(r => {
     const key = (r.data||'') + '||' + (r.nome_curso||'');
-    if (!cursosMap.has(key)) cursosMap.set(key, { data: r.data, nome_curso: r.nome_curso, mes: r.mes, tipo: tipoCurso(r.nome_curso), pms: [] });
+    if (!cursosMap.has(key)) cursosMap.set(key, { data: r.data, nome_curso: r.nome_curso, mes: r.mes, tipo: tipoCurso(r.nome_curso, r.origem), pms: [] });
     if (r.re_pm) cursosMap.get(key).pms.push({ posto: r.posto_pm, re: r.re_pm, nome: r.nome_pm });
   });
   const cursosList = [...cursosMap.values()].sort((a, b) => (b.data||'').localeCompare(a.data||''));
@@ -1304,7 +1306,7 @@ async function renderCursosModalDetail() {
   const tipoTooltipCia = {};
   rows.forEach(r => {
     if (!r.re_pm) return;
-    const tipo = tipoCurso(r.nome_curso);
+    const tipo = tipoCurso(r.nome_curso, r.origem);
     const cia = getCiaPM(r.re_pm) || 'Não identificado';
     if (!tipoTooltipCia[tipo]) tipoTooltipCia[tipo] = {};
     tipoTooltipCia[tipo][cia] = (tipoTooltipCia[tipo][cia] || 0) + 1;
@@ -1314,7 +1316,7 @@ async function renderCursosModalDetail() {
   const tipoAgg = {};
   rows.forEach(r => {
     if (!r.re_pm) return;
-    const tipo = tipoCurso(r.nome_curso);
+    const tipo = tipoCurso(r.nome_curso, r.origem);
     tipoAgg[tipo] = (tipoAgg[tipo] || 0) + 1;
   });
   const tipoLabels = TIPO_ORD.filter(t => tipoAgg[t]);

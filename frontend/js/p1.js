@@ -41,6 +41,7 @@ let p1Quadro     = [];   // quadro fixado do efetivo (por posto)
 let p1FiltroOpm  = '';   // filtro ativo por OPM
 let prontoCurrentRe  = '';   // RE do prontuário aberto
 let prontoExtratoFull = [];  // afastamentos do PM aberto, sem filtro (base p/ os selects)
+let prontoCursosFull  = [];  // cursos (internos+externos) do PM aberto, sem filtro (base p/ o select de origem)
 let p1ClosingPronto  = false;// flag: acabou de fechar prontuário — evita fechar painel CIA
 let p1UnitClickOut   = null; // handler de click fora do detalhe de unidade
 let p1KpiClickOut    = null; // handler de click fora do detalhe de KPI
@@ -883,6 +884,8 @@ function openP1SgpModal() {
   document.getElementById('p1-sgpdp-re').value = '';
   document.getElementById('p1-sgpdp-cookie').value = '';
   document.getElementById('p1-sgpdp-msg').textContent = '';
+  document.getElementById('p1-sgpdp-cursos-re').value = '';
+  document.getElementById('p1-sgpdp-cursos-msg').textContent = '';
   p1SgpRefreshStatus();
   p1SgpDpStatusSessao();
   if (p1SgpPollTimer) clearInterval(p1SgpPollTimer);
@@ -1008,6 +1011,43 @@ async function p1SgpIasRequestBulk() {
   }
 }
 
+async function p1SgpCursosRequestSingle() {
+  const msg = document.getElementById('p1-sgpdp-cursos-msg');
+  const re = document.getElementById('p1-sgpdp-cursos-re').value.trim();
+  if (!/^\d{6}$/.test(re)) { msg.innerHTML = '<span style="color:#f07878">Digite os 6 dígitos do RE, sem o dígito verificador.</span>'; return; }
+  msg.innerHTML = '<span style="color:var(--tx3)">Enviando pedido...</span>';
+  try {
+    const res = await authFetch(`${API}/efetivo/sync`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo: 'cursos_single', re })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao criar pedido.');
+    msg.innerHTML = '<span style="color:#4bc87a">Pedido enviado — aguardando o agente do batalhão processar.</span>';
+    p1SgpRefreshStatus();
+  } catch (err) {
+    msg.innerHTML = `<span style="color:#f07878">${escHtml(err.message)}</span>`;
+  }
+}
+
+async function p1SgpCursosRequestBulk() {
+  const msg = document.getElementById('p1-sgpdp-cursos-msg');
+  if (!confirm('Isso vai reconsultar os cursos de todo o efetivo cadastrado, um por um. Pode levar bastante tempo e a sessão do SGP-DP pode expirar no meio (dura ~24h). Continuar?')) return;
+  msg.innerHTML = '<span style="color:var(--tx3)">Enviando pedido...</span>';
+  try {
+    const res = await authFetch(`${API}/efetivo/sync`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo: 'cursos_bulk' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao criar pedido.');
+    msg.innerHTML = '<span style="color:#4bc87a">Pedido enviado — aguardando o agente do batalhão processar.</span>';
+    p1SgpRefreshStatus();
+  } catch (err) {
+    msg.innerHTML = `<span style="color:#f07878">${escHtml(err.message)}</span>`;
+  }
+}
+
 function p1SgpStatusLabel(status) {
   const map = {
     pending:    ['aguardando', '#e8c96a'],
@@ -1027,8 +1067,9 @@ async function p1SgpRefreshStatus() {
     if (!jobs.length) { el.innerHTML = '<span style="color:var(--tx3)">Nenhum pedido ainda.</span>'; return; }
     el.innerHTML = jobs.map(j => {
       const ehIas = j.tipo === 'ias_single' || j.tipo === 'ias_bulk';
-      const ehSingle = j.tipo === 'single' || j.tipo === 'ias_single';
-      const prefixo = ehIas ? 'IAS · ' : '';
+      const ehCursos = j.tipo === 'cursos_single' || j.tipo === 'cursos_bulk';
+      const ehSingle = j.tipo === 'single' || j.tipo === 'ias_single' || j.tipo === 'cursos_single';
+      const prefixo = ehIas ? 'IAS · ' : ehCursos ? 'Cursos · ' : '';
       const desc = ehSingle ? `${prefixo}RE ${escHtml(j.re)}` : `${prefixo}Efetivo completo`;
       const quando = new Date(j.criado_em).toLocaleString('pt-BR');
       let detalhe = '';
@@ -2333,24 +2374,48 @@ async function openProntuario(re) {
   prontoPopulaFiltrosExtrato();
   prontoRenderExtrato();
 
-  // Cursos institucionais
+  // Cursos institucionais e externos (SGP-DP)
   const cursosEl = document.getElementById('pronto-cursos');
+  const origemSel = document.getElementById('pronto-cursos-origem');
+  if (origemSel) origemSel.value = '';
   if (cursosEl) {
-    cursosEl.innerHTML = '<tr><td colspan="3" style="padding:10px;color:var(--tx3);font-size:19px;text-align:center">Carregando...</td></tr>';
+    cursosEl.innerHTML = '<tr><td colspan="6" style="padding:10px;color:var(--tx3);font-size:19px;text-align:center">Carregando...</td></tr>';
     authFetch(`${API}/pm/${encodeURIComponent(re)}/cursos`).then(r => r.json()).then(cursosData => {
-      const fmtDc = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
-      const tdC = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:19px;color:var(--tx3)';
-      cursosEl.innerHTML = Array.isArray(cursosData) && cursosData.length
-        ? cursosData.map(c => `<tr>
-            <td style="${tdC};white-space:nowrap">${fmtDc(c.data)}</td>
-            <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx)">${escHtml(c.nome_curso||'—')}</td>
-            <td style="${tdC}">${escHtml(c.posto_pm||'—')}</td>
-          </tr>`).join('')
-        : '<tr><td colspan="3" style="padding:12px 10px;color:var(--tx3);font-size:19px;text-align:center">Nenhum curso registrado.</td></tr>';
+      prontoCursosFull = Array.isArray(cursosData) ? cursosData : [];
+      prontoRenderCursos();
     }).catch(() => {
-      cursosEl.innerHTML = '<tr><td colspan="3" style="padding:12px 10px;color:var(--tx3);font-size:19px;text-align:center">—</td></tr>';
+      prontoCursosFull = [];
+      cursosEl.innerHTML = '<tr><td colspan="6" style="padding:12px 10px;color:var(--tx3);font-size:19px;text-align:center">—</td></tr>';
     });
   }
+}
+
+// Filtra prontoCursosFull pelo select de origem (interno/externo) e redesenha a tabela.
+function prontoRenderCursos() {
+  const cursosEl = document.getElementById('pronto-cursos');
+  if (!cursosEl) return;
+  const origem = document.getElementById('pronto-cursos-origem')?.value || '';
+  const rows = prontoCursosFull.filter(c => !origem || c.origem === origem);
+
+  const fmtDc = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
+  const tdC = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:19px;color:var(--tx3)';
+  const tipoCor   = c => c.origem === 'externo' ? '#e8c96a' : c.origem === 'manual' ? '#607090' : '#5ae09a';
+  const tipoLabel = c => c.origem === 'externo' ? 'Externo' : c.origem === 'manual' ? 'Manual' : 'Interno';
+  const detalhe = c => c.origem === 'externo'
+    ? ([c.instituicao, c.carga_horaria ? `${c.carga_horaria}h` : null].filter(Boolean).join(' · ') || '—')
+    : (c.conceito || c.boletim_curso || '—');
+  const nota = c => c.nota || '—';
+
+  cursosEl.innerHTML = rows.length
+    ? rows.map(c => `<tr>
+        <td style="${tdC};white-space:nowrap">${fmtDc(c.data)}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx)">${escHtml(c.nome_curso||'—')}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:16px;padding:1px 7px;border-radius:8px;background:${tipoCor(c)}22;color:${tipoCor(c)};white-space:nowrap">${tipoLabel(c)}</span></td>
+        <td style="${tdC}">${escHtml(nota(c))}</td>
+        <td style="${tdC}">${escHtml(detalhe(c))}</td>
+        <td style="${tdC}">${escHtml(c.posto_pm||'—')}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" style="padding:12px 10px;color:var(--tx3);font-size:19px;text-align:center">Nenhum curso encontrado com esse filtro.</td></tr>';
 }
 
 // Monta as opções dos selects de ano e tipo com base no que existe
@@ -3441,7 +3506,7 @@ function updateSidebarImports(section) {
       ['entorpecentes',    'Entorpecentes',             '#9b6de0'],
       ['visita-solidaria', 'Visita Solidária (VD)',     '#e05a8a'],
       ['tempo-resposta',   'Tempo Resposta Atend. Ocorrência', '#4bc8e0'],
-      ['cursos',           'Cursos Institucionais',            '#9de05a'],
+      ['cursos',           'Cursos Institucionais (manual)',   '#9de05a'],
       ['pvs',              'PVS — Vigilância Solidária',       '#e8a040'],
       ['conseg',           'CONSEG',                           '#3db8a4'],
     ];

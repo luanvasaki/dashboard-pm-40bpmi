@@ -61,6 +61,15 @@ function asArray(v) {
   return Array.isArray(v) ? v : [v];
 }
 
+const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+// SGP-DP devolve datas como "DD/MM/YYYY" — mesmo formato usado no upload manual de CSV (server.js parseDateBR).
+function parseDateBR(s) {
+  if (!s) return null;
+  const [d, m, y] = String(s).split('/');
+  if (!d || !m || !y) return null;
+  return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+}
+
 // Busca nome, posto, OPM etc. Não inclui CPF, RG, dados bancários, contatos,
 // religião ou qualquer outro campo sensível que o WSSCPM também retorna —
 // só extraímos o subconjunto que o efetivo_pm realmente usa.
@@ -306,13 +315,15 @@ class SessaoSgpDpInvalidaError extends Error {}
 // normal do SGP-DP (que costuma responder em menos de 1s).
 const SGPDP_TIMEOUT_MS = 20000;
 
-async function sgpDpFindPM(re6, cookie) {
+// `url` identifica o módulo do SGP-DP em que a pessoa está sendo "selecionada" —
+// varia por tela (IAS usa /RotinasAnuais/RotinasAnuais, cursos usa /SGP/Cadastro).
+async function sgpDpFindPM(re6, cookie, url) {
   let res;
   try {
     res = await fetch(`${SGPDP_BASE}/SGP/FindPM`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
-      body: JSON.stringify({ valor: re6, url: '/RotinasAnuais/RotinasAnuais', sist: 'Sistema de Gestão de Pessoas', modulo: 'CADASTRO' }),
+      body: JSON.stringify({ valor: re6, url, sist: 'Sistema de Gestão de Pessoas', modulo: 'CADASTRO' }),
       redirect: 'manual',
       signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
     });
@@ -351,7 +362,7 @@ async function sgpDpConsultarIas(re6, cookie) {
 // Devolve só o registro do ano mais recente — é o que o dashboard usa hoje
 // (data_medico/data_dentista/data_vencimento), sem guardar o histórico completo.
 async function buscarIasPM(re6, cookie) {
-  await sgpDpFindPM(re6, cookie);
+  await sgpDpFindPM(re6, cookie, '/RotinasAnuais/RotinasAnuais');
   const lista = await sgpDpConsultarIas(re6, cookie);
   if (!lista.length) return null;
   const maisRecente = lista.reduce((a, b) => (b.Ano > a.Ano ? b : a));
@@ -431,6 +442,194 @@ async function processarJobIasBulk() {
   return resultado;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// CURSOS INSTITUCIONAIS (internos) E EXTERNOS — via SGP-DP, mesma sessão
+// colada do IAS. Substitui por completo o antigo upload manual de CSV
+// (prod_cursos) — a partir daqui a tabela é alimentada só por essa
+// sincronização. As duas listas são telas separadas no SGP-DP, mas
+// gravadas juntas em prod_cursos, diferenciadas pela coluna `origem`.
+//
+// Descoberto via inspeção do Network do navegador (não documentado):
+//   1. POST /SGP/FindPM com url:"/SGP/Cadastro" — "seleciona" a pessoa
+//      (serve pras duas listas, não precisa repetir).
+//   2. POST /PerfilProfissiografico/ConsultarCursoInstitucionalPorRE —
+//      devolve { Result, ListaCursoRe: [{IdCrsPm,Codigo,DescricaoCurso,
+//      DataInicio,DataTermino,Nota,Conceito,BoletimCurso,FlagCurso,
+//      IdTipoCurso}] } — cursos internos (formato DD/MM/YYYY nas datas).
+//   3. POST /PerfilProfissiografico/ConsultarCursosExternosPM — devolve
+//      { Result, Historico: [{Codigo,DataInicial,DataFinal,Nota,
+//      CargaHoraria,Mencao,NumeroBoletim,NomeDoCurso:{Codigo,Descricao},
+//      AreaCursoExterno:{Descricao},TipoDoCursoExterno:{Codigo,Descricao},
+//      GrauAcademicoCursoExterno:{Descricao},InstituicaoCursoExterno:{Nome}}]}
+//      — escolaridade/formação externa (bacharelado, técnico etc.), datas
+//      em ISO (YYYY-MM-DDTHH:mm:ss).
+// ═══════════════════════════════════════════════════════════════
+
+async function sgpDpConsultarCursos(re6, cookie) {
+  let res;
+  try {
+    res = await fetch(`${SGPDP_BASE}/PerfilProfissiografico/ConsultarCursoInstitucionalPorRE`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
+      body: '{}',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
+    });
+  } catch (err) {
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') throw new Error(`SGP-DP ConsultarCursoInstitucionalPorRE RE ${re6}: sem resposta em ${SGPDP_TIMEOUT_MS/1000}s.`);
+    throw err;
+  }
+  if (res.status >= 300 && res.status < 400) throw new SessaoSgpDpInvalidaError('SGP-DP redirecionou pra login — sessão expirada, cole o cookie de novo.');
+  if (!res.ok) throw new Error(`SGP-DP ConsultarCursoInstitucionalPorRE RE ${re6} HTTP ${res.status}`);
+  const text = await res.text();
+  let json;
+  try { json = JSON.parse(text); }
+  catch { throw new SessaoSgpDpInvalidaError('SGP-DP não devolveu JSON (provavelmente sessão expirada) — cole o cookie de novo.'); }
+  return json?.ListaCursoRe || [];
+}
+
+function anoMesDe(dataIso) {
+  if (!dataIso) return { ano: 0, mes: '' };
+  const [y, m] = dataIso.split('-');
+  return { ano: parseInt(y), mes: MESES_PT[parseInt(m) - 1] || '' };
+}
+
+function mapCursoInterno(item) {
+  const dataInicio = parseDateBR(item.DataInicio);
+  const { ano, mes } = anoMesDe(dataInicio);
+  return {
+    id_crs_pm:     `INT-${item.IdCrsPm}`,
+    codigo:        trim(item.Codigo) || null,
+    nome_curso:    trim(item.DescricaoCurso),
+    data:          dataInicio,
+    data_termino:  parseDateBR(item.DataTermino),
+    nota:          trim(item.Nota) || null,
+    conceito:      trim(item.Conceito) || null,
+    boletim_curso: trim(item.BoletimCurso) || null,
+    flag_curso:    trim(item.FlagCurso) || null,
+    id_tipo_curso: trim(item.IdTipoCurso) || null,
+    origem:        'interno',
+    ano, mes,
+  };
+}
+
+async function sgpDpConsultarCursosExternos(re6, cookie) {
+  let res;
+  try {
+    res = await fetch(`${SGPDP_BASE}/PerfilProfissiografico/ConsultarCursosExternosPM`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
+      body: '{}',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
+    });
+  } catch (err) {
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') throw new Error(`SGP-DP ConsultarCursosExternosPM RE ${re6}: sem resposta em ${SGPDP_TIMEOUT_MS/1000}s.`);
+    throw err;
+  }
+  if (res.status >= 300 && res.status < 400) throw new SessaoSgpDpInvalidaError('SGP-DP redirecionou pra login — sessão expirada, cole o cookie de novo.');
+  if (!res.ok) throw new Error(`SGP-DP ConsultarCursosExternosPM RE ${re6} HTTP ${res.status}`);
+  const text = await res.text();
+  let json;
+  try { json = JSON.parse(text); }
+  catch { throw new SessaoSgpDpInvalidaError('SGP-DP não devolveu JSON (provavelmente sessão expirada) — cole o cookie de novo.'); }
+  return json?.Historico || [];
+}
+
+// DataInicial/DataFinal já vêm em ISO (YYYY-MM-DDTHH:mm:ss), diferente do
+// formato DD/MM/YYYY dos cursos internos — não passa por parseDateBR.
+function mapCursoExterno(item) {
+  const dataInicio = item.DataInicial ? String(item.DataInicial).slice(0, 10) : null;
+  const { ano, mes } = anoMesDe(dataInicio);
+  return {
+    id_crs_pm:          `EXT-${item.Codigo}`,
+    codigo:             trim(item.NomeDoCurso?.Codigo) || null,
+    nome_curso:         trim(item.NomeDoCurso?.Descricao),
+    data:               dataInicio,
+    data_termino:       item.DataFinal ? String(item.DataFinal).slice(0, 10) : null,
+    nota:               item.Nota != null ? String(item.Nota) : null,
+    conceito:           trim(item.Mencao) || null,
+    boletim_curso:      item.NumeroBoletim ? String(item.NumeroBoletim) : null,
+    id_tipo_curso:      trim(item.TipoDoCursoExterno?.Codigo) || null,
+    origem:             'externo',
+    instituicao:        trim(item.InstituicaoCursoExterno?.Nome) || null,
+    carga_horaria:      item.CargaHoraria != null ? Number(item.CargaHoraria) : null,
+    area_curso:         trim(item.AreaCursoExterno?.Descricao) || null,
+    grau_academico:     trim(item.GrauAcademicoCursoExterno?.Descricao) || null,
+    tipo_curso_externo: trim(item.TipoDoCursoExterno?.Descricao) || null,
+    ano, mes,
+  };
+}
+
+async function buscarCursosPM(re6, cookie) {
+  await sgpDpFindPM(re6, cookie, '/SGP/Cadastro');
+  const [internos, externos] = await Promise.all([
+    sgpDpConsultarCursos(re6, cookie),
+    sgpDpConsultarCursosExternos(re6, cookie),
+  ]);
+  return [...internos.map(mapCursoInterno), ...externos.map(mapCursoExterno)];
+}
+
+// Substitui todos os cursos desse RE em prod_cursos pelos que vieram agora
+// do SGP-DP (mesma lógica de "substituição completa" usada em afastamentos).
+async function sincronizarCursosUmRE(pmEfetivo, cookie) {
+  console.log(`  (cursos) RE ${pmEfetivo.re}: consultando...`);
+  const cursos = await buscarCursosPM(String(pmEfetivo.re).slice(0, 6), cookie);
+  console.log(`  (cursos) RE ${pmEfetivo.re}: ${cursos.length} curso(s) no SGP-DP (${cursos.filter(c => c.origem === 'interno').length} interno(s), ${cursos.filter(c => c.origem === 'externo').length} externo(s)).`);
+
+  // Só apaga o que essa própria sincronização gerou antes (interno/externo) —
+  // nunca toca em linhas de origem='manual' (upload de CSV, cursos que a PM
+  // registra fora do SGP-DP e não têm como vir por essa via).
+  const { error: erroDelete } = await supabase.from('prod_cursos').delete().eq('re_pm', pmEfetivo.re).in('origem', ['interno', 'externo']);
+  if (erroDelete) throw new Error(`Falha ao limpar prod_cursos: ${erroDelete.message}`);
+
+  if (cursos.length) {
+    const rows = cursos.map(c => ({
+      ...c,
+      re_pm: pmEfetivo.re,
+      posto_pm: pmEfetivo.posto,
+      nome_pm: pmEfetivo.nome,
+      opm: pmEfetivo.opm,
+      updated_at: new Date().toISOString(),
+    }));
+    const { error: erroInsert } = await supabase.from('prod_cursos').insert(rows);
+    if (erroInsert) throw new Error(`Falha ao gravar prod_cursos: ${erroInsert.message}`);
+  }
+}
+
+async function processarJobCursosSingle(job) {
+  const re6 = String(job.re).slice(0, 6);
+  const cookie = await buscarSessaoSgpDp();
+  const { data: pm, error } = await supabase.from('efetivo_pm').select('re, nome, posto, opm').like('re', `${re6}%`).limit(1);
+  if (error) throw new Error(`Falha ao consultar efetivo_pm: ${error.message}`);
+  if (!pm.length) throw new Error(`RE ${re6} não está no efetivo.`);
+  await sincronizarCursosUmRE(pm[0], cookie);
+  return { ok: true, re: pm[0].re, nome: pm[0].nome };
+}
+
+async function processarJobCursosBulk() {
+  const cookie = await buscarSessaoSgpDp();
+  const { data: efetivo, error } = await supabase.from('efetivo_pm').select('re, nome, posto, opm');
+  if (error) throw new Error(`Falha ao ler efetivo_pm: ${error.message}`);
+
+  const resultado = { total: efetivo.length, atualizados: 0, erros: [] };
+  for (const pm of efetivo) {
+    try {
+      await sincronizarCursosUmRE(pm, cookie);
+      resultado.atualizados++;
+    } catch (err) {
+      if (err instanceof SessaoSgpDpInvalidaError) {
+        resultado.erros.push({ re: pm.re, erro: err.message });
+        resultado.abortado = 'Sessão do SGP-DP expirou no meio da atualização — cole o cookie de novo e rode de novo (só quem já foi atualizado fica salvo).';
+        break;
+      }
+      resultado.erros.push({ re: pm.re, erro: err.message });
+    }
+    await sleep(CALL_DELAY_MS);
+  }
+  return resultado;
+}
+
 async function processarJobSingle(job) {
   const re6 = String(job.re).slice(0, 6);
   const dados = await sincronizarUmRE(re6);
@@ -470,10 +669,12 @@ async function processarProximoJob() {
   await supabase.from('sgp_sync_jobs').update({ status: 'processing', atualizado_em: new Date().toISOString() }).eq('id', job.id);
 
   const PROCESSADORES = {
-    bulk:       () => processarJobBulk(),
-    single:     () => processarJobSingle(job),
-    ias_bulk:   () => processarJobIasBulk(),
-    ias_single: () => processarJobIasSingle(job),
+    bulk:          () => processarJobBulk(),
+    single:        () => processarJobSingle(job),
+    ias_bulk:      () => processarJobIasBulk(),
+    ias_single:    () => processarJobIasSingle(job),
+    cursos_bulk:   () => processarJobCursosBulk(),
+    cursos_single: () => processarJobCursosSingle(job),
   };
 
   try {
