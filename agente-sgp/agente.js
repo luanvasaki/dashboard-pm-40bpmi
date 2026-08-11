@@ -1,6 +1,7 @@
 require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
+const tls = require('node:tls');
 const { createClient } = require('@supabase/supabase-js');
 const { XMLParser } = require('fast-xml-parser');
 
@@ -13,17 +14,23 @@ const { XMLParser } = require('fast-xml-parser');
 //
 // NODE_EXTRA_CA_CERTS sozinho não é confiável aqui (visto na prática: mesmo
 // com a env var setada antes de qualquer fetch, o SELF_SIGNED_CERT_IN_CHAIN
-// persistiu — timing de quando o Node inicializa o secure context default é
-// incerto). Configuramos também o dispatcher global do node:undici (o motor
-// por trás do fetch() nativo) diretamente com essa CA — forma mais direta e
+// persistiu). Configuramos também o dispatcher global do undici (o motor por
+// trás do fetch() nativo) diretamente com essa CA — forma mais direta e
 // garantida de afetar as mesmas requisições que o agente faz.
+//
+// IMPORTANTE: o `ca` do undici SUBSTITUI a lista padrão de CAs confiáveis
+// em vez de complementá-la — sem incluir tls.rootCertificates junto, TODO
+// outro HTTPS do processo (Supabase, etc.) passa a falhar. Já aconteceu em
+// produção (loop virou "Erro ao consultar fila: fetch failed" depois dessa
+// mudança) — por isso é essencial concatenar as duas listas, nunca só a nossa.
 const CA_CERT_PATH = process.env.SGPDP_CA_CERT_PATH || path.join(__dirname, 'certs', 'sgp-dp-ca.pem');
 if (fs.existsSync(CA_CERT_PATH)) {
   if (!process.env.NODE_EXTRA_CA_CERTS) process.env.NODE_EXTRA_CA_CERTS = CA_CERT_PATH;
   try {
     const { Agent, setGlobalDispatcher } = require('undici');
-    setGlobalDispatcher(new Agent({ connect: { ca: fs.readFileSync(CA_CERT_PATH) } }));
-    console.log(`CA do SGP-DP carregada (NODE_EXTRA_CA_CERTS + dispatcher undici): ${CA_CERT_PATH}`);
+    const caList = [...tls.rootCertificates, fs.readFileSync(CA_CERT_PATH, 'utf8')];
+    setGlobalDispatcher(new Agent({ connect: { ca: caList } }));
+    console.log(`CA do SGP-DP carregada (NODE_EXTRA_CA_CERTS + dispatcher undici, mantendo CAs públicas): ${CA_CERT_PATH}`);
   } catch (err) {
     console.warn(`CA carregada só via NODE_EXTRA_CA_CERTS (falha ao configurar dispatcher undici: ${err.message}) — rode "npm install" na pasta agente-sgp.`);
   }
