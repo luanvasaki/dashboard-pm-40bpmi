@@ -3562,7 +3562,7 @@ function _checkSectionAccess(id) {
   const key = id === 'p3prod' ? 'p3' : id;           // p3prod verifica chave p3
   const controlled = ['p1', 'uis', 'p3'];
   if (!controlled.includes(key)) return true;        // seção não controlada → libera
-  return sa[key] === 'viewer' || sa[key] === 'editor';
+  return sa[key] === 'viewer' || sa[key] === 'nominal' || sa[key] === 'editor';
 }
 
 function _logPageView(acao, detalhe) {

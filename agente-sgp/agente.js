@@ -691,8 +691,16 @@ async function sincronizarCursosUmRE(pmEfetivo, cookie) {
       opm: pmEfetivo.opm,
       updated_at: new Date().toISOString(),
     }));
-    const { error: erroInsert } = await supabase.from('prod_cursos').insert(rows);
-    if (erroInsert) throw new Error(`Falha ao gravar prod_cursos: ${erroInsert.message}`);
+    // Dedup por id_crs_pm dentro do próprio lote — visto em produção que o
+    // SGP-DP pode devolver o mesmo id_crs_pm mais de uma vez (ou colidir com
+    // outra pessoa), e um INSERT puro derrubava TODOS os cursos dessa pessoa
+    // por causa de 1 item conflitante. upsert por id_crs_pm é resiliente a
+    // isso (só atualiza a linha em conflito em vez de falhar tudo) — mas
+    // duplicata DENTRO do mesmo lote ainda quebra o upsert do Postgres
+    // ("cannot affect row a second time"), daí o dedup antes.
+    const rowsUnicas = [...new Map(rows.map(r => [r.id_crs_pm, r])).values()];
+    const { error: erroUpsert } = await supabase.from('prod_cursos').upsert(rowsUnicas, { onConflict: 'id_crs_pm' });
+    if (erroUpsert) throw new Error(`Falha ao gravar prod_cursos: ${erroUpsert.message}${erroUpsert.details ? ' — ' + erroUpsert.details : ''}`);
   }
 }
 
