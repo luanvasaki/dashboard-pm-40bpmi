@@ -2302,6 +2302,25 @@ async function openProntuario(re) {
   }
   document.getElementById('pronto-restr').innerHTML = restrHtml || `<span style="font-size:19px;color:var(--tx3)">—</span>`;
 
+  // IAS (Inspeção Anual de Saúde) — vem da sincronização via SGP-DP (agente-sgp).
+  // _iasMap/iasStatus/iasNormRE são globais definidos em uis.js.
+  const iasEl = document.getElementById('pronto-ias');
+  if (iasEl) {
+    const iasRec = (typeof _iasMap === 'object' && _iasMap) ? _iasMap[iasNormRE(re)] : null;
+    if (!iasRec) {
+      iasEl.innerHTML = `<span style="font-size:19px;color:var(--tx3)">Sem registro</span>`;
+    } else {
+      const iasSt = typeof iasStatus === 'function' ? iasStatus(re) : null;
+      const IAS_COR = { apto: '#4bc87a', vencendo: '#c8a84b', vencido: '#e05555' };
+      const IAS_LBL = { apto: 'Apto', vencendo: 'Vencendo', vencido: 'Vencida' };
+      const cor = IAS_COR[iasSt] || 'var(--tx3)';
+      iasEl.innerHTML =
+        `<span style="color:${cor};font-weight:600">${IAS_LBL[iasSt] || '—'}</span>` +
+        `<div style="font-size:19px;color:var(--tx3);margin-top:2px">Médico ${fmtD(iasRec.data_medico)} · Dentista ${fmtD(iasRec.data_dentista)}</div>` +
+        `<div style="font-size:19px;color:var(--tx3)">Vence em ${fmtD(iasRec.data_vencimento)}</div>`;
+    }
+  }
+
   // TAF / TAT
   const NOTA_COR = { 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#e05555','inapto':'#e05555' };
   const notaCor  = n => NOTA_COR[(n||'').toLowerCase()] || 'var(--tx3)';

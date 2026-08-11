@@ -1,6 +1,35 @@
 require('dotenv').config();
+const path = require('path');
+const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
 const { XMLParser } = require('fast-xml-parser');
+
+// O SGP-DP (HTTPS) usa uma CA interna da corporação — o Windows confia nela
+// (instalada via política de grupo, por isso o navegador nunca reclama),
+// mas o Node não conhece essa CA por padrão. Sem isso, toda chamada ao
+// SGP-DP falha com "fetch failed" / SELF_SIGNED_CERT_IN_CHAIN (o WSSCPM não
+// é afetado por ser HTTP puro, sem certificado).
+// Ver instruções de como obter o certificado em agente-sgp/README.md.
+//
+// NODE_EXTRA_CA_CERTS sozinho não é confiável aqui (visto na prática: mesmo
+// com a env var setada antes de qualquer fetch, o SELF_SIGNED_CERT_IN_CHAIN
+// persistiu — timing de quando o Node inicializa o secure context default é
+// incerto). Configuramos também o dispatcher global do node:undici (o motor
+// por trás do fetch() nativo) diretamente com essa CA — forma mais direta e
+// garantida de afetar as mesmas requisições que o agente faz.
+const CA_CERT_PATH = process.env.SGPDP_CA_CERT_PATH || path.join(__dirname, 'certs', 'sgp-dp-ca.pem');
+if (fs.existsSync(CA_CERT_PATH)) {
+  if (!process.env.NODE_EXTRA_CA_CERTS) process.env.NODE_EXTRA_CA_CERTS = CA_CERT_PATH;
+  try {
+    const { Agent, setGlobalDispatcher } = require('undici');
+    setGlobalDispatcher(new Agent({ connect: { ca: fs.readFileSync(CA_CERT_PATH) } }));
+    console.log(`CA do SGP-DP carregada (NODE_EXTRA_CA_CERTS + dispatcher undici): ${CA_CERT_PATH}`);
+  } catch (err) {
+    console.warn(`CA carregada só via NODE_EXTRA_CA_CERTS (falha ao configurar dispatcher undici: ${err.message}) — rode "npm install" na pasta agente-sgp.`);
+  }
+} else {
+  console.warn(`Aviso: certificado da CA do SGP-DP não encontrado em ${CA_CERT_PATH} — chamadas ao SGP-DP (IAS/cursos) vão falhar com SELF_SIGNED_CERT_IN_CHAIN até isso ser configurado (ver README.md).`);
+}
 
 // ⚠ Este script só funciona rodando DENTRO da intranet da PM (ex: o
 // computador do batalhão). Em qualquer outra rede (casa, notebook pessoal,
@@ -315,6 +344,15 @@ class SessaoSgpDpInvalidaError extends Error {}
 // normal do SGP-DP (que costuma responder em menos de 1s).
 const SGPDP_TIMEOUT_MS = 20000;
 
+// fetch() do Node (undici) lança um erro genérico "fetch failed" que esconde
+// a causa raiz (DNS, TLS/certificado, conexão recusada) dentro de err.cause —
+// sem isso, todo erro de rede vira a mesma mensagem inútil pra diagnosticar.
+function descreverErroFetch(err) {
+  if (err.name === 'TimeoutError' || err.name === 'AbortError') return `sem resposta em ${SGPDP_TIMEOUT_MS/1000}s`;
+  const causa = err.cause ? ` — causa: ${err.cause.code || err.cause.message || err.cause}` : '';
+  return `${err.message}${causa}`;
+}
+
 // `url` identifica o módulo do SGP-DP em que a pessoa está sendo "selecionada" —
 // varia por tela (IAS usa /RotinasAnuais/RotinasAnuais, cursos usa /SGP/Cadastro).
 async function sgpDpFindPM(re6, cookie, url) {
@@ -328,8 +366,7 @@ async function sgpDpFindPM(re6, cookie, url) {
       signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
     });
   } catch (err) {
-    if (err.name === 'TimeoutError' || err.name === 'AbortError') throw new Error(`SGP-DP FindPM RE ${re6}: sem resposta em ${SGPDP_TIMEOUT_MS/1000}s.`);
-    throw err;
+    throw new Error(`SGP-DP FindPM RE ${re6}: ${descreverErroFetch(err)}`);
   }
   // Sessão expirada normalmente vira redirect pra tela de login.
   if (res.status >= 300 && res.status < 400) throw new SessaoSgpDpInvalidaError('SGP-DP redirecionou pra login — sessão expirada, cole o cookie de novo.');
@@ -347,8 +384,7 @@ async function sgpDpConsultarIas(re6, cookie) {
       signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
     });
   } catch (err) {
-    if (err.name === 'TimeoutError' || err.name === 'AbortError') throw new Error(`SGP-DP ConsultarInspecaoAnualPorRE RE ${re6}: sem resposta em ${SGPDP_TIMEOUT_MS/1000}s.`);
-    throw err;
+    throw new Error(`SGP-DP ConsultarInspecaoAnualPorRE RE ${re6}: ${descreverErroFetch(err)}`);
   }
   if (res.status >= 300 && res.status < 400) throw new SessaoSgpDpInvalidaError('SGP-DP redirecionou pra login — sessão expirada, cole o cookie de novo.');
   if (!res.ok) throw new Error(`SGP-DP ConsultarInspecaoAnualPorRE RE ${re6} HTTP ${res.status}`);
@@ -476,8 +512,7 @@ async function sgpDpConsultarCursos(re6, cookie) {
       signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
     });
   } catch (err) {
-    if (err.name === 'TimeoutError' || err.name === 'AbortError') throw new Error(`SGP-DP ConsultarCursoInstitucionalPorRE RE ${re6}: sem resposta em ${SGPDP_TIMEOUT_MS/1000}s.`);
-    throw err;
+    throw new Error(`SGP-DP ConsultarCursoInstitucionalPorRE RE ${re6}: ${descreverErroFetch(err)}`);
   }
   if (res.status >= 300 && res.status < 400) throw new SessaoSgpDpInvalidaError('SGP-DP redirecionou pra login — sessão expirada, cole o cookie de novo.');
   if (!res.ok) throw new Error(`SGP-DP ConsultarCursoInstitucionalPorRE RE ${re6} HTTP ${res.status}`);
@@ -524,8 +559,7 @@ async function sgpDpConsultarCursosExternos(re6, cookie) {
       signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
     });
   } catch (err) {
-    if (err.name === 'TimeoutError' || err.name === 'AbortError') throw new Error(`SGP-DP ConsultarCursosExternosPM RE ${re6}: sem resposta em ${SGPDP_TIMEOUT_MS/1000}s.`);
-    throw err;
+    throw new Error(`SGP-DP ConsultarCursosExternosPM RE ${re6}: ${descreverErroFetch(err)}`);
   }
   if (res.status >= 300 && res.status < 400) throw new SessaoSgpDpInvalidaError('SGP-DP redirecionou pra login — sessão expirada, cole o cookie de novo.');
   if (!res.ok) throw new Error(`SGP-DP ConsultarCursosExternosPM RE ${re6} HTTP ${res.status}`);

@@ -44,3 +44,23 @@ alguém logado o tempo todo:
 Rodar `create_sgp_sync_jobs.sql` no SQL Editor do Supabase antes de usar
 (cria a tabela de fila e explica como checar/criar a constraint de RE único
 em `efetivo_pm`).
+
+## Certificado da CA interna (necessário para IAS e Cursos via SGP-DP)
+
+O SGP-DP (`sgp-prod.intranet.policiamilitar.sp.gov.br`) é HTTPS e usa um
+certificado emitido por uma CA interna da corporação. O Windows confia nela
+automaticamente (instalada via política de grupo, por isso o navegador nunca
+reclama), mas o Node.js não — sem esse certificado, toda sincronização de
+IAS/Cursos falha com `fetch failed` / `SELF_SIGNED_CERT_IN_CHAIN`. O WSSCPM
+(efetivo/foto/afastamentos) não é afetado, porque é HTTP puro, sem certificado.
+
+**Como resolver (uma vez só, por computador):**
+
+1. No navegador, abra `https://sgp-prod.intranet.policiamilitar.sp.gov.br`.
+2. Clique no cadeado ao lado da URL → **A conexão é segura** → **O certificado é válido** (o texto exato varia por navegador).
+3. Na janela de detalhes do certificado, vá em **Caminho de certificação** e selecione o certificado **do topo** (a CA raiz, não o do site em si).
+4. **Exibir certificado** → aba **Detalhes** → **Copiar para arquivo...** → exporte como **Base64 codificado X.509 (.CER)**.
+5. Renomeie o arquivo exportado para `sgp-dp-ca.pem` e coloque em `agente-sgp/certs/sgp-dp-ca.pem` (crie a pasta `certs` se não existir).
+6. Reinicie o agente (`npm start`) — ele detecta o arquivo sozinho e mostra `CA extra carregada pro SGP-DP: ...` no log. Sem o arquivo, mostra um aviso lembrando que IAS/Cursos vão falhar até isso ser feito.
+
+Esse certificado público (não é senha nem chave privada) pode ficar versionado no repositório sem problema.
