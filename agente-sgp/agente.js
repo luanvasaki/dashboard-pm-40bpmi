@@ -321,9 +321,11 @@ async function sincronizarUmRE(re6) {
 // IAS (Inspeção Anual de Saúde) — via SGP-DP, não WSSCPM.
 // O SGP-DP exige login e o cookie de sessão é HttpOnly (não dá pra capturar
 // via bookmarklet). O usuário cola o cookie manualmente no dashboard, e o
-// agente usa esse cookie pra "pegar carona" na sessão dele. Sessão dura
-// ~24h — se expirar no meio de uma atualização em lote, aborta o resto
-// com uma mensagem clara em vez de gerar 1 erro por pessoa restante.
+// agente usa esse cookie pra "pegar carona" na sessão dele. Duração da
+// sessão observada na prática entre 1h e 4h (bem menos que as ~24h
+// assumidas antes de testar de verdade) — se expirar no meio de uma
+// atualização em lote, aborta o resto com uma mensagem clara em vez de
+// gerar 1 erro por pessoa restante.
 //
 // Descoberto via inspeção do Network do navegador (não documentado, sem
 // WSDL como o WSSCPM):
@@ -350,6 +352,13 @@ class SessaoSgpDpInvalidaError extends Error {}
 // travava o lote inteiro pra sempre — 20s é bem folgado pra uma resposta
 // normal do SGP-DP (que costuma responder em menos de 1s).
 const SGPDP_TIMEOUT_MS = 20000;
+
+// Circuit breaker de bulk: essa quantidade de falhas seguidas (mesmo já
+// passando pelo retry de comRetryTransiente) aborta o lote — indica algo
+// sistemático (sessão morta, servidor fora do ar), não gente isolada com
+// problema. Visto em produção: sessão expirada devolvendo HTTP 500 puro
+// (sem redirect de login) em TODAS as pessoas de um bulk de cursos inteiro.
+const LIMITE_FALHAS_SEGUIDAS = 8;
 
 // fetch() do Node (undici) lança um erro genérico "fetch failed" que esconde
 // a causa raiz (DNS, TLS/certificado, conexão recusada) dentro de err.cause —
@@ -505,10 +514,12 @@ async function processarJobIasBulk() {
   if (error) throw new Error(`Falha ao ler efetivo_pm: ${error.message}`);
 
   const resultado = { total: efetivo.length, atualizados: 0, erros: [] };
+  let falhasSeguidas = 0;
   for (const pm of efetivo) {
     try {
       await sincronizarIasUmRE(pm, cookie);
       resultado.atualizados++;
+      falhasSeguidas = 0;
     } catch (err) {
       if (err instanceof SessaoSgpDpInvalidaError) {
         resultado.erros.push({ re: pm.re, erro: err.message });
@@ -516,6 +527,14 @@ async function processarJobIasBulk() {
         break;
       }
       resultado.erros.push({ re: pm.re, erro: err.message });
+      // Sessão expirada nem sempre vem como redirect (HTTP 500 puro também já
+      // aconteceu em produção, dependendo do módulo do SGP-DP) — várias
+      // falhas seguidas é sinal disso, mesmo sem SessaoSgpDpInvalidaError
+      // explícito. Aborta cedo em vez de gastar o lote inteiro fadado a falhar.
+      if (++falhasSeguidas >= LIMITE_FALHAS_SEGUIDAS) {
+        resultado.abortado = `${LIMITE_FALHAS_SEGUIDAS} pessoas seguidas falharam — provável sessão expirada mesmo sem redirect de login. Cole o cookie de novo e rode de novo (só quem já foi atualizado fica salvo).`;
+        break;
+      }
     }
     await sleep(CALL_DELAY_MS);
   }
@@ -693,10 +712,12 @@ async function processarJobCursosBulk() {
   if (error) throw new Error(`Falha ao ler efetivo_pm: ${error.message}`);
 
   const resultado = { total: efetivo.length, atualizados: 0, erros: [] };
+  let falhasSeguidas = 0;
   for (const pm of efetivo) {
     try {
       await sincronizarCursosUmRE(pm, cookie);
       resultado.atualizados++;
+      falhasSeguidas = 0;
     } catch (err) {
       if (err instanceof SessaoSgpDpInvalidaError) {
         resultado.erros.push({ re: pm.re, erro: err.message });
@@ -704,6 +725,10 @@ async function processarJobCursosBulk() {
         break;
       }
       resultado.erros.push({ re: pm.re, erro: err.message });
+      if (++falhasSeguidas >= LIMITE_FALHAS_SEGUIDAS) {
+        resultado.abortado = `${LIMITE_FALHAS_SEGUIDAS} pessoas seguidas falharam — provável sessão expirada mesmo sem redirect de login. Cole o cookie de novo e rode de novo (só quem já foi atualizado fica salvo).`;
+        break;
+      }
     }
     await sleep(CALL_DELAY_MS);
   }

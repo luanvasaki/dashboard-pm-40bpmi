@@ -947,8 +947,11 @@ async function p1SgpDpStatusSessao() {
     if (!st.atualizado_em) { el.innerHTML = '<span style="color:#c8a84b">Nenhuma sessão salva ainda.</span>'; return; }
     const quando = new Date(st.atualizado_em);
     const horas = Math.floor((Date.now() - quando.getTime()) / 3600000);
-    const cor = horas >= 24 ? '#f07878' : horas >= 20 ? '#c8a84b' : '#4bc87a';
-    el.innerHTML = `<span style="color:${cor}">Sessão salva há ${horas}h</span> por ${escHtml(st.atualizado_por || '—')}${horas >= 20 ? ' — pode estar perto de expirar (dura ~24h)' : ''}`;
+    // Duração observada na prática (2026-08-11): sessão real caiu entre 1h e
+    // 4h, bem menos que as ~24h assumidas antes (nunca confirmadas de
+    // verdade contra o SGP-DP) — limiares recalibrados pra avisar mais cedo.
+    const cor = horas >= 3 ? '#f07878' : horas >= 1 ? '#c8a84b' : '#4bc87a';
+    el.innerHTML = `<span style="color:${cor}">Sessão salva há ${horas}h</span> por ${escHtml(st.atualizado_por || '—')}${horas >= 1 ? ' — sessões do SGP-DP têm expirado entre 1h e 4h, considere colar um cookie novo' : ''}`;
   } catch {
     el.innerHTML = '<span style="color:#f07878">Erro ao carregar status da sessão.</span>';
   }
@@ -995,7 +998,7 @@ async function p1SgpIasRequestSingle() {
 
 async function p1SgpIasRequestBulk() {
   const msg = document.getElementById('p1-sgpdp-msg');
-  if (!confirm('Isso vai reconsultar a IAS de todo o efetivo cadastrado, um por um. Pode levar bastante tempo e a sessão do SGP-DP pode expirar no meio (dura ~24h). Continuar?')) return;
+  if (!confirm('Isso vai reconsultar a IAS de todo o efetivo cadastrado, um por um. Pode levar bastante tempo e a sessão do SGP-DP pode expirar no meio (tem expirado entre 1h e 4h) — cole um cookie novo antes de rodar. Continuar?')) return;
   msg.innerHTML = '<span style="color:var(--tx3)">Enviando pedido...</span>';
   try {
     const res = await authFetch(`${API}/efetivo/sync`, {
@@ -1032,7 +1035,7 @@ async function p1SgpCursosRequestSingle() {
 
 async function p1SgpCursosRequestBulk() {
   const msg = document.getElementById('p1-sgpdp-cursos-msg');
-  if (!confirm('Isso vai reconsultar os cursos de todo o efetivo cadastrado, um por um. Pode levar bastante tempo e a sessão do SGP-DP pode expirar no meio (dura ~24h). Continuar?')) return;
+  if (!confirm('Isso vai reconsultar os cursos de todo o efetivo cadastrado, um por um. Pode levar bastante tempo e a sessão do SGP-DP pode expirar no meio (tem expirado entre 1h e 4h) — cole um cookie novo antes de rodar. Continuar?')) return;
   msg.innerHTML = '<span style="color:var(--tx3)">Enviando pedido...</span>';
   try {
     const res = await authFetch(`${API}/efetivo/sync`, {
