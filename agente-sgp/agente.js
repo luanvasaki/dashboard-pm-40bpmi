@@ -360,6 +360,26 @@ function descreverErroFetch(err) {
   return `${err.message}${causa}`;
 }
 
+// Em bulk (~350 pessoas), o SGP-DP ocasionalmente devolve HTTP 500 ou trava
+// (timeout) pra uma pessoa isolada, sem padrão — visto na prática (319/352
+// na primeira tentativa, o resto eram erros espalhados, não sistemáticos).
+// Não é bug: é instabilidade do servidor sob a carga de um lote grande.
+// Reexecuta o mesmo request algumas vezes antes de desistir dessa pessoa.
+// Sessão expirada (SessaoSgpDpInvalidaError) nunca entra aqui — repetir não
+// resolve sessão inválida, só atrasa o abort do lote inteiro.
+async function comRetryTransiente(fn, tentativas = 3, delayMs = 2000) {
+  for (let i = 1; i <= tentativas; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (err instanceof SessaoSgpDpInvalidaError) throw err;
+      const transiente = /HTTP 500|sem resposta em/.test(err.message);
+      if (!transiente || i === tentativas) throw err;
+      await sleep(delayMs);
+    }
+  }
+}
+
 // O agente mandava só Content-Type + Cookie — o SGP-DP respondia HTTP 500
 // (não redirect de sessão expirada, um erro de verdade no servidor) até
 // completarmos os cabeçalhos que o navegador manda de verdade nessas
@@ -439,7 +459,7 @@ async function buscarIasPM(re6, cookie) {
 async function sincronizarIasUmRE(pmEfetivo, cookie) {
   const re6 = String(pmEfetivo.re).slice(0, 6);
   console.log(`  (IAS) RE ${re6}: consultando...`);
-  const ias = await buscarIasPM(re6, cookie);
+  const ias = await comRetryTransiente(() => buscarIasPM(re6, cookie));
   if (!ias) {
     console.log(`  (IAS) RE ${re6}: nenhum registro de Inspeção Anual encontrado no SGP-DP.`);
     return;
@@ -634,7 +654,7 @@ async function buscarCursosPM(re6, cookie) {
 // do SGP-DP (mesma lógica de "substituição completa" usada em afastamentos).
 async function sincronizarCursosUmRE(pmEfetivo, cookie) {
   console.log(`  (cursos) RE ${pmEfetivo.re}: consultando...`);
-  const cursos = await buscarCursosPM(String(pmEfetivo.re).slice(0, 6), cookie);
+  const cursos = await comRetryTransiente(() => buscarCursosPM(String(pmEfetivo.re).slice(0, 6), cookie));
   console.log(`  (cursos) RE ${pmEfetivo.re}: ${cursos.length} curso(s) no SGP-DP (${cursos.filter(c => c.origem === 'interno').length} interno(s), ${cursos.filter(c => c.origem === 'externo').length} externo(s)).`);
 
   // Só apaga o que essa própria sincronização gerou antes (interno/externo) —
