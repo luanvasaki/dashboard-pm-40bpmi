@@ -360,6 +360,23 @@ function descreverErroFetch(err) {
   return `${err.message}${causa}`;
 }
 
+// O agente mandava só Content-Type + Cookie — o SGP-DP respondia HTTP 500
+// (não redirect de sessão expirada, um erro de verdade no servidor) até
+// completarmos os cabeçalhos que o navegador manda de verdade nessas
+// chamadas AJAX (visto no Network do navegador). Aparentemente o backend do
+// SGP-DP depende de X-Requested-With/Referer/Origin pra processar a
+// requisição sem quebrar internamente.
+function sgpDpHeaders(cookie) {
+  return {
+    'Content-Type': 'application/json; charset=UTF-8',
+    'Accept': 'application/json, text/javascript, */*; q=0.01',
+    'X-Requested-With': 'XMLHttpRequest',
+    'Origin': SGPDP_BASE,
+    'Referer': `${SGPDP_BASE}/SGP/Cadastro`,
+    'Cookie': cookie,
+  };
+}
+
 // `url` identifica o módulo do SGP-DP em que a pessoa está sendo "selecionada" —
 // varia por tela (IAS usa /RotinasAnuais/RotinasAnuais, cursos usa /SGP/Cadastro).
 async function sgpDpFindPM(re6, cookie, url) {
@@ -367,7 +384,7 @@ async function sgpDpFindPM(re6, cookie, url) {
   try {
     res = await fetch(`${SGPDP_BASE}/SGP/FindPM`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
+      headers: sgpDpHeaders(cookie),
       body: JSON.stringify({ valor: re6, url, sist: 'Sistema de Gestão de Pessoas', modulo: 'CADASTRO' }),
       redirect: 'manual',
       signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
@@ -385,7 +402,7 @@ async function sgpDpConsultarIas(re6, cookie) {
   try {
     res = await fetch(`${SGPDP_BASE}/InspecaoAnual/ConsultarInspecaoAnualPorRE`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
+      headers: sgpDpHeaders(cookie),
       body: '{}',
       redirect: 'manual',
       signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
@@ -513,7 +530,7 @@ async function sgpDpConsultarCursos(re6, cookie) {
   try {
     res = await fetch(`${SGPDP_BASE}/PerfilProfissiografico/ConsultarCursoInstitucionalPorRE`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
+      headers: sgpDpHeaders(cookie),
       body: '{}',
       redirect: 'manual',
       signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
@@ -560,7 +577,7 @@ async function sgpDpConsultarCursosExternos(re6, cookie) {
   try {
     res = await fetch(`${SGPDP_BASE}/PerfilProfissiografico/ConsultarCursosExternosPM`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Cookie': cookie },
+      headers: sgpDpHeaders(cookie),
       body: '{}',
       redirect: 'manual',
       signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
