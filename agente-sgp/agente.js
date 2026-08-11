@@ -512,11 +512,12 @@ async function processarJobIasBulk() {
 // Descoberto via inspeção do Network do navegador (não documentado):
 //   1. POST /SGP/FindPM com url:"/SGP/Cadastro" — "seleciona" a pessoa
 //      (serve pras duas listas, não precisa repetir).
-//   2. POST /PerfilProfissiografico/ConsultarCursoInstitucionalPorRE —
+//   2. GET /PerfilProfissiografico/ConsultarCursoInstitucionalPorRE —
 //      devolve { Result, ListaCursoRe: [{IdCrsPm,Codigo,DescricaoCurso,
 //      DataInicio,DataTermino,Nota,Conceito,BoletimCurso,FlagCurso,
 //      IdTipoCurso}] } — cursos internos (formato DD/MM/YYYY nas datas).
-//   3. POST /PerfilProfissiografico/ConsultarCursosExternosPM — devolve
+//      GET, diferente do IAS (POST) — POST aqui dá HTTP 405.
+//   3. GET /PerfilProfissiografico/ConsultarCursosExternosPM — devolve
 //      { Result, Historico: [{Codigo,DataInicial,DataFinal,Nota,
 //      CargaHoraria,Mencao,NumeroBoletim,NomeDoCurso:{Codigo,Descricao},
 //      AreaCursoExterno:{Descricao},TipoDoCursoExterno:{Codigo,Descricao},
@@ -528,10 +529,11 @@ async function processarJobIasBulk() {
 async function sgpDpConsultarCursos(re6, cookie) {
   let res;
   try {
+    // GET, diferente do IAS (POST) — o "?" no final da URL capturada do
+    // navegador era a pista disso; POST aqui dá HTTP 405.
     res = await fetch(`${SGPDP_BASE}/PerfilProfissiografico/ConsultarCursoInstitucionalPorRE`, {
-      method: 'POST',
+      method: 'GET',
       headers: sgpDpHeaders(cookie),
-      body: '{}',
       redirect: 'manual',
       signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
     });
@@ -575,10 +577,10 @@ function mapCursoInterno(item) {
 async function sgpDpConsultarCursosExternos(re6, cookie) {
   let res;
   try {
+    // GET, mesma observação do ConsultarCursoInstitucionalPorRE acima.
     res = await fetch(`${SGPDP_BASE}/PerfilProfissiografico/ConsultarCursosExternosPM`, {
-      method: 'POST',
+      method: 'GET',
       headers: sgpDpHeaders(cookie),
-      body: '{}',
       redirect: 'manual',
       signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
     });
