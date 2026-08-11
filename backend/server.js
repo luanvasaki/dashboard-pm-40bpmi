@@ -155,6 +155,22 @@ function requireRole(...roles) {
   };
 }
 
+// Libera rotas que devolvem dados NOMINAIS (com nomes de PMs) de uma seção
+// controlada por secoes_acesso (hoje só 'uis', que cobre UIS+IAS juntos).
+// Acesso 'viewer' (\"Só números\") fica de fora de propósito — essas pessoas
+// usam as rotas /stats (sem nome nenhum), nunca as /mapa ou de RE individual.
+// admin/ti/p1/p3 sempre passam (mesmo comportamento de requireRole de antes,
+// preservado pra não quebrar quem já tinha acesso via role).
+function requireSectionNominal(secao) {
+  return (req, res, next) => {
+    const u = req.user;
+    if (u?.role === 'ti' || ['admin', 'p1', 'p3'].includes(u?.role)) return next();
+    const nivel = (u?.secoes_acesso || {})[secao];
+    if (nivel === 'nominal' || nivel === 'editor') return next();
+    return res.status(403).json({ error: 'Acesso negado' });
+  };
+}
+
 // Fire-and-forget: registra evento na tabela logs_acesso sem bloquear a resposta.
 async function logAcesso(req, acao, detalhe, userOverride) {
   if (!supabase) return;
@@ -2034,7 +2050,7 @@ app.get('/api/uis/stats', requireAuth, async (req, res) => {
 // [GET /api/uis/mapa] — restrições ATIVAS (termino >= hoje), para montar badges no P1.
 // Filtra no backend para garantir comparação correta de datas.
 // Retorna array de { re, codigos, termino, opm } — um registro por RE (o mais recente).
-app.get('/api/uis/mapa', requireAuth, requireRole('admin', 'p1', 'p3', 'ti'), async (req, res) => {
+app.get('/api/uis/mapa', requireAuth, requireSectionNominal('uis'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
     const today = new Date().toISOString().slice(0, 10);
@@ -2048,7 +2064,7 @@ app.get('/api/uis/mapa', requireAuth, requireRole('admin', 'p1', 'p3', 'ti'), as
 // [GET /api/uis/restricoes/:re] — restrições de um PM pelo RE (para integração com P1).
 // O RE passado pode ter dígito verificador (7 digits, efetivo) ou não (5-6, planilha UIS).
 // Busca por match exato primeiro; se não achar, tenta sem o último dígito.
-app.get('/api/uis/restricoes/:re', requireAuth, requireRole('admin', 'p1', 'p3', 'ti'), async (req, res) => {
+app.get('/api/uis/restricoes/:re', requireAuth, requireSectionNominal('uis'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
     // RE do efetivo vem como "180673-4" — corta no hífen para obter "180673"
@@ -2087,7 +2103,7 @@ app.get('/api/ias/stats', requireAuth, async (req, res) => {
 });
 
 // [GET /api/ias/mapa] — todos os registros IAS para badges no P1.
-app.get('/api/ias/mapa', requireAuth, requireRole('admin', 'p1', 'p3', 'ti'), async (req, res) => {
+app.get('/api/ias/mapa', requireAuth, requireSectionNominal('uis'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
     const all = await fetchAll('ias_registros', {});
@@ -2096,7 +2112,7 @@ app.get('/api/ias/mapa', requireAuth, requireRole('admin', 'p1', 'p3', 'ti'), as
 });
 
 // [GET /api/ias/:re] — registro IAS de um PM pelo RE.
-app.get('/api/ias/:re', requireAuth, requireRole('admin', 'p1', 'p3', 'ti'), async (req, res) => {
+app.get('/api/ias/:re', requireAuth, requireSectionNominal('uis'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
     const reBase = req.params.re.replace(/[^0-9]/g, '');

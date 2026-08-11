@@ -196,9 +196,23 @@ function renderUisFiltroBar() {
     ).join('');
 }
 
+// Mesmo padrão do P1 (p1SomenteQuantitativo, definido em p1.js) — só que pra
+// UIS/IAS (uma seção controlada só, 'uis', cobrindo as duas). admin/ti/p1/p3
+// sempre veem tudo; demais roles dependem de secoes_acesso.uis:
+//   'nominal' ou 'editor' → vê nomes | 'viewer' ou ausente → só números
+function uisSomenteQuantitativo() {
+  const u = JSON.parse(localStorage.getItem('auth_user') || '{}');
+  if (['admin', 'ti', 'p1', 'p3'].includes(u.role || '')) return false;
+  return !['nominal', 'editor'].includes((u.secoes_acesso || {}).uis || '');
+}
+
 async function loadUisSection() {
   const content = document.getElementById('uis-content');
   if (content) content.innerHTML = '<div style="color:#ffffff;font-size:17px;padding:20px">Carregando...</div>';
+  if (uisSomenteQuantitativo()) {
+    await loadUisQuantitativo();
+    return;
+  }
   try {
     const tasks = [loadUisRestricoes(), loadIasMapa()];
     if (typeof p1Data !== 'undefined' && !p1Data.length) {
@@ -210,6 +224,75 @@ async function loadUisSection() {
   } catch (e) {
     if (content) content.innerHTML = `<div style="color:#f07878;font-size:17px">Erro ao carregar UIS: ${e.message}</div>`;
   }
+}
+
+// ── Visão "Só números" (acesso viewer) — só estatísticas, nenhum nome ──
+async function loadUisQuantitativo() {
+  const content = document.getElementById('uis-content');
+  const filtroBar = document.getElementById('uis-filtro-bar');
+  if (filtroBar) filtroBar.innerHTML = '';
+  try {
+    const [uisStats, iasStats] = await Promise.all([
+      authFetch(`${API}/uis/stats`).then(r => r.json()),
+      authFetch(`${API}/ias/stats`).then(r => r.json()),
+    ]);
+    renderUisPageQuantitativo(uisStats, iasStats);
+  } catch (e) {
+    if (content) content.innerHTML = `<div style="color:#f07878;font-size:17px">Erro ao carregar UIS: ${e.message}</div>`;
+  }
+}
+
+function renderUisPageQuantitativo(uisStats, iasStats) {
+  const content = document.getElementById('uis-content');
+  if (!content) return;
+
+  const kpi = (label, val, cor) => `
+    <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${cor};border-radius:10px;padding:16px 18px">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">${label}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:800;color:${cor};line-height:1">${val}</div>
+    </div>`;
+
+  const barra = (obj, corBase) => {
+    const entries = Object.entries(obj || {}).sort((a, b) => b[1] - a[1]);
+    if (!entries.length) return '<div style="color:var(--tx3);font-size:15px">Sem dados.</div>';
+    const max = entries[0][1] || 1;
+    return entries.map(([k, n]) => `
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:15px;color:var(--tx2);margin-bottom:3px">
+          <span>${escHtml(k)}</span><span style="font-family:'DM Mono',monospace;color:${corBase}">${n}</span>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px">
+          <div style="height:100%;width:${Math.round(n/max*100)}%;background:${corBase};border-radius:3px"></div>
+        </div>
+      </div>`).join('');
+  };
+
+  content.innerHTML = `
+    <div style="padding:12px 16px;margin-bottom:18px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px;background:var(--s2);border:1px solid var(--bd);border-radius:8px">▸ LISTAGEM NOMINAL RESTRITA — exibindo apenas estatísticas</div>
+    <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">UIS — Restrições Médicas</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
+      ${kpi('Restrições ativas', uisStats.total_ativas ?? 0, '#5a9de0')}
+      ${kpi('Vencendo em 30 dias', uisStats.total_vencendo ?? 0, '#c8a84b')}
+      ${kpi('Vencidas', uisStats.total_vencidas ?? 0, '#e05555')}
+      ${kpi('Só administrativo', uisStats.total_admin_only ?? 0, '#8e6dc9')}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
+      <div style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:16px 18px">
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px">Por OPM</div>
+        ${barra(uisStats.por_opm, '#5a9de0')}
+      </div>
+      <div style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:16px 18px">
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px">Por código de restrição</div>
+        ${barra(uisStats.por_codigo, '#8e6dc9')}
+      </div>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">IAS — Inspeção Anual de Saúde</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+      ${kpi('Total', iasStats.total ?? 0, '#5a9de0')}
+      ${kpi('Aptos', iasStats.total_aptos ?? 0, '#4bc87a')}
+      ${kpi('Vencendo em 30 dias', iasStats.total_vencendo ?? 0, '#c8a84b')}
+      ${kpi('Vencidos', iasStats.total_vencidos ?? 0, '#e05555')}
+    </div>`;
 }
 
 // Mapeia OPM para a cor da CIA correspondente (usa CIA_COR de users.js).

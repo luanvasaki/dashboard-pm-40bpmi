@@ -299,7 +299,10 @@ function renderP1() {
   // Afastamentos ativos hoje por RE
   const afastHoje = {};
   p1Afasts.forEach(a => {
-    if (!p1EhRestricao(a) && a.inicio && a.termino && a.inicio <= hoje && a.termino >= hoje) {
+    // Termino nulo (ex: LSV em aberto, sem data de fim ainda) conta como
+    // ainda em curso — não pode exigir a.termino truthy, senão essas
+    // pessoas somem da lista de "afastado hoje" mesmo estando afastadas.
+    if (!p1EhRestricao(a) && a.inicio && a.inicio <= hoje && (!a.termino || a.termino >= hoje)) {
       if (!afastHoje[a.re]) afastHoje[a.re] = [];
       afastHoje[a.re].push(a);
     }
@@ -361,7 +364,7 @@ function renderP1() {
   const em15s = (() => { const d = new Date(); d.setDate(d.getDate() + 15); return d.toISOString().split('T')[0]; })();
   const em30s = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split('T')[0]; })();
   const afastsF      = p1FiltroOpm ? p1Afasts.filter(a => reSetF.has(a.re)) : p1Afasts;
-  const ferEmGozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && a.termino >= hoje);
+  const ferEmGozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && (!a.termino || a.termino >= hoje));
   const ferEm15Dias  = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio > hoje && a.inicio <= em15s);
   const ferLpEm30    = afastsF.filter(a => (isFer(a.tipo_afastamento) || isLP(a.tipo_afastamento)) && a.inicio > hoje && a.inicio <= em30s);
   // Todos os tipos de afastamento iniciando nos próximos 30 dias (para planejamento de escala)
@@ -1372,7 +1375,7 @@ function p1ShowKpiDetail(tipo) {
     };
 
     const naoAptosRe = new Set([
-      ...p1Afasts.filter(a => !p1EhRestricao(a) && a.inicio <= hoje && a.termino >= hoje && reSetF.has(a.re)).map(a => a.re),
+      ...p1Afasts.filter(a => !p1EhRestricao(a) && a.inicio <= hoje && (!a.termino || a.termino >= hoje) && reSetF.has(a.re)).map(a => a.re),
       ...dataF.filter(r => _isAdmRestr(r.re)).map(r => r.re),
       ...dataF.filter(r => iasStatus(r.re) === 'vencido').map(r => r.re),
     ]);
@@ -1403,7 +1406,7 @@ function p1ShowKpiDetail(tipo) {
     const getMunAfast = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
     const getCiaAfast = opm => (typeof CIA_STRUCT === 'undefined' || !opm) ? -1 : CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
 
-    const ativosBase = p1Afasts.filter(a => !p1EhRestricao(a) && a.inicio <= hoje && a.termino >= hoje && reSetF.has(a.re)).map(a => {
+    const ativosBase = p1Afasts.filter(a => !p1EhRestricao(a) && a.inicio <= hoje && (!a.termino || a.termino >= hoje) && reSetF.has(a.re)).map(a => {
       const pm = p1Data.find(r => r.re === a.re);
       return { a, ciaIdx: getCiaAfast(pm?.opm), mun: getMunAfast(pm?.opm), posto: pm?.posto };
     });
@@ -1724,7 +1727,7 @@ function p1ShowKpiDetail(tipo) {
 
     const afastsF = p1FiltroOpm ? p1Afasts.filter(a => reSetF.has(a.re)) : p1Afasts;
     const em15s   = (() => { const d = new Date(); d.setDate(d.getDate()+15); return d.toISOString().split('T')[0]; })();
-    let gozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && a.termino >= hoje);
+    let gozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && (!a.termino || a.termino >= hoje));
     let prox    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio > hoje && a.inicio <= em15s);
     const resFer  = new Set(p1Afasts.filter(a => isFer(a.tipo_afastamento) && (a.inicio||'').startsWith(String(anoAtual))).map(a => a.re));
     let semFer  = dataF.filter(r => !resFer.has(r.re));
@@ -2474,7 +2477,7 @@ function prontoRenderExtrato() {
 
   tbody.innerHTML = extrato.length
     ? extrato.map(a => {
-        const ativo = a.inicio <= hoje && a.termino >= hoje;
+        const ativo = a.inicio <= hoje && (!a.termino || a.termino >= hoje);
         const tdE = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:19px;color:var(--tx3)';
         return `<tr>
           <td style="${tdE};font-size:19px;color:${ativo?'var(--tx)':'var(--tx3)'};font-family:inherit">${escHtml(p1TipoLabel(a.tipo_afastamento))}</td>
