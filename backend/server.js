@@ -973,12 +973,12 @@ app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3', 'p1'), a
       return '';
     };
 
-    // Restrição é alimentada só pelo SGP (sincronização via WSSCPM), nunca
-    // pela planilha — guarda os valores atuais antes de apagar a tabela pra
+    // Restrição, nascimento e ingresso são alimentados só pelo SGP (nunca
+    // pela planilha) — guarda os valores atuais antes de apagar a tabela pra
     // não perdê-los no reinsert (o INSERT abaixo não tem esses campos).
     const { data: restricaoAntes, error: erroRestrAntes } = await supabase
       .from(EFETIVO_TABLE)
-      .select('re, possui_restricao, tipos_restricao, restricao_inicio, restricao_termino');
+      .select('re, possui_restricao, tipos_restricao, restricao_inicio, restricao_termino, data_nascimento, data_ingresso');
     if (erroRestrAntes) throw new Error(erroRestrAntes.message);
     const restricaoPorRe = {};
     (restricaoAntes || []).forEach(r => { restricaoPorRe[r.re] = r; });
@@ -1001,6 +1001,8 @@ app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3', 'p1'), a
         tipos_restricao:   rAntes?.tipos_restricao ?? null,
         restricao_inicio:  rAntes?.restricao_inicio ?? null,
         restricao_termino: rAntes?.restricao_termino ?? null,
+        data_nascimento:   rAntes?.data_nascimento ?? null,
+        data_ingresso:     rAntes?.data_ingresso ?? null,
       };
     }).filter(r => r.nome && r.posto);
 

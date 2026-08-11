@@ -424,6 +424,43 @@ async function sgpDpFindPM(re6, cookie, url) {
   // Sessão expirada normalmente vira redirect pra tela de login.
   if (res.status >= 300 && res.status < 400) throw new SessaoSgpDpInvalidaError('SGP-DP redirecionou pra login — sessão expirada, cole o cookie de novo.');
   if (!res.ok) throw new Error(`SGP-DP FindPM RE ${re6} HTTP ${res.status}`);
+  // A resposta do FindPM já traz dados da pessoa (nome, posto, DataAdmissao
+  // etc.) — mesma estrutura genérica independente do `url` usado. Devolvida
+  // aqui pra quem quiser aproveitar (ex: data de ingresso), mas é opcional —
+  // chamadas que só precisam "selecionar" a pessoa continuam ignorando o retorno.
+  try {
+    const json = await res.json();
+    return json?.Find?.[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+// Tela "Dados Pessoais" do SGP-DP — nascimento, naturalidade etc. Precisa de
+// um FindPM próprio (url:"/DadosPessoais/DadosPessoais") antes, igual às
+// outras telas. GET, sem corpo. Resposta vem com o objeto de dados dentro de
+// um campo "PM" que é uma STRING JSON (precisa de um segundo JSON.parse).
+async function sgpDpObterDadosPessoais(re6, cookie) {
+  let res;
+  try {
+    res = await fetch(`${SGPDP_BASE}/DadosPessoais/ObterDadosPessoaisPesq`, {
+      method: 'GET',
+      headers: sgpDpHeaders(cookie),
+      redirect: 'manual',
+      signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
+    });
+  } catch (err) {
+    throw new Error(`SGP-DP ObterDadosPessoaisPesq RE ${re6}: ${descreverErroFetch(err)}`);
+  }
+  if (res.status >= 300 && res.status < 400) throw new SessaoSgpDpInvalidaError('SGP-DP redirecionou pra login — sessão expirada, cole o cookie de novo.');
+  if (!res.ok) throw new Error(`SGP-DP ObterDadosPessoaisPesq RE ${re6} HTTP ${res.status}`);
+  const text = await res.text();
+  let json;
+  try { json = JSON.parse(text); }
+  catch { throw new SessaoSgpDpInvalidaError('SGP-DP não devolveu JSON (provavelmente sessão expirada) — cole o cookie de novo.'); }
+  if (!json?.PM) return null;
+  try { return JSON.parse(json.PM); }
+  catch { return null; }
 }
 
 async function sgpDpConsultarIas(re6, cookie) {
@@ -450,15 +487,31 @@ async function sgpDpConsultarIas(re6, cookie) {
 
 // Devolve só o registro do ano mais recente — é o que o dashboard usa hoje
 // (data_medico/data_dentista/data_vencimento), sem guardar o histórico completo.
+// Aproveita pra também trazer data de ingresso (do próprio FindPM, de graça)
+// e data de nascimento (tela separada, melhor-esforço — não derruba o IAS
+// se falhar, já que IAS é o dado principal dessa sincronização).
 async function buscarIasPM(re6, cookie) {
-  await sgpDpFindPM(re6, cookie, '/RotinasAnuais/RotinasAnuais');
+  const pessoa = await sgpDpFindPM(re6, cookie, '/RotinasAnuais/RotinasAnuais');
   const lista = await sgpDpConsultarIas(re6, cookie);
-  if (!lista.length) return null;
+  const data_ingresso = pessoa?.DataAdmissao ? String(pessoa.DataAdmissao).slice(0, 10) : null;
+
+  let data_nascimento = null;
+  try {
+    await sgpDpFindPM(re6, cookie, '/DadosPessoais/DadosPessoais');
+    const dadosPessoais = await sgpDpObterDadosPessoais(re6, cookie);
+    data_nascimento = dadosPessoais?.dataNascimento ? String(dadosPessoais.dataNascimento).slice(0, 10) : null;
+  } catch (err) {
+    if (err instanceof SessaoSgpDpInvalidaError) throw err; // isso sim precisa abortar o lote
+    console.error(`  (dados pessoais) RE ${re6}: ${err.message}`);
+  }
+
+  if (!lista.length) return (data_ingresso || data_nascimento) ? { data_ingresso, data_nascimento } : null;
   const maisRecente = lista.reduce((a, b) => (b.Ano > a.Ano ? b : a));
   return {
     data_medico:     maisRecente.DataInspecaoMedica ? String(maisRecente.DataInspecaoMedica).slice(0, 10) : null,
     data_dentista:   maisRecente.DataInspecaoOdonto ? String(maisRecente.DataInspecaoOdonto).slice(0, 10) : null,
     data_vencimento: maisRecente.DataValidade ? String(maisRecente.DataValidade).slice(0, 10) : null,
+    data_ingresso, data_nascimento,
   };
 }
 
@@ -474,6 +527,20 @@ async function sincronizarIasUmRE(pmEfetivo, cookie) {
     return;
   }
 
+  // Nascimento/ingresso são do assentamento (efetivo_pm), não de ias_registros
+  // — retirados antes de montar a linha da IAS, pra não gravar colunas que
+  // não existem nessa tabela.
+  const { data_ingresso, data_nascimento, ...iasCampos } = ias;
+  if (data_nascimento || data_ingresso) {
+    const upd = {};
+    if (data_nascimento) upd.data_nascimento = data_nascimento;
+    if (data_ingresso) upd.data_ingresso = data_ingresso;
+    const { error: erroPessoais } = await supabase.from('efetivo_pm').update(upd).eq('re', pmEfetivo.re);
+    if (erroPessoais) console.error(`  (dados pessoais) erro ao gravar RE ${re6}: ${erroPessoais.message}`);
+  }
+
+  if (!Object.keys(iasCampos).length) return; // só tinha nascimento/ingresso, sem IAS de verdade
+
   const linha = {
     re: re6,
     nome: pmEfetivo.nome,
@@ -481,7 +548,7 @@ async function sincronizarIasUmRE(pmEfetivo, cookie) {
     opm: pmEfetivo.opm,
     genero: pmEfetivo.genero,
     nome_guerra: pmEfetivo.nome_guerra,
-    ...ias,
+    ...iasCampos,
     updated_at: new Date().toISOString(),
   };
 

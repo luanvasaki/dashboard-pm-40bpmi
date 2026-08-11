@@ -2242,6 +2242,8 @@ async function openProntuario(re) {
   document.getElementById('pronto-func').textContent   = pm.funcao || '—';
   document.getElementById('pronto-gen').textContent    = pm.genero || '—';
   document.getElementById('pronto-guerra').textContent = pm.nome_guerra || '—';
+  document.getElementById('pronto-nascimento').textContent = fmtD(pm.data_nascimento);
+  document.getElementById('pronto-ingresso').textContent   = fmtD(pm.data_ingresso);
 
   // Status
   const afsts    = p1AfastHoje[re] || [];
