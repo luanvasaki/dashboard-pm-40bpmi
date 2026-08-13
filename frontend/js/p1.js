@@ -2282,25 +2282,29 @@ async function openProntuario(re) {
   }
 
   // Restrição
+  // Só mostra as siglas na tela — a descrição completa de cada código
+  // aparece no hover (title nativo do navegador), por pedido do usuário.
   let restrHtml = '';
   if (emRestrEfetivo) {
     // A sincronização de IAS via SGP-DP grava códigos (ex: "LP,OU,PO,SE,SP",
     // igual à UIS) em vez do texto genérico do WSSCPM ("APTO COM RESTRIÇÃO")
-    // — decodifica se reconhecer todos os tokens como código UIS válido,
-    // senão mostra o texto cru (afastamentos ainda não ressincronizados).
+    // — só considera "códigos UIS" se reconhecer TODOS os tokens, senão
+    // mostra o texto cru (afastamentos ainda não ressincronizados).
     const rawRestr = pm.tipos_restricao || 'Sim';
     const tokensRestr = rawRestr.split(/[,;]/).map(c => c.trim()).filter(Boolean);
     const todosCodUis = tokensRestr.length > 0 && typeof UIS_CODIGOS !== 'undefined' && tokensRestr.every(c => UIS_CODIGOS[c]);
-    const textoRestr = todosCodUis ? tokensRestr.map(c => `${c} – ${UIS_CODIGOS[c].desc}`).join(', ') : rawRestr;
-    restrHtml += `<div style="font-size:19px;color:#c8a84b">${escHtml(textoRestr)}</div>
+    const siglasRestr = todosCodUis ? tokensRestr.join(', ') : rawRestr;
+    const tituloRestr = todosCodUis ? tokensRestr.map(c => `${c} – ${UIS_CODIGOS[c].desc}`).join('\n') : '';
+    restrHtml += `<div style="font-size:19px;color:#c8a84b${todosCodUis ? ';cursor:help' : ''}"${todosCodUis ? ` title="${escHtml(tituloRestr)}"` : ''}>${escHtml(siglasRestr)}</div>
                   <div style="font-size:19px;color:var(--tx3)">${fmtD(pm.restricao_inicio)} → ${fmtD(pm.restricao_termino)}</div>`;
   }
   if (emRestrUis) {
     const uisRecs = ((_uisRestMap||{})[uisNormRE(re)]||[]);
     restrHtml += uisRecs.map(u => {
-      const codDesc = (u.codigos||'').split(/[,;]/).map(c => c.trim()).filter(Boolean)
-        .map(c => { const inf = typeof UIS_CODIGOS!=='undefined' && UIS_CODIGOS[c]; return inf ? `${c} – ${inf.desc}` : c; }).join(', ') || '—';
-      return `<div style="font-size:19px;color:#5a9de0;margin-top:${restrHtml?'6px':'0'}">🏥 ${codDesc}</div>
+      const cods = (u.codigos||'').split(/[,;]/).map(c => c.trim()).filter(Boolean);
+      const siglasUis = cods.join(', ') || '—';
+      const tituloUis = cods.map(c => { const inf = typeof UIS_CODIGOS!=='undefined' && UIS_CODIGOS[c]; return inf ? `${c} – ${inf.desc}` : c; }).join('\n');
+      return `<div style="font-size:19px;color:#5a9de0;margin-top:${restrHtml?'6px':'0'};cursor:help" title="${escHtml(tituloUis)}">🏥 ${escHtml(siglasUis)}</div>
               <div style="font-size:19px;color:var(--tx3)">${fmtD(u.inicio)} → ${fmtD(u.termino)}</div>`;
     }).join('');
     // Resumo: tipo de emprego permitido
