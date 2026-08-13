@@ -1373,13 +1373,19 @@ function p1ShowKpiDetail(tipo) {
       btnBase(`MASCULINO <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cntM}</span>`, '#5a9de0', _p1TotalDetGen === 'M', "p1TotalSetGen('M')"),
     ].join('');
 
-    const cursoSelect = (lista, selecionado, onchangeFn) => `
-      <select onchange="${onchangeFn}(this.value)" style="padding:7px 10px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-size:15px;font-family:'DM Mono',monospace;max-width:100%">
-        <option value="">Todos (${lista.length} cursos)</option>
-        ${lista.map(c => `<option value="${escHtml(c)}"${selecionado===c?' selected':''}>${escHtml(c)}</option>`).join('')}
-      </select>`;
-    const cursosIntRow = listaCursosInt.length ? gridRow('CURSOS INTERNOS', cursoSelect(listaCursosInt, _p1TotalDetCursoInt, 'p1TotalSetCursoInt')) : '';
-    const cursosExtRow = listaCursosExt.length ? gridRow('CURSOS EXTERNOS', cursoSelect(listaCursosExt, _p1TotalDetCursoExt, 'p1TotalSetCursoExt')) : '';
+    // input+datalist: digita pra filtrar a lista suspensa ao vivo, mas
+    // continua mostrando a lista inteira ao focar/clicar (comportamento
+    // nativo do navegador) — em vez de um <select> que só rola.
+    const cursoBusca = (id, lista, selecionado, onchangeFn) => `
+      <div style="display:flex;gap:6px;align-items:center;max-width:100%">
+        <input type="text" list="${id}-list" value="${escHtml(selecionado || '')}"
+          placeholder="Buscar entre ${lista.length} cursos..." onchange="${onchangeFn}(this.value)"
+          style="flex:1;min-width:0;padding:7px 10px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-size:15px;font-family:'DM Mono',monospace">
+        <datalist id="${id}-list">${lista.map(c => `<option value="${escHtml(c)}">`).join('')}</datalist>
+        ${selecionado ? `<button onclick="${onchangeFn}('')" title="Limpar filtro" style="padding:6px 10px;background:var(--s2);border:1px solid var(--bd);color:var(--tx3);border-radius:6px;cursor:pointer;font-size:15px;flex-shrink:0">✕</button>` : ''}
+      </div>`;
+    const cursosIntRow = listaCursosInt.length ? gridRow('CURSOS INTERNOS', cursoBusca('p1-curso-int', listaCursosInt, _p1TotalDetCursoInt, 'p1TotalSetCursoInt')) : '';
+    const cursosExtRow = listaCursosExt.length ? gridRow('CURSOS EXTERNOS', cursoBusca('p1-curso-ext', listaCursosExt, _p1TotalDetCursoExt, 'p1TotalSetCursoExt')) : '';
 
     const totalInfo = r => {
       const afst = p1AfastHoje[r.re];
