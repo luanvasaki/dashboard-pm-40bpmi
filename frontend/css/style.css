@@ -287,5 +287,30 @@ canvas{max-height:320px}
   border-top-color: rgba(255,255,255,.18);
 }
 .prod-rank-row:hover .prod-rank-tooltip { display: block; }
+
+/* ── Tooltip de restrição (siglas → descrição completa no hover) ────
+   z-index bem alto porque precisa aparecer por cima do modal de
+   prontuário (z-index:10500) — title nativo do navegador tem ~1s de
+   delay e é fácil de não perceber, por isso um tooltip CSS próprio. */
+.restr-tt-wrap { position: relative; display: inline-block; cursor: help; }
+.restr-tt {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  background: #1a2030;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 8px;
+  padding: 10px 14px;
+  min-width: 220px;
+  z-index: 10999;
+  pointer-events: none;
+  white-space: normal;
+  line-height: 1.7;
+  box-shadow: 0 4px 20px rgba(0,0,0,.6);
+  color: var(--tx);
+  font-size: 15px;
+}
+.restr-tt-wrap:hover .restr-tt { display: block; }
 </style>
 </head>

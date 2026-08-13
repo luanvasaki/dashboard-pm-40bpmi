@@ -2283,30 +2283,48 @@ async function openProntuario(re) {
 
   // Restrição
   // Só mostra as siglas na tela — a descrição completa de cada código
-  // aparece no hover (title nativo do navegador), por pedido do usuário.
-  let restrHtml = '';
+  // aparece num tooltip CSS próprio no hover (.restr-tt), por pedido do
+  // usuário. title nativo do navegador tem ~1s de delay e passa despercebido.
+  const restrTip = (cods) => {
+    const linhas = cods.map(c => { const inf = typeof UIS_CODIGOS!=='undefined' && UIS_CODIGOS[c]; return escHtml(inf ? `${c} – ${inf.desc}` : c); });
+    return `<div class="restr-tt">${linhas.join('<br>')}</div>`;
+  };
+
+  // Junta efetivo_pm (restrição "ativa" da IAS/WSSCPM) com uis_restricoes
+  // (histórico manual+sgp) numa lista só, deduplicada por código+período —
+  // as duas fontes descrevem com frequência a MESMA restrição (a sincronização
+  // de IAS grava nos dois lugares), o que sem dedup mostrava a mesma linha
+  // repetida 2-3x no card.
+  const uisRecsRaw = emRestrUis ? ((_uisRestMap||{})[uisNormRE(re)]||[]) : [];
+  const itensRestr = [];
+  const vistos = new Set();
   if (emRestrEfetivo) {
-    // A sincronização de IAS via SGP-DP grava códigos (ex: "LP,OU,PO,SE,SP",
-    // igual à UIS) em vez do texto genérico do WSSCPM ("APTO COM RESTRIÇÃO")
-    // — só considera "códigos UIS" se reconhecer TODOS os tokens, senão
-    // mostra o texto cru (afastamentos ainda não ressincronizados).
     const rawRestr = pm.tipos_restricao || 'Sim';
-    const tokensRestr = rawRestr.split(/[,;]/).map(c => c.trim()).filter(Boolean);
-    const todosCodUis = tokensRestr.length > 0 && typeof UIS_CODIGOS !== 'undefined' && tokensRestr.every(c => UIS_CODIGOS[c]);
-    const siglasRestr = todosCodUis ? tokensRestr.join(', ') : rawRestr;
-    const tituloRestr = todosCodUis ? tokensRestr.map(c => `${c} – ${UIS_CODIGOS[c].desc}`).join('\n') : '';
-    restrHtml += `<div style="font-size:19px;color:#c8a84b${todosCodUis ? ';cursor:help' : ''}"${todosCodUis ? ` title="${escHtml(tituloRestr)}"` : ''}>${escHtml(siglasRestr)}</div>
-                  <div style="font-size:19px;color:var(--tx3)">${fmtD(pm.restricao_inicio)} → ${fmtD(pm.restricao_termino)}</div>`;
+    const key = `${rawRestr}|${pm.restricao_inicio}|${pm.restricao_termino}`;
+    vistos.add(key);
+    itensRestr.push({ cods: rawRestr.split(/[,;]/).map(c => c.trim()).filter(Boolean), raw: rawRestr, inicio: pm.restricao_inicio, termino: pm.restricao_termino, fonte: 'efetivo' });
   }
+  uisRecsRaw.forEach(u => {
+    const key = `${u.codigos}|${u.inicio}|${u.termino}`;
+    if (vistos.has(key)) return; // já mostrado pelo bloco do efetivo_pm acima
+    vistos.add(key);
+    itensRestr.push({ cods: (u.codigos||'').split(/[,;]/).map(c => c.trim()).filter(Boolean), raw: u.codigos, inicio: u.inicio, termino: u.termino, fonte: 'uis' });
+  });
+
+  let restrHtml = itensRestr.map((item, i) => {
+    const todosCodUis = item.cods.length > 0 && typeof UIS_CODIGOS !== 'undefined' && item.cods.every(c => UIS_CODIGOS[c]);
+    const siglas = todosCodUis ? item.cods.join(', ') : (item.raw || '—');
+    const prefixo = item.fonte === 'uis' ? '🏥 ' : '';
+    const cor = item.fonte === 'uis' ? '#5a9de0' : '#c8a84b';
+    const conteudo = todosCodUis
+      ? `<span class="restr-tt-wrap">${prefixo}${escHtml(siglas)}${restrTip(item.cods)}</span>`
+      : `${prefixo}${escHtml(siglas)}`;
+    return `<div style="font-size:19px;color:${cor};margin-top:${i ? '6px' : '0'}">${conteudo}</div>
+            <div style="font-size:19px;color:var(--tx3)">${fmtD(item.inicio)} → ${fmtD(item.termino)}</div>`;
+  }).join('');
+
   if (emRestrUis) {
-    const uisRecs = ((_uisRestMap||{})[uisNormRE(re)]||[]);
-    restrHtml += uisRecs.map(u => {
-      const cods = (u.codigos||'').split(/[,;]/).map(c => c.trim()).filter(Boolean);
-      const siglasUis = cods.join(', ') || '—';
-      const tituloUis = cods.map(c => { const inf = typeof UIS_CODIGOS!=='undefined' && UIS_CODIGOS[c]; return inf ? `${c} – ${inf.desc}` : c; }).join('\n');
-      return `<div style="font-size:19px;color:#5a9de0;margin-top:${restrHtml?'6px':'0'};cursor:help" title="${escHtml(tituloUis)}">🏥 ${escHtml(siglasUis)}</div>
-              <div style="font-size:19px;color:var(--tx3)">${fmtD(u.inicio)} → ${fmtD(u.termino)}</div>`;
-    }).join('');
+    const uisRecs = uisRecsRaw;
     // Resumo: tipo de emprego permitido
     if (typeof uisExtrairCodigos === 'function' && typeof uisGrupoMaisRestritivo === 'function') {
       const allCods = [...new Set(uisRecs.flatMap(u => uisExtrairCodigos(u.codigos)))];
