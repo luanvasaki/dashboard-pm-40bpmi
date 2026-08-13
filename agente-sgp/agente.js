@@ -179,6 +179,16 @@ const isRestricaoDescricao = (desc) => /restri[cç][aã]o/i.test(desc || '');
 // afastamento de verdade (ausência), não restrição de serviço — ex: LSV
 // (Licença Sem Vencimento). Esses ficam de fora do tratamento de restrição.
 const isAusenciaNaAgregacao = (desc) => /\blsv\b|sem\s*venc/i.test(desc || '');
+// "Apto Pleno" (ou só "Apto") é um marcador de status do WSSCPM dentro da
+// ListaAfastamento — não é afastamento nem restrição, é só um registro
+// histórico tipo "nessa data a pessoa foi avaliada como apta". Sempre vem
+// com DataFinal vazia (termino=null), o que — depois do fix de tratar
+// termino nulo como "ainda em curso" (necessário pra LSV de verdade) —
+// virava um "afastamento ativo pra sempre" no frontend. Achado real: 86
+// registros "Apto Pleno" no banco, todos com termino null, inflando o
+// status de gente que na verdade está 100% apta. Filtrado aqui na fonte,
+// antes mesmo de virar afastamento ou restrição.
+const isStatusApenas = (desc) => /^apto\b/i.test((desc || '').trim());
 
 async function buscarAfastamentosPM(cpf) {
   const parsed = await soapCall('ProcuraAfastamentosSemRestricaoPorCPF', 'pmCPF', cpf);
@@ -190,6 +200,7 @@ async function buscarAfastamentosPM(cpf) {
 
   for (const item of asArray(result.ListaAfastamento?.Afastamento)) {
     const desc = trim(item.Descricao);
+    if (isStatusApenas(desc)) continue;
     const inicio  = item.DataInicial ? String(item.DataInicial).slice(0, 10) : null;
     const termino = item.DataFinal ? String(item.DataFinal).slice(0, 10) : null;
     if (isRestricaoDescricao(desc)) {
@@ -204,6 +215,7 @@ async function buscarAfastamentosPM(cpf) {
   }
   for (const item of asArray(result.ListaLicencaTratamentoSaude?.LicencaTratamentoSaude)) {
     const desc = trim(item.Descricao) || 'LTS';
+    if (isStatusApenas(desc)) continue;
     const inicio  = item.DataInicial ? String(item.DataInicial).slice(0, 10) : null;
     const termino = item.DataFinal ? String(item.DataFinal).slice(0, 10) : null;
     if (isRestricaoDescricao(desc)) {
