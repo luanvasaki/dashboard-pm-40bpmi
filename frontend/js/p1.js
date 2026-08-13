@@ -164,19 +164,27 @@ function p1Cat(posto) {
 // Ordena por antiguidade: Coronel primeiro, Soldado por último. Ordem mais
 // específica primeiro (1º Ten antes de Ten genérico, etc.) — quem não bater
 // em nada vai pro fim da lista em vez de quebrar a ordenação.
+// Postos reais no banco usam PONTO, não "º" (ex: "1. SGT PM", "2. SGT PM"),
+// e "º/°/ª" já são removidos antes de testar — por isso os padrões abaixo
+// aceitam "." ou espaço entre o número e a graduação ([.\s]*), não só
+// espaço. Sem isso, "1. SGT" e "2. SGT" caíam ambos no grupo genérico
+// "sgt" (nenhum padrão numerado batia), perdendo a distinção de
+// antiguidade entre eles e ordenando só por RE dentro do grupo confundido.
+// Coronel também precisa excluir "ten cel" (Tenente-Coronel abreviado
+// contém a palavra "cel"), senão TC é classificado como Coronel pleno.
 const P1_POSTO_ORDEM = [
-  /\bcel\b|coronel/,
-  /\btc\b|tenente.?coronel/,
+  /(?<!ten\s)\bcel\b|(?<!tenente[\s-]?)\bcoronel\b/,
+  /\bten\s*cel\b|\btc\b|tenente.?coronel/,
   /\bmaj\b|major/,
   /\bcap\b|capit[aã]o/,
-  /\b1\s*ten\b|primeiro.?tenente/,
-  /\b2\s*ten\b|segundo.?tenente/,
+  /\b1[.\s]*ten\b|primeiro.?tenente/,
+  /\b2[.\s]*ten\b|segundo.?tenente/,
   /\bten\b|tenente/,
   /\basp\b|aspirante/,
   /\bsub\s*ten\b|\bst\b|subtenente/,
-  /\b1\s*sgt\b|primeiro.?sargento/,
-  /\b2\s*sgt\b|segundo.?sargento/,
-  /\b3\s*sgt\b|terceiro.?sargento/,
+  /\b1[.\s]*sgt\b|primeiro.?sargento/,
+  /\b2[.\s]*sgt\b|segundo.?sargento/,
+  /\b3[.\s]*sgt\b|terceiro.?sargento/,
   /\bsgt\b|sargento/,
   /\bcb\b|cabo/,
   /\bsd\b|soldado/,
