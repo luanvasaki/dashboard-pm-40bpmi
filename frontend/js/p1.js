@@ -38,6 +38,7 @@ let p1ByUnit     = {};   // OPM → PM[] (populado em renderP1)
 let p1AfastHoje  = {};   // RE → afastamentos ativos hoje (populado em renderP1)
 let p1Vagas      = [];   // efetivo fixado por OPM
 let p1Quadro     = [];   // quadro fixado do efetivo (por posto)
+let p1Cursos     = [];   // prod_cursos (internos+externos+manuais) — pra filtro no KPI Total Efetivo
 let p1FiltroOpm  = '';   // filtro ativo por OPM
 let prontoCurrentRe  = '';   // RE do prontuário aberto
 let prontoExtratoFull = [];  // afastamentos do PM aberto, sem filtro (base p/ os selects)
@@ -63,6 +64,12 @@ function p1TotalSetCia(val)   { _p1TotalDetCia = (val === '' || val == null) ? -
 function p1TotalSetMun(val)   { _p1TotalDetMun = val || null; p1ShowKpiDetail('total'); }
 function p1TotalSetPosto(val) { _p1TotalDetPosto = val || null; p1ShowKpiDetail('total'); }
 function p1TotalSetGen(val)   { _p1TotalDetGen = _p1TotalDetGen === val ? null : val; p1ShowKpiDetail('total'); }
+
+// Filtro por curso (interno/externo) no KPI Total Efetivo — independentes,
+// combinados com E quando os dois estão ativos ao mesmo tempo.
+let _p1TotalDetCursoInt = null, _p1TotalDetCursoExt = null;
+function p1TotalSetCursoInt(val) { _p1TotalDetCursoInt = val || null; p1ShowKpiDetail('total'); }
+function p1TotalSetCursoExt(val) { _p1TotalDetCursoExt = val || null; p1ShowKpiDetail('total'); }
 
 let _p1IasDetCia = -1, _p1IasDetMun = null, _p1IasDetPosto = null, _p1IasDetSit = null;
 let _iasChartData = null;
@@ -253,11 +260,12 @@ async function loadP1() {
     body.innerHTML = '';
   }
   try {
-    const [r1, r2, r3, r4] = await Promise.all([
+    const [r1, r2, r3, r4, r5] = await Promise.all([
       authFetch(`${API}/efetivo`),
       authFetch(`${API}/afastamentos`),
       authFetch(`${API}/p1/vagas`),
-      authFetch(`${API}/p1/quadro`)
+      authFetch(`${API}/p1/quadro`),
+      authFetch(`${API}/prod/cursos`)
     ]);
     p1Data   = await r1.json();
     p1Afasts = await r2.json();
@@ -265,6 +273,8 @@ async function loadP1() {
     p1Vagas  = Array.isArray(vagasRaw) ? vagasRaw : [];
     const quadroRaw = await r4.json();
     p1Quadro = Array.isArray(quadroRaw) ? quadroRaw : [];
+    const cursosRaw = await r5.json().catch(() => []);
+    p1Cursos = Array.isArray(cursosRaw) ? cursosRaw : [];
     // Carrega UIS e IAS antes de renderizar para que os badges apareçam na primeira passagem.
     await Promise.all([
       loadUisRestricoes().catch(() => {}),
@@ -1192,6 +1202,7 @@ function closeP1Detail() {
   const mo = document.getElementById('p1-detail-mo');
   if (mo) { mo.classList.remove('on'); document.body.style.overflow = ''; }
   _p1TotalDetCia = -1; _p1TotalDetGen = null; _p1TotalDetMun = null; _p1TotalDetPosto = null;
+  _p1TotalDetCursoInt = null; _p1TotalDetCursoExt = null;
   _p1IasDetSit = null; _p1IasDetCia = -1; _p1IasDetMun = null; _p1IasDetPosto = null;
   _p1AptosDetCia = -1; _p1AptosDetMun = null; _p1AptosDetPosto = null;
   _p1RestDetCia = -1; _p1RestDetMun = null; _p1RestDetPosto = null;
@@ -1328,6 +1339,16 @@ function p1ShowKpiDetail(tipo) {
     const cntF = baseList.filter(x => x.gen === 'F').length;
     const cntM = baseList.filter(x => x.gen === 'M').length;
 
+    // Filtro por curso interno/externo (prod_cursos, carregado junto com o
+    // resto do P1) — dois seletores independentes, combinados com E quando
+    // os dois estão ativos.
+    const cursosInt = p1Cursos.filter(c => c.origem === 'interno' && c.nome_curso);
+    const cursosExt = p1Cursos.filter(c => c.origem === 'externo' && c.nome_curso);
+    const listaCursosInt = [...new Set(cursosInt.map(c => c.nome_curso))].sort((a,b) => a.localeCompare(b));
+    const listaCursosExt = [...new Set(cursosExt.map(c => c.nome_curso))].sort((a,b) => a.localeCompare(b));
+    const reComCursoInt = _p1TotalDetCursoInt ? new Set(cursosInt.filter(c => c.nome_curso === _p1TotalDetCursoInt).map(c => c.re_pm)) : null;
+    const reComCursoExt = _p1TotalDetCursoExt ? new Set(cursosExt.filter(c => c.nome_curso === _p1TotalDetCursoExt).map(c => c.re_pm)) : null;
+
     const filtro = p1FiltroCMP(baseList, _p1TotalDetCia, _p1TotalDetMun, _p1TotalDetPosto, 'p1TotalSetCia', 'p1TotalSetMun', 'p1TotalSetPosto');
     _p1TotalDetCia = filtro.cia; _p1TotalDetMun = filtro.mun; _p1TotalDetPosto = filtro.posto;
 
@@ -1336,6 +1357,8 @@ function p1ShowKpiDetail(tipo) {
     if (_p1TotalDetGen)      filtered = filtered.filter(x => x.gen === _p1TotalDetGen);
     if (_p1TotalDetMun)      filtered = filtered.filter(x => x.mun === _p1TotalDetMun);
     if (_p1TotalDetPosto)    filtered = filtered.filter(x => x.posto === _p1TotalDetPosto);
+    if (reComCursoInt)       filtered = filtered.filter(x => reComCursoInt.has(x.r.re));
+    if (reComCursoExt)       filtered = filtered.filter(x => reComCursoExt.has(x.r.re));
 
     const btnBase = (lbl, cor, on, onclick) =>
       `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
@@ -1349,6 +1372,14 @@ function p1ShowKpiDetail(tipo) {
       btnBase(`FEMININO <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cntF}</span>`, '#e91e8c', _p1TotalDetGen === 'F', "p1TotalSetGen('F')"),
       btnBase(`MASCULINO <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cntM}</span>`, '#5a9de0', _p1TotalDetGen === 'M', "p1TotalSetGen('M')"),
     ].join('');
+
+    const cursoSelect = (lista, selecionado, onchangeFn) => `
+      <select onchange="${onchangeFn}(this.value)" style="padding:7px 10px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-size:15px;font-family:'DM Mono',monospace;max-width:100%">
+        <option value="">Todos (${lista.length} cursos)</option>
+        ${lista.map(c => `<option value="${escHtml(c)}"${selecionado===c?' selected':''}>${escHtml(c)}</option>`).join('')}
+      </select>`;
+    const cursosIntRow = listaCursosInt.length ? gridRow('CURSOS INTERNOS', cursoSelect(listaCursosInt, _p1TotalDetCursoInt, 'p1TotalSetCursoInt')) : '';
+    const cursosExtRow = listaCursosExt.length ? gridRow('CURSOS EXTERNOS', cursoSelect(listaCursosExt, _p1TotalDetCursoExt, 'p1TotalSetCursoExt')) : '';
 
     const totalInfo = r => {
       const afst = p1AfastHoje[r.re];
@@ -1365,6 +1396,8 @@ function p1ShowKpiDetail(tipo) {
     html = wrapDetail('Todo o Efetivo', filtered.length, '#c8a84b', closeBtn, `
       ${filtro.html}
       ${gridRow('GÊNERO', genBtns)}
+      ${cursosIntRow}
+      ${cursosExtRow}
       ${tabelaTotalHtml}`);
   }
 
