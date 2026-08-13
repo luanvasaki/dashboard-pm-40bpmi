@@ -2088,13 +2088,24 @@ app.get('/api/uis/restricoes/:re', requireAuth, requireSectionNominal('uis'), as
 // Upload manual de IAS removido — a partir daqui ias_registros é alimentada
 // exclusivamente pela sincronização via SGP-DP (agente-sgp, sessão colada).
 
+// REs (6 dígitos, sem verificador) de quem está no efetivo_pm atual — usado
+// pra não contar registro de IAS de gente que já saiu da unidade. Achado na
+// prática (2026-08): contagem "vencido" da UIS (71) não batia com a do P1
+// (69) porque a UIS contava TODO ias_registros, sem checar se a pessoa
+// ainda está no efetivo — 2 registros eram de gente que já tinha saído.
+async function reAtivosSet() {
+  const efetivo = await fetchAll(EFETIVO_TABLE, {});
+  return new Set(efetivo.map(r => String(r.re).slice(0, 6)));
+}
+
 // [GET /api/ias/stats] — estatísticas gerais para a seção UIS/IAS (somente números).
 app.get('/api/ias/stats', requireAuth, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
     const today = new Date().toISOString().slice(0, 10);
     const em30  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-    const all   = await fetchAll('ias_registros', {});
+    const resAtivos = await reAtivosSet();
+    const all   = (await fetchAll('ias_registros', {})).filter(r => resAtivos.has(r.re));
     const aptos    = all.filter(r => r.data_vencimento && r.data_vencimento >= today);
     const vencidos = all.filter(r => !r.data_vencimento || r.data_vencimento < today);
     const vencendo = aptos.filter(r => r.data_vencimento <= em30);
@@ -2106,7 +2117,8 @@ app.get('/api/ias/stats', requireAuth, async (req, res) => {
 app.get('/api/ias/mapa', requireAuth, requireSectionNominal('uis'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
-    const all = await fetchAll('ias_registros', {});
+    const resAtivos = await reAtivosSet();
+    const all = (await fetchAll('ias_registros', {})).filter(r => resAtivos.has(r.re));
     res.json(all);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
