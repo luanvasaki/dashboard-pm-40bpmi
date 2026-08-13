@@ -463,6 +463,90 @@ async function sgpDpObterDadosPessoais(re6, cookie) {
   catch { return null; }
 }
 
+// Tela "Restrição/Prescrição" (dentro de Afastamentos no SGP-DP) — traz a
+// restrição médica com CÓDIGOS específicos (ex: "LP,OU,PO,SE,SP", os mesmos
+// códigos de 2 letras do BG PM 166/2006 já usados na UIS), bem mais rico que
+// o texto genérico "APTO COM RESTRIÇÃO" que o WSSCPM devolve. FindPM usa
+// url:"/SGP/Cadastro" (mesmo valor já usado pros cursos — parece que o
+// campo url reflete de onde a navegação partiu na tela, não é fixo por
+// endpoint). POST, corpo vazio.
+//
+// Resposta tem duas partes que interessam:
+//   - restricoesVigentes: já vem PRÉ-FILTRADA pelo próprio SGP-DP pra
+//     restrição ativa agora (contemRestricoesVigente + restricoesDetalhadasCmed
+//     com tiposDeRestricoes/dataInicio/dataFim) — não precisa calcular "ativa
+//     hoje" na mão, diferente do que fazemos com o WSSCPM.
+//   - ListaCmed: STRING JSON (precisa de um segundo JSON.parse) com o
+//     histórico completo de avaliações da Comissão Médica — cada item com
+//     campo "rest" (códigos, só presente quando há restrição de verdade;
+//     "Apto Pleno" não tem) — usado pra popular uis_restricoes por completo,
+//     não só o registro atual.
+async function sgpDpConsultarRestricoes(re6, cookie) {
+  let res;
+  try {
+    res = await fetch(`${SGPDP_BASE}/Afastamentos/ConsultarRestricoesPorRE`, {
+      method: 'POST',
+      headers: sgpDpHeaders(cookie),
+      body: '{}',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
+    });
+  } catch (err) {
+    throw new Error(`SGP-DP ConsultarRestricoesPorRE RE ${re6}: ${descreverErroFetch(err)}`);
+  }
+  if (res.status >= 300 && res.status < 400) throw new SessaoSgpDpInvalidaError('SGP-DP redirecionou pra login — sessão expirada, cole o cookie de novo.');
+  if (!res.ok) throw new Error(`SGP-DP ConsultarRestricoesPorRE RE ${re6} HTTP ${res.status}`);
+  const text = await res.text();
+  try { return JSON.parse(text); }
+  catch { throw new SessaoSgpDpInvalidaError('SGP-DP não devolveu JSON (provavelmente sessão expirada) — cole o cookie de novo.'); }
+}
+
+// Devolve { ativa, historico }:
+//   ativa — pra gravar em efetivo_pm (possui_restricao/tipos_restricao/datas),
+//   igual ao que a sincronização via WSSCPM já faz, só que com os códigos
+//   detalhados em vez do texto genérico.
+//   historico — pra popular uis_restricoes (origem='sgp'), um registro por
+//   avaliação da Comissão Médica que teve restrição de verdade.
+async function buscarRestricoesPM(re6, cookie) {
+  await sgpDpFindPM(re6, cookie, '/SGP/Cadastro');
+  const raw = await sgpDpConsultarRestricoes(re6, cookie);
+
+  let ativa = null;
+  const vig = raw?.restricoesVigentes;
+  if (vig?.contemRestricoesVigente && vig.restricoesDetalhadasCmed?.length) {
+    const r = vig.restricoesDetalhadasCmed[0];
+    ativa = {
+      tipo:    trim(r.tiposDeRestricoes) || null,
+      inicio:  r.dataInicio ? String(r.dataInicio).slice(0, 10) : null,
+      termino: r.dataFim ? String(r.dataFim).slice(0, 10) : null,
+    };
+  }
+
+  let historico = [];
+  try {
+    const listaCmed = JSON.parse(raw?.ListaCmed || '[]');
+    historico = listaCmed
+      .filter(item => item.rest) // só avaliações com restrição de verdade (Apto Pleno não tem "rest")
+      .map(item => ({
+        re:         String(item.pmReNum ?? item.re ?? '').replace(/\D/g, '').slice(0, 6),
+        nome:       trim(item.nome) || null,
+        posto:      trim(item.postoGrad) || null,
+        opm:        trim(item.opm) || null,
+        codigos:    trim(item.rest).toUpperCase().replace(/\s+/g, ' '),
+        inicio:     item.dataInic ? String(item.dataInic).slice(0, 10) : null,
+        // "0001-01-01..." é o sentinela do SGP-DP pra "sem data de retorno" (ainda em aberto).
+        termino:    item.dataRetorno && !String(item.dataRetorno).startsWith('0001-01-01') ? String(item.dataRetorno).slice(0, 10) : null,
+        dias:       item.aftQtDia ?? null,
+        observacao: trim(item.clinica) || null,
+      }))
+      .filter(r => r.re);
+  } catch (err) {
+    console.error(`  (restrições) RE ${re6}: falha ao processar histórico (${err.message}), seguindo só com a ativa.`);
+  }
+
+  return { ativa, historico };
+}
+
 async function sgpDpConsultarIas(re6, cookie) {
   let res;
   try {
@@ -487,9 +571,10 @@ async function sgpDpConsultarIas(re6, cookie) {
 
 // Devolve só o registro do ano mais recente — é o que o dashboard usa hoje
 // (data_medico/data_dentista/data_vencimento), sem guardar o histórico completo.
-// Aproveita pra também trazer data de ingresso (do próprio FindPM, de graça)
-// e data de nascimento (tela separada, melhor-esforço — não derruba o IAS
-// se falhar, já que IAS é o dado principal dessa sincronização).
+// Aproveita pra também trazer data de ingresso (do próprio FindPM, de graça),
+// data de nascimento e restrição médica detalhada (telas separadas, melhor-
+// esforço cada uma — não derrubam o IAS se falharem, já que IAS é o dado
+// principal dessa sincronização).
 async function buscarIasPM(re6, cookie) {
   const pessoa = await sgpDpFindPM(re6, cookie, '/RotinasAnuais/RotinasAnuais');
   const lista = await sgpDpConsultarIas(re6, cookie);
@@ -505,13 +590,22 @@ async function buscarIasPM(re6, cookie) {
     console.error(`  (dados pessoais) RE ${re6}: ${err.message}`);
   }
 
-  if (!lista.length) return (data_ingresso || data_nascimento) ? { data_ingresso, data_nascimento } : null;
+  let restricao = { ativa: null, historico: [] };
+  try {
+    restricao = await buscarRestricoesPM(re6, cookie);
+  } catch (err) {
+    if (err instanceof SessaoSgpDpInvalidaError) throw err;
+    console.error(`  (restrições) RE ${re6}: ${err.message}`);
+  }
+
+  const extras = { data_ingresso, data_nascimento, restricao };
+  if (!lista.length) return { ...extras, semIas: true };
   const maisRecente = lista.reduce((a, b) => (b.Ano > a.Ano ? b : a));
   return {
     data_medico:     maisRecente.DataInspecaoMedica ? String(maisRecente.DataInspecaoMedica).slice(0, 10) : null,
     data_dentista:   maisRecente.DataInspecaoOdonto ? String(maisRecente.DataInspecaoOdonto).slice(0, 10) : null,
     data_vencimento: maisRecente.DataValidade ? String(maisRecente.DataValidade).slice(0, 10) : null,
-    data_ingresso, data_nascimento,
+    ...extras,
   };
 }
 
@@ -522,15 +616,12 @@ async function sincronizarIasUmRE(pmEfetivo, cookie) {
   const re6 = String(pmEfetivo.re).slice(0, 6);
   console.log(`  (IAS) RE ${re6}: consultando...`);
   const ias = await comRetryTransiente(() => buscarIasPM(re6, cookie));
-  if (!ias) {
-    console.log(`  (IAS) RE ${re6}: nenhum registro de Inspeção Anual encontrado no SGP-DP.`);
-    return;
-  }
 
-  // Nascimento/ingresso são do assentamento (efetivo_pm), não de ias_registros
-  // — retirados antes de montar a linha da IAS, pra não gravar colunas que
-  // não existem nessa tabela.
-  const { data_ingresso, data_nascimento, ...iasCampos } = ias;
+  // Nascimento/ingresso/restrição são do assentamento (efetivo_pm) e da UIS,
+  // não de ias_registros — retirados antes de montar a linha da IAS, pra não
+  // gravar colunas/campos que não existem lá.
+  const { data_ingresso, data_nascimento, restricao, semIas, ...iasCampos } = ias;
+
   if (data_nascimento || data_ingresso) {
     const upd = {};
     if (data_nascimento) upd.data_nascimento = data_nascimento;
@@ -539,7 +630,35 @@ async function sincronizarIasUmRE(pmEfetivo, cookie) {
     if (erroPessoais) console.error(`  (dados pessoais) erro ao gravar RE ${re6}: ${erroPessoais.message}`);
   }
 
-  if (!Object.keys(iasCampos).length) return; // só tinha nascimento/ingresso, sem IAS de verdade
+  // Restrição médica detalhada (códigos tipo "LP,OU,PO,SE,SP") — substitui o
+  // que a sincronização via WSSCPM já grava nesses mesmos campos (texto
+  // genérico "APTO COM RESTRIÇÃO"), sempre que essa sincronização de IAS
+  // rodar depois. WSSCPM é a fonte só até a IAS ser sincronizada 1x.
+  const ativa = restricao?.ativa;
+  const { error: erroRestr } = await supabase.from('efetivo_pm').update(
+    ativa
+      ? { possui_restricao: 'S', tipos_restricao: ativa.tipo, restricao_inicio: ativa.inicio, restricao_termino: ativa.termino }
+      : { possui_restricao: 'N', tipos_restricao: null, restricao_inicio: null, restricao_termino: null }
+  ).eq('re', pmEfetivo.re);
+  if (erroRestr) console.error(`  (restrição) erro ao gravar RE ${re6}: ${erroRestr.message}`);
+  console.log(`  (restrição) RE ${re6}: ${ativa ? `ativa="${ativa.tipo}" ${ativa.inicio}→${ativa.termino}` : 'nenhuma'}`);
+
+  // Histórico completo de restrições (uis_restricoes, origem='sgp') — só
+  // apaga o que essa própria sincronização gerou antes, nunca linhas
+  // origem='manual' (upload de CSV, que continua existindo em paralelo).
+  const historico = restricao?.historico || [];
+  const { error: erroDelUis } = await supabase.from('uis_restricoes').delete().eq('re', re6).eq('origem', 'sgp');
+  if (erroDelUis) console.error(`  (uis) erro ao limpar RE ${re6}: ${erroDelUis.message}`);
+  if (historico.length) {
+    const rowsUis = historico.map(h => ({ ...h, origem: 'sgp' }));
+    const { error: erroInsUis } = await supabase.from('uis_restricoes').insert(rowsUis);
+    if (erroInsUis) console.error(`  (uis) erro ao gravar RE ${re6}: ${erroInsUis.message}`);
+  }
+
+  if (semIas) {
+    console.log(`  (IAS) RE ${re6}: nenhum registro de Inspeção Anual encontrado no SGP-DP.`);
+    return;
+  }
 
   const linha = {
     re: re6,

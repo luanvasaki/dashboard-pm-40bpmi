@@ -2284,7 +2284,15 @@ async function openProntuario(re) {
   // Restrição
   let restrHtml = '';
   if (emRestrEfetivo) {
-    restrHtml += `<div style="font-size:19px;color:#c8a84b">${escHtml(pm.tipos_restricao || 'Sim')}</div>
+    // A sincronização de IAS via SGP-DP grava códigos (ex: "LP,OU,PO,SE,SP",
+    // igual à UIS) em vez do texto genérico do WSSCPM ("APTO COM RESTRIÇÃO")
+    // — decodifica se reconhecer todos os tokens como código UIS válido,
+    // senão mostra o texto cru (afastamentos ainda não ressincronizados).
+    const rawRestr = pm.tipos_restricao || 'Sim';
+    const tokensRestr = rawRestr.split(/[,;]/).map(c => c.trim()).filter(Boolean);
+    const todosCodUis = tokensRestr.length > 0 && typeof UIS_CODIGOS !== 'undefined' && tokensRestr.every(c => UIS_CODIGOS[c]);
+    const textoRestr = todosCodUis ? tokensRestr.map(c => `${c} – ${UIS_CODIGOS[c].desc}`).join(', ') : rawRestr;
+    restrHtml += `<div style="font-size:19px;color:#c8a84b">${escHtml(textoRestr)}</div>
                   <div style="font-size:19px;color:var(--tx3)">${fmtD(pm.restricao_inicio)} → ${fmtD(pm.restricao_termino)}</div>`;
   }
   if (emRestrUis) {
