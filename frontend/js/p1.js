@@ -1255,7 +1255,7 @@ function p1CardGrid(pms, info, onclickFn) {
     const nm = r.nome_guerra || r.nome || r.re;
     const fotoCached = p1Fotos[r.re];
     const avatarContent = fotoCached
-      ? `<img src="${fotoCached}" style="width:56px;height:56px;border-radius:8px;object-fit:cover;border:2px solid rgba(255,255,255,.18)">`
+      ? `<img src="${fotoCached}" style="width:56px;height:${p1AvatarH(56)}px;border-radius:8px;object-fit:cover;border:2px solid rgba(255,255,255,.18)">`
       : p1AvatarSVG(nm, r.posto, 56);
     const click = onclickFn ? onclickFn(r) : `openProntuario('${escB(r.re)}')`;
     return `<div onclick="${click}" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)'">
@@ -2857,14 +2857,20 @@ function exportarSituacao() {
 // ── Módulo de Fotos PM ───────────────────────────────────────────────────────
 
 // Gera avatar SVG com iniciais coloridas por posto
+// "size" é a LARGURA — a altura é derivada por uma proporção fixa (3x4,
+// igual à foto do assentamento) em vez de quadrado achatado.
+const P1_AVATAR_RATIO = 1.3;
+function p1AvatarH(size) { return Math.round(size * P1_AVATAR_RATIO); }
+
 function p1AvatarSVG(nome, posto, size = 32) {
   const cat = p1Cat(posto);
   const colors = { cbsd: '#5a9de0', sgt: '#c8a84b', sub: '#4bc87a', of: '#e05555' };
   const bg = colors[cat] || '#607090';
   const initials = escHtml((nome || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join(''));
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 32 32">
-    <rect x="1" y="1" width="30" height="30" rx="7" fill="${bg}33" stroke="${bg}" stroke-width="1"/>
-    <text x="16" y="21" text-anchor="middle" fill="${bg}" font-family="DM Mono,monospace" font-size="14" font-weight="600">${initials}</text>
+  const h = p1AvatarH(32);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${p1AvatarH(size)}" viewBox="0 0 32 ${h}">
+    <rect x="1" y="1" width="30" height="${h-2}" rx="7" fill="${bg}33" stroke="${bg}" stroke-width="1"/>
+    <text x="16" y="${Math.round(h/2)+5}" text-anchor="middle" fill="${bg}" font-family="DM Mono,monospace" font-size="14" font-weight="600">${initials}</text>
   </svg>`;
 }
 
@@ -2874,7 +2880,7 @@ function renderAvatarEl(el, re, foto) {
   if (!el) return;
   const size = Number(el.dataset.size) || 32;
   if (foto) {
-    el.innerHTML = `<img src="${foto}" style="width:${size}px;height:${size}px;border-radius:7px;object-fit:cover;border:1.5px solid rgba(255,255,255,.18)">`;
+    el.innerHTML = `<img src="${foto}" style="width:${size}px;height:${p1AvatarH(size)}px;border-radius:7px;object-fit:cover;border:1.5px solid rgba(255,255,255,.18)">`;
   } else {
     el.innerHTML = p1AvatarSVG(el.dataset.nome || '', el.dataset.posto || '', size);
   }
@@ -3115,7 +3121,7 @@ function p1ShowPmList(pms, label) {
     const _re         = escA(r.re || '');
     const fotoCached  = p1Fotos[r.re];
     const avatarContent = fotoCached
-      ? `<img src="${fotoCached}" style="width:72px;height:72px;border-radius:9px;object-fit:cover;border:2px solid rgba(255,255,255,.18)">`
+      ? `<img src="${fotoCached}" style="width:72px;height:${p1AvatarH(72)}px;border-radius:9px;object-fit:cover;border:2px solid rgba(255,255,255,.18)">`
       : p1AvatarSVG(r.nome_guerra || r.nome, r.posto, 72);
     return `<div onclick="openProntuario('${_re}')" style="background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:8px;padding:12px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)'">
       <div data-foto-re="${escHtml(r.re)}" data-nome="${escHtml(r.nome_guerra||r.nome)}" data-posto="${escHtml(r.posto||'')}" data-size="72">${avatarContent}</div>
