@@ -2010,7 +2010,10 @@ app.get('/api/uis/stats', requireAuth, async (req, res) => {
   try {
     const today = new Date().toISOString().slice(0, 10);
     const em30  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-    const all   = await fetchAll('uis_restricoes', {});
+    // Mesmo fix aplicado em /api/ias/stats — não conta restrição de quem já
+    // saiu do efetivo (reAtivosSet definida mais abaixo, junto do IAS).
+    const resAtivos = await reAtivosSet();
+    const all   = (await fetchAll('uis_restricoes', {})).filter(r => resAtivos.has(r.re));
     // Para cada RE, mantém apenas o registro com termino mais recente
     const byRe = {};
     for (const r of all) {
@@ -2054,9 +2057,10 @@ app.get('/api/uis/mapa', requireAuth, requireSectionNominal('uis'), async (req, 
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
     const today = new Date().toISOString().slice(0, 10);
+    const resAtivos = await reAtivosSet();
     const all   = await fetchAll('uis_restricoes', { order: [['termino', { ascending: false }]] });
-    // Mantém todos os registros ativos (termino existe e é >= hoje)
-    const ativas = all.filter(r => r.termino && r.termino >= today);
+    // Mantém só registros ativos (termino existe e é >= hoje) de quem ainda está no efetivo.
+    const ativas = all.filter(r => r.termino && r.termino >= today && resAtivos.has(r.re));
     res.json(ativas);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
