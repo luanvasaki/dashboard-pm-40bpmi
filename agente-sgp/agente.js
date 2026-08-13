@@ -523,20 +523,33 @@ async function buscarRestricoesPM(re6, cookie) {
   await sgpDpFindPM(re6, cookie, '/SGP/Cadastro');
   const raw = await sgpDpConsultarRestricoes(re6, cookie);
 
+  // OBS: a resposta real do SGP-DP NÃO tem o campo "restricoesDetalhadasCmed"
+  // que a gente assumia inicialmente dentro de restricoesVigentes (esse objeto
+  // só tem restricoesDetalhadas/restricoesDetalhadasSirh, sempre vazios nos
+  // casos testados) — então "ativa" nunca vinha preenchida por ali. Além
+  // disso, o SGP-DP não expira a restrição sozinho na data de retorno prevista
+  // (aftQtDia é só a duração PRESCRITA, não uma expiração automática): o PM
+  // continua "Apto com Restrição" até uma NOVA avaliação da Junta Médica
+  // registrar "Apto Pleno" (ou outra restrição), mesmo com a data de retorno
+  // já vencida. Por isso "ativa" é calculada aqui como a avaliação mais
+  // recente (por dataCad) de toda a ListaCmed — não só das que têm "rest".
   let ativa = null;
-  const vig = raw?.restricoesVigentes;
-  if (vig?.contemRestricoesVigente && vig.restricoesDetalhadasCmed?.length) {
-    const r = vig.restricoesDetalhadasCmed[0];
-    ativa = {
-      tipo:    trim(r.tiposDeRestricoes) || null,
-      inicio:  r.dataInicio ? String(r.dataInicio).slice(0, 10) : null,
-      termino: r.dataFim ? String(r.dataFim).slice(0, 10) : null,
-    };
-  }
-
   let historico = [];
   try {
     const listaCmed = JSON.parse(raw?.ListaCmed || '[]');
+
+    const porData = (item) => String(item.dataCad || item.dataInic || '');
+    const maisRecente = listaCmed
+      .filter(item => item.re || item.pmReNum)
+      .sort((a, b) => porData(b).localeCompare(porData(a)))[0];
+    if (maisRecente?.rest) {
+      ativa = {
+        tipo:    trim(maisRecente.rest).toUpperCase().replace(/\s+/g, ' '),
+        inicio:  maisRecente.dataInic ? String(maisRecente.dataInic).slice(0, 10) : null,
+        termino: maisRecente.dataRetorno && !String(maisRecente.dataRetorno).startsWith('0001-01-01') ? String(maisRecente.dataRetorno).slice(0, 10) : null,
+      };
+    }
+
     historico = listaCmed
       .filter(item => item.rest) // só avaliações com restrição de verdade (Apto Pleno não tem "rest")
       .map(item => ({
@@ -553,7 +566,7 @@ async function buscarRestricoesPM(re6, cookie) {
       }))
       .filter(r => r.re);
   } catch (err) {
-    console.error(`  (restrições) RE ${re6}: falha ao processar histórico (${err.message}), seguindo só com a ativa.`);
+    console.error(`  (restrições) RE ${re6}: falha ao processar ListaCmed (${err.message}).`);
   }
 
   return { ativa, historico };
