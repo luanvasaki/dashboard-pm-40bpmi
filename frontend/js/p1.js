@@ -1342,7 +1342,7 @@ function p1ShowKpiDetail(tipo) {
     // Filtro por curso interno/externo (prod_cursos, carregado junto com o
     // resto do P1) — dois seletores independentes, combinados com E quando
     // os dois estão ativos.
-    const cursosInt = p1Cursos.filter(c => c.origem === 'interno' && c.nome_curso);
+    const cursosInt = p1Cursos.filter(c => (c.origem === 'interno' || c.origem === 'manual') && c.nome_curso);
     const cursosExt = p1Cursos.filter(c => c.origem === 'externo' && c.nome_curso);
     const listaCursosInt = [...new Set(cursosInt.map(c => c.nome_curso))].sort((a,b) => a.localeCompare(b));
     const listaCursosExt = [...new Set(cursosExt.map(c => c.nome_curso))].sort((a,b) => a.localeCompare(b));
