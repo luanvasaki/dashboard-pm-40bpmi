@@ -71,6 +71,11 @@ let _p1TotalDetCursoInt = null, _p1TotalDetCursoExt = null;
 function p1TotalSetCursoInt(val) { _p1TotalDetCursoInt = val || null; p1ShowKpiDetail('total'); }
 function p1TotalSetCursoExt(val) { _p1TotalDetCursoExt = val || null; p1ShowKpiDetail('total'); }
 
+// Busca por nome ou RE dentro do KPI Total Efetivo — texto livre (não exige
+// selecionar um item exato da lista suspensa, diferente do filtro de curso).
+let _p1TotalDetBusca = null;
+function p1TotalSetBusca(val) { _p1TotalDetBusca = (val || '').trim() || null; p1ShowKpiDetail('total'); }
+
 let _p1IasDetCia = -1, _p1IasDetMun = null, _p1IasDetPosto = null, _p1IasDetSit = null;
 let _iasChartData = null;
 function p1IasSetCia(val)   { _p1IasDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('ias'); }
@@ -1213,7 +1218,7 @@ function closeP1Detail() {
   const mo = document.getElementById('p1-detail-mo');
   if (mo) { mo.classList.remove('on'); document.body.style.overflow = ''; }
   _p1TotalDetCia = -1; _p1TotalDetGen = null; _p1TotalDetMun = null; _p1TotalDetPosto = null;
-  _p1TotalDetCursoInt = null; _p1TotalDetCursoExt = null;
+  _p1TotalDetCursoInt = null; _p1TotalDetCursoExt = null; _p1TotalDetBusca = null;
   _p1IasDetSit = null; _p1IasDetCia = -1; _p1IasDetMun = null; _p1IasDetPosto = null;
   _p1AptosDetCia = -1; _p1AptosDetMun = null; _p1AptosDetPosto = null;
   _p1RestDetCia = -1; _p1RestDetMun = null; _p1RestDetPosto = null;
@@ -1371,6 +1376,23 @@ function p1ShowKpiDetail(tipo) {
     if (reComCursoInt)       filtered = filtered.filter(x => reComCursoInt.has(x.r.re));
     if (reComCursoExt)       filtered = filtered.filter(x => reComCursoExt.has(x.r.re));
 
+    // Busca por nome/RE é dado nominal — nunca disponibilizar (nem a lista
+    // de sugestão no DOM, nem o filtro) pra quem só tem acesso "Só números";
+    // mesmo padrão de p1SearchInput, que já bloqueia isso na busca global.
+    const somenteQtdBusca = p1SomenteQuantitativo();
+    // Lista de sugestão vem do que já está filtrado pelos outros critérios
+    // (CIA/gênero/município/posto/curso) — igual ao padrão dos outros filtros
+    // dessa tela, refina em cima do que já foi reduzido em vez de sempre
+    // sugerir o efetivo inteiro.
+    const listaNomesBusca = somenteQtdBusca ? [] : [...new Set(filtered.map(x => x.r.nome_guerra || x.r.nome).filter(Boolean))].sort((a,b) => a.localeCompare(b));
+    if (!somenteQtdBusca && _p1TotalDetBusca) {
+      const q = _p1TotalDetBusca.toLowerCase();
+      const isReQ = /^\d+$/.test(q);
+      filtered = filtered.filter(x => isReQ
+        ? (x.r.re || '').toLowerCase().startsWith(q)
+        : (x.r.nome || '').toLowerCase().includes(q) || (x.r.nome_guerra || '').toLowerCase().includes(q));
+    }
+
     const btnBase = (lbl, cor, on, onclick) =>
       `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
     const gridRow = (lbl, btns) =>
@@ -1386,17 +1408,20 @@ function p1ShowKpiDetail(tipo) {
 
     // input+datalist: digita pra filtrar a lista suspensa ao vivo, mas
     // continua mostrando a lista inteira ao focar/clicar (comportamento
-    // nativo do navegador) — em vez de um <select> que só rola.
-    const cursoBusca = (id, lista, selecionado, onchangeFn) => `
+    // nativo do navegador) — em vez de um <select> que só rola. Reaproveitado
+    // tanto pros filtros de curso (seleção exata de um item) quanto pra busca
+    // de nome/RE (texto livre, casa por trecho — ver filtro de _p1TotalDetBusca acima).
+    const inputBusca = (id, lista, valor, onchangeFn, placeholder) => `
       <div style="display:flex;gap:6px;align-items:center;max-width:100%">
-        <input type="text" list="${id}-list" value="${escHtml(selecionado || '')}"
-          placeholder="Buscar entre ${lista.length} cursos..." onchange="${onchangeFn}(this.value)"
+        <input type="text" list="${id}-list" value="${escHtml(valor || '')}"
+          placeholder="${escHtml(placeholder)}" onchange="${onchangeFn}(this.value)"
           style="flex:1;min-width:0;padding:7px 10px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-size:15px;font-family:'DM Mono',monospace">
         <datalist id="${id}-list">${lista.map(c => `<option value="${escHtml(c)}">`).join('')}</datalist>
-        ${selecionado ? `<button onclick="${onchangeFn}('')" title="Limpar filtro" style="padding:6px 10px;background:var(--s2);border:1px solid var(--bd);color:var(--tx3);border-radius:6px;cursor:pointer;font-size:15px;flex-shrink:0">✕</button>` : ''}
+        ${valor ? `<button onclick="${onchangeFn}('')" title="Limpar filtro" style="padding:6px 10px;background:var(--s2);border:1px solid var(--bd);color:var(--tx3);border-radius:6px;cursor:pointer;font-size:15px;flex-shrink:0">✕</button>` : ''}
       </div>`;
-    const cursosIntRow = listaCursosInt.length ? gridRow('CURSOS INTERNOS', cursoBusca('p1-curso-int', listaCursosInt, _p1TotalDetCursoInt, 'p1TotalSetCursoInt')) : '';
-    const cursosExtRow = listaCursosExt.length ? gridRow('CURSOS EXTERNOS', cursoBusca('p1-curso-ext', listaCursosExt, _p1TotalDetCursoExt, 'p1TotalSetCursoExt')) : '';
+    const buscaNomeRow  = somenteQtdBusca ? '' : gridRow('BUSCAR PM (NOME OU RE)', inputBusca('p1-total-busca', listaNomesBusca, _p1TotalDetBusca, 'p1TotalSetBusca', `Buscar entre ${listaNomesBusca.length} PMs por nome ou RE...`));
+    const cursosIntRow = listaCursosInt.length ? gridRow('CURSOS INTERNOS', inputBusca('p1-curso-int', listaCursosInt, _p1TotalDetCursoInt, 'p1TotalSetCursoInt', `Buscar entre ${listaCursosInt.length} cursos...`)) : '';
+    const cursosExtRow = listaCursosExt.length ? gridRow('CURSOS EXTERNOS', inputBusca('p1-curso-ext', listaCursosExt, _p1TotalDetCursoExt, 'p1TotalSetCursoExt', `Buscar entre ${listaCursosExt.length} cursos...`)) : '';
 
     const totalInfo = r => {
       const afst = p1AfastHoje[r.re];
@@ -1412,6 +1437,7 @@ function p1ShowKpiDetail(tipo) {
 
     html = wrapDetail('Todo o Efetivo', filtered.length, '#c8a84b', closeBtn, `
       ${filtro.html}
+      ${buscaNomeRow}
       ${gridRow('GÊNERO', genBtns)}
       ${cursosIntRow}
       ${cursosExtRow}
