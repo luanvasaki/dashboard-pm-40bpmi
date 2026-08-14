@@ -2213,7 +2213,7 @@ function p1SearchInput(val) {
       onmouseover="p1SearchHover(${i})"
       style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s"
       id="p1-sdrop-${i}">
-      <div style="flex-shrink:0">${p1AvatarSVG(nomePrinc, r.posto)}</div>
+      <div data-foto-re="${escHtml(r.re)}" data-nome="${escHtml(nomePrinc)}" data-posto="${escHtml(r.posto || '')}" data-size="32" style="flex-shrink:0">${p1Fotos[r.re] ? `<img src="${p1Fotos[r.re]}" style="width:32px;height:${p1AvatarH(32)}px;border-radius:7px;object-fit:cover;border:1.5px solid rgba(255,255,255,.18)">` : p1AvatarSVG(nomePrinc, r.posto)}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:19px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${hi(nomePrinc)}</div>
         <div style="font-size:19px;color:var(--tx3)">${hi(r.nome || '')} · ${escHtml(r.posto || '—')} · ${escHtml(r.opm || '—')}</div>
@@ -2223,6 +2223,7 @@ function p1SearchInput(val) {
   }).join('');
 
   drop.style.display = 'block';
+  p1LoadFotosVisiveis();
 }
 
 function p1SearchHover(i) {
