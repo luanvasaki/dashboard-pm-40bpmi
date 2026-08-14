@@ -1811,7 +1811,7 @@ function p1ShowKpiDetail(tipo) {
         <div style="display:grid;grid-template-columns:310px 1fr;gap:16px;padding:0 0 16px;border-bottom:1px solid var(--bd);margin-bottom:12px;align-items:start">
           <div>
             <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${anyFilter ? 'Situação · filtro ativo' : 'Situação Geral'}</div>
-            <canvas id="ias-chart-status" width="280" height="280"></canvas>
+            <div style="position:relative;height:260px"><canvas id="ias-chart-status"></canvas></div>
           </div>
           <div>
             <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">Apto × Vencida por Unidade (total)</div>
@@ -2190,7 +2190,8 @@ function _renderIasCharts({ filtered, baseList }) {
         datasets: [{ data: [dVenc, dVend, dApto, dSemR], backgroundColor: ['#f07878','#c8a84b','#4bc87a','#60688099'], borderWidth: 0 }]
       },
       options: {
-        responsive: false,
+        responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.7)', font: { size: 12 }, padding: 10, boxWidth: 14 } },
           tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} (${total ? Math.round(ctx.parsed/total*100) : 0}%)` } }
