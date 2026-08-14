@@ -500,12 +500,30 @@ function renderP1() {
       const gtFx = qRows.reduce((a,q) => a + (Number(q.fx_total)||0), 0);
       const gtEx = qRows.reduce((a,q) => a + (Number(q.ex_total)||0), 0);
       const gtClaro = gtFx - gtEx;
-      const gtPct = gtFx > 0 ? ((gtClaro/gtFx)*100).toFixed(1)+'%' : '—';
       const cor = gtClaro < 0 ? '#e05555' : gtClaro === 0 ? '#c8a84b' : '#4bc87a';
-      // Agrupa por CIA e calcula saldo
+      // Agrupa por CIA — a coluna q.cia raramente vem preenchida na
+      // planilha (a maioria cai num "—" só, duplicando o total geral em
+      // vez de mostrar o detalhe por CIA); mesma inferência via OPM/
+      // município já usada no detalhe "Quadro Fixado" (tipo==='quadro').
+      const normStrKpi = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[ªº°]/g,'').replace(/\s+/g,' ').trim();
+      const opmCiaMapKpi = {};
+      p1Data.forEach(pm => {
+        const cia = (pm.cia||'').trim();
+        if (!cia) return;
+        const key = normStrKpi(pm.opm||'');
+        if (key && !opmCiaMapKpi[key]) opmCiaMapKpi[key] = typeof normCiaDisp === 'function' ? normCiaDisp(cia) : cia;
+      });
+      const getCiaKpi = q => {
+        if ((q.cia||'').trim()) return typeof normCiaDisp === 'function' ? normCiaDisp(q.cia) : q.cia.trim();
+        const nOpm = normStrKpi(q.opm||''), nMun = normStrKpi(q.municipio||'');
+        const found = Object.entries(opmCiaMapKpi).find(([k]) =>
+          k === nOpm || k === nMun || k.includes(nMun) || nMun.includes(k) || k.includes(nOpm) || nOpm.includes(k)
+        );
+        return found?.[1] || (q.opm||'').trim() || '—';
+      };
       const byCiaKpi = {};
       qRows.forEach(q => {
-        const c = (q.cia||'').trim() || '—';
+        const c = getCiaKpi(q);
         if (!byCiaKpi[c]) byCiaKpi[c] = { fx: 0, ex: 0 };
         byCiaKpi[c].fx += Number(q.fx_total)||0;
         byCiaKpi[c].ex += Number(q.ex_total)||0;
@@ -1233,8 +1251,11 @@ function eapFiltroSet(key) {
     const el = document.getElementById('eap-tbl-' + k);
     if (el) el.style.display = k === key ? '' : 'none';
   });
-  document.querySelectorAll('.eap-flt').forEach(btn => {
-    btn.classList.toggle('on', btn.dataset.eapkey === key);
+  document.querySelectorAll('.eap-flt-card').forEach(card => {
+    const on = card.dataset.eapkey === key;
+    card.classList.toggle('on', on);
+    card.style.borderColor = on ? card.dataset.cor : 'var(--bd2)';
+    card.style.boxShadow = on ? `0 0 0 1px ${card.dataset.cor}` : 'none';
   });
 }
 
@@ -1439,7 +1460,7 @@ function p1ShowKpiDetail(tipo) {
       const s = afst
         ? `<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#e0555522;color:#e05555;font-family:'DM Mono',monospace">${escHtml(afst[0]?.tipo_afastamento||'Afastado')}</span>`
         : `<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#4bc87a22;color:#4bc87a;font-family:'DM Mono',monospace">Apto</span>`;
-      return `<div style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace">${escHtml(r.opm||'—')}</div>${s}`;
+      return `<div title="${escHtml(r.opm||'')}" style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${escHtml(r.opm||'—')}</div>${s}`;
     };
 
     const tabelaTotalHtml = p1SomenteQuantitativo()
@@ -1486,7 +1507,7 @@ function p1ShowKpiDetail(tipo) {
     if (_p1AptosDetMun)      filtered = filtered.filter(x => x.mun === _p1AptosDetMun);
     if (_p1AptosDetPosto)    filtered = filtered.filter(x => x.posto === _p1AptosDetPosto);
 
-    const aptosInfo = r => `<div style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace">${escHtml(r.opm||'—')}</div>`;
+    const aptosInfo = r => `<div title="${escHtml(r.opm||'')}" style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${escHtml(r.opm||'—')}</div>`;
 
     const tabelaAptosHtml = p1SomenteQuantitativo()
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
@@ -1682,17 +1703,16 @@ function p1ShowKpiDetail(tipo) {
     const tblInapTAT  = inapTAT.length  ? p1CardGrid(inapTAT,  infoEapNota('tat')) : `<div style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum inapto no TAT</div>`;
     const tblVenc     = vencidos.length ? p1CardGrid(vencidos, infoEapDatas(r => fmtEap(r.data_eap))) : `<div style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum vencido</div>`;
 
-    // Cartão de resumo clicável
+    // Cartão de resumo clicável — dobra como o único seletor de filtro
+    // (antes havia uma 2ª linha de botões repetindo os mesmos 6 rótulos/
+    // contagens só pra mostrar qual estava selecionado; esse estado agora
+    // fica no próprio card via classe "on", sem duplicar o controle).
     const smCard = (key, label, val, cor) =>
-      `<div onclick="eapFiltroSet('${key}')" style="background:var(--bg2);border:1px solid var(--bd2);border-top:3px solid ${cor};border-radius:8px;padding:14px 16px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='${cor}'" onmouseout="this.style.borderTopColor='${cor}';this.style.borderColor='var(--bd2)';this.style.borderTopColor='${cor}'">
+      `<div class="eap-flt-card" data-eapkey="${key}" data-cor="${cor}" onclick="eapFiltroSet('${key}')" style="background:var(--bg2);border:1px solid var(--bd2);border-top:3px solid ${cor};border-radius:8px;padding:14px 16px;cursor:pointer;transition:border-color .15s,box-shadow .15s" onmouseover="if(!this.classList.contains('on'))this.style.borderColor='${cor}'" onmouseout="if(!this.classList.contains('on'))this.style.borderColor='var(--bd2)'">
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">${label}</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:${cor};line-height:1">${val}</div>
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-top:4px">▸ ver lista</div>
       </div>`;
-
-    // Pill de filtro
-    const pill = (key, label, active) =>
-      `<button class="pf-btn eap-flt${active?' on':''}" data-eapkey="${key}" onclick="eapFiltroSet('${key}')">${label}</button>`;
 
     const eapSmCards = `
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:16px 12px 14px">
@@ -1707,14 +1727,6 @@ function p1ShowKpiDetail(tipo) {
     const eapTabelasHtml = p1SomenteQuantitativo()
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA</div>`
       : `${filtroEap.html}
-        <div style="display:flex;gap:6px;flex-wrap:wrap;padding:12px;border-bottom:1px solid var(--bd2)">
-          ${pill('feitos',   'Realizaram ('   + feitos.length    + ')', false)}
-          ${pill('aptos365', 'Aptos 365d ('   + aptos365.length  + ')', false)}
-          ${pill('pend',     'Pendentes ('    + pend.length      + ')', false)}
-          ${pill('inaptaf',  'Inaptos TAF ('  + inapTAF.length   + ')', false)}
-          ${pill('inatat',   'Inaptos TAT ('  + inapTAT.length   + ')', false)}
-          ${pill('venc',     'Vencidos ('     + vencidos.length  + ')', false)}
-        </div>
         <div id="eap-tbl-feitos"   style="display:none;padding:0 12px 12px">${tblFeitos}</div>
         <div id="eap-tbl-aptos365" style="display:none;padding:0 12px 12px">
           ${aptos365.length ? p1CardGrid(aptos365, infoEapDatas(r => fmtEap(r.data_eap))) : `<div style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum apto nos últimos 365 dias</div>`}
@@ -1856,7 +1868,7 @@ function p1ShowKpiDetail(tipo) {
     const ferInfo = showDias => r => {
       const a = r._afast;
       const dias = a.termino ? Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000) : null;
-      return `<div style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace">${escHtml(r.opm||'—')}</div>
+      return `<div title="${escHtml(r.opm||'')}" style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${escHtml(r.opm||'—')}</div>
         <div style="font-size:10px;font-family:'DM Mono',monospace;color:${showDias && dias!==null && dias<=3?'#4bc87a':'var(--tx3)'}">${fmtD(a.inicio)} → ${showDias && dias!==null ? dias+'d rest.' : fmtD(a.termino)}</div>`;
     };
 
