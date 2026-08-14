@@ -1334,7 +1334,10 @@ async function renderCursosModalDetail() {
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:var(--gold2)">${pmsUnicos.size}</div>
     </div>`;
 
-  const fmtD = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
+  // Datas com ano abaixo de 1900 não são reais (sentinela "sem data" de
+  // sistemas de origem, ex: 1753-01-01 do SQL Server do SGP-DP) — mostra
+  // traço em vez do valor.
+  const fmtD = s => { if (!s || parseInt(String(s).slice(0,4),10) < 1900) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
   const tdS = 'padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:19px;color:var(--tx3)';
   const tdL = 'padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx)';
   const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;text-align:left';

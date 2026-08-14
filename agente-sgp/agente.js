@@ -809,15 +809,26 @@ function anoMesDe(dataIso) {
   return { ano: parseInt(y), mes: MESES_PT[parseInt(m) - 1] || '' };
 }
 
+// SQL Server (backend do SGP-DP) usa 1753-01-01 como sentinela de "campo
+// DATETIME não preenchido" (é literalmente o valor mínimo válido do tipo),
+// mesma ideia do sentinela "0001-01-01" já tratado nas restrições — só que
+// esse aparece nas datas de curso (interno e externo). Qualquer data com ano
+// abaixo de 1900 é tratada como ausente, não uma data real.
+function semDataSentinela(dataIso) {
+  if (!dataIso) return null;
+  const ano = parseInt(String(dataIso).slice(0, 4), 10);
+  return (!isNaN(ano) && ano < 1900) ? null : dataIso;
+}
+
 function mapCursoInterno(item) {
-  const dataInicio = parseDateBR(item.DataInicio);
+  const dataInicio = semDataSentinela(parseDateBR(item.DataInicio));
   const { ano, mes } = anoMesDe(dataInicio);
   return {
     id_crs_pm:     `INT-${item.IdCrsPm}`,
     codigo:        trim(item.Codigo) || null,
     nome_curso:    trim(item.DescricaoCurso),
     data:          dataInicio,
-    data_termino:  parseDateBR(item.DataTermino),
+    data_termino:  semDataSentinela(parseDateBR(item.DataTermino)),
     nota:          trim(item.Nota) || null,
     conceito:      trim(item.Conceito) || null,
     boletim_curso: trim(item.BoletimCurso) || null,
@@ -853,14 +864,14 @@ async function sgpDpConsultarCursosExternos(re6, cookie) {
 // DataInicial/DataFinal já vêm em ISO (YYYY-MM-DDTHH:mm:ss), diferente do
 // formato DD/MM/YYYY dos cursos internos — não passa por parseDateBR.
 function mapCursoExterno(item) {
-  const dataInicio = item.DataInicial ? String(item.DataInicial).slice(0, 10) : null;
+  const dataInicio = semDataSentinela(item.DataInicial ? String(item.DataInicial).slice(0, 10) : null);
   const { ano, mes } = anoMesDe(dataInicio);
   return {
     id_crs_pm:          `EXT-${item.Codigo}`,
     codigo:             trim(item.NomeDoCurso?.Codigo) || null,
     nome_curso:         trim(item.NomeDoCurso?.Descricao),
     data:               dataInicio,
-    data_termino:       item.DataFinal ? String(item.DataFinal).slice(0, 10) : null,
+    data_termino:       semDataSentinela(item.DataFinal ? String(item.DataFinal).slice(0, 10) : null),
     nota:               item.Nota != null ? String(item.Nota) : null,
     conceito:           trim(item.Mencao) || null,
     boletim_curso:      item.NumeroBoletim ? String(item.NumeroBoletim) : null,

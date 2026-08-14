@@ -2539,7 +2539,10 @@ function prontoRenderCursos() {
   const origem = document.getElementById('pronto-cursos-origem')?.value || '';
   const rows = prontoCursosFull.filter(c => !origem || c.origem === origem);
 
-  const fmtDc = s => { if (!s) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
+  // Datas com ano abaixo de 1900 não são reais (sentinela "sem data" de
+  // sistemas de origem, ex: 1753-01-01 do SQL Server do SGP-DP) — mostra
+  // traço em vez do valor.
+  const fmtDc = s => { if (!s || parseInt(String(s).slice(0,4),10) < 1900) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
   const tdC = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:19px;color:var(--tx3)';
   const tipoCor   = c => c.origem === 'externo' ? '#e8c96a' : c.origem === 'manual' ? '#607090' : '#5ae09a';
   const tipoLabel = c => c.origem === 'externo' ? 'Externo' : c.origem === 'manual' ? 'Manual' : 'Interno';
