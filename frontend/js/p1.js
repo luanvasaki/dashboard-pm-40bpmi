@@ -3306,7 +3306,7 @@ function renderHome() {
     // (que pega o espaço "sobrando") varia de largura entre linhas por causa
     // do texto ao lado, e uma CIA com % menor podia ficar com barra maior
     // que uma de % maior só por ter menos texto ocupando espaço ao lado.
-    const CIA_ROW_COLS = '54px 1fr 40px 60px 56px 56px';
+    const CIA_ROW_COLS = '74px 1fr 40px 60px 56px 56px';
     const makeRow = (label, color, pms) => {
       if (!pms.length) return '';
       const s = stOf(pms);
