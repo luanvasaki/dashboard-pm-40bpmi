@@ -1383,8 +1383,13 @@ function p1ShowKpiDetail(tipo) {
     // Lista de sugestão vem do que já está filtrado pelos outros critérios
     // (CIA/gênero/município/posto/curso) — igual ao padrão dos outros filtros
     // dessa tela, refina em cima do que já foi reduzido em vez de sempre
-    // sugerir o efetivo inteiro.
-    const listaNomesBusca = somenteQtdBusca ? [] : [...new Set(filtered.map(x => x.r.nome_guerra || x.r.nome).filter(Boolean))].sort((a,b) => a.localeCompare(b));
+    // sugerir o efetivo inteiro. Usa o NOME COMPLETO (não o QRA/nome de
+    // guerra) como valor da opção — o filtro nativo do navegador (o que
+    // aparece na lista suspensa enquanto digita) casa contra o texto da
+    // opção, então "LUAN" só encontrava quem tem "Luan" no QRA se a opção
+    // fosse o QRA; com o nome completo, casa em qualquer parte do nome de
+    // qualquer PM, igual ao filtro de verdade (que já checa nome e QRA).
+    const listaNomesBusca = somenteQtdBusca ? [] : [...new Set(filtered.map(x => x.r.nome).filter(Boolean))].sort((a,b) => a.localeCompare(b));
     if (!somenteQtdBusca && _p1TotalDetBusca) {
       const q = _p1TotalDetBusca.toLowerCase();
       const isReQ = /^\d+$/.test(q);
