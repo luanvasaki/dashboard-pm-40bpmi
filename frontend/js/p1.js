@@ -249,6 +249,17 @@ function p1TipoLabel(tipo) {
 // Restrições (efetivo_pm.possui_restricao, alimentado só pelo SGP).
 const p1EhRestricao = a => !!a.restricao;
 
+// Pra escala de rua (KPIs de disponibilidade por CIA/OPM), só a restrição de
+// código "PO" (Policiamento — BG PM 166/2006) de fato tira o PM da rua; quem
+// tem restrição de outro tipo (ex: EF, OU, SP) continua podendo trabalhar
+// normalmente no policiamento, então não deve contar como "RESTR" nesses
+// cards — pedido explícito do usuário (2026-08-14), já que são os cards que
+// os comandantes usam pra saber com quantos PM podem contar na rua.
+const p1RestrRua = r => {
+  if (!(r.possui_restricao || '').toLowerCase().startsWith('s')) return false;
+  return (r.tipos_restricao || '').split(/[,;]/).map(c => c.trim().toUpperCase()).includes('PO');
+};
+
 // Carrega todos os dados do P1 em paralelo: efetivo, afastamentos, vagas e quadro
 // Chamada ao entrar na seção P1 via goSection('p1') e após qualquer upload
 async function loadP1() {
@@ -609,7 +620,7 @@ function renderP1() {
   const getPms = keys => Object.entries(byUnit).filter(([opm]) => _opmMatch(opm, keys)).flatMap(([,arr]) => arr);
   const statsOf = pms => {
     const afst_ = pms.filter(r => afastHoje[r.re]).length;
-    const restr_ = pms.filter(r => (r.possui_restricao||'').toLowerCase().startsWith('s')).length;
+    const restr_ = pms.filter(p1RestrRua).length;
     const aptos_ = pms.length - afst_;
     const pct_   = pms.length ? Math.round(aptos_ / pms.length * 100) : 0;
     const color_ = pct_ >= 85 ? '#4bc87a' : pct_ >= 70 ? '#c8a84b' : '#e8b840';
@@ -3235,7 +3246,7 @@ function renderHome() {
     const getPms  = keys => p1Data.filter(r => _opmMatch(r.opm, keys));
     const stOf    = pms  => {
       const total = pms.length, afst = pms.filter(r => afH[r.re]).length;
-      const restr = pms.filter(r => (r.possui_restricao||'').toLowerCase().startsWith('s')).length;
+      const restr = pms.filter(p1RestrRua).length;
       const pct   = total ? Math.round((total - afst) / total * 100) : 0;
       const color = pct >= 80 ? '#4bc87a' : pct >= 60 ? '#c8a84b' : '#e8b840';
       return { total, afst, restr, aptos: total - afst, pct, color };
@@ -3453,7 +3464,7 @@ function renderHome() {
       });
       const stOf3 = pms => {
         const total = pms.length, afst = pms.filter(r => afH3[r.re]).length;
-        const restr = pms.filter(r => (r.possui_restricao||'').toLowerCase().startsWith('s')).length;
+        const restr = pms.filter(p1RestrRua).length;
         const pct = total ? Math.round((total - afst) / total * 100) : 0;
         const color = pct >= 80 ? '#4bc87a' : pct >= 60 ? '#c8a84b' : '#e8b840';
         return { total, afst, restr, aptos: total - afst, pct, color };
