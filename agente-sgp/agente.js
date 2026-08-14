@@ -116,9 +116,6 @@ async function buscarDadosPM(re6) {
     throw new Error(`RE ${re6} não encontrado ou erro no WSSCPM (${result?.erroDescricao || result?.ErrorDesc || 'sem dados'})`);
   }
 
-  const funcoes = asArray(result.funcoesPM?.Funcao);
-  const funcaoPrincipal = funcoes.find(f => f.Principal === 'S') || funcoes[0];
-
   const dados = {
     // efetivo_pm guarda o RE com dígito verificador (ex: "151626-4").
     re:          `${result.numeroREPM}-${trim(result.digitoREPM)}`,
@@ -126,11 +123,12 @@ async function buscarDadosPM(re6) {
     nome_guerra: trim(result.nomeGuePM),
     genero:      trim(result.sexoPM),
     posto:       trim(result.codigoPostoGraduacaoPM?.siglaPostoGraduacaoPM),
-    funcao:      trim(funcaoPrincipal?.descricaoFuncaoPM) || null,
-    // OPM propositalmente de fora: quem define a lotação de cada PM é a
-    // planilha de efetivo geral, não a busca na intranet — o WSSCPM mostra
-    // a OPM atual "real" da pessoa, que pode divergir (transferências) do
-    // que a planilha do batalhão registra, e não queremos sobrescrever isso.
+    // OPM e função propositalmente de fora: quem define a lotação e a função
+    // de cada PM é a planilha de efetivo geral (upload manual), não a busca
+    // na intranet — decisão explícita do usuário (2026-08-14) pra função,
+    // mesmo motivo que já valia pra OPM: o WSSCPM mostra o dado "atual real"
+    // da pessoa, que pode divergir do que o batalhão registra/decide, e não
+    // queremos que a sincronização sobrescreva isso.
   };
 
   // CPF só é usado na hora, pra buscar afastamentos — nunca é salvo em lugar nenhum.
@@ -526,28 +524,34 @@ async function buscarRestricoesPM(re6, cookie) {
   // OBS: a resposta real do SGP-DP NÃO tem o campo "restricoesDetalhadasCmed"
   // que a gente assumia inicialmente dentro de restricoesVigentes (esse objeto
   // só tem restricoesDetalhadas/restricoesDetalhadasSirh, sempre vazios nos
-  // casos testados) — então "ativa" nunca vinha preenchida por ali. Além
-  // disso, o SGP-DP não expira a restrição sozinho na data de retorno prevista
-  // (aftQtDia é só a duração PRESCRITA, não uma expiração automática): o PM
-  // continua "Apto com Restrição" até uma NOVA avaliação da Junta Médica
-  // registrar "Apto Pleno" (ou outra restrição), mesmo com a data de retorno
-  // já vencida. Por isso "ativa" é calculada aqui como a avaliação mais
-  // recente (por dataCad) de toda a ListaCmed — não só das que têm "rest".
+  // casos testados) — então "ativa" nunca vinha preenchida por ali. Corrigido
+  // calculando "ativa" a partir da ListaCmed: a avaliação mais recente (por
+  // dataCad) que tenha "rest" (restrição de verdade) E cuja data de retorno
+  // prevista ainda não tenha passado (ou esteja em aberto) — mesma regra já
+  // usada no WSSCPM (ver sincronizarAfastamentos acima). Decisão explícita do
+  // usuário (2026-08-14): data de retorno vencida = considerar apto, mesmo
+  // sem uma avaliação nova registrando alta — reverte uma suposição anterior
+  // (baseada num único caso observado) de que a restrição ficaria vigente até
+  // nova avaliação; a regra de negócio real é expirar por data.
   let ativa = null;
   let historico = [];
   try {
     const listaCmed = JSON.parse(raw?.ListaCmed || '[]');
+    const hoje = new Date().toISOString().slice(0, 10);
 
     const porData = (item) => String(item.dataCad || item.dataInic || '');
     const maisRecente = listaCmed
       .filter(item => item.re || item.pmReNum)
       .sort((a, b) => porData(b).localeCompare(porData(a)))[0];
     if (maisRecente?.rest) {
-      ativa = {
-        tipo:    trim(maisRecente.rest).toUpperCase().replace(/\s+/g, ' '),
-        inicio:  maisRecente.dataInic ? String(maisRecente.dataInic).slice(0, 10) : null,
-        termino: maisRecente.dataRetorno && !String(maisRecente.dataRetorno).startsWith('0001-01-01') ? String(maisRecente.dataRetorno).slice(0, 10) : null,
-      };
+      const termino = maisRecente.dataRetorno && !String(maisRecente.dataRetorno).startsWith('0001-01-01') ? String(maisRecente.dataRetorno).slice(0, 10) : null;
+      if (!termino || termino >= hoje) {
+        ativa = {
+          tipo: trim(maisRecente.rest).toUpperCase().replace(/\s+/g, ' '),
+          inicio: maisRecente.dataInic ? String(maisRecente.dataInic).slice(0, 10) : null,
+          termino,
+        };
+      }
     }
 
     historico = listaCmed

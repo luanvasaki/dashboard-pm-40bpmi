@@ -31,7 +31,7 @@ Se a regra já existe duplicada em dois lugares por herança histórica e a tare
 
 ## Casos concretos de regra de negócio não-óbvia já resolvidos (referência)
 
-- **Restrição médica "ativa":** o SGP-DP não expira restrição automaticamente pela data de retorno prevista — o PM continua restrito até uma *nova* avaliação da Junta Médica dizer o contrário, mesmo com a data prevista vencida. A regra correta é "avaliação mais recente por `dataCad`", não "data de término ainda não passou".
+- **Restrição médica "ativa":** decisão explícita do usuário (2026-08-14) — restrição expira pela data de retorno prevista, igual ao padrão já usado no WSSCPM. A regra é: pegar a avaliação mais recente por `dataCad` na `ListaCmed` do SGP-DP e só considerar "ativa" se ela tiver `rest` (restrição de verdade) E a data de retorno estiver em aberto (`termino` nulo) ou ainda não tiver passado (`termino >= hoje`). Se a data já passou, é apto — mesmo sem uma avaliação nova de alta. (Uma suposição anterior, baseada num único caso observado, tinha concluído o oposto — foi corrigida depois que o usuário esclareceu a regra real.)
 - **LSV (Licença Sem Vencimento) com término em aberto:** `termino=null` significa "ainda em curso", não "inválido" — cálculos de "afastado hoje" devem tratar `(!termino || termino >= hoje)`, nunca só `termino >= hoje`.
 - **Ordem de antiguidade de sargento:** RE crescente não é suficiente — 1º Sgt é mais antigo que 2º Sgt mesmo com RE maior; a hierarquia de posto precede a ordenação por RE dentro do mesmo posto.
 - **Nem todo item de "Agregação"/afastamento é restrição médica de verdade** (ex: LSV aparecia classificado como restrição) — sempre checar o texto/motivo, não só a categoria geral do campo de origem.
