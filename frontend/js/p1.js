@@ -3287,54 +3287,38 @@ function renderHome() {
     };
     const gs = stOf(p1Data);
 
-    // EAP pendente
-    const anoAtualH = new Date().getFullYear();
-    const eapPend = p1Data.filter(r => {
-      if (!r.data_eap) return true;
-      const d = new Date(r.data_eap);
-      return isNaN(d) || d.getFullYear() !== anoAtualH;
-    }).length;
-
-    // Férias
-    const em15s  = (() => { const d = new Date(); d.setDate(d.getDate() + 15); return d.toISOString().split('T')[0]; })();
-    const ferGozo = (p1Afasts||[]).filter(a => isFer(a.tipo_afastamento) && a.inicio <= today && (!a.termino || a.termino >= today)).length;
-    const fer15   = (p1Afasts||[]).filter(a => isFer(a.tipo_afastamento) && a.inicio > today && a.inicio <= em15s).length;
-
-    // Restrições vencendo em 30 dias
+    // Restrições vencendo em 30 dias — único alerta mantido nesse card (os
+    // outros — EAP pendente, férias, afastamento líder — foram removidos por
+    // pedido do usuário, deixavam o card carregado de informação secundária).
     const em30s = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split('T')[0]; })();
     const restrVenc = p1Data.filter(r =>
       (r.possui_restricao||'').toLowerCase().startsWith('s') &&
       r.restricao_termino && r.restricao_termino >= today && r.restricao_termino <= em30s
     ).length;
-
-    // Tipo de afastamento mais frequente
-    const tipoCount = {};
-    Object.values(afH).flat().forEach(a => { tipoCount[a.tipo_afastamento] = (tipoCount[a.tipo_afastamento]||0) + 1; });
-    const topAfst = Object.entries(tipoCount).sort((a,b) => b[1]-a[1])[0];
-
-    // Alertas
     const alertas = [];
-    if (eapPend > 0)   alertas.push(`<span style="color:#c8a84b">⚠ ${eapPend} EAP pend.</span>`);
     if (restrVenc > 0) alertas.push(`<span style="color:#c8a84b">⚠ ${restrVenc} restr. vencem</span>`);
-    if (ferGozo > 0)   alertas.push(`<span style="color:#5a9de0">${ferGozo} em férias</span>`);
-    if (fer15 > 0)     alertas.push(`<span style="color:#5a9de0">${fer15} férias em 15d</span>`);
-    if (topAfst)       alertas.push(`<span style="color:var(--tx3)">Afst líder: <span style="color:var(--tx2)">${escHtml(topAfst[0])} (${topAfst[1]})</span></span>`);
 
     const allCiaKeys = CIA_STRUCT.flatMap(c => c.units.flatMap(u => u.keys));
     const unmatchedOpms = [...new Set(p1Data.map(r => r.opm).filter(o => o && !_opmMatch(o, allCiaKeys)))];
 
+    // Colunas em grid (não flex) — cada linha reserva o MESMO espaço fixo
+    // pra PMs/afst/restr independente de aparecerem ou não, senão a barra
+    // (que pega o espaço "sobrando") varia de largura entre linhas por causa
+    // do texto ao lado, e uma CIA com % menor podia ficar com barra maior
+    // que uma de % maior só por ter menos texto ocupando espaço ao lado.
+    const CIA_ROW_COLS = '54px 1fr 40px 60px 56px 56px';
     const makeRow = (label, color, pms) => {
       if (!pms.length) return '';
       const s = stOf(pms);
-      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:${color};width:48px;flex-shrink:0">${escHtml(label)}</div>
-        <div style="flex:1;background:rgba(255,255,255,.06);border-radius:3px;height:6px;overflow:hidden">
+      return `<div style="display:grid;grid-template-columns:${CIA_ROW_COLS};align-items:center;gap:8px;margin-bottom:7px">
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:${color};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(label)}</div>
+        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px;overflow:hidden">
           <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:3px"></div>
         </div>
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.color};width:38px;text-align:right">${s.pct}%</div>
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);width:58px">${s.total} PMs</div>
-        ${s.afst  > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:19px;color:#e05555">${s.afst} afst</div>` : ''}
-        ${s.restr > 0 ? `<div style="font-family:'DM Mono',monospace;font-size:19px;color:#c8a84b">${s.restr} restr</div>` : ''}
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.color};text-align:right">${s.pct}%</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">${s.total} PMs</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.afst>0?'#e05555':'var(--bd2)'};text-align:right">${s.afst>0?`${s.afst} afst`:'—'}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.restr>0?'#c8a84b':'var(--bd2)'};text-align:right">${s.restr>0?`${s.restr} restr`:'—'}</div>
       </div>`;
     };
 
@@ -3456,23 +3440,36 @@ function renderHome() {
   ];
 
   const cards = sections.map(s => {
-    const opacity = s.soon ? '0.45' : '1';
-    const cursor  = s.soon ? 'default' : 'pointer';
-    const click   = s.soon ? '' : `onclick="${s.action};closeSidebarMobile()"`;
-    const hover   = s.soon ? '' : `onmouseover="this.style.borderColor='${s.color}';this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,.35)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform='';this.style.boxShadow=''"`;
-    return `<div ${click} ${hover} style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${s.soon?'var(--bd)':s.color};border-radius:10px;padding:26px 22px;cursor:${cursor};transition:all .2s;opacity:${opacity};display:flex;flex-direction:column">
+    // Seções "em breve" não têm nada pra mostrar (sem preview, sem ação) —
+    // um card vertical do mesmo tamanho do ativo só pra exibir um parágrafo
+    // descritivo era peso visual sem função. Vira uma linha compacta
+    // (ícone + nome + badge), claramente menos importante que os cards
+    // ativos, sem competir por atenção com eles.
+    if (s.soon) {
+      return `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:16px 20px;opacity:.5;display:flex;align-items:center;gap:14px">
+        <div style="width:38px;height:38px;border-radius:9px;background:${s.color}18;border:1px solid ${s.color}33;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i data-lucide="${s.icon}" style="width:19px;height:19px;stroke:${s.color};stroke-width:1.75"></i>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--tx3);letter-spacing:1px;line-height:1">${s.label}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600;color:#ffffff;letter-spacing:.3px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title}</div>
+        </div>
+        <span style="font-family:'DM Mono',monospace;font-size:14px;padding:3px 9px;border-radius:10px;background:rgba(255,255,255,.05);color:#ffffff;letter-spacing:1px;flex-shrink:0">EM BREVE</span>
+      </div>`;
+    }
+    return `<div onclick="${s.action};closeSidebarMobile()" onmouseover="this.style.borderColor='${s.color}';this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,.35)'" onmouseout="this.style.borderColor='var(--bd)';this.style.transform='';this.style.boxShadow=''" style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${s.color};border-radius:10px;padding:26px 22px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px">
         <div style="width:44px;height:44px;border-radius:10px;background:${s.color}18;border:1px solid ${s.color}33;display:flex;align-items:center;justify-content:center;flex-shrink:0">
           <i data-lucide="${s.icon}" style="width:22px;height:22px;stroke:${s.color};stroke-width:1.75"></i>
         </div>
-        ${s.soon ? `<span style="font-family:'DM Mono',monospace;font-size:19px;padding:3px 10px;border-radius:10px;background:rgba(255,255,255,.05);color:#ffffff;letter-spacing:1px">EM BREVE</span>` : `<span style="font-family:'DM Mono',monospace;font-size:19px;padding:3px 10px;border-radius:10px;background:${s.color}18;color:${s.color};letter-spacing:1px">ATIVO</span>`}
+        <span style="font-family:'DM Mono',monospace;font-size:19px;padding:3px 10px;border-radius:10px;background:${s.color}18;color:${s.color};letter-spacing:1px">ATIVO</span>
       </div>
       <div style="margin-bottom:8px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:800;color:${s.soon?'var(--tx3)':s.color};letter-spacing:1px;line-height:1;margin-bottom:4px">${s.label}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:800;color:${s.color};letter-spacing:1px;line-height:1;margin-bottom:4px">${s.label}</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:600;color:#ffffff;letter-spacing:.5px">${s.title}</div>
       </div>
       <div style="font-size:19px;color:#ffffff;line-height:1.7">${s.desc}</div>
-      ${s.preview || (!s.soon ? `<div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px;font-family:'DM Mono',monospace;font-size:19px;color:${s.color};display:flex;align-items:center;gap:6px">Acessar <span style="font-size:19px">→</span></div>` : '')}
+      ${s.preview || `<div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px;font-family:'DM Mono',monospace;font-size:19px;color:${s.color};display:flex;align-items:center;gap:6px">Acessar <span style="font-size:19px">→</span></div>`}
     </div>`;
   }).join('');
 
