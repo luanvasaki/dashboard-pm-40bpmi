@@ -3327,6 +3327,29 @@ function renderHome() {
       ...unmatchedOpms.map(opm => makeRow(opm, 'var(--tx3)', p1Data.filter(r => r.opm === opm)))
     ].filter(Boolean).join('');
 
+    // Cidades mais críticas em Cb/Sd (maior % de claro em relação ao
+    // efetivo fixado) — só Cb/Sd, top 3, pedido explícito do usuário. Usa
+    // p1_quadro_fixado (mesma fonte do KPI "Quadro Fixado do Efetivo").
+    let cidadesCriticasHtml = '';
+    if (typeof p1Quadro !== 'undefined' && p1Quadro && p1Quadro.length) {
+      const cidadesCriticas = p1Quadro.map(q => {
+        const fx = Number(q.fx_cb_sd) || 0, ex = Number(q.ex_cb_sd) || 0;
+        const claro = fx - ex;
+        const pct = fx > 0 ? Math.round(claro / fx * 100) : 0;
+        return { mun: q.municipio || q.opm || '—', claro, pct, fx };
+      }).filter(d => d.claro > 0 && d.fx > 0).sort((a, b) => b.pct - a.pct).slice(0, 3);
+      if (cidadesCriticas.length) {
+        cidadesCriticasHtml = `
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)">
+            <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase">Mais críticas · Cb/Sd</div>
+            ${cidadesCriticas.map(d => `<div style="display:flex;justify-content:space-between;align-items:center;font-family:'DM Mono',monospace;font-size:17px;margin-bottom:3px">
+              <span style="color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%">${escHtml(d.mun)}</span>
+              <span style="color:#e05555;font-weight:700">−${d.claro} <span style="color:var(--tx3);font-weight:400">(${d.pct}%)</span></span>
+            </div>`).join('')}
+          </div>`;
+      }
+    }
+
     p1Preview = `
       <div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px">
         <div style="display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap">
@@ -3336,6 +3359,7 @@ function renderHome() {
           <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${gs.restr>0?'#c8a84b':'var(--tx3)'}">${gs.restr}</span><span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-left:4px">restr</span></div>
         </div>
         ${ciaRows}
+        ${cidadesCriticasHtml}
         ${alertas.length ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);display:flex;flex-wrap:wrap;gap:8px;font-family:'DM Mono',monospace;font-size:19px">${alertas.join('<span style="color:var(--bd2)">·</span>')}</div>` : ''}
       </div>`;
   }
@@ -3377,29 +3401,30 @@ function renderHome() {
     const totalMeta = rawMes.reduce((s, r) => s + (r.meta || 0), 0);
     const pctMeta = totalMeta > 0 ? Math.round(totalMes / totalMeta * 100) : null;
     const metaColor = pctMeta === null ? 'var(--tx3)' : pctMeta <= 100 ? '#4bc87a' : '#e8b840';
-    // Crime mais fora da meta no mês (maior desvio % acima)
-    const porCrimeMeta = {};
-    rawMes.forEach(r => {
-      if (!porCrimeMeta[r.crime]) porCrimeMeta[r.crime] = { a: 0, m: 0 };
-      porCrimeMeta[r.crime].a += (r.avaliado || 0);
-      porCrimeMeta[r.crime].m += (r.meta || 0);
-    });
-    const crimesAcima = Object.entries(porCrimeMeta)
-      .filter(([, v]) => v.m > 0 && v.a > v.m)
-      .sort(([, a], [, b]) => (b.a / b.m) - (a.a / a.m));
-    const topCritico = crimesAcima[0];
-    const criticoTxt = topCritico
-      ? `Crítico em ${mesR}: <span style="color:#e8b840">${escHtml(topCritico[0])}</span> <span style="color:#e8b840">+${Math.round((topCritico[1].a / topCritico[1].m - 1) * 100)}%</span>`
-      : `<span style="color:#4bc87a">✓ Em ${mesR}, todos os crimes dentro da meta</span>`;
+
+    // Cada crime do mês mais recente, com % da meta individual — sempre os
+    // mesmos crimes do último mês fechado, não só o "pior" (pedido explícito
+    // do usuário). Em 2 colunas pra caber compacto no card.
+    const crimesMes = CRIMES.map(c => {
+      const recs = rawMes.filter(r => r.crime === c);
+      const aval = recs.reduce((s, r) => s + (r.avaliado || 0), 0);
+      const meta = recs.reduce((s, r) => s + (r.meta || 0), 0);
+      const pct  = meta > 0 ? Math.round(aval / meta * 100) : null;
+      return { c, pct };
+    }).filter(x => x.pct !== null);
+    const crimesRows = crimesMes.map(x => `<div style="display:flex;justify-content:space-between;gap:6px">
+      <span style="color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(x.c)}</span>
+      <span style="color:${x.pct<=100?'#4bc87a':'#e8b840'};font-weight:700;flex-shrink:0">${x.pct}%</span>
+    </div>`).join('');
 
     p3Preview = `
       <div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px">
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px;margin-bottom:6px">${mesR} ${anoR}</div>
-        <div style="display:flex;gap:14px;margin-bottom:8px;flex-wrap:wrap">
+        <div style="display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap">
           <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--tx)">${totalMes}</span><span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-left:4px">ocorr.</span></div>
           ${pctMeta !== null ? `<div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${metaColor}">${pctMeta}%</span><span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-left:4px">da meta</span></div>` : ''}
         </div>
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff">${criticoTxt}</div>
+        ${crimesRows ? `<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 16px;font-family:'DM Mono',monospace;font-size:17px">${crimesRows}</div>` : ''}
       </div>`;
   }
 
