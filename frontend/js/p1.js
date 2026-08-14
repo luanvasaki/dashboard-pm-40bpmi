@@ -1416,17 +1416,23 @@ function p1ShowKpiDetail(tipo) {
     // nativo do navegador) — em vez de um <select> que só rola. Reaproveitado
     // tanto pros filtros de curso (seleção exata de um item) quanto pra busca
     // de nome/RE (texto livre, casa por trecho — ver filtro de _p1TotalDetBusca acima).
+    // Placeholder curto o bastante pra nunca clipar (inputs de largura
+    // variável dependendo da tela) — texto longo com contagem dinâmica
+    // ("Buscar entre 352 PMs...") cortava sem reticências, já que o
+    // navegador não aplica "..." em placeholder por padrão. A contagem
+    // continua disponível no rótulo do campo (ex: "N PMs" abaixo), não
+    // precisa repetir dentro do placeholder.
     const inputBusca = (id, lista, valor, onchangeFn, placeholder) => `
       <div style="display:flex;gap:6px;align-items:center;max-width:100%">
         <input type="text" list="${id}-list" value="${escHtml(valor || '')}"
           placeholder="${escHtml(placeholder)}" onchange="${onchangeFn}(this.value)"
-          style="flex:1;min-width:0;padding:7px 10px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-size:15px;font-family:'DM Mono',monospace">
+          style="flex:1;min-width:0;padding:7px 10px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:6px;font-size:15px;font-family:'DM Mono',monospace;overflow:hidden;text-overflow:ellipsis">
         <datalist id="${id}-list">${lista.map(c => `<option value="${escHtml(c)}">`).join('')}</datalist>
         ${valor ? `<button onclick="${onchangeFn}('')" title="Limpar filtro" style="padding:6px 10px;background:var(--s2);border:1px solid var(--bd);color:var(--tx3);border-radius:6px;cursor:pointer;font-size:15px;flex-shrink:0">✕</button>` : ''}
       </div>`;
-    const buscaNomeRow  = somenteQtdBusca ? '' : gridRow('BUSCAR PM (NOME OU RE)', inputBusca('p1-total-busca', listaNomesBusca, _p1TotalDetBusca, 'p1TotalSetBusca', `Buscar entre ${listaNomesBusca.length} PMs por nome ou RE...`));
-    const cursosIntRow = listaCursosInt.length ? gridRow('CURSOS INTERNOS', inputBusca('p1-curso-int', listaCursosInt, _p1TotalDetCursoInt, 'p1TotalSetCursoInt', `Buscar entre ${listaCursosInt.length} cursos...`)) : '';
-    const cursosExtRow = listaCursosExt.length ? gridRow('CURSOS EXTERNOS', inputBusca('p1-curso-ext', listaCursosExt, _p1TotalDetCursoExt, 'p1TotalSetCursoExt', `Buscar entre ${listaCursosExt.length} cursos...`)) : '';
+    const buscaNomeRow  = somenteQtdBusca ? '' : gridRow(`BUSCAR PM (NOME OU RE) · ${listaNomesBusca.length}`, inputBusca('p1-total-busca', listaNomesBusca, _p1TotalDetBusca, 'p1TotalSetBusca', 'Nome ou RE...'));
+    const cursosIntRow = listaCursosInt.length ? gridRow(`CURSOS INTERNOS · ${listaCursosInt.length}`, inputBusca('p1-curso-int', listaCursosInt, _p1TotalDetCursoInt, 'p1TotalSetCursoInt', 'Nome do curso...')) : '';
+    const cursosExtRow = listaCursosExt.length ? gridRow(`CURSOS EXTERNOS · ${listaCursosExt.length}`, inputBusca('p1-curso-ext', listaCursosExt, _p1TotalDetCursoExt, 'p1TotalSetCursoExt', 'Nome do curso...')) : '';
 
     const totalInfo = r => {
       const afst = p1AfastHoje[r.re];
