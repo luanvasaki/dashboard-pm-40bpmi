@@ -280,6 +280,21 @@ async function init() {
     return;
   }
 
+  // Etapa 1b: pré-carregar P1/UIS em paralelo — sem isso, os cards de
+  // P1/UIS/cidades críticas da home ficavam vazios até o usuário visitar
+  // essas seções manualmente ao menos uma vez na sessão (só loadData() era
+  // chamado no boot, que só alimenta o card do P3). Falha aqui não é fatal
+  // pro resto do app — a home só mostra o que conseguiu carregar, igual já
+  // acontecia antes desse pré-carregamento existir.
+  try {
+    await Promise.all([
+      typeof loadP1 === 'function' ? loadP1() : Promise.resolve(),
+      typeof loadUisSection === 'function' ? loadUisSection() : Promise.resolve(),
+    ]);
+  } catch (err) {
+    console.error('Erro ao pré-carregar P1/UIS para a home:', err);
+  }
+
   // Etapa 2: inicializar e renderizar
   try {
     if (!window.Chart) throw new Error('Biblioteca de gráficos (Chart.js) não carregou. Verifique sua conexão e recarregue.');
