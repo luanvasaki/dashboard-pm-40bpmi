@@ -3419,144 +3419,6 @@ function renderHome() {
       </div>`;
   }
 
-  // ── Insights / Rankings ───────────────────────────────────────────────────
-  let insightsHtml = '';
-  const hasP1ins = p1Data && p1Data.length > 0;
-  const hasP3ins = RAW && RAW.length > 0;
-  if (hasP1ins || hasP3ins) {
-    const insColsP1 = [], insColsP3Meta = [], insColsP3Fora = [];
-
-    if (hasP3ins) {
-      const anos3  = [...new Set(RAW.map(r => r.ano))].sort((a,b) => b-a);
-      const ano3   = anos3[0];
-      const meses3 = getMesForAno(ano3);
-      const mes3   = meses3[meses3.length - 1];
-      const rawM   = RAW.filter(r => r.ano === ano3 && r.mes === mes3);
-
-      // Crimes × meta — totais do batalhão
-      const crimesSoma = CRIMES.map(c => {
-        const recs = rawM.filter(r => r.crime === c);
-        const aval = recs.reduce((s,r) => s + (r.avaliado||0), 0);
-        const meta = recs.reduce((s,r) => s + (r.meta||0), 0);
-        return { c, aval, meta };
-      }).filter(x => x.aval > 0 || x.meta > 0);
-      if (crimesSoma.length > 0) {
-        const crimesSomaRows = crimesSoma.map((d, i) => {
-          const ok = d.aval <= d.meta;
-          const col = ok ? '#4bc87a' : '#e8b840';
-          const status = ok ? '✓ Na meta' : '✗ Acima';
-          return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0${i<crimesSoma.length-1?';border-bottom:1px solid var(--bd)':''}">
-            <div style="flex:1;font-size:19px;color:#ffffff">${escHtml(d.c)}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff">Meta <b style="color:#ffffff">${d.meta}</b></div>
-            <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff">Aval <b style="color:${col}">${d.aval}</b></div>
-            <div style="font-family:'DM Mono',monospace;font-size:19px;color:${col};width:72px;text-align:right">${status}</div>
-          </div>`;
-        }).join('');
-        insColsP3Meta.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px">
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · CRIMES × META — ${mes3} ${ano3} — BATALHÃO</div>
-          ${crimesSomaRows}
-        </div>`);
-      }
-
-      // Municípios por nº de crimes fora da meta
-      const munCrimesFora = {};
-      rawM.forEach(r => {
-        if (!r.mun || !r.meta) return;
-        if (!munCrimesFora[r.mun]) munCrimesFora[r.mun] = { fora: 0, total: 0 };
-        munCrimesFora[r.mun].total++;
-        if (r.avaliado > r.meta) munCrimesFora[r.mun].fora++;
-      });
-      const munRank = Object.entries(munCrimesFora)
-        .filter(([, v]) => v.fora > 0)
-        .map(([m, v]) => ({ m, fora: v.fora, total: v.total }))
-        .sort((a, b) => b.fora - a.fora || b.total - a.total)
-        .slice(0, 6);
-      if (munRank.length > 0) {
-        const munRows3 = munRank.map((item, i) => {
-          const col = item.fora >= 4 ? '#e8b840' : item.fora >= 2 ? '#c8a84b' : '#e0d0a0';
-          return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0${i<munRank.length-1?';border-bottom:1px solid var(--bd)':''}">
-            <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;width:22px;flex-shrink:0">${i+1}</div>
-            <div style="flex:1;font-size:19px;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(item.m)}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:19px;color:${col};font-weight:700;white-space:nowrap">${item.fora}/7 ▲</div>
-          </div>`;
-        }).join('');
-        insColsP3Fora.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px">
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:12px">P3 · CRIMES FORA DA META — ${mes3} ${ano3}</div>
-          ${munRows3}
-        </div>`);
-      }
-    }
-
-    if (hasP1ins) {
-      const today3 = new Date().toISOString().split('T')[0];
-      const afH3 = {};
-      (p1Afasts || []).forEach(a => {
-        if (!p1EhRestricao(a) && a.inicio <= today3 && (!a.termino || a.termino >= today3)) {
-          if (!afH3[a.re]) afH3[a.re] = [];
-          afH3[a.re].push(a);
-        }
-      });
-      const stOf3 = pms => {
-        const total = pms.length, afst = pms.filter(r => afH3[r.re]).length;
-        const restr = pms.filter(p1RestrRua).length;
-        const pct = total ? Math.round((total - afst) / total * 100) : 0;
-        const color = pct >= 80 ? '#4bc87a' : pct >= 60 ? '#c8a84b' : '#e8b840';
-        return { total, afst, restr, aptos: total - afst, pct, color };
-      };
-
-      // CIA ranking por disponibilidade
-      const ciaRank = CIA_STRUCT.map(cia => {
-        const pms = p1Data.filter(r => _opmMatch(r.opm, cia.units.flatMap(u => u.keys)));
-        if (!pms.length) return null;
-        const s = stOf3(pms);
-        return { label: cia.label, color: cia.color, ...s };
-      }).filter(Boolean).sort((a, b) => b.pct - a.pct);
-      if (ciaRank.length > 0) {
-        const ciaRows3 = ciaRank.map((c, i) => `<div style="display:flex;align-items:center;gap:8px;padding:8px 0${i<ciaRank.length-1?';border-bottom:1px solid var(--bd)':''}">
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;width:22px;flex-shrink:0">${i+1}</div>
-          <div style="width:10px;height:10px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
-          <div style="flex:1;font-size:19px;color:#ffffff">${c.label}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${c.color};font-weight:700;width:44px;text-align:right">${c.pct}%</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;width:64px;text-align:right">${c.total} PMs</div>
-        </div>`).join('');
-        insColsP1.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #4bc87a;border-radius:10px;padding:20px">
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;letter-spacing:1.5px;margin-bottom:12px">P1 · DISPONIBILIDADE POR CIA</div>
-          ${ciaRows3}
-        </div>`);
-      }
-
-      // Afastamentos por tipo
-      const tipoCnt = {};
-      Object.values(afH3).flat().forEach(a => { tipoCnt[a.tipo_afastamento] = (tipoCnt[a.tipo_afastamento] || 0) + 1; });
-      const tipoRank = Object.entries(tipoCnt).sort((a, b) => b[1] - a[1]).slice(0, 6);
-      if (tipoRank.length > 0) {
-        const maxTipo = tipoRank[0][1];
-        const tipoRows3 = tipoRank.map(([tipo, cnt], i) => {
-          const pct = maxTipo > 0 ? Math.round(cnt / maxTipo * 100) : 0;
-          return `<div style="margin-bottom:${i<tipoRank.length-1?'12':'0'}px">
-            <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-              <div style="font-size:19px;color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:76%">${escHtml(tipo)}</div>
-              <div style="font-family:'DM Mono',monospace;font-size:19px;color:#e05555;font-weight:700">${cnt}</div>
-            </div>
-            <div style="background:rgba(255,255,255,.06);border-radius:3px;height:5px"><div style="height:100%;width:${pct}%;background:#e05555;border-radius:3px"></div></div>
-          </div>`;
-        }).join('');
-        insColsP1.push(`<div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #e05555;border-radius:10px;padding:20px">
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#e05555;letter-spacing:1.5px;margin-bottom:12px">P1 · RANKING AFASTAMENTOS POR TIPO</div>
-          ${tipoRows3}
-        </div>`);
-      }
-    }
-
-    const insCols = [...insColsP1, ...insColsP3Meta, ...insColsP3Fora];
-    if (insCols.length > 0) {
-      insightsHtml = `<div style="margin-top:28px">
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:2px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bd)">INSIGHTS &amp; RANKINGS</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">${insCols.join('')}</div>
-      </div>`;
-    }
-  }
-
   const sections = [
     {
       id: 'p1', icon: 'users', color: '#4bc87a', label: 'P1', title: 'Seção de Pessoal',
@@ -3622,10 +3484,9 @@ function renderHome() {
         <div style="font-size:19px;color:#ffffff;margin-top:4px;text-transform:capitalize">${data} · ${hora}</div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
       ${cards}
-    </div>
-    ${insightsHtml}`;
+    </div>`;
 
   if (window.lucide) lucide.createIcons();
 }
