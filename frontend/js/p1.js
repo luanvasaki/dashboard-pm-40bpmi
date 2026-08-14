@@ -119,18 +119,24 @@ function hasUisRestr(re) {
 }
 
 // ── Estrutura orgânica do 40º BPM/I ─────────────────────────────────────────
+// Cada unidade "Sede" ganhou um padrão âncora (ex: '^1 cia$') pro caso de
+// registro cujo OPM vem só como o rótulo genérico da CIA ("1ª CIA", sem
+// sede/cidade) — achado real na UIS: restrição com opm="1ª CIA" aparecia na
+// lista geral mas sumia da aba "1ª CIA" porque nenhuma chave existente
+// (todas mais específicas, tipo "1 cia - sede"/"votorantim") batia num OPM
+// tão curto. FT/EM já tinham esse padrão (`^ft$`/`^em$`), só faltava nas CIAs.
 const CIA_STRUCT = [
   {
     label: '1ª CIA', sede: 'Votorantim', color: CIA_COR['1'],
     units: [
-      { label: 'Sede · Votorantim', keys: ['1 cia - sede', 'votorantim'] },
+      { label: 'Sede · Votorantim', keys: ['1 cia - sede', 'votorantim', '^1 cia$'] },
       { label: '1º GP · Alumínio',  keys: ['alumin'] },
     ]
   },
   {
     label: '2ª CIA', sede: 'Ibiúna', color: CIA_COR['2'],
     units: [
-      { label: 'Sede · Ibiúna',        keys: ['2 cia - sede', 'ibiun'] },
+      { label: 'Sede · Ibiúna',        keys: ['2 cia - sede', 'ibiun', '^2 cia$'] },
       { label: '1º Pel · Piedade',     keys: ['piedade'] },
       { label: '1º GP · Tapiraí',      keys: ['tapira'] },
     ]
@@ -138,7 +144,7 @@ const CIA_STRUCT = [
   {
     label: '3ª CIA', sede: 'Salto de Pirapora', color: CIA_COR['3'],
     units: [
-      { label: 'Sede · Salto de Pirapora',    keys: ['3 cia - sede', 'salto de pirapora', 'salto pirapora'] },
+      { label: 'Sede · Salto de Pirapora',    keys: ['3 cia - sede', 'salto de pirapora', 'salto pirapora', '^3 cia$'] },
       { label: '1º Pel · Araçoiaba da Serra', keys: ['aracoiaba'] },
       { label: '2º Pel · Pilar do Sul',       keys: ['pilar do sul', 'pilar'] },
       { label: '3º Pel · Iperó',              keys: ['ipero'] },

@@ -928,11 +928,19 @@ function renderUisPage() {
   });
 
   // ── IAS Timeline 30/60/90 dias ─────────────────────────────
+  // "Já vencidas" aqui é só quem TEM data de vencimento e ela já passou —
+  // não inclui quem nunca fez IAS (sem data nenhuma), porque não dá pra
+  // bucketizar "sem data" numa linha do tempo. O card "IAS VENCIDA" lá em
+  // cima, por decisão de segurança, trata falta de registro como vencida
+  // também — por isso os dois números não batiam sem essa linha extra
+  // explicando a diferença (achado numa varredura visual, os dois valores
+  // pareciam contraditórios sem essa distinção visível).
   const tlVencidas = iasVals.filter(([,r]) => r.data_vencimento && r.data_vencimento < today).length;
   const tl30       = iasVals.filter(([,r]) => r.data_vencimento && r.data_vencimento >= today && r.data_vencimento <= em30).length;
   const tl60       = iasVals.filter(([,r]) => r.data_vencimento && r.data_vencimento > em30 && r.data_vencimento <= em60).length;
   const tl90       = iasVals.filter(([,r]) => r.data_vencimento && r.data_vencimento > em60 && r.data_vencimento <= em90).length;
-  const tlMax      = Math.max(tlVencidas, tl30, tl60, tl90, 1);
+  const tlSemData  = iasVals.filter(([,r]) => !r.data_vencimento).length;
+  const tlMax      = Math.max(tlVencidas, tl30, tl60, tl90, tlSemData, 1);
   const tlBar = (label, count, cor, sub) => count > 0 ? `
     <div style="margin-bottom:20px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
@@ -945,10 +953,11 @@ function renderUisPage() {
         </div>
       </div>
     </div>` : '';
-  const iasTimelineHtml = (tlVencidas+tl30+tl60+tl90) > 0 ? `
+  const iasTimelineHtml = (tlVencidas+tl30+tl60+tl90+tlSemData) > 0 ? `
     <div style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:10px;padding:20px 24px;margin-bottom:14px">
       <div style="font-family:'DM Mono',monospace;font-size:14px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:18px">IAS · VENCIMENTOS POR PERÍODO</div>
       ${tlBar('Já vencidas', tlVencidas, '#f07878', 'regularizar imediatamente')}
+      ${tlBar('Nunca fez IAS / sem data', tlSemData, '#8090a8', 'contam como vencida no total')}
       ${tlBar('Vencem em 30 dias', tl30, '#c8a84b', 'ação urgente')}
       ${tlBar('Vencem em 31–60 dias', tl60, '#e0a030', 'atenção')}
       ${tlBar('Vencem em 61–90 dias', tl90, '#5a9de0', 'planejamento')}
