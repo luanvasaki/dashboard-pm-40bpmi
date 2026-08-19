@@ -76,10 +76,14 @@ function prodSum(arr, field) {
   return arr.reduce((s, r) => s + (Number(r[field]) || 0), 0);
 }
 
+// Cursos (via SGP-DP) pode ter `ano`/`mes` gravados a partir de sentinela de
+// DATETIME não preenchido do SQL Server (ex: 1753, ver semDataSentinela no
+// agente-sgp) — anos assim vazavam pro próprio seletor de ANO da página,
+// deixando escolher um "Ano: 1753" sem sentido nenhum pra nenhum indicador.
 function prodGetAnosDisp() {
   const all = new Set();
   ['ocorrencias','presos','armas','veiculos','entorpecentes','visitaSolidaria','tempoResposta','cursos','conseg'].forEach(k => {
-    if (Array.isArray(prodRaw[k])) prodRaw[k].forEach(r => r.ano && all.add(r.ano));
+    if (Array.isArray(prodRaw[k])) prodRaw[k].forEach(r => r.ano >= 1900 && all.add(r.ano));
   });
   return [...all].sort((a, b) => b - a);
 }
@@ -88,7 +92,7 @@ function prodGetMesesDisp(ano) {
   const all = new Set();
   ['ocorrencias','presos','armas','veiculos','entorpecentes','visitaSolidaria','tempoResposta','cursos','conseg'].forEach(k => {
     if (Array.isArray(prodRaw[k]))
-      prodRaw[k].filter(r => !ano || r.ano === ano).forEach(r => r.mes && all.add((r.mes||'').toLowerCase()));
+      prodRaw[k].filter(r => (!ano || r.ano === ano) && r.ano >= 1900).forEach(r => r.mes && all.add((r.mes||'').toLowerCase()));
   });
   return MES_ORD.filter(m => all.has(m.toLowerCase()));
 }
