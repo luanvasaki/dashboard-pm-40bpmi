@@ -1202,9 +1202,20 @@ function trDrillNat(el, nat, sortMode) {
   el.insertAdjacentElement('afterend', panel);
 }
 
+// Categorias "Formação"/"Ensino Superior"/"Aperfeiçoamento" foram adicionadas
+// em 2026-08-19: com os dados ricos vindos do SGP-DP (antes só upload manual
+// de CSV, poucos nomes diferentes), cursos como "CURSO DE FORMAÇÃO DE
+// SOLDADOS/SARGENTOS/OFICIAIS" e "CURSO SUPERIOR DE TECNÓLOGO..." — que
+// juntos são a MAIORIA dos registros — caíam todos em "Outros" por não
+// baterem em nenhum padrão antigo (que só cobria CEP/EEP/Habilitação/
+// Adaptação/Instrução, pensados pro catálogo mais restrito do upload manual).
+// Checado contra o banco: "Outros" era 39% do total antes desse ajuste.
 function tipoCurso(nome, origem) {
   if (origem === 'externo') return 'Externo';
   const nl = (nome||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  if (/curso superior/.test(nl)) return 'Ensino Superior';
+  if (/formacao de (soldados|sargentos|oficiais)/.test(nl)) return 'Formação';
+  if (/aperfeicoamento/.test(nl)) return 'Aperfeiçoamento';
   if (/^cep\s*[-–]/.test(nl)) return 'CEP';
   if (/^eep\s*[-–]/.test(nl) || /estagio de especializacao/.test(nl)) return 'EEP';
   if (/^habilit/.test(nl)) return 'Habilitação';
@@ -1214,15 +1225,18 @@ function tipoCurso(nome, origem) {
 }
 
 const TIPO_COR = {
-  'CEP':         '#5a9de0',
-  'EEP':         '#e0965a',
-  'Habilitação': '#9b6de0',
-  'Adaptação':   '#4bc8a0',
-  'Instrução':   '#e05a8a',
-  'Externo':     '#e8c96a',
-  'Outros':      '#607090'
+  'Formação':        '#e05555',
+  'Ensino Superior': '#5a9de0',
+  'Aperfeiçoamento': '#9b6de0',
+  'CEP':             '#4bc8a0',
+  'EEP':             '#e0965a',
+  'Habilitação':     '#5ac8e0',
+  'Adaptação':       '#9de05a',
+  'Instrução':       '#e05a8a',
+  'Externo':         '#e8c96a',
+  'Outros':          '#607090'
 };
-const TIPO_ORD = ['CEP','EEP','Habilitação','Adaptação','Instrução','Externo','Outros'];
+const TIPO_ORD = ['Formação','Ensino Superior','Aperfeiçoamento','CEP','EEP','Habilitação','Adaptação','Instrução','Externo','Outros'];
 
 async function renderCursosModalDetail() {
   const COR = '#9de05a';
@@ -1323,6 +1337,12 @@ async function renderCursosModalDetail() {
   const tipoValues = tipoLabels.map(t => tipoAgg[t]);
   const tipoCores  = tipoLabels.map(t => TIPO_COR[t]);
 
+  // Cobertura do efetivo — % de PMs distintos (do efetivo total) que fizeram
+  // pelo menos 1 curso no período selecionado. Pedido explícito do usuário:
+  // focar o KPI em quantidade/tipo/ano, não em nomes individuais de PM.
+  const efetivoTotal = p1Data.length;
+  const coberturaPct = efetivoTotal > 0 ? Math.round(pmsUnicos.size / efetivoTotal * 100) : null;
+
   document.getElementById('pd-sub').textContent = periodoLbl.toUpperCase();
   document.getElementById('pd-kpis').innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:8px;padding:14px 18px">
@@ -1332,6 +1352,10 @@ async function renderCursosModalDetail() {
     <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:8px;padding:14px 18px">
       <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">PMs Capacitados</div>
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:var(--gold2)">${pmsUnicos.size}</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--bd2);border-top:2px solid ${COR};border-radius:8px;padding:14px 18px">
+      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Cobertura do Efetivo</div>
+      <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:var(--gold2)">${coberturaPct !== null ? coberturaPct + '%' : '—'}</div>
     </div>`;
 
   // Datas com ano abaixo de 1900 não são reais (sentinela "sem data" de
@@ -1366,15 +1390,36 @@ async function renderCursosModalDetail() {
   const evoLabels = MES_ORD.filter(m => mesAgg[m.toLowerCase()]);
   const evoData   = evoLabels.map(m => mesAgg[m.toLowerCase()] || 0);
 
+  // Cursos por Ano — ignora o filtro de ano/mês da página de propósito (é
+  // essa a visão pra comparar anos entre si), pedido explícito do usuário:
+  // "quantos cursos foram feitos em cada ano, que tipo de cursos". Conta
+  // participações (mesma unidade da Evolução Mensal acima), não cursos
+  // distintos nem PMs distintos.
+  const todasCursosRows = prodRaw.cursos || [];
+  const anoAgg = {};
+  todasCursosRows.forEach(r => {
+    if (!r.ano || !r.re_pm) return;
+    const tipo = tipoCurso(r.nome_curso, r.origem);
+    if (!anoAgg[r.ano]) anoAgg[r.ano] = {};
+    anoAgg[r.ano][tipo] = (anoAgg[r.ano][tipo] || 0) + 1;
+  });
+  const anoLabels = Object.keys(anoAgg).map(Number).sort((a,b) => a - b);
+  const tiposPorAno = TIPO_ORD.filter(t => anoLabels.some(a => anoAgg[a][t]));
+
   const chartsEl = document.getElementById('pd-charts');
   chartsEl.innerHTML = `
     <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${COR};border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:10px">Evolução Mensal</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:10px">Cursos por Ano · por Tipo</div>
+      <canvas id="cursos-ano" style="height:340px;max-height:340px"></canvas>
+      <div id="cursos-ano-empty" style="display:none;color:var(--tx3);font-size:19px;text-align:center;padding:12px 0">Sem dados</div>
+    </div>
+    <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${COR};border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:10px">Evolução Mensal — ${escHtml(String(prodSelAno||''))}</div>
       <canvas id="cursos-evo"></canvas>
       <div id="cursos-evo-empty" style="display:none;color:var(--tx3);font-size:19px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>
     <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--bd2);border-left:3px solid ${COR};border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:14px">Distribuição por Tipo</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:14px">Distribuição por Tipo — período selecionado</div>
       <canvas id="cursos-tipo" style="height:340px;max-height:340px"></canvas>
       <div id="cursos-tipo-empty" style="display:none;color:var(--tx3);font-size:19px;text-align:center;padding:12px 0">Sem dados para o período</div>
     </div>
@@ -1396,6 +1441,39 @@ async function renderCursosModalDetail() {
         </table>
       </div>`}
     </div>`;
+
+  // Gráfico Cursos por Ano — barras empilhadas por tipo, todos os anos com dado.
+  if (anoLabels.length) {
+    const ctxAno = document.getElementById('cursos-ano')?.getContext('2d');
+    if (ctxAno) {
+      pdChs.push(new Chart(ctxAno, {
+        type: 'bar',
+        data: {
+          labels: anoLabels.map(String),
+          datasets: tiposPorAno.map(t => ({
+            label: t,
+            data: anoLabels.map(a => anoAgg[a][t] || 0),
+            backgroundColor: TIPO_COR[t],
+          }))
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#ffffff', font: { size: 19 }, padding: 14, boxWidth: 12 } },
+            tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${i.raw} curso${i.raw !== 1 ? 's' : ''}` } }
+          },
+          scales: {
+            x: { stacked: true, grid: GR, ticks: { color: '#ffffff', font: { size: 22 } } },
+            y: { stacked: true, grid: GR, beginAtZero: true, ticks: { color: '#ffffff', font: { size: 22 } } }
+          }
+        }
+      }));
+    }
+  } else {
+    const e = document.getElementById('cursos-ano-empty'), c = document.getElementById('cursos-ano');
+    if (e) e.style.display = ''; if (c) c.style.display = 'none';
+  }
 
   // Gráfico evolução — multi-linha por CIA, mesmo padrão do KPI de Ocorrências
   const evoCtx = document.getElementById('cursos-evo')?.getContext('2d');

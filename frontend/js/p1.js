@@ -1976,7 +1976,12 @@ function p1ShowKpiDetail(tipo) {
     // +X (estourado) = RED, -X (vagas) = GREEN, 0 = branco
     const cColor = c => c < 0 ? '#e05555' : c === 0 ? 'var(--tx3)' : '#4bc87a';
     const cVal   = c => c < 0 ? `+${Math.abs(c)}` : c === 0 ? '0' : `−${c}`;
-    const cPct   = (c, fx) => fx > 0 ? ((c / fx) * 100).toFixed(1) + '%' : '—';
+    // % sempre em módulo (magnitude do desvio) — o sinal de "estourado" vs
+    // "vaga" já é indicado pela cor e pelo prefixo +/− do valor absoluto ao
+    // lado; % com sinal próprio gerava pares tipo "+2 (-200,0%)" que
+    // pareciam se contradizer (o "+2" positivo/vermelho ao lado de um "%"
+    // negativo), mesmo sendo consistente na conta.
+    const cPct   = (c, fx) => fx > 0 ? (Math.abs(c) / fx * 100).toFixed(1) + '%' : '—';
 
     const thH  = 'padding:8px 14px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:19px;letter-spacing:1px;text-transform:uppercase;color:#ffffff;text-align:center;white-space:nowrap';
     const thHL = thH + ';text-align:left';
@@ -1994,17 +1999,26 @@ function p1ShowKpiDetail(tipo) {
 
     // Rankings por CIA — inclui todas as CIAs, mesmo com 0%
     const mkRankByCia = (items) => items.map((r,i) => {
-      const pct = r.fx > 0 ? Math.min((r.claro/r.fx)*100, 100).toFixed(0) : 0;
+      // dev = magnitude do desvio (sempre positiva, pro texto do %);
+      // barPct = mesma coisa mas limitada a 100 (só pra largura da barra,
+      // que não pode ultrapassar o container nem ficar negativa).
+      const dev = r.fx > 0 ? (Math.abs(r.claro) / r.fx) * 100 : 0;
+      const barPct = Math.min(dev, 100);
       const cor = ciaCorByName(r.cia);
-      const valColor = r.claro > 0 ? '#e05555' : '#4bc87a';
-      const bar = `<div style="height:8px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:3px"><div style="height:100%;width:${pct}%;background:${cor};border-radius:2px"></div></div>`;
+      // Mesma convenção da tabela principal (cColor acima): claro<0 (ex >
+      // fixado, estourado) = vermelho; claro>=0 (vaga ou exato) = verde.
+      // Antes estava invertido aqui (claro>0 = vermelho), oposto da tabela
+      // logo abaixo na mesma tela — mesma métrica com cor contrária em
+      // cada lugar.
+      const valColor = r.claro < 0 ? '#e05555' : '#4bc87a';
+      const bar = `<div style="height:8px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:3px"><div style="height:100%;width:${barPct}%;background:${cor};border-radius:2px"></div></div>`;
       return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
         <div style="flex:1;min-width:0">
           <span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3)">${i+1}. </span>
           <span style="font-size:19px;font-weight:700;color:${cor}">${r.cia}</span>
           ${bar}
         </div>
-        <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:800;color:${valColor};white-space:nowrap">${r.claro > 0 ? `−${r.claro}` : r.claro < 0 ? `+${Math.abs(r.claro)}` : '0'} <span style="font-size:17px;font-weight:400;color:#ffffff">(${pct}%)</span></span>
+        <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:800;color:${valColor};white-space:nowrap">${r.claro > 0 ? `−${r.claro}` : r.claro < 0 ? `+${Math.abs(r.claro)}` : '0'} <span style="font-size:17px;font-weight:400;color:#ffffff">(${dev.toFixed(0)}%)</span></span>
       </div>`;
     }).join('');
 
@@ -2026,10 +2040,11 @@ function p1ShowKpiDetail(tipo) {
     if (cias.length) {
       // Rankings por município
       const mkRankByMun = (items) => items.map((r,i) => {
-        const pct = r.fx > 0 ? Math.min((r.claro/r.fx)*100,100).toFixed(0) : 0;
+        const dev = r.fx > 0 ? (Math.abs(r.claro) / r.fx) * 100 : 0;
+        const barPct = Math.min(dev, 100);
         const cor = ciaCorByName(r.cia);
-        const valColor = r.claro > 0 ? '#e05555' : '#4bc87a';
-        const bar = `<div style="height:6px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:3px"><div style="height:100%;width:${Math.max(0,pct)}%;background:${cor};border-radius:2px"></div></div>`;
+        const valColor = r.claro < 0 ? '#e05555' : '#4bc87a';
+        const bar = `<div style="height:6px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:3px"><div style="height:100%;width:${barPct}%;background:${cor};border-radius:2px"></div></div>`;
         return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
           <div style="flex:1;min-width:0">
             <span style="font-family:'DM Mono',monospace;font-size:17px;color:var(--tx3)">${i+1}. </span>
@@ -2037,7 +2052,7 @@ function p1ShowKpiDetail(tipo) {
             <span style="font-size:15px;color:${cor};margin-left:5px">${r.cia}</span>
             ${bar}
           </div>
-          <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:800;color:${valColor};white-space:nowrap">${r.claro>0?`−${r.claro}`:r.claro<0?`+${Math.abs(r.claro)}`:'0'} <span style="font-size:15px;font-weight:400;color:#ffffff">(${pct}%)</span></span>
+          <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:800;color:${valColor};white-space:nowrap">${r.claro>0?`−${r.claro}`:r.claro<0?`+${Math.abs(r.claro)}`:'0'} <span style="font-size:15px;font-weight:400;color:#ffffff">(${dev.toFixed(0)}%)</span></span>
         </div>`;
       }).join('');
 
@@ -2627,6 +2642,11 @@ function prontoRenderLaureas() {
   // PMESP (do mais alto pro mais baixo): 1º Esmalte, 2º Ouro, 3º Prata,
   // 4º Cromo, 5º Bronze — não é uma escala arbitrária de cor por número.
   const GRAU_COR = { '1':'#f2e6c9','2':'#d4af37','3':'#d0d4dc','4':'#a8b4c0','5':'#b87333' };
+  // Cor do "couro" (fundo da placa) atrás da medalha, também real: esmalte
+  // (1º) vem em couro branco/pérola, ouro e prata (2º/3º) em couro vermelho,
+  // cromo e bronze (4º/5º) em couro preto — vira a borda do badge, a cor da
+  // medalha (GRAU_COR acima) continua sendo o fundo/texto.
+  const GRAU_COURO = { '1':'#d8d0b8','2':'#8a2f2f','3':'#8a2f2f','4':'#4a4540','5':'#4a4540' };
   const parseGrau = desc => {
     const m = /(\d+)\s*º?\s*grau/i.exec(desc || '');
     if (!m) return { grau: null, base: desc || '—' };
@@ -2638,10 +2658,11 @@ function prontoRenderLaureas() {
     ? prontoLaureasFull.map(l => {
         const { grau, base } = parseGrau(l.descricao_medalha);
         const cor = GRAU_COR[grau] || '#9db0d8';
+        const couro = GRAU_COURO[grau] || 'var(--bd)';
         return `<tr>
           <td style="${tdL};white-space:nowrap">${fmtDl(l.concessao)}</td>
           <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx)">${escHtml(base)}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04)">${grau ? `<span style="font-size:16px;padding:1px 7px;border-radius:8px;background:${cor}22;color:${cor};white-space:nowrap">${grau}º GRAU</span>` : '—'}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04)">${grau ? `<span style="font-size:16px;padding:1px 7px;border-radius:8px;background:${cor}22;color:${cor};border:1px solid ${couro};white-space:nowrap">${grau}º GRAU</span>` : '—'}</td>
           <td style="${tdL}">${escHtml(l.boletim||'—')}</td>
           <td style="${tdL}">${escHtml(l.opm_concessao_descricao||'—')}</td>
         </tr>`;
@@ -2662,7 +2683,7 @@ function prontoRenderCursos() {
   const fmtDc = s => { if (!s || parseInt(String(s).slice(0,4),10) < 1900) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
   const tdC = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:19px;color:var(--tx3)';
   const tipoCor   = c => c.origem === 'externo' ? '#e8c96a' : c.origem === 'manual' ? '#607090' : '#5ae09a';
-  const tipoLabel = c => c.origem === 'externo' ? 'Externo' : c.origem === 'manual' ? 'Manual' : 'Interno';
+  const tipoLabel = c => c.origem === 'externo' ? 'Externo' : c.origem === 'manual' ? 'Interno Ofício' : 'Interno SGP';
   const detalhe = c => c.origem === 'externo'
     ? ([c.instituicao, c.carga_horaria ? `${c.carga_horaria}h` : null].filter(Boolean).join(' · ') || '—')
     : (c.conceito || c.boletim_curso || '—');
