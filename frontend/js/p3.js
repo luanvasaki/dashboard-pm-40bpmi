@@ -285,9 +285,13 @@ function prodRender() {
       const vencidos = p1Data.filter(isVenc).length;
       const pctAptos = comTaf.length ? Math.round(aptosMB365 / comTaf.length * 100) : 0;
       const tafCor = pctAptos >= 70 ? '#4bc87a' : pctAptos >= 40 ? '#e8b840' : '#e05555';
+      // Rótulo "TAF" (não "TAF / TAT") porque o % só considera TAF — TAT tem
+      // sua própria taxa (comTat/aptosMB365Tat), calculada e mostrada à parte
+      // no modal de detalhe (renderTafTatModalDetail). "TAF / TAT" aqui dava
+      // a entender que o número já combinava os dois testes.
       return `<div class="kpi" onclick="openProdDetail('taftat')" title="Clique para detalhes" style="cursor:pointer">
         <div class="kpi-top"></div>
-        <div class="kpi-lbl">TAF / TAT</div>
+        <div class="kpi-lbl">TAF</div>
         <div class="kpi-val">${pctAptos}%</div>
         <div class="kpi-sub" style="margin-top:4px">${aptosMB365}/${comTaf.length} aptos MB+</div>
         <div class="kpi-hint" style="margin-top:10px">▸ clique p/ detalhes</div>
@@ -312,7 +316,7 @@ function prodRender() {
     })() +
     (() => {
       const CONSEG_COR = PROD_CORES.conseg;
-      const consegAll = prodRaw.conseg || [];
+      const consegAll = (prodRaw.conseg || []).filter(r => !prodSelAno || r.ano === prodSelAno);
       if (!consegAll.length) return '';
       const allMuns = [...new Set(consegAll.map(r => r.municipio).filter(Boolean))];
       const inativosMuns = [...new Set(consegAll.filter(r => !r.conseg_ativo).map(r => r.municipio))];
@@ -1770,15 +1774,23 @@ function renderConsegModalDetail() {
     return;
   }
 
-  const allMuns      = [...new Set(consegData.map(r => r.municipio).filter(Boolean))].sort();
-  const inativosMuns = new Set(consegData.filter(r => !r.conseg_ativo).map(r => r.municipio));
+  // Filtra por ano ANTES de calcular Total/Ativos/Inativos/Taxa — esses 4
+  // KPIs do topo usavam consegData (todos os anos) enquanto o resto do
+  // modal (gráficos, grade mês a mês) já usava filtConseg (só o ano
+  // selecionado). Hoje só Votorantim tem 2 anos de dado (ativo nos dois),
+  // então não dava pra ver o número errado ainda — mas assim que algum
+  // município mudar de status entre um ano e outro, o topo ficaria
+  // "travado" no valor combinado enquanto o resto da tela mudava com o
+  // filtro de ano, uma inconsistência dentro da mesma modal.
+  const filtConseg   = consegData.filter(r => !prodSelAno || r.ano === prodSelAno);
+  const consegMeses  = MES_ORD.filter(m => filtConseg.some(r => (r.mes||'').toLowerCase() === m.toLowerCase()));
+
+  const allMuns      = [...new Set(filtConseg.map(r => r.municipio).filter(Boolean))].sort();
+  const inativosMuns = new Set(filtConseg.filter(r => !r.conseg_ativo).map(r => r.municipio));
   const ativosCount  = allMuns.filter(m => !inativosMuns.has(m)).length;
   const inativosCount = inativosMuns.size;
   const taxa         = allMuns.length ? Math.round(ativosCount / allMuns.length * 100) : 0;
   const taxaCor      = taxa >= 80 ? '#4bc87a' : taxa >= 60 ? '#e8b840' : '#e05555';
-
-  const filtConseg   = consegData.filter(r => !prodSelAno || r.ano === prodSelAno);
-  const consegMeses  = MES_ORD.filter(m => filtConseg.some(r => (r.mes||'').toLowerCase() === m.toLowerCase()));
 
   // Denominador correto: meses com dados no período (ex: Jan–Jun = 6)
   const nMeses = consegMeses.length || 1;
