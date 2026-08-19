@@ -2600,13 +2600,19 @@ function prontoPopulaFiltrosExtrato() {
   const tipoSel = document.getElementById('pronto-extrato-tipo');
   if (!anoSel || !tipoSel) return;
 
-  const anos = [...new Set(prontoExtratoFull.map(a => (a.inicio || '').slice(0, 4)).filter(Boolean))].sort((a,b) => b - a);
+  // Ano atual sempre existe como opção (mesmo sem nenhum afastamento nele
+  // ainda) — o filtro abre nele por padrão, pedido explícito do usuário,
+  // em vez de "Todos os anos" (que misturava anos antigos de cara).
+  const anoAtual = String(new Date().getFullYear());
+  const anosSet = new Set(prontoExtratoFull.map(a => (a.inicio || '').slice(0, 4)).filter(Boolean));
+  anosSet.add(anoAtual);
+  const anos = [...anosSet].sort((a,b) => b - a);
   anoSel.innerHTML = '<option value="">Todos os anos</option>' + anos.map(a => `<option value="${a}">${a}</option>`).join('');
 
   const tipos = [...new Set(prontoExtratoFull.map(a => p1CatTipo(a.tipo_afastamento)))].sort();
   tipoSel.innerHTML = '<option value="">Todos os tipos</option>' + tipos.map(t => `<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('');
 
-  anoSel.value = ''; tipoSel.value = '';
+  anoSel.value = anoAtual; tipoSel.value = '';
 }
 
 // Filtra prontoExtratoFull pelos selects de ano/tipo e redesenha a tabela.
