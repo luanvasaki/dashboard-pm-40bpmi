@@ -2623,7 +2623,10 @@ function prontoRenderLaureas() {
   if (!laureasEl) return;
   const fmtDl = s => { if (!s || parseInt(String(s).slice(0,4),10) < 1900) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
   const tdL = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:19px;color:var(--tx3)';
-  const GRAU_COR = { '1':'#e8c96a','2':'#c8a84b','3':'#9de05a','4':'#5ae09a','5':'#5a9de0' };
+  // Cores seguem o material real de cada grau da Láurea do Mérito Pessoal da
+  // PMESP (do mais alto pro mais baixo): 1º Esmalte, 2º Ouro, 3º Prata,
+  // 4º Cromo, 5º Bronze — não é uma escala arbitrária de cor por número.
+  const GRAU_COR = { '1':'#f2e6c9','2':'#d4af37','3':'#d0d4dc','4':'#a8b4c0','5':'#b87333' };
   const parseGrau = desc => {
     const m = /(\d+)\s*º?\s*grau/i.exec(desc || '');
     if (!m) return { grau: null, base: desc || '—' };
