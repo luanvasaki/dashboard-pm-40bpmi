@@ -243,13 +243,34 @@ function moRender() {
     renderMetaChart('mo-meta', crime);
   }
 
-  // Evolução por Município (sempre todos os MESES no eixo X)
+  // Evolução por Município (sempre todos os MESES no eixo X) — cor de cada
+  // linha segue o mesmo padrão de cor por CIA usado no resto do P3 (rosa =
+  // 1ª CIA, verde = 2ª CIA, azul = 3ª CIA, via ciaColor()), não uma paleta
+  // arbitrária por índice — senão cidades de CIAs diferentes podiam sair
+  // com cor mais parecida entre si do que cidades da MESMA CIA, quebrando a
+  // convenção de cor que o usuário já reconhece no resto do painel. Dentro
+  // da mesma CIA, cada cidade recebe uma variação de tom (mais clara/mais
+  // escura) pra continuar distinguível da cidade-irmã.
   const withOcc = muns.map(m => ({ m, v: sf(q({ crime, mun: m, mes: moMeses })) })).filter(x => x.v > 0).sort((a,b) => munCia(a.m).localeCompare(munCia(b.m)) || b.v - a.v);
-  const MUN_PALETTE = ['#4a9ee8','#e84a6f','#4bc97d','#e8a84a','#a84ae8','#4ae8d8','#e84a4a','#a8e84a','#4a6fe8','#e8d84a','#e86c4a','#c84bc8'];
+  const _mixHex = (hex, amt) => { // amt: -1 (preto) .. 0 (original) .. +1 (branco)
+    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    const t = amt >= 0 ? 255 : 0;
+    const mix = c => Math.round(c + (t - c) * Math.abs(amt)).toString(16).padStart(2,'0');
+    return `#${mix(r)}${mix(g)}${mix(b)}`;
+  };
+  const MUN_SHADE_STEPS = [0, 0.4, -0.3, 0.65]; // até 4 cidades por CIA hoje (3ª CIA)
+  const _munShadeIdx = {};
+  const munLineColor = m => {
+    const cia = munCia(m);
+    const idx = _munShadeIdx[cia] || 0;
+    _munShadeIdx[cia] = idx + 1;
+    const base = typeof ciaColor === 'function' ? ciaColor(m) : (typeof ciaCorByName === 'function' ? ciaCorByName(cia) : '#808080');
+    return _mixHex(base, MUN_SHADE_STEPS[idx % MUN_SHADE_STEPS.length]);
+  };
   moCh.push(new Chart(document.getElementById('mo-line').getContext('2d'), {
     type: 'line',
-    data: { labels: MESES, datasets: withOcc.map(({m}, i) => {
-      const col = MUN_PALETTE[i % MUN_PALETTE.length];
+    data: { labels: MESES, datasets: withOcc.map(({m}) => {
+      const col = munLineColor(m);
       return { label: m, data: MESES.map(mes => sf(q({ crime, mun: m, mes }))),
         borderColor: col, backgroundColor: 'transparent', tension: 0, pointRadius: 5, borderWidth: 2,
         borderDash: [], pointBackgroundColor: col };
