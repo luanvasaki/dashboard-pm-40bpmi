@@ -621,19 +621,26 @@ function renderInsights() {
         ? { t: 'green', v: `▼${Math.abs(crimeMaisReduciu.varP)}%`, title: `Maior redução — ${crimeMaisReduciu.c}`, body: `Passou de ${crimeMaisReduciu.ant} para ${crimeMaisReduciu.a} ocorrências. Nenhum crime em alta no período — destaque para a maior queda. Escopo: ${lbl}.` }
         : { t: '', v: '—', title: 'Sem variação', body: 'Não há dados suficientes para calcular variação entre períodos.' },
     // 2. Crime mais crítico (totais do batalhão, igual ao KPI card)
+    // 1 casa decimal (não 0) — um desvio pequeno tipo +0.06% arredondava
+    // pra "+0%", o que lia como se não houvesse desvio nenhum bem no card
+    // que está justamente dizendo que esse crime é o "crítico" do período.
     crimeCritico
-      ? { t: 'red', v: `+${crimeCritico.desvio.toFixed(0)}%`, title: `Crítico — ${crimeCritico.c}`, body: `${crimeCritico.a} ocorrências contra meta de ${crimeCritico.m}. Desvio de ${crimeCritico.desvio.toFixed(0)}% acima da meta no batalhão. Escopo: ${lbl}.` }
+      ? { t: 'red', v: `+${crimeCritico.desvio.toFixed(1)}%`, title: `Crítico — ${crimeCritico.c}`, body: `${crimeCritico.a} ocorrências contra meta de ${crimeCritico.m}. Desvio de ${crimeCritico.desvio.toFixed(1)}% acima da meta no batalhão. Escopo: ${lbl}.` }
       : { t: 'green', v: '✓', title: 'Todos dentro da meta', body: `Nenhum crime acima da meta no período. Escopo: ${lbl}.` },
     // 3. Melhor desempenho
     crimeMelhor
-      ? { t: 'green', v: `${Math.abs(crimeMelhor.desvio).toFixed(0)}%`, title: `Destaque — ${crimeMelhor.c}`, body: `${crimeMelhor.a} ocorrências contra meta de ${crimeMelhor.m}. ${Math.abs(crimeMelhor.desvio).toFixed(0)}% abaixo da meta. Escopo: ${lbl}.` }
+      ? { t: 'green', v: `${Math.abs(crimeMelhor.desvio).toFixed(1)}%`, title: `Destaque — ${crimeMelhor.c}`, body: `${crimeMelhor.a} ocorrências contra meta de ${crimeMelhor.m}. ${Math.abs(crimeMelhor.desvio).toFixed(1)}% abaixo da meta. Escopo: ${lbl}.` }
       : { t: '', v: '—', title: 'Nenhum crime abaixo da meta', body: `Todos os crimes com meta definida estão no limite ou acima. Escopo: ${lbl}.` },
     // 4. Resumo de metas
     {
       t: acima > 0 ? 'red' : 'green',
       v: `${ok}/${CRIMES.length}`,
       title: 'Crimes dentro da meta',
-      body: `${ok} crimes dentro da meta, ${acima} acima${emEvol > 0 ? ` e ${emEvol} acima mas em evolução (melhorando vs anterior)` : ''}. Escopo: ${lbl}.`
+      // emEvol é subconjunto de acima (mesmos crimes, não uma categoria à
+      // parte) — "X acima e Y em evolução" lia como se fossem crimes
+      // diferentes, somando errado na cabeça de quem lê. "dos quais"
+      // deixa claro que é o mesmo grupo.
+      body: `${ok} crimes dentro da meta, ${acima} acima${emEvol > 0 ? ` (dos quais ${emEvol} em evolução, melhorando vs anterior)` : ''}. Escopo: ${lbl}.`
     },
     // 5. Município em alerta
     {
