@@ -67,7 +67,7 @@
     </button>
     <button class="sec-btn" id="sec-p2" onclick="goSection('p2',this)">
       <i data-lucide="megaphone" class="sec-ic"></i>
-      <div class="sec-info"><div class="sec-name">P5 · Comunicação Social</div><span class="sec-badge-soon">Em breve</span></div>
+      <div class="sec-info"><div class="sec-name">P5 · Comunicação Social</div></div>
     </button>
     <button class="sec-btn" id="sec-sjd" onclick="goSection('sjd',this)">
       <i data-lucide="scale" class="sec-ic"></i>
@@ -844,16 +844,25 @@
   </div>
 </div>
 
-<!-- P5 EM BREVE -->
+<!-- P5 · Comunicação Social -->
 <div id="page-p2" class="page">
   <div class="ph">
     <div><div class="ph-tag">SEÇÃO P5</div><div class="ph-title">COMUNICAÇÃO <span>SOCIAL</span></div></div>
   </div>
-  <div class="soon-wrap">
-    <div class="soon-icon-wrap"><i data-lucide="megaphone" style="width:36px;height:36px;color:var(--gold)"></i></div>
-    <div class="soon-title">P5 · Comunicação Social</div>
-    <div class="soon-desc">Módulo em desenvolvimento. Em breve: indicadores de comunicação institucional, redes sociais e assessoria de imprensa do batalhão.</div>
-    <div class="soon-pill">EM BREVE</div>
+  <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:14px">
+    <i data-lucide="medal" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px;color:var(--tx3)"></i>Láureas do Efetivo
+  </div>
+  <div class="mo-kpis" id="p5-kpis" style="margin-bottom:18px"></div>
+  <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px;margin-bottom:18px">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:14px">Efetivo por Grau (mais alto já alcançado)</div>
+    <canvas id="p5-chart-grau" style="height:320px;max-height:320px"></canvas>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff">Lista Nominal</div>
+      <div id="p5-filtros" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    </div>
+    <div id="p5-grid"></div>
   </div>
 </div>
 
@@ -1120,8 +1129,9 @@
 <script src="js/upload.js?v=20260624"></script>
 <script src="js/ocorr-modal.js?v=20260624"></script>
 <script src="js/intel.js?v=20260624"></script>
-<script src="js/p1.js?v=20260819f"></script>
+<script src="js/p1.js?v=20260819g"></script>
 <script src="js/p3.js?v=20260819c"></script>
+<script src="js/p5.js?v=20260819a"></script>
 <script src="js/uis.js?v=20260814a"></script>
 <script src="js/init.js?v=20260624"></script>
 </body>

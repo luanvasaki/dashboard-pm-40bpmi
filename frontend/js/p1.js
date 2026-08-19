@@ -3780,6 +3780,9 @@ function goSection(id, btn) {
   if (id === 'uis') {
     loadUisSection();
   }
+  if (id === 'p2') {
+    loadP5Section();
+  }
   setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
 }
 

@@ -2227,6 +2227,38 @@ app.get('/api/pm/:re/laureas', requireAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// [GET /api/laureas/resumo] — pra cada PM do efetivo, o grau mais alto de
+// láurea que ele tem (1º é o mais alto, 5º o mais baixo — mesma lógica de
+// "menor número = mais graduado" usada no prontuário individual), ou
+// grau=null se não tem nenhuma. Usado no P5 (mapa de láureas do efetivo).
+app.get('/api/laureas/resumo', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  try {
+    const [efetivoRes, laureasRes] = await Promise.all([
+      supabase.from('efetivo_pm').select('re, nome, nome_guerra, posto, opm'),
+      supabase.from('prod_laureas').select('re_pm, descricao_medalha'),
+    ]);
+    if (efetivoRes.error) throw new Error(efetivoRes.error.message);
+    if (laureasRes.error) throw new Error(laureasRes.error.message);
+
+    const grauPorRe = {};
+    (laureasRes.data || []).forEach(l => {
+      const m = /(\d+)\s*º?\s*grau/i.exec(l.descricao_medalha || '');
+      if (!m) return;
+      const g = parseInt(m[1], 10);
+      const re = String(l.re_pm || '').split('-')[0];
+      if (!re) return;
+      if (grauPorRe[re] == null || g < grauPorRe[re]) grauPorRe[re] = g;
+    });
+
+    const efetivo = (efetivoRes.data || []).map(pm => ({
+      re: pm.re, nome: pm.nome, nome_guerra: pm.nome_guerra, posto: pm.posto, opm: pm.opm,
+      grau: grauPorRe[String(pm.re || '').split('-')[0]] ?? null,
+    }));
+    res.json(efetivo);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ═══════════════════════════════════════════════════════════════
 // LOGS DE ACESSO — auditoria visível somente ao admin
 // ═══════════════════════════════════════════════════════════════
