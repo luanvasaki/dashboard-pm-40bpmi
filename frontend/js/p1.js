@@ -2603,32 +2603,47 @@ async function openProntuario(re) {
   // Láureas do Mérito Pessoal (SGP-DP)
   const laureasEl = document.getElementById('pronto-laureas');
   if (laureasEl) {
-    laureasEl.innerHTML = '<tr><td colspan="4" style="padding:10px;color:var(--tx3);font-size:19px;text-align:center">Carregando...</td></tr>';
+    laureasEl.innerHTML = '<tr><td colspan="5" style="padding:10px;color:var(--tx3);font-size:19px;text-align:center">Carregando...</td></tr>';
     authFetch(`${API}/pm/${encodeURIComponent(re)}/laureas`).then(r => r.json()).then(laureasData => {
       prontoLaureasFull = Array.isArray(laureasData) ? laureasData : [];
       prontoRenderLaureas();
     }).catch(() => {
       prontoLaureasFull = [];
-      laureasEl.innerHTML = '<tr><td colspan="4" style="padding:12px 10px;color:var(--tx3);font-size:19px;text-align:center">—</td></tr>';
+      laureasEl.innerHTML = '<tr><td colspan="5" style="padding:12px 10px;color:var(--tx3);font-size:19px;text-align:center">—</td></tr>';
     });
   }
 }
 
 // Redesenha a tabela de láureas do PM aberto (sem filtro, é uma lista curta por pessoa).
+// "LÁUREA DO MÉRITO PESSOAL EM 5º GRAU" vira badge "5º GRAU" numa coluna própria +
+// texto base encurtado ("Mérito Pessoal") — evita repetir a frase inteira em toda
+// linha, só o grau muda de uma pra outra. Cai pro texto cru se não reconhecer o padrão.
 function prontoRenderLaureas() {
   const laureasEl = document.getElementById('pronto-laureas');
   if (!laureasEl) return;
   const fmtDl = s => { if (!s || parseInt(String(s).slice(0,4),10) < 1900) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
   const tdL = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:19px;color:var(--tx3)';
+  const GRAU_COR = { '1':'#e8c96a','2':'#c8a84b','3':'#9de05a','4':'#5ae09a','5':'#5a9de0' };
+  const parseGrau = desc => {
+    const m = /(\d+)\s*º?\s*grau/i.exec(desc || '');
+    if (!m) return { grau: null, base: desc || '—' };
+    const base = desc.slice(0, m.index).replace(/\bem\s*$/i, '').trim();
+    return { grau: m[1], base: base || 'Mérito Pessoal' };
+  };
 
   laureasEl.innerHTML = prontoLaureasFull.length
-    ? prontoLaureasFull.map(l => `<tr>
-        <td style="${tdL};white-space:nowrap">${fmtDl(l.concessao)}</td>
-        <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx)">${escHtml(l.descricao_medalha||'—')}</td>
-        <td style="${tdL}">${escHtml(l.boletim||'—')}</td>
-        <td style="${tdL}">${escHtml(l.opm_concessao_descricao||'—')}</td>
-      </tr>`).join('')
-    : '<tr><td colspan="4" style="padding:12px 10px;color:var(--tx3);font-size:19px;text-align:center">Nenhuma láurea encontrada.</td></tr>';
+    ? prontoLaureasFull.map(l => {
+        const { grau, base } = parseGrau(l.descricao_medalha);
+        const cor = GRAU_COR[grau] || '#9db0d8';
+        return `<tr>
+          <td style="${tdL};white-space:nowrap">${fmtDl(l.concessao)}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx)">${escHtml(base)}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04)">${grau ? `<span style="font-size:16px;padding:1px 7px;border-radius:8px;background:${cor}22;color:${cor};white-space:nowrap">${grau}º GRAU</span>` : '—'}</td>
+          <td style="${tdL}">${escHtml(l.boletim||'—')}</td>
+          <td style="${tdL}">${escHtml(l.opm_concessao_descricao||'—')}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="5" style="padding:12px 10px;color:var(--tx3);font-size:19px;text-align:center">Nenhuma láurea encontrada.</td></tr>';
 }
 
 // Filtra prontoCursosFull pelo select de origem (interno/externo) e redesenha a tabela.
@@ -2707,12 +2722,10 @@ function prontoRenderExtrato() {
           <td style="${tdE}">${fmtD(a.inicio)}</td>
           <td style="${tdE}">${fmtD(a.termino)}</td>
           <td style="${tdE}">${a.n_dias ? a.n_dias + 'd' : '—'}</td>
-          <td style="${tdE};color:var(--tx2)">${escHtml(a.nbi || '—')}</td>
-          <td style="${tdE};color:var(--tx2)">${escHtml(a.bol_g || '—')}</td>
           <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04)">${ativo ? '<span style="font-size:19px;padding:2px 8px;border-radius:8px;background:#e0555522;color:#e05555;font-family:DM Mono,monospace">ATIVO</span>' : ''}</td>
         </tr>`;
       }).join('')
-    : '<tr><td colspan="7" style="padding:14px 10px;color:var(--tx3);font-size:19px;text-align:center">Nenhum afastamento encontrado com esse filtro.</td></tr>';
+    : '<tr><td colspan="5" style="padding:14px 10px;color:var(--tx3);font-size:19px;text-align:center">Nenhum afastamento encontrado com esse filtro.</td></tr>';
 }
 
 function closeProntuario() {
