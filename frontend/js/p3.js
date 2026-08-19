@@ -1398,7 +1398,12 @@ async function renderCursosModalDetail() {
   const todasCursosRows = prodRaw.cursos || [];
   const anoAgg = {};
   todasCursosRows.forEach(r => {
-    if (!r.ano || !r.re_pm) return;
+    // ano=0 (interno, data ausente) e ano=1753 (externo, sentinela de
+    // DATETIME não preenchido do SQL Server do SGP-DP — mesmo problema já
+    // tratado em semDataSentinela no agente, só que esses registros
+    // específicos foram gravados antes desse tratamento existir) não são
+    // anos reais — não entram no comparativo por ano.
+    if (!r.ano || r.ano < 1900 || !r.re_pm) return;
     const tipo = tipoCurso(r.nome_curso, r.origem);
     if (!anoAgg[r.ano]) anoAgg[r.ano] = {};
     anoAgg[r.ano][tipo] = (anoAgg[r.ano][tipo] || 0) + 1;
