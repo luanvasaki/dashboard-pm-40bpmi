@@ -41,7 +41,11 @@ function renderKPIs() {
       ? `<div class="tag tok">— sem meta</div>`
       : `<div class="tag tbad">▲ sem meta</div>`;
     const vp  = ((aval - meta) / meta * 100).toFixed(0);
-    const up  = parseFloat(vp) > 0;
+    // Compara aval/meta direto (não o % já arredondado) — um desvio de só
+    // +0.06% (ex: 1581 vs meta 1580) arredonda pra "0%" e `parseFloat(vp)>0`
+    // dava falso, mostrando ▼ verde (favorável) pra um crime que na
+    // verdade está acima da meta. Achado real comparando contra o banco.
+    const up  = aval > meta;
     return `<div class="tag ${up ? 'tbad' : 'tok'}">${up ? '▲' : '▼'}${Math.abs(vp)}% meta</div>`;
   };
 

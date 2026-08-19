@@ -115,8 +115,14 @@ function moRender() {
     return { m: m || 'Btl/CIA', v, mt, desvio: mt > 0 ? (v - mt) / mt * 100 : -Infinity };
   });
   const acimaDoMeta = munDesvio.filter(x => x.mt > 0 && x.v > x.mt).sort((a,b) => b.desvio - a.desvio);
-  const vc  = parseFloat(vp) <= 0 ? 'var(--green2)' : 'var(--red2)';
-  const mok = meta > 0 && aval <= meta;
+  // Sem meta definida (meta=0): considera ok só se também não houve
+  // ocorrência (mesmo critério que o vp usava pra decidir 0% vs 100%).
+  const mok = meta > 0 ? aval <= meta : aval === 0;
+  // Cor/seta a partir de aval/meta direto, não do vp já arredondado — um
+  // desvio pequeno (ex: +0.06%) arredonda pra "0%" e fazia esse card mostrar
+  // ▼ verde (favorável) ao mesmo tempo que o card "Status" ao lado mostrava
+  // "✗ Acima" pro mesmo crime — os dois cards se contradiziam na mesma tela.
+  const vc  = mok ? 'var(--green2)' : 'var(--red2)';
 
   const munCriticoHtml = acimaDoMeta.length === 0
     ? `<div class="mk-val" style="color:var(--green2);font-size:22px;padding-top:4px">✓ Todos na meta</div><div class="mk-sub" style="font-size:22px">Nenhum município acima</div>`
@@ -124,7 +130,7 @@ function moRender() {
 
   document.getElementById('mo-kpis').innerHTML = `
     <div class="mk"><div class="mk-lbl">Total Avaliado</div><div class="mk-val" style="color:${color}">${aval}</div><div class="mk-sub">${pLbl(moMeses)}</div></div>
-    <div class="mk"><div class="mk-lbl">Avaliado × Meta</div><div class="mk-val" style="color:${vc}">${parseFloat(vp) <= 0 ? '▼' : '▲'}${Math.abs(vp)}%</div><div class="mk-sub" style="font-size:22px">Meta: ${meta}</div></div>
+    <div class="mk"><div class="mk-lbl">Avaliado × Meta</div><div class="mk-val" style="color:${vc}">${mok ? '▼' : '▲'}${Math.abs(vp)}%</div><div class="mk-sub" style="font-size:22px">Meta: ${meta}</div></div>
     <div class="mk"><div class="mk-lbl">Municípios Fora da Meta (${acimaDoMeta.length})</div>${munCriticoHtml}</div>
     <div class="mk"><div class="mk-lbl">Status</div><div class="mk-val" style="color:${mok?'var(--green2)':'var(--red2)'};font-size:22px;padding-top:6px">${mok?'✓ Na meta':'✗ Acima'}</div><div class="mk-sub" style="font-size:22px">Meta: ${meta} | Real: ${aval}</div></div>
     `;
