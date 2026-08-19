@@ -969,6 +969,131 @@ async function processarJobCursosBulk() {
   return resultado;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// LÁUREAS (medalhas do Mérito Pessoal) — via SGP-DP, mesma sessão colada
+// do IAS/cursos. Sem upload manual anterior — essa sincronização é a
+// única fonte dessa tabela desde o início.
+//
+// Descoberto via inspeção do Network do navegador (não documentado):
+//   1. POST /SGP/FindPM com url:"/Medalhas/Medalhas" — seleciona a pessoa.
+//   2. POST /Medalhas/ConsultarMedalhasPM — devolve { Result, Mensagem,
+//      listaLaureas: [{Re,Codigo,Concessao,Boletim,OpmConcessao,
+//      DescricaoMedalha,DescricaoOPMConcessao,...}] } — corpo vazio,
+//      depende do contexto setado pelo FindPM (mesmo padrão do IAS).
+//      Datas em ISO (YYYY-MM-DDTHH:mm:ss). DataInclusao/DataAlteracao/
+//      DataExclusao usam sentinela "1753-01-01" quando não preenchidas
+//      (mesmo sentinela do SQL Server já visto nos cursos) — não são
+//      usadas aqui, só Concessao importa.
+// ═══════════════════════════════════════════════════════════════
+
+async function sgpDpConsultarLaureas(re6, cookie) {
+  let res;
+  try {
+    res = await fetch(`${SGPDP_BASE}/Medalhas/ConsultarMedalhasPM`, {
+      method: 'POST',
+      headers: sgpDpHeaders(cookie),
+      body: '{}',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(SGPDP_TIMEOUT_MS),
+    });
+  } catch (err) {
+    throw new Error(`SGP-DP ConsultarMedalhasPM RE ${re6}: ${descreverErroFetch(err)}`);
+  }
+  if (res.status >= 300 && res.status < 400) throw new SessaoSgpDpInvalidaError('SGP-DP redirecionou pra login — sessão expirada, cole o cookie de novo.');
+  if (!res.ok) throw new Error(`SGP-DP ConsultarMedalhasPM RE ${re6} HTTP ${res.status}`);
+  const text = await res.text();
+  let json;
+  try { json = JSON.parse(text); }
+  catch { throw new SessaoSgpDpInvalidaError('SGP-DP não devolveu JSON (provavelmente sessão expirada) — cole o cookie de novo.'); }
+  return json?.listaLaureas || [];
+}
+
+function mapLaurea(item, re6) {
+  const concessao = semDataSentinela(item.Concessao ? String(item.Concessao).slice(0, 10) : null);
+  return {
+    id_laurea:               `LAU-${re6}-${item.Boletim}`,
+    codigo:                  item.Codigo != null ? String(item.Codigo) : null,
+    descricao_medalha:       trim(item.DescricaoMedalha),
+    concessao,
+    boletim:                 item.Boletim != null ? String(item.Boletim) : null,
+    opm_concessao_codigo:    item.OpmConcessao != null ? String(item.OpmConcessao) : null,
+    opm_concessao_descricao: trim(item.DescricaoOPMConcessao) || null,
+  };
+}
+
+async function buscarLaureasPM(re6, cookie) {
+  await sgpDpFindPM(re6, cookie, '/Medalhas/Medalhas');
+  const lista = await sgpDpConsultarLaureas(re6, cookie);
+  return lista.map(item => mapLaurea(item, re6));
+}
+
+// Substitui todas as láureas desse RE em prod_laureas pelas que vieram
+// agora do SGP-DP (mesma lógica de "substituição completa" dos cursos).
+async function sincronizarLaureasUmRE(pmEfetivo, cookie) {
+  const re6 = String(pmEfetivo.re).slice(0, 6);
+  console.log(`  (láureas) RE ${re6}: consultando...`);
+  const laureas = await comRetryTransiente(() => buscarLaureasPM(re6, cookie));
+  console.log(`  (láureas) RE ${re6}: ${laureas.length} láurea(s) no SGP-DP.`);
+
+  const { error: erroDelete } = await supabase.from('prod_laureas').delete().eq('re_pm', pmEfetivo.re);
+  if (erroDelete) throw new Error(`Falha ao limpar prod_laureas: ${erroDelete.message}`);
+
+  if (laureas.length) {
+    const rows = laureas.map(l => ({
+      ...l,
+      re_pm: pmEfetivo.re,
+      posto_pm: pmEfetivo.posto,
+      nome_pm: pmEfetivo.nome,
+      opm: pmEfetivo.opm,
+      updated_at: new Date().toISOString(),
+    }));
+    // Dedup por id_laurea dentro do próprio lote — mesma cautela já aplicada
+    // aos cursos, caso o SGP-DP repita um Boletim pra mesma pessoa.
+    const rowsUnicas = [...new Map(rows.map(r => [r.id_laurea, r])).values()];
+    const { error: erroInsert } = await supabase.from('prod_laureas').insert(rowsUnicas);
+    if (erroInsert) throw new Error(`Falha ao gravar prod_laureas: ${erroInsert.message}${erroInsert.details ? ' — ' + erroInsert.details : ''}`);
+  }
+}
+
+async function processarJobLaureasSingle(job) {
+  const re6 = String(job.re).slice(0, 6);
+  const cookie = await buscarSessaoSgpDp();
+  const { data: pm, error } = await supabase.from('efetivo_pm').select('re, nome, posto, opm').like('re', `${re6}%`).limit(1);
+  if (error) throw new Error(`Falha ao consultar efetivo_pm: ${error.message}`);
+  if (!pm.length) throw new Error(`RE ${re6} não está no efetivo.`);
+  await sincronizarLaureasUmRE(pm[0], cookie);
+  return { ok: true, re: pm[0].re, nome: pm[0].nome };
+}
+
+async function processarJobLaureasBulk() {
+  const cookie = await buscarSessaoSgpDp();
+  const { data: efetivo, error } = await supabase.from('efetivo_pm').select('re, nome, posto, opm');
+  if (error) throw new Error(`Falha ao ler efetivo_pm: ${error.message}`);
+
+  const resultado = { total: efetivo.length, atualizados: 0, erros: [] };
+  let falhasSeguidas = 0;
+  for (const pm of efetivo) {
+    try {
+      await sincronizarLaureasUmRE(pm, cookie);
+      resultado.atualizados++;
+      falhasSeguidas = 0;
+    } catch (err) {
+      if (err instanceof SessaoSgpDpInvalidaError) {
+        resultado.erros.push({ re: pm.re, erro: err.message });
+        resultado.abortado = 'Sessão do SGP-DP expirou no meio da atualização — cole o cookie de novo e rode de novo (só quem já foi atualizado fica salvo).';
+        break;
+      }
+      resultado.erros.push({ re: pm.re, erro: err.message });
+      if (++falhasSeguidas >= LIMITE_FALHAS_SEGUIDAS) {
+        resultado.abortado = `${LIMITE_FALHAS_SEGUIDAS} pessoas seguidas falharam — provável sessão expirada mesmo sem redirect de login. Cole o cookie de novo e rode de novo (só quem já foi atualizado fica salvo).`;
+        break;
+      }
+    }
+    await sleep(CALL_DELAY_MS);
+  }
+  return resultado;
+}
+
 async function processarJobSingle(job) {
   const re6 = String(job.re).slice(0, 6);
   const dados = await sincronizarUmRE(re6);
@@ -1014,6 +1139,8 @@ async function processarProximoJob() {
     ias_single:    () => processarJobIasSingle(job),
     cursos_bulk:   () => processarJobCursosBulk(),
     cursos_single: () => processarJobCursosSingle(job),
+    laureas_bulk:   () => processarJobLaureasBulk(),
+    laureas_single: () => processarJobLaureasSingle(job),
   };
 
   try {

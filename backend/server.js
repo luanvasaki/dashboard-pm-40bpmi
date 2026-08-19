@@ -1056,9 +1056,9 @@ app.post('/api/efetivo/sync', requireAuth, requireRole('admin', 'p1'), async (re
   try {
     if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
     const { tipo, re } = req.body;
-    const TIPOS_VALIDOS = ['single', 'bulk', 'ias_single', 'ias_bulk', 'cursos_single', 'cursos_bulk'];
+    const TIPOS_VALIDOS = ['single', 'bulk', 'ias_single', 'ias_bulk', 'cursos_single', 'cursos_bulk', 'laureas_single', 'laureas_bulk'];
     if (!TIPOS_VALIDOS.includes(tipo)) return res.status(400).json({ error: `tipo deve ser um de: ${TIPOS_VALIDOS.join(', ')}.` });
-    const ehSingle = tipo === 'single' || tipo === 'ias_single' || tipo === 'cursos_single';
+    const ehSingle = tipo === 'single' || tipo === 'ias_single' || tipo === 'cursos_single' || tipo === 'laureas_single';
     if (ehSingle && !/^\d{6}$/.test(String(re || ''))) {
       return res.status(400).json({ error: 'Informe os 6 dígitos do RE (sem o dígito verificador).' });
     }
@@ -2212,6 +2212,16 @@ app.get('/api/pm/:re/cursos', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
   try {
     const { data, error } = await supabase.from('prod_cursos').select('*').eq('re_pm', req.params.re).order('data', { ascending: false });
+    if (error) throw new Error(error.message);
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// [GET /api/pm/:re/laureas] — lista todas as láureas de um PM específico (pelo RE), em ordem decrescente por data de concessão.
+app.get('/api/pm/:re/laureas', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  try {
+    const { data, error } = await supabase.from('prod_laureas').select('*').eq('re_pm', req.params.re).order('concessao', { ascending: false });
     if (error) throw new Error(error.message);
     res.json(data || []);
   } catch (err) { res.status(500).json({ error: err.message }); }

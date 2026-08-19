@@ -403,7 +403,7 @@
   <div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:28px;width:100%;max-width:1180px;max-height:92vh;overflow-y:auto">
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px;margin-bottom:20px">SINCRONIZAR <span style="color:#5ae09a">VIA SGP</span></div>
 
-    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px">
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px">
       <!-- Coluna 1: Efetivo via WSSCPM -->
       <div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;letter-spacing:1.5px;margin-bottom:6px">EFETIVO <span style="color:#5ae09a">VIA WSSCPM</span></div>
@@ -448,6 +448,20 @@
         </div>
         <button onclick="p1SgpCursosRequestBulk()" style="width:100%;padding:8px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.3);color:var(--gold);border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">Atualizar cursos do efetivo completo</button>
         <div id="p1-sgpdp-cursos-msg" style="font-size:19px;margin-top:10px;min-height:18px"></div>
+      </div>
+
+      <!-- Coluna 4: Láureas via SGP-DP -->
+      <div style="border-left:1px solid var(--bd);padding-left:28px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;letter-spacing:1.5px;margin-bottom:6px">LÁUREAS <span style="color:#e05a8a">VIA SGP-DP</span></div>
+        <div style="font-size:17px;color:var(--tx3);margin-bottom:14px;line-height:1.6">
+          Usa a mesma sessão colada ao lado. Substitui por completo o histórico de láureas do Mérito Pessoal de cada PM (grau, boletim, OPM de concessão).
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <input type="text" id="p1-sgpdp-laureas-re" placeholder="RE (6 dígitos, sem dígito verificador)" maxlength="6" style="flex:1;min-width:0;padding:7px 10px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:4px;font-size:19px">
+          <button onclick="p1SgpLaureasRequestSingle()" style="padding:7px 16px;background:rgba(224,90,138,.15);border:1px solid rgba(224,90,138,.35);color:#e05a8a;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600;white-space:nowrap">Buscar RE</button>
+        </div>
+        <button onclick="p1SgpLaureasRequestBulk()" style="width:100%;padding:8px;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.3);color:var(--gold);border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">Atualizar láureas do efetivo completo</button>
+        <div id="p1-sgpdp-laureas-msg" style="font-size:19px;margin-top:10px;min-height:18px"></div>
       </div>
     </div>
 
@@ -582,6 +596,21 @@
             <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">POSTO</th>
           </tr></thead>
           <tbody id="pronto-cursos"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Láureas do Mérito Pessoal -->
+    <div style="border-top:1px solid var(--bd);padding-top:16px;margin-top:16px">
+      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px">Láureas</div>
+      <div style="overflow-x:auto;max-height:220px;overflow-y:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">DATA</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">LÁUREA</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">BOLETIM</th>
+            <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);letter-spacing:1px">OPM CONCESSÃO</th>
+          </tr></thead>
+          <tbody id="pronto-laureas"></tbody>
         </table>
       </div>
     </div>
@@ -1092,7 +1121,7 @@
 <script src="js/upload.js?v=20260624"></script>
 <script src="js/ocorr-modal.js?v=20260624"></script>
 <script src="js/intel.js?v=20260624"></script>
-<script src="js/p1.js?v=20260819a"></script>
+<script src="js/p1.js?v=20260819b"></script>
 <script src="js/p3.js?v=20260814"></script>
 <script src="js/uis.js?v=20260814a"></script>
 <script src="js/init.js?v=20260624"></script>

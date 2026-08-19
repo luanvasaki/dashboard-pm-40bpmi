@@ -43,6 +43,7 @@ let p1FiltroOpm  = '';   // filtro ativo por OPM
 let prontoCurrentRe  = '';   // RE do prontuário aberto
 let prontoExtratoFull = [];  // afastamentos do PM aberto, sem filtro (base p/ os selects)
 let prontoCursosFull  = [];  // cursos (internos+externos) do PM aberto, sem filtro (base p/ o select de origem)
+let prontoLaureasFull = [];  // láureas (prod_laureas) do PM aberto
 let p1ClosingPronto  = false;// flag: acabou de fechar prontuário — evita fechar painel CIA
 let p1UnitClickOut   = null; // handler de click fora do detalhe de unidade
 let p1KpiClickOut    = null; // handler de click fora do detalhe de KPI
@@ -1112,6 +1113,43 @@ async function p1SgpCursosRequestBulk() {
   }
 }
 
+async function p1SgpLaureasRequestSingle() {
+  const msg = document.getElementById('p1-sgpdp-laureas-msg');
+  const re = document.getElementById('p1-sgpdp-laureas-re').value.trim();
+  if (!/^\d{6}$/.test(re)) { msg.innerHTML = '<span style="color:#f07878">Digite os 6 dígitos do RE, sem o dígito verificador.</span>'; return; }
+  msg.innerHTML = '<span style="color:var(--tx3)">Enviando pedido...</span>';
+  try {
+    const res = await authFetch(`${API}/efetivo/sync`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo: 'laureas_single', re })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao criar pedido.');
+    msg.innerHTML = '<span style="color:#4bc87a">Pedido enviado — aguardando o agente do batalhão processar.</span>';
+    p1SgpRefreshStatus();
+  } catch (err) {
+    msg.innerHTML = `<span style="color:#f07878">${escHtml(err.message)}</span>`;
+  }
+}
+
+async function p1SgpLaureasRequestBulk() {
+  const msg = document.getElementById('p1-sgpdp-laureas-msg');
+  if (!confirm('Isso vai reconsultar as láureas de todo o efetivo cadastrado, um por um. Pode levar bastante tempo e a sessão do SGP-DP pode expirar no meio (tem expirado entre 1h e 4h) — cole um cookie novo antes de rodar. Continuar?')) return;
+  msg.innerHTML = '<span style="color:var(--tx3)">Enviando pedido...</span>';
+  try {
+    const res = await authFetch(`${API}/efetivo/sync`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo: 'laureas_bulk' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao criar pedido.');
+    msg.innerHTML = '<span style="color:#4bc87a">Pedido enviado — aguardando o agente do batalhão processar.</span>';
+    p1SgpRefreshStatus();
+  } catch (err) {
+    msg.innerHTML = `<span style="color:#f07878">${escHtml(err.message)}</span>`;
+  }
+}
+
 function p1SgpStatusLabel(status) {
   const map = {
     pending:    ['aguardando', '#e8c96a'],
@@ -1132,8 +1170,9 @@ async function p1SgpRefreshStatus() {
     el.innerHTML = jobs.map(j => {
       const ehIas = j.tipo === 'ias_single' || j.tipo === 'ias_bulk';
       const ehCursos = j.tipo === 'cursos_single' || j.tipo === 'cursos_bulk';
-      const ehSingle = j.tipo === 'single' || j.tipo === 'ias_single' || j.tipo === 'cursos_single';
-      const prefixo = ehIas ? 'IAS · ' : ehCursos ? 'Cursos · ' : '';
+      const ehLaureas = j.tipo === 'laureas_single' || j.tipo === 'laureas_bulk';
+      const ehSingle = j.tipo === 'single' || j.tipo === 'ias_single' || j.tipo === 'cursos_single' || j.tipo === 'laureas_single';
+      const prefixo = ehIas ? 'IAS · ' : ehCursos ? 'Cursos · ' : ehLaureas ? 'Láureas · ' : '';
       const desc = ehSingle ? `${prefixo}RE ${escHtml(j.re)}` : `${prefixo}Efetivo completo`;
       const quando = new Date(j.criado_em).toLocaleString('pt-BR');
       let detalhe = '';
@@ -2560,6 +2599,36 @@ async function openProntuario(re) {
       cursosEl.innerHTML = '<tr><td colspan="6" style="padding:12px 10px;color:var(--tx3);font-size:19px;text-align:center">—</td></tr>';
     });
   }
+
+  // Láureas do Mérito Pessoal (SGP-DP)
+  const laureasEl = document.getElementById('pronto-laureas');
+  if (laureasEl) {
+    laureasEl.innerHTML = '<tr><td colspan="4" style="padding:10px;color:var(--tx3);font-size:19px;text-align:center">Carregando...</td></tr>';
+    authFetch(`${API}/pm/${encodeURIComponent(re)}/laureas`).then(r => r.json()).then(laureasData => {
+      prontoLaureasFull = Array.isArray(laureasData) ? laureasData : [];
+      prontoRenderLaureas();
+    }).catch(() => {
+      prontoLaureasFull = [];
+      laureasEl.innerHTML = '<tr><td colspan="4" style="padding:12px 10px;color:var(--tx3);font-size:19px;text-align:center">—</td></tr>';
+    });
+  }
+}
+
+// Redesenha a tabela de láureas do PM aberto (sem filtro, é uma lista curta por pessoa).
+function prontoRenderLaureas() {
+  const laureasEl = document.getElementById('pronto-laureas');
+  if (!laureasEl) return;
+  const fmtDl = s => { if (!s || parseInt(String(s).slice(0,4),10) < 1900) return '—'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
+  const tdL = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-family:\'DM Mono\',monospace;font-size:19px;color:var(--tx3)';
+
+  laureasEl.innerHTML = prontoLaureasFull.length
+    ? prontoLaureasFull.map(l => `<tr>
+        <td style="${tdL};white-space:nowrap">${fmtDl(l.concessao)}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx)">${escHtml(l.descricao_medalha||'—')}</td>
+        <td style="${tdL}">${escHtml(l.boletim||'—')}</td>
+        <td style="${tdL}">${escHtml(l.opm_concessao_descricao||'—')}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" style="padding:12px 10px;color:var(--tx3);font-size:19px;text-align:center">Nenhuma láurea encontrada.</td></tr>';
 }
 
 // Filtra prontoCursosFull pelo select de origem (interno/externo) e redesenha a tabela.
