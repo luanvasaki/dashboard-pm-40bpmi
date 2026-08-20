@@ -201,6 +201,101 @@ function p5RenderEvolucao() {
   }
 }
 
+// ── Busca por Nome/RE (mesmo padrão da busca do P1 — ver p1SearchInput em
+// p1.js) — pesquisa sempre no efetivo completo (ignora o filtro de CIA em
+// tela) e abre direto o prontuário do PM selecionado.
+let p5SearchIdx = -1;
+
+function p5SearchInput(val) {
+  const drop = document.getElementById('p5-search-drop');
+  if (!drop) return;
+  const q = (val || '').trim().toLowerCase();
+  p5SearchIdx = -1;
+  if (!q) { drop.style.display = 'none'; return; }
+
+  const isRe = /^\d+$/.test(q);
+  const matches = p5EfetivoFull.filter(r =>
+    (isRe
+      ? (r.re || '').toLowerCase().startsWith(q)
+      : (r.nome || '').toLowerCase().includes(q) || (r.nome_guerra || '').toLowerCase().includes(q))
+  ).slice(0, 30);
+
+  if (!matches.length) { drop.style.display = 'none'; return; }
+
+  const norm = s => (s || '').replace(/</g, '&lt;');
+  const hi = s => {
+    const idx = s.toLowerCase().indexOf(q);
+    if (idx < 0) return norm(s);
+    return norm(s.slice(0, idx)) + `<span style="color:var(--gold);font-weight:700">${norm(s.slice(idx, idx + q.length))}</span>` + norm(s.slice(idx + q.length));
+  };
+
+  drop.innerHTML = matches.map((r, i) => {
+    const nomePrinc = r.nome_guerra || r.nome || '—';
+    const grauCor = r.grau ? P5_GRAU_COR[r.grau] : P5_SEM_COR;
+    const grauTxt = r.grau ? P5_GRAU_LBL[r.grau] : 'Sem Láurea';
+    return `<div data-re="${escHtml(r.re)}" data-i="${i}"
+      onmousedown="p5SearchSelect('${(r.re || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')"
+      onmouseover="p5SearchHover(${i})"
+      style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s"
+      id="p5-sdrop-${i}">
+      <div data-foto-re="${escHtml(r.re)}" data-nome="${escHtml(nomePrinc)}" data-posto="${escHtml(r.posto || '')}" data-size="32" style="flex-shrink:0">${p1Fotos[r.re] ? `<img src="${p1Fotos[r.re]}" style="width:32px;height:${p1AvatarH(32)}px;border-radius:7px;object-fit:cover;border:1.5px solid rgba(255,255,255,.18)">` : p1AvatarSVG(nomePrinc, r.posto)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:19px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${hi(nomePrinc)}</div>
+        <div style="font-size:19px;color:var(--tx3)">${hi(r.nome || '')} · ${escHtml(r.posto || '—')} · ${escHtml(p5CiaOf(r.opm))}</div>
+      </div>
+      <div style="font-size:19px;font-family:'DM Mono',monospace;padding:3px 9px;border-radius:10px;background:${grauCor}22;color:${grauCor};white-space:nowrap">${grauTxt}</div>
+    </div>`;
+  }).join('');
+
+  drop.style.display = 'block';
+  if (typeof p1LoadFotosVisiveis === 'function') p1LoadFotosVisiveis();
+}
+
+function p5SearchHover(i) {
+  p5SearchIdx = i;
+  document.querySelectorAll('#p5-search-drop > div').forEach((el, j) => {
+    el.style.background = j === i ? 'rgba(255,255,255,.06)' : '';
+  });
+}
+
+function p5SearchKey(e) {
+  const drop = document.getElementById('p5-search-drop');
+  if (!drop || drop.style.display === 'none') {
+    if (e.key === 'Enter') {
+      const val = document.getElementById('p5-search')?.value.trim();
+      if (val) p5SearchInput(val);
+    }
+    return;
+  }
+  const items = drop.querySelectorAll('div[data-re]');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    p5SearchHover(Math.min(p5SearchIdx + 1, items.length - 1));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    p5SearchHover(Math.max(p5SearchIdx - 1, 0));
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const sel = drop.querySelector(`[data-i="${p5SearchIdx}"]`) || items[0];
+    if (sel) p5SearchSelect(sel.dataset.re);
+  } else if (e.key === 'Escape') {
+    p5SearchHide();
+  }
+}
+
+function p5SearchSelect(re) {
+  p5SearchHide();
+  const inp = document.getElementById('p5-search');
+  const pm = p5EfetivoFull.find(r => r.re === re);
+  if (inp && pm) inp.value = pm.nome_guerra || pm.nome || re;
+  openProntuario(re);
+}
+
+function p5SearchHide() {
+  const drop = document.getElementById('p5-search-drop');
+  if (drop) drop.style.display = 'none';
+}
+
 function p5RenderGrid() {
   const gridEl = document.getElementById('p5-grid');
   if (!gridEl) return;
