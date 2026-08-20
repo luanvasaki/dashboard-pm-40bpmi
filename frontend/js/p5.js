@@ -199,8 +199,13 @@ function p5RenderEvolucao() {
   const tituloEl = document.getElementById('p5-mes-titulo');
   if (tituloEl) {
     const parteAno = p5FiltroAnoMes || 'Total Histórico';
-    const parteGrau = p5FiltroGrauMes ? ` · ${P5_GRAU_LBL[p5FiltroGrauMes]}` : '';
-    tituloEl.textContent = `Láureas por Mês (${parteAno}${parteGrau})`;
+    // O "º" de "1º Grau" etc. vira "ª" sob text-transform:uppercase (bug
+    // conhecido do CSS com o indicador ordinal masculino) — isola ele num
+    // span com transform:none pra escapar dessa conversão.
+    const parteGrau = p5FiltroGrauMes
+      ? ` · ${p5FiltroGrauMes}<span style="text-transform:none">º</span> Grau`
+      : '';
+    tituloEl.innerHTML = `Láureas por Mês (${parteAno}${parteGrau})`;
   }
 
   // porMes é a série exibida nas barras (respeita o filtro de grau, se houver);
