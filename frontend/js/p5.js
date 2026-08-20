@@ -14,6 +14,7 @@ let p5FiltroGrau = null;
 let p5FiltroCia = '';
 let p5FiltroAnoMes = ''; // ano selecionado pro gráfico "Láureas por Mês" ('' = Total Histórico)
 let p5FiltroAnoMesTocado = false; // true assim que o usuário mexe no seletor — trava o auto-default pro ano mais recente
+let p5FiltroGrauMes = ''; // grau selecionado pro gráfico "Láureas por Mês" ('' = todos os graus)
 let p5Chart = null;
 let p5ChartAno = null;
 let p5ChartMes = null;
@@ -69,6 +70,11 @@ function p5SetFiltroCia(val) {
 function p5SetFiltroAnoMes(val) {
   p5FiltroAnoMes = val || '';
   p5FiltroAnoMesTocado = true;
+  p5RenderEvolucao();
+}
+
+function p5SetFiltroGrauMes(val) {
+  p5FiltroGrauMes = val || '';
   p5RenderEvolucao();
 }
 
@@ -170,15 +176,44 @@ function p5RenderEvolucao() {
     }
   }
 
-  const tituloEl = document.getElementById('p5-mes-titulo');
-  if (tituloEl) tituloEl.textContent = p5FiltroAnoMes ? `Láureas por Mês (${p5FiltroAnoMes})` : 'Láureas por Mês (Total Histórico)';
+  const grausDisponiveis = [...new Set(p5Laureas.map(l => l.grau).filter(g => g != null))].sort((a, b) => a - b);
+  if (p5FiltroGrauMes && !grausDisponiveis.map(String).includes(p5FiltroGrauMes)) p5FiltroGrauMes = '';
 
+  const grauFiltroEl = document.getElementById('p5-mes-grau-filtro');
+  if (grauFiltroEl) {
+    if (grausDisponiveis.length) {
+      grauFiltroEl.innerHTML = `<div class="pf-field"><span class="pf-label">Grau</span><select name="p5-mes-grau" autocomplete="off" class="pf-select" onchange="p5SetFiltroGrauMes(this.value)">` +
+        `<option value=""${p5FiltroGrauMes ? '' : ' selected'}>Todos</option>` +
+        grausDisponiveis.map(g => `<option value="${g}"${String(g) === p5FiltroGrauMes ? ' selected' : ''}>${P5_GRAU_LBL[g]}</option>`).join('') +
+        `</select></div>`;
+    } else {
+      grauFiltroEl.innerHTML = '';
+    }
+  }
+
+  const tituloEl = document.getElementById('p5-mes-titulo');
+  if (tituloEl) {
+    const parteAno = p5FiltroAnoMes || 'Total Histórico';
+    const parteGrau = p5FiltroGrauMes ? ` · ${P5_GRAU_LBL[p5FiltroGrauMes]}` : '';
+    tituloEl.textContent = `Láureas por Mês (${parteAno}${parteGrau})`;
+  }
+
+  // porMes é a série exibida nas barras (respeita o filtro de grau, se houver);
+  // porMesPorGrau é o detalhamento completo por grau usado no tooltip — sempre
+  // considera todos os graus, independente do filtro, pra dar contexto no hover.
   const porMes = new Array(12).fill(0);
+  const porMesPorGrau = Array.from({ length: 12 }, () => ({}));
   p5Laureas.forEach(l => {
     const [anoStr, mesStr] = String(l.concessao || '').split('-');
     if (p5FiltroAnoMes && anoStr !== String(p5FiltroAnoMes)) return;
     const mesIdx = parseInt(mesStr, 10) - 1;
-    if (mesIdx >= 0 && mesIdx < 12) porMes[mesIdx]++;
+    if (mesIdx < 0 || mesIdx >= 12) return;
+
+    const gKey = l.grau != null ? String(l.grau) : 'sem';
+    porMesPorGrau[mesIdx][gKey] = (porMesPorGrau[mesIdx][gKey] || 0) + 1;
+
+    if (p5FiltroGrauMes && String(l.grau) !== p5FiltroGrauMes) return;
+    porMes[mesIdx]++;
   });
 
   const ctxAno = document.getElementById('p5-chart-ano')?.getContext('2d');
@@ -224,7 +259,17 @@ function p5RenderEvolucao() {
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: i => ` ${P5_MESES[i.dataIndex]}: ${i.raw} láurea${i.raw !== 1 ? 's' : ''}${porMes[i.dataIndex] === maxMes && maxMes > 0 ? ' — maior concentração' : ''}` } }
+          tooltip: {
+            callbacks: {
+              label: i => ` ${P5_MESES[i.dataIndex]}: ${i.raw} láurea${i.raw !== 1 ? 's' : ''}${porMes[i.dataIndex] === maxMes && maxMes > 0 ? ' — maior concentração' : ''}`,
+              afterLabel: i => {
+                const bd = porMesPorGrau[i.dataIndex] || {};
+                return ['1', '2', '3', '4', '5', 'sem']
+                  .filter(g => bd[g])
+                  .map(g => ` ${g === 'sem' ? 'Sem grau identificado' : P5_GRAU_LBL[g]}: ${bd[g]}`);
+              }
+            }
+          }
         },
         scales: {
           x: { grid: { display: false }, ticks: { color: '#ffffff', font: { size: 18 } } },
