@@ -13,6 +13,7 @@ let p5Laureas = [];
 let p5FiltroGrau = null;
 let p5FiltroCia = '';
 let p5FiltroAnoMes = ''; // ano selecionado pro gráfico "Láureas por Mês" ('' = Total Histórico)
+let p5FiltroAnoMesTocado = false; // true assim que o usuário mexe no seletor — trava o auto-default pro ano mais recente
 let p5Chart = null;
 let p5ChartAno = null;
 let p5ChartMes = null;
@@ -67,6 +68,7 @@ function p5SetFiltroCia(val) {
 
 function p5SetFiltroAnoMes(val) {
   p5FiltroAnoMes = val || '';
+  p5FiltroAnoMesTocado = true;
   p5RenderEvolucao();
 }
 
@@ -150,13 +152,18 @@ function p5RenderEvolucao() {
   });
   const anos = Object.keys(porAno).map(Number).sort((a, b) => a - b);
   if (p5FiltroAnoMes && !anos.includes(Number(p5FiltroAnoMes))) p5FiltroAnoMes = '';
+  // Enquanto o usuário não mexer no seletor, trava no ano mais recente disponível
+  // (em vez de Total Histórico) — assim que ele escolhe algo (inclusive Total
+  // Histórico), p5FiltroAnoMesTocado vira true e esse auto-default para de agir.
+  if (!p5FiltroAnoMesTocado && !p5FiltroAnoMes && anos.length) p5FiltroAnoMes = String(anos[anos.length - 1]);
 
   const anoFiltroEl = document.getElementById('p5-mes-ano-filtro');
   if (anoFiltroEl) {
     if (anos.length) {
+      const anosDesc = [...anos].sort((a, b) => b - a);
       anoFiltroEl.innerHTML = `<div class="pf-field"><span class="pf-label">Ano</span><select name="p5-mes-ano" autocomplete="off" class="pf-select" onchange="p5SetFiltroAnoMes(this.value)">` +
+        anosDesc.map(a => `<option value="${a}"${String(a) === String(p5FiltroAnoMes) ? ' selected' : ''}>${a}</option>`).join('') +
         `<option value=""${p5FiltroAnoMes ? '' : ' selected'}>Total Histórico</option>` +
-        anos.map(a => `<option value="${a}"${String(a) === String(p5FiltroAnoMes) ? ' selected' : ''}>${a}</option>`).join('') +
         `</select></div>`;
     } else {
       anoFiltroEl.innerHTML = '';
