@@ -852,10 +852,21 @@
   <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:14px">
     <i data-lucide="medal" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px;color:var(--tx3)"></i>Láureas do Efetivo
   </div>
+  <div id="p5-filtro-bar" class="pf" style="margin-bottom:14px"></div>
   <div class="mo-kpis" id="p5-kpis" style="margin-bottom:18px"></div>
   <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px;margin-bottom:18px">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:14px">Efetivo por Grau (mais alto já alcançado)</div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:14px">Efetivo por Grau de Láurea</div>
     <canvas id="p5-chart-grau" style="height:320px;max-height:320px"></canvas>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;margin-bottom:18px">
+    <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:14px">Evolução de Láureas por Ano</div>
+      <div style="position:relative;height:260px"><canvas id="p5-chart-ano"></canvas></div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:14px">Láureas por Mês (Total Histórico)</div>
+      <div style="position:relative;height:260px"><canvas id="p5-chart-mes"></canvas></div>
+    </div>
   </div>
   <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
@@ -1131,7 +1142,7 @@
 <script src="js/intel.js?v=20260624"></script>
 <script src="js/p1.js?v=20260819g"></script>
 <script src="js/p3.js?v=20260819d"></script>
-<script src="js/p5.js?v=20260819a"></script>
+<script src="js/p5.js?v=20260820a"></script>
 <script src="js/uis.js?v=20260814a"></script>
 <script src="js/init.js?v=20260624"></script>
 </body>
