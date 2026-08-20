@@ -12,6 +12,7 @@ let p5LaureasFull = [];
 let p5Laureas = [];
 let p5FiltroGrau = null;
 let p5FiltroCia = '';
+let p5FiltroAnoMes = ''; // ano selecionado pro gráfico "Láureas por Mês" ('' = Total Histórico)
 let p5Chart = null;
 let p5ChartAno = null;
 let p5ChartMes = null;
@@ -62,6 +63,11 @@ function p5BuildFiltroBar() {
 function p5SetFiltroCia(val) {
   p5FiltroCia = val || '';
   p5Render();
+}
+
+function p5SetFiltroAnoMes(val) {
+  p5FiltroAnoMes = val || '';
+  p5RenderEvolucao();
 }
 
 function p5Render() {
@@ -133,20 +139,41 @@ function p5SetFiltro(key) {
 
 // Duas leituras complementares da mesma lista de láureas (já filtrada por
 // CIA em p5Render): evolução ano a ano (tendência ao longo do tempo) e soma
-// por mês-calendário somando todos os anos (pra achar os meses que mais
-// concentram concessão de láurea, ex: aniversário da unidade/datas comemorativas).
+// por mês-calendário (pra achar os meses que mais concentram concessão de
+// láurea, ex: aniversário da unidade/datas comemorativas) — por padrão soma
+// todos os anos, mas dá pra restringir a um ano específico via p5FiltroAnoMes.
 function p5RenderEvolucao() {
   const porAno = {};
+  p5Laureas.forEach(l => {
+    const ano = parseInt(String(l.concessao || '').split('-')[0], 10);
+    if (!isNaN(ano)) porAno[ano] = (porAno[ano] || 0) + 1;
+  });
+  const anos = Object.keys(porAno).map(Number).sort((a, b) => a - b);
+  if (p5FiltroAnoMes && !anos.includes(Number(p5FiltroAnoMes))) p5FiltroAnoMes = '';
+
+  const anoFiltroEl = document.getElementById('p5-mes-ano-filtro');
+  if (anoFiltroEl) {
+    if (anos.length) {
+      anoFiltroEl.innerHTML = `<div class="pf-field"><span class="pf-label">Ano</span><select name="p5-mes-ano" autocomplete="off" class="pf-select" onchange="p5SetFiltroAnoMes(this.value)">` +
+        `<option value=""${p5FiltroAnoMes ? '' : ' selected'}>Total Histórico</option>` +
+        anos.map(a => `<option value="${a}"${String(a) === String(p5FiltroAnoMes) ? ' selected' : ''}>${a}</option>`).join('') +
+        `</select></div>`;
+    } else {
+      anoFiltroEl.innerHTML = '';
+    }
+  }
+
+  const tituloEl = document.getElementById('p5-mes-titulo');
+  if (tituloEl) tituloEl.textContent = p5FiltroAnoMes ? `Láureas por Mês (${p5FiltroAnoMes})` : 'Láureas por Mês (Total Histórico)';
+
   const porMes = new Array(12).fill(0);
   p5Laureas.forEach(l => {
     const [anoStr, mesStr] = String(l.concessao || '').split('-');
-    const ano = parseInt(anoStr, 10);
+    if (p5FiltroAnoMes && anoStr !== String(p5FiltroAnoMes)) return;
     const mesIdx = parseInt(mesStr, 10) - 1;
-    if (!isNaN(ano)) porAno[ano] = (porAno[ano] || 0) + 1;
     if (mesIdx >= 0 && mesIdx < 12) porMes[mesIdx]++;
   });
 
-  const anos = Object.keys(porAno).map(Number).sort((a, b) => a - b);
   const ctxAno = document.getElementById('p5-chart-ano')?.getContext('2d');
   if (ctxAno) {
     if (p5ChartAno) { p5ChartAno.destroy(); p5ChartAno = null; }
