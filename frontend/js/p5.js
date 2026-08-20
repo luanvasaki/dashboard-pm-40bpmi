@@ -18,6 +18,7 @@ let p5FiltroGrauMes = ''; // grau selecionado pro gráfico "Láureas por Mês" (
 let p5Chart = null;
 let p5ChartAno = null;
 let p5ChartMes = null;
+let p5PorMesLaureas = Array.from({ length: 12 }, () => []); // PMs (já com dados de efetivo) que ganharam láurea em cada mês, na mesma filtragem do gráfico "Láureas por Mês" — populado em p5RenderEvolucao, consumido por p5MesModalOpen
 
 // Mesmas cores reais de material usadas no badge de grau do prontuário
 // (ver GRAU_COR em p1.js) — repetidas aqui porque p5.js pode ser a única
@@ -32,6 +33,10 @@ const P5_MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
 // Piedade") — normCiaDisplay (ocorr-modal.js, sempre carregado no mesmo
 // index.html) extrai o padrão "Nª CIA"/"FT" daí, igual ao resto do P3.
 function p5CiaOf(opm) { return typeof normCiaDisplay === 'function' ? normCiaDisplay(opm || '') : (opm || '—'); }
+
+// laureas[].re já vem sem dígito verificador do backend — normaliza também
+// efetivo[].re (que tem o dígito) pra casar os dois lados.
+function p5BaseRe(re) { return String(re || '').split('-')[0]; }
 
 async function loadP5Section() {
   const kpisEl = document.getElementById('p5-kpis');
@@ -200,9 +205,13 @@ function p5RenderEvolucao() {
 
   // porMes é a série exibida nas barras (respeita o filtro de grau, se houver);
   // porMesPorGrau é o detalhamento completo por grau usado no tooltip — sempre
-  // considera todos os graus, independente do filtro, pra dar contexto no hover.
+  // considera todos os graus, independente do filtro, pra dar contexto no hover;
+  // p5PorMesLaureas guarda os PMs por trás de cada barra (mesma filtragem de
+  // porMes), consumido ao clicar num mês (ver p5MesModalOpen).
+  const efetivoPorBaseRe = new Map(p5EfetivoFull.map(p => [p5BaseRe(p.re), p]));
   const porMes = new Array(12).fill(0);
   const porMesPorGrau = Array.from({ length: 12 }, () => ({}));
+  p5PorMesLaureas = Array.from({ length: 12 }, () => []);
   p5Laureas.forEach(l => {
     const [anoStr, mesStr] = String(l.concessao || '').split('-');
     if (p5FiltroAnoMes && anoStr !== String(p5FiltroAnoMes)) return;
@@ -214,6 +223,9 @@ function p5RenderEvolucao() {
 
     if (p5FiltroGrauMes && String(l.grau) !== p5FiltroGrauMes) return;
     porMes[mesIdx]++;
+
+    const pm = efetivoPorBaseRe.get(l.re);
+    if (pm) p5PorMesLaureas[mesIdx].push({ ...pm, _laureaGrau: l.grau, _laureaConcessao: l.concessao });
   });
 
   const ctxAno = document.getElementById('p5-chart-ano')?.getContext('2d');
@@ -257,6 +269,8 @@ function p5RenderEvolucao() {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
+        onClick: (evt, els) => { if (els.length && porMes[els[0].index] > 0) p5MesModalOpen(els[0].index); },
+        onHover: (evt, els) => { evt.native.target.style.cursor = (els.length && porMes[els[0].index] > 0) ? 'pointer' : 'default'; },
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -264,9 +278,11 @@ function p5RenderEvolucao() {
               label: i => ` ${P5_MESES[i.dataIndex]}: ${i.raw} láurea${i.raw !== 1 ? 's' : ''}${porMes[i.dataIndex] === maxMes && maxMes > 0 ? ' — maior concentração' : ''}`,
               afterLabel: i => {
                 const bd = porMesPorGrau[i.dataIndex] || {};
-                return ['1', '2', '3', '4', '5', 'sem']
+                const linhas = ['1', '2', '3', '4', '5', 'sem']
                   .filter(g => bd[g])
                   .map(g => ` ${g === 'sem' ? 'Sem grau identificado' : P5_GRAU_LBL[g]}: ${bd[g]}`);
+                if (porMes[i.dataIndex] > 0) linhas.push(' ▸ Clique pra ver os PMs');
+                return linhas;
               }
             }
           }
@@ -278,6 +294,44 @@ function p5RenderEvolucao() {
       }
     });
   }
+}
+
+// ── Modal de PMs laureados num mês específico (clique numa barra do gráfico
+// "Láureas por Mês") — reaproveita p1CardGrid, igual à Lista Nominal.
+function p5MesModalOpen(mesIdx) {
+  const lista = p5PorMesLaureas[mesIdx] || [];
+  if (!lista.length) return;
+
+  const tituloEl = document.getElementById('p5-mes-mo-title');
+  if (tituloEl) tituloEl.textContent = `Láureas em ${P5_MESES[mesIdx]}`;
+  const subEl = document.getElementById('p5-mes-mo-sub');
+  if (subEl) {
+    const parteAno = p5FiltroAnoMes || 'Total Histórico';
+    const parteGrau = p5FiltroGrauMes ? ` · ${P5_GRAU_LBL[p5FiltroGrauMes]}` : '';
+    subEl.textContent = `${parteAno}${parteGrau} · ${lista.length} PM${lista.length !== 1 ? 's' : ''}`;
+  }
+
+  const fmtData = s => { const [y, m, d] = String(s || '').split('-'); return (y && m && d) ? `${d}/${m}/${y}` : (y && m) ? `${m}/${y}` : '—'; };
+  const info = r => {
+    const cor = r._laureaGrau ? P5_GRAU_COR[r._laureaGrau] : P5_SEM_COR;
+    const lbl = r._laureaGrau ? P5_GRAU_LBL[r._laureaGrau] : 'Sem grau';
+    return `<div style="font-size:12px;font-family:'DM Mono',monospace;margin-top:2px;color:${cor}">${lbl} · ${fmtData(r._laureaConcessao)}</div>`;
+  };
+
+  const bodyEl = document.getElementById('p5-mes-mo-body');
+  if (bodyEl) bodyEl.innerHTML = typeof p1CardGrid === 'function' ? p1CardGrid(lista, info) : '';
+
+  document.getElementById('p5-mes-mo')?.classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+
+function p5MesModalClose() {
+  document.getElementById('p5-mes-mo')?.classList.remove('on');
+  document.body.style.overflow = '';
+}
+
+function p5MesModalClickOut(e) {
+  if (e.target === document.getElementById('p5-mes-mo')) p5MesModalClose();
 }
 
 // ── Busca por Nome/RE (mesmo padrão da busca do P1 — ver p1SearchInput em
