@@ -156,12 +156,16 @@ function p5SetFiltro(key) {
 // láurea, ex: aniversário da unidade/datas comemorativas) — por padrão soma
 // todos os anos, mas dá pra restringir a um ano específico via p5FiltroAnoMes.
 function p5RenderEvolucao() {
-  const porAno = {};
+  // anosTodosGraus (sem filtro de grau) só serve pra popular o seletor de ANO
+  // com todos os anos que têm alguma láurea, mesmo que nenhuma seja do grau
+  // selecionado no momento — senão trocar o filtro de grau podia fazer o ano
+  // escolhido sumir da lista sem motivo aparente.
+  const porAnoTodosGraus = {};
   p5Laureas.forEach(l => {
     const ano = parseInt(String(l.concessao || '').split('-')[0], 10);
-    if (!isNaN(ano)) porAno[ano] = (porAno[ano] || 0) + 1;
+    if (!isNaN(ano)) porAnoTodosGraus[ano] = (porAnoTodosGraus[ano] || 0) + 1;
   });
-  const anos = Object.keys(porAno).map(Number).sort((a, b) => a - b);
+  const anos = Object.keys(porAnoTodosGraus).map(Number).sort((a, b) => a - b);
   if (p5FiltroAnoMes && !anos.includes(Number(p5FiltroAnoMes))) p5FiltroAnoMes = '';
   // Enquanto o usuário não mexer no seletor, trava no ano mais recente disponível
   // (em vez de Total Histórico) — assim que ele escolhe algo (inclusive Total
@@ -194,6 +198,24 @@ function p5RenderEvolucao() {
     } else {
       grauFiltroEl.innerHTML = '';
     }
+  }
+
+  // porAno é a série exibida no gráfico de evolução — respeita o mesmo filtro
+  // de grau do gráfico "Láureas por Mês" (os dois seletores ficam lado a lado
+  // e o usuário espera que ambos reajam à mesma escolha de grau).
+  const porAno = {};
+  p5Laureas.forEach(l => {
+    if (p5FiltroGrauMes && String(l.grau) !== p5FiltroGrauMes) return;
+    const ano = parseInt(String(l.concessao || '').split('-')[0], 10);
+    if (!isNaN(ano)) porAno[ano] = (porAno[ano] || 0) + 1;
+  });
+
+  const anoTituloEl = document.getElementById('p5-ano-titulo');
+  if (anoTituloEl) {
+    const parteGrauAno = p5FiltroGrauMes
+      ? ` · ${p5FiltroGrauMes}<span style="text-transform:none">º</span> Grau`
+      : '';
+    anoTituloEl.innerHTML = `Evolução de Láureas por Ano${parteGrauAno}`;
   }
 
   const tituloEl = document.getElementById('p5-mes-titulo');
@@ -281,11 +303,17 @@ function p5RenderEvolucao() {
           tooltip: {
             callbacks: {
               label: i => ` ${P5_MESES[i.dataIndex]}: ${i.raw} láurea${i.raw !== 1 ? 's' : ''}${porMes[i.dataIndex] === maxMes && maxMes > 0 ? ' — maior concentração' : ''}`,
+              // Detalhamento por grau só faz sentido com "Todos" selecionado —
+              // com um grau específico filtrado, a barra já É aquele grau, então
+              // listar os outros de novo (que nem entram na contagem) confundia.
               afterLabel: i => {
-                const bd = porMesPorGrau[i.dataIndex] || {};
-                const linhas = ['1', '2', '3', '4', '5', 'sem']
-                  .filter(g => bd[g])
-                  .map(g => ` ${g === 'sem' ? 'Sem grau identificado' : P5_GRAU_LBL[g]}: ${bd[g]}`);
+                const linhas = [];
+                if (!p5FiltroGrauMes) {
+                  const bd = porMesPorGrau[i.dataIndex] || {};
+                  linhas.push(...['1', '2', '3', '4', '5', 'sem']
+                    .filter(g => bd[g])
+                    .map(g => ` ${g === 'sem' ? 'Sem grau identificado' : P5_GRAU_LBL[g]}: ${bd[g]}`));
+                }
                 if (porMes[i.dataIndex] > 0) linhas.push(' ▸ Clique pra ver os PMs');
                 return linhas;
               }
