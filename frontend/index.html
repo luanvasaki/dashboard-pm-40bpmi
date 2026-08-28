@@ -848,6 +848,15 @@
 <div id="page-p2" class="page">
   <div class="ph">
     <div><div class="ph-tag">SEÇÃO P5</div><div class="ph-title">COMUNICAÇÃO <span>SOCIAL</span></div></div>
+    <div style="position:relative">
+      <input id="p5-search" name="p5-search" type="text" placeholder="Buscar RE ou Nome..." autocomplete="off"
+        oninput="p5SearchInput(this.value)"
+        onkeydown="p5SearchKey(event)"
+        onfocus="p5SearchInput(this.value)"
+        onblur="setTimeout(()=>p5SearchHide(),180)"
+        style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx);border-radius:6px;padding:6px 12px;font-size:19px;width:220px;outline:none">
+      <div id="p5-search-drop" style="display:none;position:absolute;top:calc(100% + 4px);right:0;width:320px;background:var(--s1);border:1px solid var(--bd);border-radius:7px;z-index:3000;max-height:260px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.6)"></div>
+    </div>
   </div>
   <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:14px">
     <i data-lucide="medal" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px;color:var(--tx3)"></i>Láureas do Efetivo
@@ -1133,17 +1142,17 @@
 <script src="js/utils.js?v=20260624"></script>
 <script src="js/auth.js?v=20260624"></script>
 <script src="js/nav.js?v=20260624"></script>
-<script src="js/users.js?v=20260624"></script>
+<script src="js/users.js?v=20260828"></script>
 <script src="js/filters.js?v=20260814"></script>
 <script src="js/kpi.js?v=20260819b"></script>
 <script src="js/modal-crime.js?v=20260819a"></script>
 <script src="js/upload.js?v=20260624"></script>
 <script src="js/ocorr-modal.js?v=20260624"></script>
 <script src="js/intel.js?v=20260624"></script>
-<script src="js/p1.js?v=20260819g"></script>
+<script src="js/p1.js?v=20260828"></script>
 <script src="js/p3.js?v=20260819d"></script>
 <script src="js/p5.js?v=20260820a"></script>
-<script src="js/uis.js?v=20260814a"></script>
+<script src="js/uis.js?v=20260828"></script>
 <script src="js/init.js?v=20260624"></script>
 </body>
 </html>

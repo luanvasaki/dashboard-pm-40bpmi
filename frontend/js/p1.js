@@ -77,23 +77,6 @@ function p1TotalSetCursoExt(val) { _p1TotalDetCursoExt = val || null; p1ShowKpiD
 let _p1TotalDetBusca = null;
 function p1TotalSetBusca(val) { _p1TotalDetBusca = (val || '').trim() || null; p1ShowKpiDetail('total'); }
 
-let _p1IasDetCia = -1, _p1IasDetMun = null, _p1IasDetPosto = null, _p1IasDetSit = null;
-let _iasChartData = null;
-function p1IasSetCia(val)   { _p1IasDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('ias'); }
-function p1IasSetMun(val)   { _p1IasDetMun = val || null; p1ShowKpiDetail('ias'); }
-function p1IasSetPosto(val) { _p1IasDetPosto = val || null; p1ShowKpiDetail('ias'); }
-function p1IasSetSit(val)   { _p1IasDetSit = _p1IasDetSit === val ? null : val; p1ShowKpiDetail('ias'); }
-
-let _p1AptosDetCia = -1, _p1AptosDetMun = null, _p1AptosDetPosto = null;
-function p1AptosSetCia(val)   { _p1AptosDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('aptos'); }
-function p1AptosSetMun(val)   { _p1AptosDetMun = val || null; p1ShowKpiDetail('aptos'); }
-function p1AptosSetPosto(val) { _p1AptosDetPosto = val || null; p1ShowKpiDetail('aptos'); }
-
-let _p1RestDetCia = -1, _p1RestDetMun = null, _p1RestDetPosto = null;
-function p1RestSetCia(val)   { _p1RestDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('restricao'); }
-function p1RestSetMun(val)   { _p1RestDetMun = val || null; p1ShowKpiDetail('restricao'); }
-function p1RestSetPosto(val) { _p1RestDetPosto = val || null; p1ShowKpiDetail('restricao'); }
-
 let _p1AfastDetCia = -1, _p1AfastDetMun = null, _p1AfastDetPosto = null;
 function p1AfastSetCia(val)   { _p1AfastDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('afastados'); }
 function p1AfastSetMun(val)   { _p1AfastDetMun = val || null; p1ShowKpiDetail('afastados'); }
@@ -261,6 +244,13 @@ function p1TipoLabel(tipo) {
 // Restrições (efetivo_pm.possui_restricao, alimentado só pelo SGP).
 const p1EhRestricao = a => !!a.restricao;
 
+// Linhas de afastamentos_pm cujo tipo é "Supervisão Nível I/II/III - CAPS/NAPS"
+// (acompanhamento psicossocial, não afastamento de verdade) — não contam em
+// nenhum KPI/lista de afastamento ativo, e nem aparecem no extrato de
+// afastamentos do prontuário (diferente de restrição, que fica no histórico).
+// Viram o KPI próprio "CAPS/NAPS" na UIS (uis.js).
+const p1EhSupervisao = a => /supervis[aã]o|caps\s*\/\s*naps/i.test(a.tipo_afastamento || '');
+
 // Pra escala de rua (KPIs de disponibilidade por CIA/OPM), só a restrição de
 // código "PO" (Policiamento — BG PM 166/2006) de fato tira o PM da rua; quem
 // tem restrição de outro tipo (ex: EF, OU, SP) continua podendo trabalhar
@@ -343,7 +333,7 @@ function renderP1() {
     // Termino nulo (ex: LSV em aberto, sem data de fim ainda) conta como
     // ainda em curso — não pode exigir a.termino truthy, senão essas
     // pessoas somem da lista de "afastado hoje" mesmo estando afastadas.
-    if (!p1EhRestricao(a) && a.inicio && a.inicio <= hoje && (!a.termino || a.termino >= hoje)) {
+    if (!p1EhRestricao(a) && !p1EhSupervisao(a) && a.inicio && a.inicio <= hoje && (!a.termino || a.termino >= hoje)) {
       if (!afastHoje[a.re]) afastHoje[a.re] = [];
       afastHoje[a.re].push(a);
     }
@@ -356,29 +346,6 @@ function renderP1() {
 
   // Status de cada PM
   const pmAfastados    = dataF.filter(r => afastHoje[r.re]);
-  const pmComRestricaoEfetivo = dataF.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s'));
-  const pmComRestricaoUis = dataF.filter(r => !(r.possui_restricao||'').toLowerCase().startsWith('s') && hasUisRestr(r.re));
-  const pmComRestricao = dataF.filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s') || hasUisRestr(r.re));
-  const isAdmRestr = re => {
-    const temEf = pmComRestricaoEfetivo.find(r => r.re === re);
-    if (temEf && /admin/i.test(temEf.tipos_restricao||'')) return true;
-    if (!hasUisRestr(re)) return false;
-    const recs = (_uisRestMap||{})[uisNormRE(re)] || [];
-    const cods = typeof uisExtrairCodigos === 'function' ? recs.flatMap(r => uisExtrairCodigos(r.codigos)) : [];
-    const g = typeof uisGrupoMaisRestritivo === 'function' ? uisGrupoMaisRestritivo(cods) : null;
-    return g === 'admin_only' || g === 'admin_apoio';
-  };
-  const pmRestAdm    = pmComRestricao.filter(r => isAdmRestr(r.re));
-  const pmRestOutros = pmComRestricao.filter(r => !isAdmRestr(r.re));
-
-  // Aptos = não afastado + IAS não vencida + sem restrição que impede o campo
-  const pmIasVencidaP1  = dataF.filter(r => iasStatus(r.re) === 'vencido');
-  const pmNaoAptosSet   = new Set([
-    ...pmAfastados.map(r => r.re),
-    ...pmRestAdm.map(r => r.re),
-    ...pmIasVencidaP1.map(r => r.re),
-  ]);
-  const pmAptos = dataF.filter(r => !pmNaoAptosSet.has(r.re));
   const pmEapPendente  = dataF.filter(r => {
     if (!r.data_eap) return true;
     const d = new Date(r.data_eap);
@@ -404,7 +371,7 @@ function renderP1() {
   const isLP  = t => /^lp$/i.test((t || '').trim());
   const em15s = (() => { const d = new Date(); d.setDate(d.getDate() + 15); return d.toISOString().split('T')[0]; })();
   const em30s = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split('T')[0]; })();
-  const afastsF      = p1FiltroOpm ? p1Afasts.filter(a => reSetF.has(a.re)) : p1Afasts;
+  const afastsF      = (p1FiltroOpm ? p1Afasts.filter(a => reSetF.has(a.re)) : p1Afasts).filter(a => !p1EhSupervisao(a));
   const ferEmGozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && (!a.termino || a.termino >= hoje));
   const ferEm15Dias  = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio > hoje && a.inicio <= em15s);
   const ferLpEm30    = afastsF.filter(a => (isFer(a.tipo_afastamento) || isLP(a.tipo_afastamento)) && a.inicio > hoje && a.inicio <= em30s);
@@ -423,7 +390,7 @@ function renderP1() {
   const em7 = new Date(); em7.setDate(em7.getDate() + 7);
   const em7s = em7.toISOString().split('T')[0];
   const retornando = p1Afasts.filter(a =>
-    !p1EhRestricao(a) && a.inicio <= hoje && a.termino >= hoje && a.termino <= em7s
+    !p1EhRestricao(a) && !p1EhSupervisao(a) && a.inicio <= hoje && a.termino >= hoje && a.termino <= em7s
   );
 
   const CATS = { cbsd: 'Cb / Sd', sgt: 'Sargentos', sub: 'Subtenentes', of: 'Oficiais' };
@@ -461,19 +428,7 @@ function renderP1() {
     kpiCard('Total Efetivo', total,
       Object.keys(CATS).filter(k=>count(dataF,k)>0).map(k => _kpiRow(CATS[k], count(dataF,k), CATS_COLOR[k])).join(''),
       'var(--tx)', 'total') +
-    kpiCard('Aptos Operacional', pmAptos.length,
-      total > 0 ? [
-        _kpiRow(`${Math.round(pmAptos.length/total*100)}% do efetivo`, '', '#4bc87a'),
-        pmRestAdm.length    ? _kpiRow('Restr. campo', pmRestAdm.length, '#f07878') : '',
-        pmIasVencidaP1.length ? _kpiRow('IAS vencida', pmIasVencidaP1.length, '#f07878') : '',
-      ].filter(Boolean).join('') : '—',
-      '#4bc87a', 'aptos') +
     kpiCard('Afastamentos', pmAfastados.length, tiposSub, pmAfastados.length > 0 ? '#e05555' : 'var(--tx3)', 'afastados') +
-    kpiCard('Restrições', pmComRestricao.length,
-      [pmRestAdm.length ? _kpiRow('Administrativa', pmRestAdm.length, '#f07878') : '',
-       pmRestOutros.length ? _kpiRow('Outros tipos', pmRestOutros.length, '#c8a84b') : '',
-       vencendoRestricao.length ? `<div style="color:#e05555;font-size:17px;padding:4px 0">⚠ ${vencendoRestricao.length} vencem em 30d</div>` : ''].filter(Boolean).join('') || '—',
-      pmComRestricao.length > 0 ? '#c8a84b' : 'var(--tx3)', 'restricao') +
     kpiCard(`EAP / TAF / TAT ${anoAtual}`, pmEapFeito.length,
       [_kpiRow('Realizaram', pmEapFeito.length, '#4bc87a'),
        _kpiRow('Pendentes', pmEapPendente.length, '#c8a84b'),
@@ -482,21 +437,6 @@ function renderP1() {
        ...(taftatVencidos.length ? [_kpiRow('Vencidos', taftatVencidos.length, '#e05555')] : [])
       ].join(''),
       (inaptosTaf.length || inaptosTat.length || taftatVencidos.length) ? '#e05555' : pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a', 'eap') +
-    (() => {
-      if (!_iasMap || !Object.keys(_iasMap).length) return '';
-      const pmIasAptos    = dataF.filter(r => iasStatus(r.re) === 'apto');
-      const pmIasVencendo = dataF.filter(r => iasStatus(r.re) === 'vencendo');
-      const pmIasVencidos = dataF.filter(r => iasStatus(r.re) === 'vencido');
-      const pmIasSemReg   = dataF.filter(r => !iasStatus(r.re));
-      const corIas = pmIasVencidos.length ? '#e05555' : pmIasVencendo.length ? '#c8a84b' : '#4bc87a';
-      return kpiCard('IAS · Inspeção de Saúde', pmIasAptos.length + pmIasVencendo.length,
-        [_kpiRow('Aptos', pmIasAptos.length + pmIasVencendo.length, '#4bc87a'),
-         pmIasVencendo.length ? _kpiRow('Vencendo 30d', pmIasVencendo.length, '#c8a84b') : '',
-         pmIasVencidos.length ? _kpiRow('Vencidos', pmIasVencidos.length, '#e05555') : '',
-         pmIasSemReg.length ? _kpiRow('Sem registro', pmIasSemReg.length, '#606880') : '',
-        ].filter(Boolean).join('') || '—',
-        corIas, 'ias');
-    })() +
     kpiCard('Controle de Férias', ferEmGozo.length,
       [_kpiRow('Em gozo', ferEmGozo.length, '#5a9de0'), _kpiRow('Iniciam em 15d', ferEm15Dias.length, '#5a9de0')].join(''),
       ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)', 'ferias') +
@@ -1282,9 +1222,6 @@ function closeP1Detail() {
   if (mo) { mo.classList.remove('on'); document.body.style.overflow = ''; }
   _p1TotalDetCia = -1; _p1TotalDetGen = null; _p1TotalDetMun = null; _p1TotalDetPosto = null;
   _p1TotalDetCursoInt = null; _p1TotalDetCursoExt = null; _p1TotalDetBusca = null;
-  _p1IasDetSit = null; _p1IasDetCia = -1; _p1IasDetMun = null; _p1IasDetPosto = null;
-  _p1AptosDetCia = -1; _p1AptosDetMun = null; _p1AptosDetPosto = null;
-  _p1RestDetCia = -1; _p1RestDetMun = null; _p1RestDetPosto = null;
   _p1AfastDetCia = -1; _p1AfastDetMun = null; _p1AfastDetPosto = null;
   _p1EapDetCia = -1; _p1EapDetMun = null; _p1EapDetPosto = null;
   _p1FeriasDetCia = -1; _p1FeriasDetMun = null; _p1FeriasDetPosto = null;
@@ -1521,53 +1458,11 @@ function p1ShowKpiDetail(tipo) {
       ${tabelaTotalHtml}`);
   }
 
-  else if (tipo === 'aptos') {
-    const _isAdmRestr = re => {
-      if (!hasUisRestr(re)) return false;
-      const recs = ((_uisRestMap||{})[uisNormRE(re)] || []);
-      const cods = typeof uisExtrairCodigos === 'function' ? recs.flatMap(r => uisExtrairCodigos(r.codigos)) : [];
-      const g    = typeof uisGrupoMaisRestritivo === 'function' ? uisGrupoMaisRestritivo(cods) : null;
-      return g === 'admin_only' || g === 'admin_apoio';
-    };
-    const getMun = opm => { if (!opm) return null; const p = opm.split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
-    const getCia = opm => {
-      if (!opm || typeof CIA_STRUCT === 'undefined') return -1;
-      return CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
-    };
-
-    const naoAptosRe = new Set([
-      ...p1Afasts.filter(a => !p1EhRestricao(a) && a.inicio <= hoje && (!a.termino || a.termino >= hoje) && reSetF.has(a.re)).map(a => a.re),
-      ...dataF.filter(r => _isAdmRestr(r.re)).map(r => r.re),
-      ...dataF.filter(r => iasStatus(r.re) === 'vencido').map(r => r.re),
-    ]);
-    const baseList = dataF.filter(r => !naoAptosRe.has(r.re)).map(r => ({
-      r, mun: getMun(r.opm), ciaIdx: getCia(r.opm), posto: r.posto
-    }));
-
-    const filtro = p1FiltroCMP(baseList, _p1AptosDetCia, _p1AptosDetMun, _p1AptosDetPosto, 'p1AptosSetCia', 'p1AptosSetMun', 'p1AptosSetPosto');
-    _p1AptosDetCia = filtro.cia; _p1AptosDetMun = filtro.mun; _p1AptosDetPosto = filtro.posto;
-
-    let filtered = baseList;
-    if (_p1AptosDetCia >= 0) filtered = filtered.filter(x => x.ciaIdx === _p1AptosDetCia);
-    if (_p1AptosDetMun)      filtered = filtered.filter(x => x.mun === _p1AptosDetMun);
-    if (_p1AptosDetPosto)    filtered = filtered.filter(x => x.posto === _p1AptosDetPosto);
-
-    const aptosInfo = r => `<div title="${escHtml(r.opm||'')}" style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${escHtml(r.opm||'—')}</div>`;
-
-    const tabelaAptosHtml = p1SomenteQuantitativo()
-      ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
-      : p1CardGrid(filtered.map(({r}) => r), aptosInfo);
-
-    html = wrapDetail(`Aptos Operacional — ${filtered.length}`, null, '#4bc87a', closeBtn, `
-      ${filtro.html}
-      ${tabelaAptosHtml}`);
-  }
-
   else if (tipo === 'afastados') {
     const getMunAfast = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
     const getCiaAfast = opm => (typeof CIA_STRUCT === 'undefined' || !opm) ? -1 : CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
 
-    const ativosBase = p1Afasts.filter(a => !p1EhRestricao(a) && a.inicio <= hoje && (!a.termino || a.termino >= hoje) && reSetF.has(a.re)).map(a => {
+    const ativosBase = p1Afasts.filter(a => !p1EhRestricao(a) && !p1EhSupervisao(a) && a.inicio <= hoje && (!a.termino || a.termino >= hoje) && reSetF.has(a.re)).map(a => {
       const pm = p1Data.find(r => r.re === a.re);
       return { a, ciaIdx: getCiaAfast(pm?.opm), mun: getMunAfast(pm?.opm), posto: pm?.posto };
     });
@@ -1620,70 +1515,6 @@ function p1ShowKpiDetail(tipo) {
     html = wrapDetail('Afastamentos Ativos', ativos.length, '#e05555', closeBtn, `
       ${filtro.html}
       ${conteudoAfastHtml}`);
-  }
-
-  else if (tipo === 'restricao') {
-    const getCiaRest = opm => {
-      if (!opm || typeof CIA_STRUCT === 'undefined') return -1;
-      return CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
-    };
-    const getMunRest = opm => { if (!opm) return null; const p = opm.split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
-
-    const baseList = dataF.map(r => ({ r, ciaIdx: getCiaRest(r.opm), mun: getMunRest(r.opm), posto: r.posto }));
-
-    const filtro = p1FiltroCMP(baseList, _p1RestDetCia, _p1RestDetMun, _p1RestDetPosto, 'p1RestSetCia', 'p1RestSetMun', 'p1RestSetPosto');
-    _p1RestDetCia = filtro.cia; _p1RestDetMun = filtro.mun; _p1RestDetPosto = filtro.posto;
-
-    // Aplica filtros CIA, Município e Posto
-    let filtrados = baseList;
-    if (_p1RestDetCia >= 0)  filtrados = filtrados.filter(x => x.ciaIdx === _p1RestDetCia);
-    if (_p1RestDetMun)       filtrados = filtrados.filter(x => x.mun === _p1RestDetMun);
-    if (_p1RestDetPosto)     filtrados = filtrados.filter(x => x.posto === _p1RestDetPosto);
-    const filtSet = new Set(filtrados.map(x => x.r.re));
-    const dataFilt = dataF.filter(r => filtSet.has(r.re));
-
-    // Agrupa os PMs filtrados por tipo de restrição
-    const groups = {};
-    dataFilt.forEach(r => {
-      const temEfetivo = (r.possui_restricao||'').toLowerCase().startsWith('s');
-      const temUis     = hasUisRestr(r.re);
-      if (temUis) {
-        (groups['Restrição UIS'] = groups['Restrição UIS'] || []).push(r);
-      } else if (temEfetivo) {
-        const t = r.tipos_restricao || 'Não especificado';
-        (groups[t] = groups[t] || []).push(r);
-      } else {
-        (groups['__sem__'] = groups['__sem__'] || []).push(r);
-      }
-    });
-    const ORDER = ['Restrição UIS', ...Object.keys(groups).filter(k => k !== 'Restrição UIS' && k !== '__sem__').sort()];
-    const COR_GRUPO = { 'Restrição UIS': '#5a9de0' };
-    let inner = '';
-    ORDER.forEach(grp => {
-      const list = groups[grp]; if (!list?.length) return;
-      const cor = COR_GRUPO[grp] || '#c8a84b';
-      const restrInfo = r => {
-        const uisRecs = hasUisRestr(r.re) ? ((_uisRestMap||{})[uisNormRE(r.re)]||[]) : [];
-        let termino = r.restricao_termino || null;
-        if (!termino && uisRecs.length) termino = uisRecs.map(x=>x.termino).filter(Boolean).sort().pop() || null;
-        const dias = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : null;
-        const corD = dias === null ? 'var(--tx3)' : dias <= 0 ? '#e05555' : dias <= 30 ? '#c8a84b' : '#4bc87a';
-        return `<div style="font-size:11px;font-family:'DM Mono',monospace;color:${corD};font-weight:700">${dias!==null ? (dias<0?'Vencida':dias+'d rest.') : fmtD(termino)}</div>`;
-      };
-      inner += `<div style="margin-bottom:16px">
-        <div style="margin-bottom:8px"><span style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:1px;padding:3px 10px;border-radius:10px;background:${cor}22;color:${cor};text-transform:uppercase">${escHtml(grp)} — ${list.length}</span></div>
-        ${p1CardGrid(list, restrInfo)}
-      </div>`;
-    });
-    const semRestr = (groups['__sem__'] || []).length;
-    const totalRestr = dataFilt.length - semRestr;
-    const tabelaRestrHtml = p1SomenteQuantitativo()
-      ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${totalRestr}</div>`
-      : (inner || `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:19px">Nenhum resultado.</div>`)
-        + (semRestr ? `<div style="padding-top:10px;border-top:1px solid var(--bd2);color:var(--tx3);font-size:19px">Sem restrição: ${semRestr} PMs</div>` : '');
-    html = wrapDetail('Em Restrição', totalRestr, '#c8a84b', closeBtn, `
-      ${filtro.html}
-      ${tabelaRestrHtml}`);
   }
 
   else if (tipo === 'eap') {
@@ -1782,94 +1613,6 @@ function p1ShowKpiDetail(tipo) {
         <div id="eap-tbl-venc"    style="display:none;padding:0 12px 12px">${tblVenc}</div>`;
 
     html = wrapDetail(`EAP / TAF / TAT ${anoAtual}`, null, '#c8a84b', closeBtn, eapSmCards + eapTabelasHtml);
-  }
-
-  else if (tipo === 'ias') {
-    if (!_iasMap) { html = '<div style="color:var(--tx3);padding:16px">Dados IAS não carregados.</div>'; }
-    else {
-      const fmtV   = s => s ? s.split('-').reverse().join('/') : '—';
-      const getMun = opm => { if (!opm) return null; const p = opm.split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
-      const getCia = opm => {
-        if (!opm || typeof CIA_STRUCT === 'undefined') return -1;
-        return CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
-      };
-
-      const baseList = dataF.map(r => {
-        const s = iasStatus(r.re) || 'semreg';
-        const rec = _iasMap[iasNormRE(r.re)];
-        return { r, s, rec, mun: getMun(r.opm), ciaIdx: getCia(r.opm), posto: r.posto };
-      });
-
-      const filtroIas = p1FiltroCMP(baseList, _p1IasDetCia, _p1IasDetMun, _p1IasDetPosto, 'p1IasSetCia', 'p1IasSetMun', 'p1IasSetPosto');
-      _p1IasDetCia = filtroIas.cia; _p1IasDetMun = filtroIas.mun; _p1IasDetPosto = filtroIas.posto;
-
-      let filtered = baseList;
-      if (_p1IasDetSit)      filtered = filtered.filter(x => x.s === _p1IasDetSit);
-      if (_p1IasDetCia >= 0) filtered = filtered.filter(x => x.ciaIdx === _p1IasDetCia);
-      if (_p1IasDetMun)      filtered = filtered.filter(x => x.mun === _p1IasDetMun);
-      if (_p1IasDetPosto)    filtered = filtered.filter(x => x.posto === _p1IasDetPosto);
-
-      const cntVenc = baseList.filter(x => x.s === 'vencido').length;
-      const cntVend = baseList.filter(x => x.s === 'vencendo').length;
-      const cntApto = baseList.filter(x => x.s === 'apto').length;
-      const cntSemR = baseList.filter(x => x.s === 'semreg').length;
-
-      const anyFilter = _p1IasDetSit !== null || _p1IasDetCia >= 0 || !!_p1IasDetMun || !!_p1IasDetPosto;
-      _iasChartData = { filtered, baseList, anyFilter };
-
-      // ── Helpers de botão (só pra Situação, que não faz parte do filtro CIA/Cidade/Graduação) ─
-      const btnBase = (lbl, _cnt, cor, on, onclick) =>
-        `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
-
-      const gridRow = (lbl, btns) =>
-        `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
-          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
-        </div>`;
-
-      const sitBtns = [
-        btnBase('VENCIDA',   cntVenc, '#f07878', _p1IasDetSit==='vencido',  "p1IasSetSit('vencido')"),
-        btnBase('VENCENDO',  cntVend, '#c8a84b', _p1IasDetSit==='vencendo', "p1IasSetSit('vencendo')"),
-        btnBase('APTO',      cntApto, '#4bc87a', _p1IasDetSit==='apto',     "p1IasSetSit('apto')"),
-        btnBase('SEM REG.',  cntSemR, '#606880', _p1IasDetSit==='semreg',   "p1IasSetSit('semreg')"),
-      ].join('');
-
-      const SIT_COR = { vencido:'#f07878', vencendo:'#c8a84b', apto:'#4bc87a', semreg:'#606880' };
-      const SIT_LBL = { vencido:'VENCIDA', vencendo:'VENCENDO', apto:'APTO', semreg:'SEM REG.' };
-      const iasRecByRe = {};
-      filtered.forEach(({r, s, rec}) => { iasRecByRe[r.re] = { s, rec }; });
-      const iasInfo = r => {
-        const { s, rec } = iasRecByRe[r.re] || {};
-        const cor = SIT_COR[s] || 'var(--tx3)';
-        return `<div style="font-size:10px;font-family:'DM Mono',monospace;color:${cor};font-weight:700">${rec?.data_vencimento ? fmtV(rec.data_vencimento) : '—'}</div>
-          <span style="padding:1px 6px;border-radius:6px;font-size:10px;background:${cor}22;color:${cor};font-family:'DM Mono',monospace;margin-top:2px;display:inline-block">${SIT_LBL[s]||s||'—'}</span>`;
-      };
-      const iasClick = r => `openIasPmModal('${String(iasNormRE(r.re)).replace(/'/g,"\\'")}')`;
-
-      const tabelaIasHtml = p1SomenteQuantitativo()
-        ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
-        : !anyFilter
-          ? `<div style="padding:20px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ Selecione um filtro acima para ver a listagem individual</div>`
-          : p1CardGrid(filtered.map(({r}) => r), iasInfo, iasClick);
-
-      const iasChartsHtml = `
-        <div style="display:grid;grid-template-columns:310px 1fr;gap:16px;padding:0 0 16px;border-bottom:1px solid var(--bd);margin-bottom:12px;align-items:start">
-          <div>
-            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${anyFilter ? 'Situação · filtro ativo' : 'Situação Geral'}</div>
-            <div style="position:relative;height:260px"><canvas id="ias-chart-status"></canvas></div>
-          </div>
-          <div>
-            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">Apto × Vencida por Unidade (total)</div>
-            <canvas id="ias-chart-unidade" height="160"></canvas>
-          </div>
-        </div>`;
-
-      html = wrapDetail(`IAS · Inspeção Anual de Saúde — ${anyFilter ? filtered.length + ' filtrado(s) de ' + baseList.length : baseList.length}`, null, '#5a9de0', closeBtn, `
-        ${iasChartsHtml}
-        ${gridRow('SITUAÇÃO', sitBtns)}
-        ${filtroIas.html}
-        ${tabelaIasHtml}`);
-    }
   }
 
   else if (tipo === 'ferias') {
@@ -2227,68 +1970,8 @@ function p1ShowKpiDetail(tipo) {
   }
 
   document.getElementById('p1d-body').innerHTML = html;
-  if (tipo === 'ias' && _iasChartData) requestAnimationFrame(() => _renderIasCharts(_iasChartData));
   mo.classList.add('on');
   document.body.style.overflow = 'hidden';
-}
-
-function _renderIasCharts({ filtered, baseList }) {
-  const cDonut = document.getElementById('ias-chart-status');
-  if (cDonut) {
-    const existing = typeof Chart !== 'undefined' && Chart.getChart ? Chart.getChart(cDonut) : null;
-    if (existing) existing.destroy();
-    const src = filtered;
-    const dVenc = src.filter(x => x.s === 'vencido').length;
-    const dVend = src.filter(x => x.s === 'vencendo').length;
-    const dApto = src.filter(x => x.s === 'apto').length;
-    const dSemR = src.filter(x => x.s === 'semreg').length;
-    const total = dVenc + dVend + dApto + dSemR;
-    new Chart(cDonut.getContext('2d'), {
-      type: 'doughnut',
-      data: {
-        labels: ['Vencida', 'Vencendo', 'Apto', 'Sem Reg.'],
-        datasets: [{ data: [dVenc, dVend, dApto, dSemR], backgroundColor: ['#f07878','#c8a84b','#4bc87a','#60688099'], borderWidth: 0 }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.7)', font: { size: 12 }, padding: 10, boxWidth: 14 } },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} (${total ? Math.round(ctx.parsed/total*100) : 0}%)` } }
-        },
-        cutout: '52%'
-      }
-    });
-  }
-
-  const cBar = document.getElementById('ias-chart-unidade');
-  if (cBar && typeof CIA_STRUCT !== 'undefined') {
-    const existing = typeof Chart !== 'undefined' && Chart.getChart ? Chart.getChart(cBar) : null;
-    if (existing) existing.destroy();
-    const labels   = CIA_STRUCT.map(c => c.label);
-    const aptoData = CIA_STRUCT.map((_, i) => baseList.filter(x => x.ciaIdx === i && x.s === 'apto').length);
-    const vencData = CIA_STRUCT.map((_, i) => baseList.filter(x => x.ciaIdx === i && x.s === 'vencido').length);
-    const vendData = CIA_STRUCT.map((_, i) => baseList.filter(x => x.ciaIdx === i && x.s === 'vencendo').length);
-    new Chart(cBar.getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          { label: 'Apto',     data: aptoData, backgroundColor: '#4bc87a55', borderColor: '#4bc87a', borderWidth: 1 },
-          { label: 'Vencendo', data: vendData, backgroundColor: '#c8a84b55', borderColor: '#c8a84b', borderWidth: 1 },
-          { label: 'Vencida',  data: vencData, backgroundColor: '#f0787855', borderColor: '#f07878', borderWidth: 1 },
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { labels: { color: 'rgba(255,255,255,.7)', font: { size: 11 }, boxWidth: 12 } } },
-        scales: {
-          x: { ticks: { color: 'rgba(255,255,255,.6)', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,.06)' } },
-          y: { ticks: { color: 'rgba(255,255,255,.6)', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,.06)' }, beginAtZero: true }
-        }
-      }
-    });
-  }
 }
 
 // ── Filtro OPM e Busca P1 ────────────────────────────────────────────────────
@@ -2596,7 +2279,7 @@ async function openProntuario(re) {
   }
 
   // Extrato cronológico — carrega tudo e popula os filtros de ano/tipo
-  prontoExtratoFull = p1Afasts.filter(a => a.re === re).sort((a, b) => (b.inicio || '').localeCompare(a.inicio || ''));
+  prontoExtratoFull = p1Afasts.filter(a => a.re === re && !p1EhSupervisao(a)).sort((a, b) => (b.inicio || '').localeCompare(a.inicio || ''));
   prontoPopulaFiltrosExtrato();
   prontoRenderExtrato();
 
@@ -3409,7 +3092,7 @@ function renderHome() {
     const today = new Date().toISOString().split('T')[0];
     const afH = {};
     (p1Afasts || []).forEach(a => {
-      if (!p1EhRestricao(a) && a.inicio <= today && (!a.termino || a.termino >= today)) {
+      if (!p1EhRestricao(a) && !p1EhSupervisao(a) && a.inicio <= today && (!a.termino || a.termino >= today)) {
         if (!afH[a.re]) afH[a.re] = [];
         afH[a.re].push(a);
       }

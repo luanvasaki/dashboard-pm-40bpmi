@@ -3,7 +3,7 @@
  * ─────────────────────────────────────────────────────────────
  * Tecnologias: Node.js · Express · Supabase (PostgreSQL) · JWT · bcrypt
  * Porta padrão: 3001
- * Deploy: Vercel (vercel.json roteia tudo para este arquivo)
+ * Deploy: servidor local dedicado na LAN (ver CLAUDE.md → Deploy)
  *
  * ARQUITETURA GERAL
  * ─────────────────
@@ -62,11 +62,13 @@ const bcrypt       = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 
 const app  = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
-// Confia no 1º hop de proxy (Vercel) para X-Forwarded-For — sem isso, req.ip
-// cai sempre no endereço interno da Vercel e o rate limiter de login vira global.
-app.set('trust proxy', 1);
+// Confia no 1º hop de proxy para X-Forwarded-For (necessário atrás de Vercel/nginx/IIS —
+// sem isso, req.ip cai no IP interno do proxy e o rate limiter de login vira global).
+// Em servidor local sem proxy na frente, NÃO confiar: qualquer cliente na rede poderia
+// forjar esse header e burlar o rate limiter de login. Ative só com TRUST_PROXY=true.
+if (process.env.TRUST_PROXY === 'true') app.set('trust proxy', 1);
 
 // ============================================================
 // AUTENTICAÇÃO — JWT
@@ -155,18 +157,21 @@ function requireRole(...roles) {
   };
 }
 
-// Libera rotas que devolvem dados NOMINAIS (com nomes de PMs) de uma seção
-// controlada por secoes_acesso (hoje só 'uis', que cobre UIS+IAS juntos).
+// Libera rotas que devolvem dados NOMINAIS (com nomes de PMs) de uma ou mais
+// seções controladas por secoes_acesso — basta UMA delas estar em nominal/editor.
+// Usado com 2 seções nas rotas de UIS/IAS porque esses dados aparecem tanto na
+// página UIS quanto embutidos no P1 (badges, KPI, prontuário) — quem tem acesso
+// nominal ao P1 precisa ver esses dados ali sem precisar marcar UIS também.
 // Acesso 'viewer' (\"Só números\") fica de fora de propósito — essas pessoas
 // usam as rotas /stats (sem nome nenhum), nunca as /mapa ou de RE individual.
 // admin/ti/p1/p3 sempre passam (mesmo comportamento de requireRole de antes,
 // preservado pra não quebrar quem já tinha acesso via role).
-function requireSectionNominal(secao) {
+function requireSectionNominal(...secoes) {
   return (req, res, next) => {
     const u = req.user;
     if (u?.role === 'ti' || ['admin', 'p1', 'p3'].includes(u?.role)) return next();
-    const nivel = (u?.secoes_acesso || {})[secao];
-    if (nivel === 'nominal' || nivel === 'editor') return next();
+    const sa = u?.secoes_acesso || {};
+    if (secoes.some(secao => sa[secao] === 'nominal' || sa[secao] === 'editor')) return next();
     return res.status(403).json({ error: 'Acesso negado' });
   };
 }
@@ -223,6 +228,11 @@ let supabase = null;
 
 // CORS: em produção aceita apenas ALLOWED_ORIGIN; em dev aceita qualquer origem.
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || null;
+
+// Cookie Secure: independente de NODE_ENV, porque em servidor local (LAN, sem HTTPS)
+// um cookie Secure é descartado pelo navegador e o login quebra silenciosamente.
+// Defina COOKIE_SECURE=true no .env apenas quando o servidor estiver atrás de HTTPS real.
+const COOKIE_SECURE = process.env.COOKIE_SECURE === 'true';
 app.use(compression());
 // contentSecurityPolicy desativado para permitir que o frontend carregue CDNs (Chart.js, Lucide, etc.)
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -482,7 +492,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
     res.cookie('auth_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: COOKIE_SECURE,
       sameSite: 'strict',
       maxAge: 8 * 60 * 60 * 1000
     });
@@ -504,7 +514,7 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
 // O JWT não é revogado no servidor (stateless) — o cookie simplesmente é apagado.
 app.post('/api/auth/logout', requireAuth, async (req, res) => {
   await logAcesso(req, 'logout', null);
-  res.clearCookie('auth_token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' });
+  res.clearCookie('auth_token', { httpOnly: true, secure: COOKIE_SECURE, sameSite: 'strict' });
   res.json({ ok: true });
 });
 
@@ -2053,7 +2063,7 @@ app.get('/api/uis/stats', requireAuth, async (req, res) => {
 // [GET /api/uis/mapa] — restrições ATIVAS (termino >= hoje), para montar badges no P1.
 // Filtra no backend para garantir comparação correta de datas.
 // Retorna array de { re, codigos, termino, opm } — um registro por RE (o mais recente).
-app.get('/api/uis/mapa', requireAuth, requireSectionNominal('uis'), async (req, res) => {
+app.get('/api/uis/mapa', requireAuth, requireSectionNominal('uis', 'p1'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
     const today = new Date().toISOString().slice(0, 10);
@@ -2068,7 +2078,7 @@ app.get('/api/uis/mapa', requireAuth, requireSectionNominal('uis'), async (req, 
 // [GET /api/uis/restricoes/:re] — restrições de um PM pelo RE (para integração com P1).
 // O RE passado pode ter dígito verificador (7 digits, efetivo) ou não (5-6, planilha UIS).
 // Busca por match exato primeiro; se não achar, tenta sem o último dígito.
-app.get('/api/uis/restricoes/:re', requireAuth, requireSectionNominal('uis'), async (req, res) => {
+app.get('/api/uis/restricoes/:re', requireAuth, requireSectionNominal('uis', 'p1'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
     // RE do efetivo vem como "180673-4" — corta no hífen para obter "180673"
@@ -2118,7 +2128,7 @@ app.get('/api/ias/stats', requireAuth, async (req, res) => {
 });
 
 // [GET /api/ias/mapa] — todos os registros IAS para badges no P1.
-app.get('/api/ias/mapa', requireAuth, requireSectionNominal('uis'), async (req, res) => {
+app.get('/api/ias/mapa', requireAuth, requireSectionNominal('uis', 'p1'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
     const resAtivos = await reAtivosSet();
@@ -2128,7 +2138,7 @@ app.get('/api/ias/mapa', requireAuth, requireSectionNominal('uis'), async (req, 
 });
 
 // [GET /api/ias/:re] — registro IAS de um PM pelo RE.
-app.get('/api/ias/:re', requireAuth, requireSectionNominal('uis'), async (req, res) => {
+app.get('/api/ias/:re', requireAuth, requireSectionNominal('uis', 'p1'), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
   try {
     const reBase = req.params.re.replace(/[^0-9]/g, '');

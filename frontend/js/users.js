@@ -187,9 +187,9 @@ function openUserEditModal(id) {
   admuSecoesEl.style.pointerEvents = canEditAcesso ? '' : 'none';
   admuSecoesEl.innerHTML = SECOES_ACESSO_DEF.map(({ key, label, cor }) => {
     const cur = sa[key] || 'none';
-    // P1 tem nível extra "nominal" para controle de dados individuais
-    const vals = key === 'p1' ? ['none','viewer','nominal','editor'] : ['none','viewer','editor'];
-    const hint = key === 'p1'
+    // P1 e UIS têm nível extra "nominal" para controle de dados individuais
+    const vals = (key === 'p1' || key === 'uis') ? ['none','viewer','nominal','editor'] : ['none','viewer','editor'];
+    const hint = (key === 'p1' || key === 'uis')
       ? `<div style="font-size:10px;color:var(--tx3);margin-top:3px;font-family:'DM Mono',monospace">Só números: totais · Nominal: vê nomes · Editor: vê + edita</div>`
       : '';
     return `<div style="padding:8px 10px;background:rgba(255,255,255,.025);border-radius:6px">

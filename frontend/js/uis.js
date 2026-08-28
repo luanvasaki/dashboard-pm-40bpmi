@@ -218,6 +218,11 @@ async function loadUisSection() {
     if (typeof p1Data !== 'undefined' && !p1Data.length) {
       tasks.push(authFetch(`${API}/efetivo`).then(r => r.json()).then(d => { if (Array.isArray(d)) p1Data = d; }).catch(() => {}));
     }
+    // p1Afasts alimenta o KPI de Restrições (fonte efetivo_pm.possui_restricao) e o
+    // novo KPI CAPS/NAPS (Supervisão Nível I/II/III) — carrega se ainda não veio do P1.
+    if (typeof p1Afasts !== 'undefined' && !p1Afasts.length) {
+      tasks.push(authFetch(`${API}/afastamentos`).then(r => r.json()).then(d => { if (Array.isArray(d)) p1Afasts = d; }).catch(() => {}));
+    }
     await Promise.all(tasks);
     renderUisFiltroBar();
     renderUisPage();
@@ -1029,6 +1034,25 @@ function renderUisPage() {
   const uisCor    = restAtivas === 0 ? '#4bc87a' : pctCampo > 50 ? '#f07878' : '#c8a84b';
   const iasCor    = pctAptos >= 90 ? '#4bc87a' : pctAptos >= 75 ? '#c8a84b' : '#f07878';
 
+  // ── Restrição administrativa via SGP-DP (efetivo_pm.possui_restricao) ──
+  // Fonte separada de uis_restricoes — movida do KPI "Restrições" que existia
+  // no P1 (2026-08), pra ficar tudo junto na UIS.
+  const sgpRestPms   = (typeof p1Data !== 'undefined' ? p1Data : []).filter(r => (r.possui_restricao||'').toLowerCase().startsWith('s'));
+  const sgpRestAtiva = sgpRestPms.length;
+  const sgpRestVenc30 = sgpRestPms.filter(r => r.restricao_termino && r.restricao_termino >= today && r.restricao_termino <= em30).length;
+
+  // ── CAPS/NAPS · Supervisão Nível I/II/III (não é afastamento, 2026-08) ──
+  const capsAtivos = (typeof p1Afasts !== 'undefined' ? p1Afasts : []).filter(a =>
+    (typeof p1EhSupervisao === 'function' ? p1EhSupervisao(a) : /supervis[aã]o|caps\s*\/\s*naps/i.test(a.tipo_afastamento||'')) &&
+    a.inicio && a.inicio <= today && (!a.termino || a.termino >= today)
+  );
+  const capsPorNivel = { I: 0, II: 0, III: 0 };
+  capsAtivos.forEach(a => {
+    const m = /n[ií]vel\s*(i{1,3})\b/i.exec(a.tipo_afastamento || '');
+    const niv = m ? m[1].toUpperCase() : null;
+    if (niv && capsPorNivel[niv] !== undefined) capsPorNivel[niv]++;
+  });
+
   // ── KPI helper ─────────────────────────────────────────────
   const kpi = (tipo, cor, lbl, val, sub) => `
     <div class="kpi" onclick="openUisDetail('${tipo}')" title="Clique para detalhes">
@@ -1056,7 +1080,20 @@ function renderUisPage() {
       ${kpi('ias-total',   '#5a9de0', 'TOTAL REGISTROS IAS',   iasTotal,   null)}
       ${kpi('ias-aptos',   '#4bc87a', 'APTOS · IAS VÁLIDA',    iasAptos,   `${pctAptos}% aptos`)}
       ${kpi('ias-venc30',  '#c8a84b', 'VENCENDO EM 30 DIAS',   iasVenc30,  null)}
-      ${kpi('ias-vencida', '#f07878', 'IAS VENCIDA',           iasVencida, null)}
+    </div>
+
+    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#c8a84b;letter-spacing:1.5px;margin-bottom:10px">RESTRIÇÃO ADMINISTRATIVA · SGP-DP (EFETIVO)</div>
+    <div class="kpi-row" style="margin-bottom:24px">
+      ${kpi('sgp-rest-ativa',  '#c8a84b', 'COM RESTRIÇÃO',       sgpRestAtiva,  null)}
+      ${kpi('sgp-rest-venc30', '#c8a84b', 'VENCENDO EM 30 DIAS', sgpRestVenc30, null)}
+    </div>
+
+    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#9b6de0;letter-spacing:1.5px;margin-bottom:10px">CAPS / NAPS · SUPERVISÃO PSICOSSOCIAL</div>
+    <div class="kpi-row" style="margin-bottom:24px">
+      ${kpi('caps-total',  '#9b6de0', 'EM SUPERVISÃO', capsAtivos.length,   null)}
+      ${kpi('caps-nivel1', '#9b6de0', 'NÍVEL I',       capsPorNivel.I,   null)}
+      ${kpi('caps-nivel2', '#9b6de0', 'NÍVEL II',      capsPorNivel.II,  null)}
+      ${kpi('caps-nivel3', '#9b6de0', 'NÍVEL III',     capsPorNivel.III, null)}
     </div>
 
     ${iasTimelineHtml}
@@ -1100,7 +1137,12 @@ function renderUisDetail() {
     'ias-total':   { cor: '#5a9de0', lbl: 'TOTAL REGISTROS IAS' },
     'ias-aptos':   { cor: '#4bc87a', lbl: 'APTOS · IAS VÁLIDA' },
     'ias-venc30':  { cor: '#c8a84b', lbl: 'VENCENDO EM 30 DIAS' },
-    'ias-vencida': { cor: '#f07878', lbl: 'IAS VENCIDA' },
+    'sgp-rest-ativa':  { cor: '#c8a84b', lbl: 'RESTRIÇÃO ADMINISTRATIVA · SGP-DP' },
+    'sgp-rest-venc30': { cor: '#c8a84b', lbl: 'RESTRIÇÃO SGP-DP · VENCENDO EM 30 DIAS' },
+    'caps-total':  { cor: '#9b6de0', lbl: 'CAPS/NAPS · EM SUPERVISÃO' },
+    'caps-nivel1': { cor: '#9b6de0', lbl: 'CAPS/NAPS · NÍVEL I' },
+    'caps-nivel2': { cor: '#9b6de0', lbl: 'CAPS/NAPS · NÍVEL II' },
+    'caps-nivel3': { cor: '#9b6de0', lbl: 'CAPS/NAPS · NÍVEL III' },
   };
   const meta = META[_uisDetTipo] || { cor: '#ffffff', lbl: _uisDetTipo };
 
@@ -1194,7 +1236,7 @@ function renderUisDetail() {
         </div>
       </div>`;
 
-  } else {
+  } else if (_uisDetTipo.startsWith('ias-')) {
     // ── IAS ──────────────────────────────────────────────────
     const mesAtual = today.slice(5, 7);
     const mesProx  = String((parseInt(mesAtual) % 12) + 1).padStart(2, '0');
@@ -1204,7 +1246,6 @@ function renderUisDetail() {
     const pool = (() => {
       if (_uisDetTipo === 'ias-aptos')   return iasComReg.filter(([,r]) => _iasStatusFromRec(r) === 'apto');
       if (_uisDetTipo === 'ias-venc30')  return iasComReg.filter(([,r]) => _iasStatusFromRec(r) === 'vencendo');
-      if (_uisDetTipo === 'ias-vencida') return iasComReg.filter(([,r]) => _iasStatusFromRec(r) === 'vencido');
       return iasComReg; // ias-total: só registros com data_vencimento preenchida
     })();
 
@@ -1311,6 +1352,72 @@ function renderUisDetail() {
         }
       });
     }
+  } else if (_uisDetTipo.startsWith('sgp-')) {
+    // ── Restrição administrativa via SGP-DP (efetivo_pm.possui_restricao) ──
+    // Fonte separada da tabela uis_restricoes (códigos BG PM 166/2006) — vem
+    // do IAS/WSSCPM sincronizado pelo agente. Movido do KPI "Restrições" que
+    // existia no P1 (2026-08).
+    const pmsBase = (typeof p1Data !== 'undefined' ? p1Data : []).filter(r => (r.possui_restricao||'').toLowerCase().startsWith('s'));
+    const rows = (_uisDetTipo === 'sgp-rest-venc30'
+      ? pmsBase.filter(r => r.restricao_termino && r.restricao_termino >= today && r.restricao_termino <= em30)
+      : pmsBase
+    ).slice().sort((a,b) => (a.opm||'').localeCompare(b.opm||''));
+
+    const rowsHtml = rows.map(r => {
+      const termino = r.restricao_termino || null;
+      const cor = termino && termino < today ? '#f07878' : termino && termino <= em30 ? '#c8a84b' : 'var(--tx)';
+      return `<tr>
+        <td style="${tdS}">${escHtml(r.nome || r.nome_guerra || r.re)}</td>
+        <td style="${tdS}">${escHtml(r.opm||'—')}</td>
+        <td style="${tdS}">${escHtml(r.tipos_restricao||'—')}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px;color:${cor}">${fmtD(termino)}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="4" style="padding:20px;text-align:center;color:#ffffff;font-size:17px">Nenhum registro</td></tr>`;
+
+    document.getElementById('ud-content').innerHTML = `
+      <div class="mo-card">
+        <div class="mo-ct">${rows.length} PM${rows.length!==1?'s':''}</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;min-width:400px;table-layout:fixed">
+            <colgroup><col style="width:30%"><col style="width:25%"><col style="width:25%"><col style="width:20%"></colgroup>
+            <thead><tr><th style="${thS}">NOME</th><th style="${thS}">OPM</th><th style="${thS}">TIPO</th><th style="${thS}">TÉRMINO</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      </div>`;
+  } else if (_uisDetTipo.startsWith('caps-')) {
+    // ── CAPS/NAPS · Supervisão psicossocial Nível I/II/III ──────
+    // Não é afastamento — vem de tipo_afastamento sincronizado do SGP que
+    // contém "Supervisão" ou "CAPS/NAPS" (ver p1EhSupervisao em p1.js).
+    const ehSup = a => typeof p1EhSupervisao === 'function' ? p1EhSupervisao(a) : /supervis[aã]o|caps\s*\/\s*naps/i.test(a.tipo_afastamento||'');
+    const ativos = (typeof p1Afasts !== 'undefined' ? p1Afasts : []).filter(a =>
+      ehSup(a) && a.inicio && a.inicio <= today && (!a.termino || a.termino >= today)
+    );
+    const nivelDe = a => { const m = /n[ií]vel\s*(i{1,3})\b/i.exec(a.tipo_afastamento||''); return m ? m[1].toUpperCase() : null; };
+    const rows = (_uisDetTipo === 'caps-total' ? ativos : ativos.filter(a => nivelDe(a) === _uisDetTipo.replace('caps-nivel','').replace('1','I').replace('2','II').replace('3','III')))
+      .slice().sort((a,b) => (a.re||'').localeCompare(b.re||''));
+
+    const rowsHtml = rows.map(a => {
+      const pm = (typeof p1Data !== 'undefined' ? p1Data : []).find(r => r.re === a.re);
+      return `<tr>
+        <td style="${tdS}">${escHtml(pm?.nome || pm?.nome_guerra || a.re)}</td>
+        <td style="${tdS}">${escHtml(pm?.opm||'—')}</td>
+        <td style="${tdS}">${escHtml(nivelDe(a) || '—')}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px;color:var(--tx3)">${fmtD(a.inicio)} → ${fmtD(a.termino)}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="4" style="padding:20px;text-align:center;color:#ffffff;font-size:17px">Nenhum registro</td></tr>`;
+
+    document.getElementById('ud-content').innerHTML = `
+      <div class="mo-card">
+        <div class="mo-ct">${rows.length} PM${rows.length!==1?'s':''}</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;min-width:400px;table-layout:fixed">
+            <colgroup><col style="width:30%"><col style="width:25%"><col style="width:15%"><col style="width:30%"></colgroup>
+            <thead><tr><th style="${thS}">NOME</th><th style="${thS}">OPM</th><th style="${thS}">NÍVEL</th><th style="${thS}">PERÍODO</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      </div>`;
   }
 
   if (window.lucide) lucide.createIcons();

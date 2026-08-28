@@ -26,8 +26,11 @@ Arquivo `backend/.env` (nunca commitar):
 | `SUPABASE_URL` | URL do projeto Supabase |
 | `SUPABASE_KEY` | service_role key (não a anon) |
 | `JWT_SECRET` | String aleatória ≥ 64 chars |
-| `NODE_ENV` | `production` em produção (ativa cookies Secure) |
-| `ALLOWED_ORIGIN` | Origem CORS permitida (vazio = libera tudo em dev) |
+| `NODE_ENV` | `production` em produção |
+| `COOKIE_SECURE` | `true` só se servido via HTTPS real; servidor local em HTTP puro deve deixar `false` (senão o cookie de login é descartado pelo navegador) |
+| `TRUST_PROXY` | `true` só se houver um proxy reverso na frente (Vercel/nginx/IIS); servidor local direto deve deixar `false` (senão o rate limiter de login pode ser burlado via header forjado) |
+| `PORT` | Porta do servidor (padrão 3001) |
+| `ALLOWED_ORIGIN` | Origem CORS permitida (vazio = libera tudo, ok em LAN fechada) |
 
 ## Arquitetura
 
@@ -103,6 +106,15 @@ Todas as rotas de upload seguem o mesmo padrão:
 
 ## Deploy
 
-Vercel (região `gru1`). Toda rota passa por `backend/server.js`. Variáveis de ambiente configuradas no painel Vercel → Settings → Environment Variables.
+**Servidor local dedicado (LAN do batalhão)** — não usa mais Vercel. Um PC sempre ligado, IP fixo `10.42.142.33`, roda `node backend/server.js` como serviço do Windows (recomendado: NSSM), acessível pelas outras máquinas via `http://10.42.142.33:3001`. O Supabase continua sendo o banco (na nuvem) — só o processo Node/frontend saiu do Vercel.
+
+Checklist ao montar o servidor:
+1. Node.js LTS instalado na máquina dedicada.
+2. `backend/.env` preenchido (ver tabela acima) — **`COOKIE_SECURE=false`** e **`TRUST_PROXY=false`**, a menos que exista HTTPS/proxy real na frente.
+3. IP local fixo: `10.42.142.33` (já reservado no roteador).
+4. Liberar a porta (padrão 3001) no Firewall do Windows para o perfil de rede privada/local.
+5. Rodar como serviço do Windows (NSSM ou equivalente) com reinício automático em caso de crash e no boot da máquina — não deixar dependendo de um usuário logado com terminal aberto.
+
+`vercel.json` ficou obsoleto e pode ser removido quando a migração for confirmada.
 
 O arquivo `supabase_rls_enable.sql` e `create_prod_tempo_resposta.sql` são scripts avulsos para executar manualmente no SQL Editor do Supabase quando necessário.
