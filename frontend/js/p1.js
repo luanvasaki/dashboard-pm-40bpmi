@@ -3565,9 +3565,9 @@ function updateSidebarImports(section) {
       <button onclick="openQuadroUpload()" style="margin-top:4px;width:100%;padding:6px;background:rgba(75,200,122,.12);border:1px solid rgba(75,200,122,.3);color:#4bc87a;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Quadro de Claros</button>
       <button onclick="openP1SgpModal()" style="margin-top:4px;width:100%;padding:6px;background:rgba(90,224,154,.12);border:1px solid rgba(90,224,154,.3);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">⇄ Sincronizar via SGP</button>`;
   } else if (section === 'uis') {
-    if (!isP1) { el.innerHTML = ''; return; }
-    el.innerHTML = `
-      <button onclick="openUisModal()" style="width:100%;padding:6px;background:rgba(90,224,154,.12);border:1px solid rgba(90,224,154,.3);color:#5ae09a;border-radius:4px;cursor:pointer;font-size:19px;font-weight:600">↑ Importar Restrições UIS</button>`;
+    // Dados da UIS (restrições + IAS) vêm exclusivamente do SGP via P1 →
+    // "Sincronizar via SGP". Import manual de planilha foi descontinuado.
+    el.innerHTML = '';
   } else if (section === 'p3') {
     if (!isP3) { el.innerHTML = ''; return; }
     el.innerHTML = `
