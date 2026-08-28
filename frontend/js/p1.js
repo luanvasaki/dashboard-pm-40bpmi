@@ -3248,6 +3248,35 @@ function renderHome() {
       </div>`;
   }
 
+  // ── Resumo P5 ─────────────────────────────────────────────────────────────
+  // Total + Com Láurea dão o quadro geral (mesmos números do KPI do próprio
+  // P5); 1º Grau entra como 3º destaque em vez de "Sem Láurea" porque é a
+  // distinção mais rara/relevante pra chamar atenção na home — "sem" já é
+  // óbvio pela diferença entre os dois primeiros números.
+  let p5Preview = '';
+  if (typeof p5EfetivoFull !== 'undefined' && p5EfetivoFull.length > 0) {
+    const totalP5 = p5EfetivoFull.length;
+    const comLaureaP5 = p5EfetivoFull.filter(p => p.grau).length;
+    const porGrauP5 = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 };
+    p5EfetivoFull.forEach(p => { if (p.grau && porGrauP5[p.grau] !== undefined) porGrauP5[p.grau]++; });
+    const grauRowsP5 = ['1', '2', '3', '4', '5']
+      .filter(g => porGrauP5[g] > 0)
+      .map(g => `<div style="display:flex;justify-content:space-between;gap:6px">
+        <span style="color:#ffffff">${P5_GRAU_LBL[g]}</span>
+        <span style="color:${P5_GRAU_COR[g]};font-weight:700;flex-shrink:0">${porGrauP5[g]}</span>
+      </div>`).join('');
+
+    p5Preview = `
+      <div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px">
+        <div style="display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap">
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--tx)">${totalP5}</span><span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-left:4px">total</span></div>
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:#c8a84b">${comLaureaP5}</span><span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-left:4px">com láurea</span></div>
+          <div><span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${P5_GRAU_COR['1']}">${porGrauP5['1']}</span><span style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-left:4px">1º grau</span></div>
+        </div>
+        ${grauRowsP5 ? `<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 16px;font-family:'DM Mono',monospace;font-size:17px">${grauRowsP5}</div>` : ''}
+      </div>`;
+  }
+
   const sections = [
     {
       id: 'p1', icon: 'users', color: '#4bc87a', label: 'P1', title: 'Seção de Pessoal',
@@ -3273,9 +3302,10 @@ function renderHome() {
       soon: true, preview: ''
     },
     {
-      id: 'p5', icon: 'megaphone', color: '#8090a8', label: 'P5', title: 'Comunicação Social',
-      desc: 'Comunicados internos, publicações, gestão da imagem institucional e eventos.',
-      soon: true, preview: ''
+      id: 'p5', icon: 'medal', color: '#c8a84b', label: 'P5', title: 'Comunicação Social',
+      desc: 'Mapa de láureas do efetivo — acompanhamento por grau, evolução histórica e reconhecimento individual dos PMs.',
+      soon: false, action: `goSection('p2', document.getElementById('sec-p2'))`,
+      preview: p5Preview
     },
     {
       id: 'sjd', icon: 'scale', color: '#8090a8', label: 'PJMD', title: 'Pol. Judiciária Militar e Disciplina',

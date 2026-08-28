@@ -2240,10 +2240,12 @@ app.get('/api/pm/:re/laureas', requireAuth, async (req, res) => {
 // [GET /api/laureas/resumo] — pra cada PM do efetivo, o grau mais alto de
 // láurea que ele tem (1º é o mais alto, 5º o mais baixo — mesma lógica de
 // "menor número = mais graduado" usada no prontuário individual), ou
-// grau=null se não tem nenhuma; + lista crua de láureas (data de concessão e
-// opm de cada uma) pra série histórica por ano/mês. Usado no P5 (mapa de
-// láureas do efetivo). `opm` vem em ambas as listas pra permitir filtrar por
-// CIA no frontend (efetivo_pm não tem coluna `cia` própria, só `opm`).
+// grau=null se não tem nenhuma; + lista crua de láureas (data de concessão,
+// opm e re base de cada uma) pra série histórica por ano/mês e pra listar os
+// PMs por trás de cada mês. Usado no P5 (mapa de láureas do efetivo). `opm`
+// vem em ambas as listas pra permitir filtrar por CIA no frontend (efetivo_pm
+// não tem coluna `cia` própria, só `opm`); `re` em `laureas` já vem sem
+// dígito verificador (casa com `efetivo[].re.split('-')[0]`).
 app.get('/api/laureas/resumo', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
   try {
@@ -2275,7 +2277,12 @@ app.get('/api/laureas/resumo', requireAuth, async (req, res) => {
 
     const laureas = (laureasRes.data || [])
       .filter(l => l.concessao)
-      .map(l => ({ concessao: l.concessao, opm: l.opm, grau: parseGrau(l.descricao_medalha) }));
+      .map(l => ({
+        concessao: l.concessao, opm: l.opm, grau: parseGrau(l.descricao_medalha),
+        // RE base (sem dígito verificador) pra casar com efetivo[].re no
+        // frontend — mesma normalização usada em grauPorRe logo acima.
+        re: String(l.re_pm || '').split('-')[0],
+      }));
 
     res.json({ efetivo, laureas });
   } catch (err) { res.status(500).json({ error: err.message }); }

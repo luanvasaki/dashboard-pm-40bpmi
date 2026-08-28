@@ -869,11 +869,17 @@
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;margin-bottom:18px">
     <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:14px">Evolução de Láureas por Ano</div>
+      <div id="p5-ano-titulo" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:14px">Evolução de Láureas por Ano</div>
       <div style="position:relative;height:260px"><canvas id="p5-chart-ano"></canvas></div>
     </div>
     <div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff;margin-bottom:14px">Láureas por Mês (Total Histórico)</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+        <div id="p5-mes-titulo" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#ffffff">Láureas por Mês (Total Histórico)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <div id="p5-mes-grau-filtro"></div>
+          <div id="p5-mes-ano-filtro"></div>
+        </div>
+      </div>
       <div style="position:relative;height:260px"><canvas id="p5-chart-mes"></canvas></div>
     </div>
   </div>
@@ -883,6 +889,25 @@
       <div id="p5-filtros" style="display:flex;gap:6px;flex-wrap:wrap"></div>
     </div>
     <div id="p5-grid"></div>
+  </div>
+</div>
+
+<!-- P5 · PMs laureados no mês (abre ao clicar numa barra do gráfico "Láureas por Mês") -->
+<div class="mo" id="p5-mes-mo" onclick="p5MesModalClickOut(event)">
+  <div class="mo-box" style="max-width:900px">
+    <div class="mo-head">
+      <div class="mo-tw">
+        <div class="mo-accent" style="background:#c8a84b"></div>
+        <div>
+          <div class="mo-crime" id="p5-mes-mo-title">—</div>
+          <div class="mo-sub" id="p5-mes-mo-sub">—</div>
+        </div>
+      </div>
+      <button class="mo-close" onclick="p5MesModalClose()">✕</button>
+    </div>
+    <div class="mo-body">
+      <div id="p5-mes-mo-body"></div>
+    </div>
   </div>
 </div>
 
@@ -1143,7 +1168,7 @@
 <script src="js/auth.js?v=20260624"></script>
 <script src="js/nav.js?v=20260624"></script>
 <script src="js/users.js?v=20260828"></script>
-<script src="js/filters.js?v=20260814"></script>
+<script src="js/filters.js?v=20260820a"></script>
 <script src="js/kpi.js?v=20260819b"></script>
 <script src="js/modal-crime.js?v=20260819a"></script>
 <script src="js/upload.js?v=20260624"></script>
@@ -1151,7 +1176,7 @@
 <script src="js/intel.js?v=20260624"></script>
 <script src="js/p1.js?v=20260828"></script>
 <script src="js/p3.js?v=20260819d"></script>
-<script src="js/p5.js?v=20260820a"></script>
+<script src="js/p5.js?v=20260820i"></script>
 <script src="js/uis.js?v=20260828"></script>
 <script src="js/init.js?v=20260624"></script>
 </body>
