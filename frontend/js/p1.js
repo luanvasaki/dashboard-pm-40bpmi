@@ -406,7 +406,10 @@ function renderP1() {
   const total = dataF.length;
 
   // ── KPI cards (clicáveis)
-  kpisEl.style.gridTemplateColumns = 'repeat(auto-fill,minmax(210px,1fr))';
+  // auto-fit (não auto-fill) — com menos KPIs (removemos 3 em 2026-08), os
+  // cards restantes esticam pra preencher a linha em vez de deixar espaço
+  // vazio à direita.
+  kpisEl.style.gridTemplateColumns = 'repeat(auto-fit,minmax(210px,1fr))';
   const kpiCard = (label, val, sub, color, key) => {
     return `<div onclick="p1ShowKpiDetail('${key}')" class="kpi">
       <div class="kpi-top"></div>
