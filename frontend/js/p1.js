@@ -118,6 +118,12 @@ function hasUisRestr(re) {
 // tão curto. FT/EM já tinham esse padrão (`^ft$`/`^em$`), só faltava nas CIAs.
 const CIA_STRUCT = [
   {
+    label: 'EM', sede: 'Votorantim', color: '#9b6de0',
+    units: [
+      { label: 'Estado Maior', keys: ['em -', 'estado maior', '^em$'] },
+    ]
+  },
+  {
     label: '1ª CIA', sede: 'Votorantim', color: CIA_COR['1'],
     units: [
       { label: 'Sede · Votorantim', keys: ['1 cia - sede', 'votorantim', '^1 cia$'] },
@@ -145,12 +151,6 @@ const CIA_STRUCT = [
     label: 'FT', sede: 'Votorantim', color: CIA_COR.ft,
     units: [
       { label: 'Força Tática', keys: ['^ft$', 'forca tatica', 'f.t.'] },
-    ]
-  },
-  {
-    label: 'EM', sede: 'Votorantim', color: '#9b6de0',
-    units: [
-      { label: 'Estado Maior', keys: ['em -', 'estado maior', '^em$'] },
     ]
   },
 ];
@@ -485,7 +485,11 @@ function renderP1() {
         byCiaKpi[c].fx += Number(q.fx_total)||0;
         byCiaKpi[c].ex += Number(q.ex_total)||0;
       });
-      const ciaStatusRows = Object.entries(byCiaKpi).sort(([a],[b])=>a.localeCompare(b)).map(([cia, d]) => {
+      // Ordem fixa (EM primeiro, depois CIAs, esquerda p/ direita — mesma
+      // ordem de CIA_STRUCT), em vez de alfabética; o que não bate com
+      // nenhum label de CIA_STRUCT (OPM não mapeada) vai pro final.
+      const ciaOrderIdx = cia => { const i = CIA_STRUCT.findIndex(c => c.label === cia); return i < 0 ? CIA_STRUCT.length : i; };
+      const ciaStatusRows = Object.entries(byCiaKpi).sort(([a],[b]) => ciaOrderIdx(a) - ciaOrderIdx(b) || a.localeCompare(b)).map(([cia, d]) => {
         const saldo = d.fx - d.ex;
         const statusCor = saldo < 0 ? '#e05555' : '#4bc87a';
         const statusTxt = saldo < 0 ? `+${Math.abs(saldo)} exc.` : saldo === 0 ? 'OK' : `−${saldo} vgs`;
