@@ -2249,12 +2249,13 @@ app.get('/api/pm/:re/laureas', requireAuth, async (req, res) => {
 app.get('/api/laureas/resumo', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
   try {
-    const [efetivoRes, laureasRes] = await Promise.all([
-      supabase.from('efetivo_pm').select('re, nome, nome_guerra, posto, opm'),
-      supabase.from('prod_laureas').select('re_pm, descricao_medalha, concessao, opm'),
+    // fetchAll pagina de 1000 em 1000 — prod_laureas já passou de 1000 linhas
+    // e um .select() cru descartava silenciosamente as excedentes, fazendo
+    // PMs com láurea (inclusive de 1º grau) aparecerem como "Sem Láurea".
+    const [efetivoRows, laureasRows] = await Promise.all([
+      fetchAll(EFETIVO_TABLE, { select: 're, nome, nome_guerra, posto, opm' }),
+      fetchAll('prod_laureas', { select: 're_pm, descricao_medalha, concessao, opm' }),
     ]);
-    if (efetivoRes.error) throw new Error(efetivoRes.error.message);
-    if (laureasRes.error) throw new Error(laureasRes.error.message);
 
     const parseGrau = desc => {
       const m = /(\d+)\s*º?\s*grau/i.exec(desc || '');
@@ -2262,7 +2263,7 @@ app.get('/api/laureas/resumo', requireAuth, async (req, res) => {
     };
 
     const grauPorRe = {};
-    (laureasRes.data || []).forEach(l => {
+    laureasRows.forEach(l => {
       const g = parseGrau(l.descricao_medalha);
       if (g == null) return;
       const re = String(l.re_pm || '').split('-')[0];
@@ -2270,12 +2271,12 @@ app.get('/api/laureas/resumo', requireAuth, async (req, res) => {
       if (grauPorRe[re] == null || g < grauPorRe[re]) grauPorRe[re] = g;
     });
 
-    const efetivo = (efetivoRes.data || []).map(pm => ({
+    const efetivo = efetivoRows.map(pm => ({
       re: pm.re, nome: pm.nome, nome_guerra: pm.nome_guerra, posto: pm.posto, opm: pm.opm,
       grau: grauPorRe[String(pm.re || '').split('-')[0]] ?? null,
     }));
 
-    const laureas = (laureasRes.data || [])
+    const laureas = laureasRows
       .filter(l => l.concessao)
       .map(l => ({
         concessao: l.concessao, opm: l.opm, grau: parseGrau(l.descricao_medalha),
