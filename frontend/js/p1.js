@@ -77,6 +77,13 @@ function p1TotalSetCursoExt(val) { _p1TotalDetCursoExt = val || null; p1ShowKpiD
 let _p1TotalDetBusca = null;
 function p1TotalSetBusca(val) { _p1TotalDetBusca = (val || '').trim() || null; p1ShowKpiDetail('total'); }
 
+let _p1IasDetCia = -1, _p1IasDetMun = null, _p1IasDetPosto = null, _p1IasDetSit = null;
+let _iasChartData = null;
+function p1IasSetCia(val)   { _p1IasDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('ias'); }
+function p1IasSetMun(val)   { _p1IasDetMun = val || null; p1ShowKpiDetail('ias'); }
+function p1IasSetPosto(val) { _p1IasDetPosto = val || null; p1ShowKpiDetail('ias'); }
+function p1IasSetSit(val)   { _p1IasDetSit = _p1IasDetSit === val ? null : val; p1ShowKpiDetail('ias'); }
+
 let _p1AfastDetCia = -1, _p1AfastDetMun = null, _p1AfastDetPosto = null;
 function p1AfastSetCia(val)   { _p1AfastDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('afastados'); }
 function p1AfastSetMun(val)   { _p1AfastDetMun = val || null; p1ShowKpiDetail('afastados'); }
@@ -1217,11 +1224,37 @@ function wrapDetail(_title, _count, _color, _closeBtn, inner) {
   return `<div style="overflow-x:auto">${inner}</div>`;
 }
 
+// Card do KPI de IAS — igual ao que existia no P1 até 2026-08, só que agora
+// é chamado de dentro da UIS (uis.js) em vez de aparecer no grid do P1.
+// Mesmo onclick (abre o modal de detalhe do P1, com fotos via p1CardGrid).
+function p1IasKpiCardHtml() {
+  if (!_iasMap || !Object.keys(_iasMap).length) return '';
+  const pmIasAptos    = p1Data.filter(r => iasStatus(r.re) === 'apto');
+  const pmIasVencendo = p1Data.filter(r => iasStatus(r.re) === 'vencendo');
+  const pmIasVencidos = p1Data.filter(r => iasStatus(r.re) === 'vencido');
+  const pmIasSemReg   = p1Data.filter(r => !iasStatus(r.re));
+  const kpiRow = (label, val, color) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:#ffffff;font-size:17px">${escHtml(label)}</span><span style="color:${color};font-weight:700;font-size:20px">${val}</span></div>`;
+  const sub = [
+    kpiRow('Aptos', pmIasAptos.length + pmIasVencendo.length, '#4bc87a'),
+    pmIasVencendo.length ? kpiRow('Vencendo 30d', pmIasVencendo.length, '#c8a84b') : '',
+    pmIasVencidos.length ? kpiRow('Vencidos', pmIasVencidos.length, '#e05555') : '',
+    pmIasSemReg.length ? kpiRow('Sem registro', pmIasSemReg.length, '#606880') : '',
+  ].filter(Boolean).join('') || '—';
+  return `<div onclick="p1ShowKpiDetail('ias')" class="kpi">
+      <div class="kpi-top"></div>
+      <div class="kpi-lbl">IAS · Inspeção de Saúde</div>
+      <div class="kpi-val">${pmIasAptos.length + pmIasVencendo.length}</div>
+      <div class="kpi-sub" style="line-height:1.7;width:100%">${sub}</div>
+      <div class="kpi-hint">▸ clique p/ detalhes</div>
+    </div>`;
+}
+
 function closeP1Detail() {
   const mo = document.getElementById('p1-detail-mo');
   if (mo) { mo.classList.remove('on'); document.body.style.overflow = ''; }
   _p1TotalDetCia = -1; _p1TotalDetGen = null; _p1TotalDetMun = null; _p1TotalDetPosto = null;
   _p1TotalDetCursoInt = null; _p1TotalDetCursoExt = null; _p1TotalDetBusca = null;
+  _p1IasDetSit = null; _p1IasDetCia = -1; _p1IasDetMun = null; _p1IasDetPosto = null;
   _p1AfastDetCia = -1; _p1AfastDetMun = null; _p1AfastDetPosto = null;
   _p1EapDetCia = -1; _p1EapDetMun = null; _p1EapDetPosto = null;
   _p1FeriasDetCia = -1; _p1FeriasDetMun = null; _p1FeriasDetPosto = null;
@@ -1615,6 +1648,94 @@ function p1ShowKpiDetail(tipo) {
     html = wrapDetail(`EAP / TAF / TAT ${anoAtual}`, null, '#c8a84b', closeBtn, eapSmCards + eapTabelasHtml);
   }
 
+  else if (tipo === 'ias') {
+    if (!_iasMap) { html = '<div style="color:var(--tx3);padding:16px">Dados IAS não carregados.</div>'; }
+    else {
+      const fmtV   = s => s ? s.split('-').reverse().join('/') : '—';
+      const getMun = opm => { if (!opm) return null; const p = opm.split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
+      const getCia = opm => {
+        if (!opm || typeof CIA_STRUCT === 'undefined') return -1;
+        return CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
+      };
+
+      const baseList = dataF.map(r => {
+        const s = iasStatus(r.re) || 'semreg';
+        const rec = _iasMap[iasNormRE(r.re)];
+        return { r, s, rec, mun: getMun(r.opm), ciaIdx: getCia(r.opm), posto: r.posto };
+      });
+
+      const filtroIas = p1FiltroCMP(baseList, _p1IasDetCia, _p1IasDetMun, _p1IasDetPosto, 'p1IasSetCia', 'p1IasSetMun', 'p1IasSetPosto');
+      _p1IasDetCia = filtroIas.cia; _p1IasDetMun = filtroIas.mun; _p1IasDetPosto = filtroIas.posto;
+
+      let filtered = baseList;
+      if (_p1IasDetSit)      filtered = filtered.filter(x => x.s === _p1IasDetSit);
+      if (_p1IasDetCia >= 0) filtered = filtered.filter(x => x.ciaIdx === _p1IasDetCia);
+      if (_p1IasDetMun)      filtered = filtered.filter(x => x.mun === _p1IasDetMun);
+      if (_p1IasDetPosto)    filtered = filtered.filter(x => x.posto === _p1IasDetPosto);
+
+      const cntVenc = baseList.filter(x => x.s === 'vencido').length;
+      const cntVend = baseList.filter(x => x.s === 'vencendo').length;
+      const cntApto = baseList.filter(x => x.s === 'apto').length;
+      const cntSemR = baseList.filter(x => x.s === 'semreg').length;
+
+      const anyFilter = _p1IasDetSit !== null || _p1IasDetCia >= 0 || !!_p1IasDetMun || !!_p1IasDetPosto;
+      _iasChartData = { filtered, baseList, anyFilter };
+
+      // ── Helpers de botão (só pra Situação, que não faz parte do filtro CIA/Cidade/Graduação) ─
+      const btnBase = (lbl, _cnt, cor, on, onclick) =>
+        `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
+
+      const gridRow = (lbl, btns) =>
+        `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
+        </div>`;
+
+      const sitBtns = [
+        btnBase('VENCIDA',   cntVenc, '#f07878', _p1IasDetSit==='vencido',  "p1IasSetSit('vencido')"),
+        btnBase('VENCENDO',  cntVend, '#c8a84b', _p1IasDetSit==='vencendo', "p1IasSetSit('vencendo')"),
+        btnBase('APTO',      cntApto, '#4bc87a', _p1IasDetSit==='apto',     "p1IasSetSit('apto')"),
+        btnBase('SEM REG.',  cntSemR, '#606880', _p1IasDetSit==='semreg',   "p1IasSetSit('semreg')"),
+      ].join('');
+
+      const SIT_COR = { vencido:'#f07878', vencendo:'#c8a84b', apto:'#4bc87a', semreg:'#606880' };
+      const SIT_LBL = { vencido:'VENCIDA', vencendo:'VENCENDO', apto:'APTO', semreg:'SEM REG.' };
+      const iasRecByRe = {};
+      filtered.forEach(({r, s, rec}) => { iasRecByRe[r.re] = { s, rec }; });
+      const iasInfo = r => {
+        const { s, rec } = iasRecByRe[r.re] || {};
+        const cor = SIT_COR[s] || 'var(--tx3)';
+        return `<div style="font-size:10px;font-family:'DM Mono',monospace;color:${cor};font-weight:700">${rec?.data_vencimento ? fmtV(rec.data_vencimento) : '—'}</div>
+          <span style="padding:1px 6px;border-radius:6px;font-size:10px;background:${cor}22;color:${cor};font-family:'DM Mono',monospace;margin-top:2px;display:inline-block">${SIT_LBL[s]||s||'—'}</span>`;
+      };
+      const iasClick = r => `openIasPmModal('${String(iasNormRE(r.re)).replace(/'/g,"\\'")}')`;
+
+      const tabelaIasHtml = p1SomenteQuantitativo()
+        ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
+        : !anyFilter
+          ? `<div style="padding:20px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ Selecione um filtro acima para ver a listagem individual</div>`
+          : p1CardGrid(filtered.map(({r}) => r), iasInfo, iasClick);
+
+      const iasChartsHtml = `
+        <div style="display:grid;grid-template-columns:310px 1fr;gap:16px;padding:0 0 16px;border-bottom:1px solid var(--bd);margin-bottom:12px;align-items:start">
+          <div>
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${anyFilter ? 'Situação · filtro ativo' : 'Situação Geral'}</div>
+            <div style="position:relative;height:260px"><canvas id="ias-chart-status"></canvas></div>
+          </div>
+          <div>
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">Apto × Vencida por Unidade (total)</div>
+            <canvas id="ias-chart-unidade" height="160"></canvas>
+          </div>
+        </div>`;
+
+      html = wrapDetail(`IAS · Inspeção Anual de Saúde — ${anyFilter ? filtered.length + ' filtrado(s) de ' + baseList.length : baseList.length}`, null, '#5a9de0', closeBtn, `
+        ${iasChartsHtml}
+        ${gridRow('SITUAÇÃO', sitBtns)}
+        ${filtroIas.html}
+        ${tabelaIasHtml}`);
+    }
+  }
+
   else if (tipo === 'ferias') {
     const getMunFer = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
     const getCiaFer = opm => (typeof CIA_STRUCT === 'undefined' || !opm) ? -1 : CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
@@ -1970,8 +2091,68 @@ function p1ShowKpiDetail(tipo) {
   }
 
   document.getElementById('p1d-body').innerHTML = html;
+  if (tipo === 'ias' && _iasChartData) requestAnimationFrame(() => _renderIasCharts(_iasChartData));
   mo.classList.add('on');
   document.body.style.overflow = 'hidden';
+}
+
+function _renderIasCharts({ filtered, baseList }) {
+  const cDonut = document.getElementById('ias-chart-status');
+  if (cDonut) {
+    const existing = typeof Chart !== 'undefined' && Chart.getChart ? Chart.getChart(cDonut) : null;
+    if (existing) existing.destroy();
+    const src = filtered;
+    const dVenc = src.filter(x => x.s === 'vencido').length;
+    const dVend = src.filter(x => x.s === 'vencendo').length;
+    const dApto = src.filter(x => x.s === 'apto').length;
+    const dSemR = src.filter(x => x.s === 'semreg').length;
+    const total = dVenc + dVend + dApto + dSemR;
+    new Chart(cDonut.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Vencida', 'Vencendo', 'Apto', 'Sem Reg.'],
+        datasets: [{ data: [dVenc, dVend, dApto, dSemR], backgroundColor: ['#f07878','#c8a84b','#4bc87a','#60688099'], borderWidth: 0 }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.7)', font: { size: 12 }, padding: 10, boxWidth: 14 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} (${total ? Math.round(ctx.parsed/total*100) : 0}%)` } }
+        },
+        cutout: '52%'
+      }
+    });
+  }
+
+  const cBar = document.getElementById('ias-chart-unidade');
+  if (cBar && typeof CIA_STRUCT !== 'undefined') {
+    const existing = typeof Chart !== 'undefined' && Chart.getChart ? Chart.getChart(cBar) : null;
+    if (existing) existing.destroy();
+    const labels   = CIA_STRUCT.map(c => c.label);
+    const aptoData = CIA_STRUCT.map((_, i) => baseList.filter(x => x.ciaIdx === i && x.s === 'apto').length);
+    const vencData = CIA_STRUCT.map((_, i) => baseList.filter(x => x.ciaIdx === i && x.s === 'vencido').length);
+    const vendData = CIA_STRUCT.map((_, i) => baseList.filter(x => x.ciaIdx === i && x.s === 'vencendo').length);
+    new Chart(cBar.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Apto',     data: aptoData, backgroundColor: '#4bc87a55', borderColor: '#4bc87a', borderWidth: 1 },
+          { label: 'Vencendo', data: vendData, backgroundColor: '#c8a84b55', borderColor: '#c8a84b', borderWidth: 1 },
+          { label: 'Vencida',  data: vencData, backgroundColor: '#f0787855', borderColor: '#f07878', borderWidth: 1 },
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: 'rgba(255,255,255,.7)', font: { size: 11 }, boxWidth: 12 } } },
+        scales: {
+          x: { ticks: { color: 'rgba(255,255,255,.6)', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,.06)' } },
+          y: { ticks: { color: 'rgba(255,255,255,.6)', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,.06)' }, beginAtZero: true }
+        }
+      }
+    });
+  }
 }
 
 // ── Filtro OPM e Busca P1 ────────────────────────────────────────────────────

@@ -1080,6 +1080,7 @@ function renderUisPage() {
       ${kpi('ias-total',   '#5a9de0', 'TOTAL REGISTROS IAS',   iasTotal,   null)}
       ${kpi('ias-aptos',   '#4bc87a', 'APTOS · IAS VÁLIDA',    iasAptos,   `${pctAptos}% aptos`)}
       ${kpi('ias-venc30',  '#c8a84b', 'VENCENDO EM 30 DIAS',   iasVenc30,  null)}
+      ${typeof p1IasKpiCardHtml === 'function' ? p1IasKpiCardHtml() : ''}
     </div>
 
     <div style="font-family:'DM Mono',monospace;font-size:11px;color:#c8a84b;letter-spacing:1.5px;margin-bottom:10px">RESTRIÇÃO ADMINISTRATIVA · SGP-DP (EFETIVO)</div>
