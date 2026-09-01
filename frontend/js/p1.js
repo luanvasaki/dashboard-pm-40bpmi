@@ -3314,18 +3314,18 @@ function renderHome() {
     const allCiaKeys = CIA_STRUCT.flatMap(c => c.units.flatMap(u => u.keys));
     const unmatchedOpms = [...new Set(p1Data.map(r => r.opm).filter(o => o && !_opmMatch(o, allCiaKeys)))];
 
-    // Colunas fixas à direita pra PMs/afst/restr alinharem entre linhas.
-    // (A barra + % de "disponível" foi tirada por pedido do usuário — não
-    // fazia muito sentido nesse resumo.)
-    const CIA_ROW_COLS = '1fr 64px 56px 56px';
+    // 4 colunas iguais: rótulo da CIA + PMs / afastados / em restrição.
+    // Tudo alinhado à esquerda pra os números formarem colunas limpas
+    // (a barra + % de "disponível" saiu daqui por pedido do usuário).
     const makeRow = (label, color, pms) => {
       if (!pms.length) return '';
       const s = stOf(pms);
-      return `<div style="display:grid;grid-template-columns:${CIA_ROW_COLS};align-items:center;gap:8px;margin-bottom:7px">
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:${color};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(label)}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">${s.total} PMs</div>
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.afst>0?'#e05555':'var(--bd2)'};text-align:right">${s.afst>0?`${s.afst} afst`:'—'}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.restr>0?'#c8a84b':'var(--bd2)'};text-align:right">${s.restr>0?`${s.restr} restr`:'—'}</div>
+      const cell = (txt, col) => `<span style="color:${col}">${txt}</span>`;
+      return `<div style="display:grid;grid-template-columns:repeat(4,1fr);align-items:baseline;gap:6px;margin-bottom:6px;font-family:'DM Mono',monospace;font-size:19px">
+        <span style="color:${color};font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(label)}</span>
+        ${cell(`${s.total} PM${s.total !== 1 ? 's' : ''}`, 'var(--tx2)')}
+        ${cell(s.afst > 0 ? `${s.afst} afst` : '—', s.afst > 0 ? '#e05555' : 'var(--bd2)')}
+        ${cell(s.restr > 0 ? `${s.restr} restr` : '—', s.restr > 0 ? '#c8a84b' : 'var(--bd2)')}
       </div>`;
     };
 
