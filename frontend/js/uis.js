@@ -274,12 +274,10 @@ function renderUisPageQuantitativo(uisStats, iasStats) {
 
   content.innerHTML = `
     <div style="padding:12px 16px;margin-bottom:18px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px;background:var(--s2);border:1px solid var(--bd);border-radius:8px">▸ LISTAGEM NOMINAL RESTRITA — exibindo apenas estatísticas</div>
-    <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">UIS — Restrições Médicas</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
-      ${kpi('Restrições ativas', uisStats.total_ativas ?? 0, '#5a9de0')}
+    <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">UIS — Restrições Médicas · SGP</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:24px">
+      ${kpi('Com restrição ativa', uisStats.total_ativas ?? 0, '#5a9de0')}
       ${kpi('Vencendo em 30 dias', uisStats.total_vencendo ?? 0, '#c8a84b')}
-      ${kpi('Vencidas', uisStats.total_vencidas ?? 0, '#e05555')}
-      ${kpi('Só administrativo', uisStats.total_admin_only ?? 0, '#8e6dc9')}
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
       <div style="background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:16px 18px">
@@ -291,9 +289,8 @@ function renderUisPageQuantitativo(uisStats, iasStats) {
         ${barra(uisStats.por_codigo, '#8e6dc9')}
       </div>
     </div>
-    <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">IAS — Inspeção Anual de Saúde</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
-      ${kpi('Total', iasStats.total ?? 0, '#5a9de0')}
+    <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">IAS — Inspeção de Saúde · SGP</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
       ${kpi('Aptos', iasStats.total_aptos ?? 0, '#4bc87a')}
       ${kpi('Vencendo em 30 dias', iasStats.total_vencendo ?? 0, '#c8a84b')}
       ${kpi('Vencidos', iasStats.total_vencidos ?? 0, '#e05555')}
@@ -1067,26 +1064,10 @@ function renderUisPage() {
   el.innerHTML = `
     ${capacidadeHtml}
 
-    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5ae09a;letter-spacing:1.5px;margin-bottom:10px">RESTRIÇÕES MÉDICAS · BG PM 166/2006</div>
+    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5ae09a;letter-spacing:1.5px;margin-bottom:10px">SAÚDE DO EFETIVO · DADOS SINCRONIZADOS DO SGP</div>
     <div class="kpi-row" style="margin-bottom:24px">
       ${kpi('uis-ativas',  uisCor,    'COM RESTRIÇÃO ATIVA',    restAtivas,  `${pctCampo}% de campo`)}
-      ${kpi('uis-adm',     '#c8a84b', 'SOMENTE ADMINISTRATIVO', restAdm,     null)}
-      ${kpi('uis-venc30',  '#c8a84b', 'VENCENDO EM 30 DIAS',    restVenc30,  null)}
-      ${kpi('uis-vencida', '#f07878', 'RESTRIÇÃO VENCIDA',       restVencida, null)}
-    </div>
-
-    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5a9de0;letter-spacing:1.5px;margin-bottom:10px">INSPEÇÃO ANUAL DE SAÚDE · IAS</div>
-    <div class="kpi-row" style="margin-bottom:24px">
-      ${kpi('ias-total',   '#5a9de0', 'TOTAL REGISTROS IAS',   iasTotal,   null)}
-      ${kpi('ias-aptos',   '#4bc87a', 'APTOS · IAS VÁLIDA',    iasAptos,   `${pctAptos}% aptos`)}
-      ${kpi('ias-venc30',  '#c8a84b', 'VENCENDO EM 30 DIAS',   iasVenc30,  null)}
-      ${typeof p1IasKpiCardHtml === 'function' ? p1IasKpiCardHtml() : ''}
-    </div>
-
-    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#c8a84b;letter-spacing:1.5px;margin-bottom:10px">RESTRIÇÃO ADMINISTRATIVA · SGP-DP (EFETIVO)</div>
-    <div class="kpi-row" style="margin-bottom:24px">
-      ${kpi('sgp-rest-ativa',  '#c8a84b', 'COM RESTRIÇÃO',       sgpRestAtiva,  null)}
-      ${kpi('sgp-rest-venc30', '#c8a84b', 'VENCENDO EM 30 DIAS', sgpRestVenc30, null)}
+      ${typeof p1IasKpiCardHtml === 'function' ? p1IasKpiCardHtml() : kpi('ias-total', '#5a9de0', 'IAS · INSPEÇÃO DE SAÚDE', iasAptos, `${pctAptos}% aptos`)}
     </div>
 
     <div style="font-family:'DM Mono',monospace;font-size:11px;color:#9b6de0;letter-spacing:1.5px;margin-bottom:10px">CAPS / NAPS · SUPERVISÃO PSICOSSOCIAL</div>

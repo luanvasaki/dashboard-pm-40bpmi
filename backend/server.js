@@ -1991,13 +1991,14 @@ app.post('/api/upload/uis-restricoes', requireAuth, requireRole('admin', 'p1', '
         termino,
         dias:       parseInt(gf(r, 'dias')) || null,
         observacao: gf(r, 'verificar'),
+        origem:     'manual',
       });
     }
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
-    const { error: du1 } = await supabase.from('uis_restricoes').delete().not('re', 'is', null);
+    // Só apaga as linhas de origem 'manual' (CSV) — as de origem 'sgp' são
+    // mantidas pelo agente-sgp e alimentam a tela UIS; este upload nunca as toca.
+    const { error: du1 } = await supabase.from('uis_restricoes').delete().eq('origem', 'manual');
     if (du1) throw new Error('Erro ao limpar registros antigos: ' + du1.message);
-    const { error: du2 } = await supabase.from('uis_restricoes').delete().is('re', null);
-    if (du2) throw new Error('Erro ao limpar registros antigos: ' + du2.message);
     const BATCH = 500;
     let total = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
@@ -2023,7 +2024,9 @@ app.get('/api/uis/stats', requireAuth, async (req, res) => {
     // Mesmo fix aplicado em /api/ias/stats — não conta restrição de quem já
     // saiu do efetivo (reAtivosSet definida mais abaixo, junto do IAS).
     const resAtivos = await reAtivosSet();
-    const all   = (await fetchAll('uis_restricoes', {})).filter(r => resAtivos.has(r.re));
+    // Só origem 'sgp' — a tela UIS passou a refletir exclusivamente o que vem do
+    // SGP-DP (via agente-sgp); linhas de origem 'manual' (CSV) ficam dormentes.
+    const all   = (await fetchAll('uis_restricoes', { filters: [['eq', 'origem', 'sgp']] })).filter(r => resAtivos.has(r.re));
     // Para cada RE, mantém apenas o registro com termino mais recente
     const byRe = {};
     for (const r of all) {
@@ -2068,7 +2071,7 @@ app.get('/api/uis/mapa', requireAuth, requireSectionNominal('uis', 'p1'), async 
   try {
     const today = new Date().toISOString().slice(0, 10);
     const resAtivos = await reAtivosSet();
-    const all   = await fetchAll('uis_restricoes', { order: [['termino', { ascending: false }]] });
+    const all   = await fetchAll('uis_restricoes', { filters: [['eq', 'origem', 'sgp']], order: [['termino', { ascending: false }]] });
     // Mantém só registros ativos (termino existe e é >= hoje) de quem ainda está no efetivo.
     const ativas = all.filter(r => r.termino && r.termino >= today && resAtivos.has(r.re));
     res.json(ativas);
@@ -2084,7 +2087,7 @@ app.get('/api/uis/restricoes/:re', requireAuth, requireSectionNominal('uis', 'p1
     // RE do efetivo vem como "180673-4" — corta no hífen para obter "180673"
     const reBase = req.params.re.split('-')[0].replace(/\D/g,'');
     const data = await fetchAll('uis_restricoes', {
-      filters: [['eq', 're', reBase]],
+      filters: [['eq', 're', reBase], ['eq', 'origem', 'sgp']],
       order:   [['termino', { ascending: false }]]
     });
     res.json(data);
