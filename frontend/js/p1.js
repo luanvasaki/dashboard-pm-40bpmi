@@ -498,7 +498,8 @@ function renderP1() {
         const saldo  = d.fx - d.ex; // >0 = vagas sobrando · <0 = estourado
         const pct    = d.fx > 0 ? Math.round(Math.abs(saldo) / d.fx * 100) : 0;
         const pctStr = saldo === 0 ? '0%' : `${saldo > 0 ? '−' : '+'}${pct}%`;
-        return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:${ciaCor};font-size:17px;font-weight:700">${cia}</span><span style="font-weight:700;font-size:18px"><span style="color:#ffffff">${d.ex}</span> <span style="color:var(--tx3);font-family:'DM Mono',monospace;font-size:15px;font-weight:400">${pctStr}</span></span></div>`;
+        const pctCor = saldo > 0 ? '#4bc87a' : saldo < 0 ? '#e05555' : 'var(--tx3)'; // verde = vaga sobrando · vermelho = efetivo a mais
+        return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:${ciaCor};font-size:17px;font-weight:700">${cia}</span><span style="font-weight:700;font-size:18px"><span style="color:#ffffff">${d.ex}</span> <span style="color:${pctCor};font-family:'DM Mono',monospace;font-size:15px;font-weight:600">${pctStr}</span></span></div>`;
       }).join('');
       const sub = ciaExRows + `<div style="margin-top:6px">${_kpiRow('FX Total', gtFx, '#ffffff')}${_kpiRow('EX Total', gtEx, '#ffffff')}</div>`;
       return kpiCard('Quadro Fixado', gtEx, sub, 'var(--tx)', 'quadro');
