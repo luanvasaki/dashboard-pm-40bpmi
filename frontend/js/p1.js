@@ -1863,6 +1863,7 @@ function p1ShowKpiDetail(tipo) {
     const thHL = thH + ';text-align:left';
     const tdc  = 'padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:19px;text-align:center;white-space:nowrap';
     const tdcL = 'padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx);white-space:nowrap';
+    const divL = ';border-left:1px solid var(--bd2)'; // divisória entre os grupos Subten/Sgt e Cb/Sd
 
     // Agrupa por CIA inferida
     const byCia = {};
@@ -1986,7 +1987,7 @@ function p1ShowKpiDetail(tipo) {
           <td style="${tdc};color:#ffffff;font-weight:700">${exSub}</td>
           <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(cS)}">${cVal(cS)}</td>
           <td style="${tdc};font-size:19px;color:${cColor(cS)}">${cPct(cS,fxSub)}</td>
-          <td style="${tdc};color:#ffffff;font-weight:700">${exCb}</td>
+          <td style="${tdc}${divL};color:#ffffff;font-weight:700">${exCb}</td>
           <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(cC)}">${cVal(cC)}</td>
           <td style="${tdc};font-size:19px;color:${cColor(cC)}">${cPct(cC,fxCb)}</td>
         </tr>`;
@@ -1999,7 +2000,7 @@ function p1ShowKpiDetail(tipo) {
         <td style="${tdc};color:#fff;font-weight:700">${cExSub}</td>
         <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(cCSub)}">${cVal(cCSub)}</td>
         <td style="${tdc};font-size:19px;color:${cColor(cCSub)}">${cPct(cCSub,cFxSubTot)}</td>
-        <td style="${tdc};color:#fff;font-weight:700">${cExCb}</td>
+        <td style="${tdc}${divL};color:#fff;font-weight:700">${cExCb}</td>
         <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(cCCb)}">${cVal(cCCb)}</td>
         <td style="${tdc};font-size:19px;color:${cColor(cCCb)}">${cPct(cCCb,cFxCbTot)}</td>
       </tr>`;
@@ -2013,7 +2014,7 @@ function p1ShowKpiDetail(tipo) {
         <td style="${tdc};color:#fff;font-weight:700;font-size:19px">${qRows.reduce((a,q)=>a+(Number(q.ex_subten_sgt)||0),0)}</td>
         <td style="${tdc};font-size:19px;font-weight:900;color:${cColor(gtCSub)}">${cVal(gtCSub)}</td>
         <td style="${tdc};font-size:19px;color:${cColor(gtCSub)}">${cPct(gtCSub,gtFxSub)}</td>
-        <td style="${tdc};color:#fff;font-weight:700;font-size:19px">${qRows.reduce((a,q)=>a+(Number(q.ex_cb_sd)||0),0)}</td>
+        <td style="${tdc}${divL};color:#fff;font-weight:700;font-size:19px">${qRows.reduce((a,q)=>a+(Number(q.ex_cb_sd)||0),0)}</td>
         <td style="${tdc};font-size:19px;font-weight:900;color:${cColor(gtCCb)}">${cVal(gtCCb)}</td>
         <td style="${tdc};font-size:19px;color:${cColor(gtCCb)}">${cPct(gtCCb,gtFxCb)}</td>
       </tr>`;
@@ -2080,22 +2081,30 @@ function p1ShowKpiDetail(tipo) {
         </div>` : ''}
       </div>` : '';
 
+    // Cabeçalho em 2 níveis: um grupo "Subten/Sgt" e outro "Cb/Sd", cada um
+    // com EX / Claro / %. Antes os rótulos longos ("Subten/Sgt EX") não
+    // cabiam na coluna (table-layout:fixed + nowrap) e transbordavam pra
+    // direita, desalinhando do número abaixo.
+    const thGrp = 'padding:6px 12px 4px;font-family:"DM Mono",monospace;font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);text-align:center;white-space:nowrap';
+    const thSub = 'padding:6px 12px 8px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:16px;letter-spacing:.5px;text-transform:uppercase;color:#ffffff;text-align:center;white-space:nowrap';
     const tableHdr = `<table style="width:100%;border-collapse:collapse;table-layout:fixed">
       <colgroup>
-        <col style="width:18%"><col style="width:10%">
-        <col style="width:10%"><col style="width:9%"><col style="width:8%">
-        <col style="width:10%"><col style="width:9%"><col style="width:8%">
+        <col style="width:24%"><col style="width:16%">
+        <col style="width:10%"><col style="width:10%"><col style="width:10%">
+        <col style="width:10%"><col style="width:10%"><col style="width:10%">
       </colgroup>
-      <thead><tr>
-        <th style="${thHL}">Município</th>
-        <th style="${thHL}">OPM</th>
-        <th style="${thH}">Subten/Sgt EX</th>
-        <th style="${thH}">Claro</th>
-        <th style="${thH}">%</th>
-        <th style="${thH}">Cb/Sd EX</th>
-        <th style="${thH}">Claro</th>
-        <th style="${thH}">%</th>
-      </tr></thead>
+      <thead>
+        <tr>
+          <th rowspan="2" style="${thHL};vertical-align:bottom;padding-bottom:8px">Município</th>
+          <th rowspan="2" style="${thHL};vertical-align:bottom;padding-bottom:8px">OPM</th>
+          <th colspan="3" style="${thGrp}">Subten / Sgt</th>
+          <th colspan="3" style="${thGrp}${divL}">Cb / Sd</th>
+        </tr>
+        <tr>
+          <th style="${thSub}">EX</th><th style="${thSub}">Claro</th><th style="${thSub}">%</th>
+          <th style="${thSub}${divL}">EX</th><th style="${thSub}">Claro</th><th style="${thSub}">%</th>
+        </tr>
+      </thead>
       <tbody>${bodyQ || '<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--tx3);font-size:19px">Nenhum dado. Importe o CSV pelo menu lateral.</td></tr>'}</tbody>
     </table>`;
 
