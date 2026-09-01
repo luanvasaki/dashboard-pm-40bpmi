@@ -491,11 +491,14 @@ function renderP1() {
       // ordem de CIA_STRUCT), em vez de alfabética; o que não bate com
       // nenhum label de CIA_STRUCT (OPM não mapeada) vai pro final.
       const ciaOrderIdx = cia => { const i = CIA_STRUCT.findIndex(c => c.label === cia); return i < 0 ? CIA_STRUCT.length : i; };
-      // Só o efetivo existente de cada CIA (por pedido do usuário) — sem
-      // claro/vagas/%.
+      // Por CIA: efetivo existente + a % de vagas em aberto (−) ou de
+      // efetivo acima do fixado (+), sobre o quadro fixado da CIA.
       const ciaExRows = Object.entries(byCiaKpi).sort(([a],[b]) => ciaOrderIdx(a) - ciaOrderIdx(b) || a.localeCompare(b)).map(([cia, d]) => {
         const ciaCor = /^em$/i.test(cia.trim()) ? '#9b6de0' : ciaCorByName(cia); // EM não tem dígito p/ ciaCorByName achar
-        return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:${ciaCor};font-size:17px;font-weight:700">${cia}</span><span style="color:#ffffff;font-weight:700;font-size:18px">${d.ex}</span></div>`;
+        const saldo  = d.fx - d.ex; // >0 = vagas sobrando · <0 = estourado
+        const pct    = d.fx > 0 ? Math.round(Math.abs(saldo) / d.fx * 100) : 0;
+        const pctStr = saldo === 0 ? '0%' : `${saldo > 0 ? '−' : '+'}${pct}%`;
+        return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:${ciaCor};font-size:17px;font-weight:700">${cia}</span><span style="font-weight:700;font-size:18px"><span style="color:#ffffff">${d.ex}</span> <span style="color:var(--tx3);font-family:'DM Mono',monospace;font-size:15px;font-weight:400">${pctStr}</span></span></div>`;
       }).join('');
       const sub = ciaExRows + `<div style="margin-top:6px">${_kpiRow('FX Total', gtFx, '#ffffff')}${_kpiRow('EX Total', gtEx, '#ffffff')}</div>`;
       return kpiCard('Quadro Fixado', gtEx, sub, 'var(--tx)', 'quadro');
