@@ -491,11 +491,15 @@ function renderP1() {
       // ordem de CIA_STRUCT), em vez de alfabética; o que não bate com
       // nenhum label de CIA_STRUCT (OPM não mapeada) vai pro final.
       const ciaOrderIdx = cia => { const i = CIA_STRUCT.findIndex(c => c.label === cia); return i < 0 ? CIA_STRUCT.length : i; };
-      // Por CIA: só o efetivo existente (a % de vaga/estouro foi tirada
-      // do card por pedido do usuário — continua na tela de detalhe).
+      // Por CIA: efetivo existente + a % de vagas em aberto (−, verde) ou
+      // de efetivo acima do fixado (+, vermelho), sobre o fixado da CIA.
       const ciaExRows = Object.entries(byCiaKpi).sort(([a],[b]) => ciaOrderIdx(a) - ciaOrderIdx(b) || a.localeCompare(b)).map(([cia, d]) => {
         const ciaCor = /^em$/i.test(cia.trim()) ? '#9b6de0' : ciaCorByName(cia); // EM não tem dígito p/ ciaCorByName achar
-        return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:${ciaCor};font-size:17px;font-weight:700">${cia}</span><span style="color:#ffffff;font-weight:700;font-size:18px">${d.ex}</span></div>`;
+        const saldo  = d.fx - d.ex; // >0 = vagas sobrando · <0 = estourado
+        const pct    = d.fx > 0 ? Math.round(Math.abs(saldo) / d.fx * 100) : 0;
+        const pctStr = saldo === 0 ? '0%' : `${saldo > 0 ? '−' : '+'}${pct}%`;
+        const pctCor = saldo > 0 ? '#4bc87a' : saldo < 0 ? '#e05555' : 'var(--tx3)'; // verde = vaga sobrando · vermelho = efetivo a mais
+        return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:${ciaCor};font-size:17px;font-weight:700">${cia}</span><span style="font-weight:700;font-size:18px"><span style="color:#ffffff">${d.ex}</span> <span style="color:${pctCor};font-family:'DM Mono',monospace;font-size:15px;font-weight:600">${pctStr}</span></span></div>`;
       }).join('');
       const sub = ciaExRows + `<div style="margin-top:6px">${_kpiRow('FX Total', gtFx, '#ffffff')}${_kpiRow('EX Total', gtEx, '#ffffff')}</div>`;
       return kpiCard('Quadro Fixado', gtEx, sub, 'var(--tx)', 'quadro');
@@ -3310,21 +3314,15 @@ function renderHome() {
     const allCiaKeys = CIA_STRUCT.flatMap(c => c.units.flatMap(u => u.keys));
     const unmatchedOpms = [...new Set(p1Data.map(r => r.opm).filter(o => o && !_opmMatch(o, allCiaKeys)))];
 
-    // Colunas em grid (não flex) — cada linha reserva o MESMO espaço fixo
-    // pra PMs/afst/restr independente de aparecerem ou não, senão a barra
-    // (que pega o espaço "sobrando") varia de largura entre linhas por causa
-    // do texto ao lado, e uma CIA com % menor podia ficar com barra maior
-    // que uma de % maior só por ter menos texto ocupando espaço ao lado.
-    const CIA_ROW_COLS = '74px 1fr 40px 60px 56px 56px';
+    // Colunas fixas à direita pra PMs/afst/restr alinharem entre linhas.
+    // (A barra + % de "disponível" foi tirada por pedido do usuário — não
+    // fazia muito sentido nesse resumo.)
+    const CIA_ROW_COLS = '1fr 64px 56px 56px';
     const makeRow = (label, color, pms) => {
       if (!pms.length) return '';
       const s = stOf(pms);
       return `<div style="display:grid;grid-template-columns:${CIA_ROW_COLS};align-items:center;gap:8px;margin-bottom:7px">
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:${color};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(label)}</div>
-        <div style="background:rgba(255,255,255,.06);border-radius:3px;height:6px;overflow:hidden">
-          <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:3px"></div>
-        </div>
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.color};text-align:right">${s.pct}%</div>
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">${s.total} PMs</div>
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.afst>0?'#e05555':'var(--bd2)'};text-align:right">${s.afst>0?`${s.afst} afst`:'—'}</div>
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.restr>0?'#c8a84b':'var(--bd2)'};text-align:right">${s.restr>0?`${s.restr} restr`:'—'}</div>
