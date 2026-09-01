@@ -452,11 +452,11 @@ function renderP1() {
       ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)', 'ferias') +
     (() => {
       if (!p1Quadro.length) return '';
-      // Mesmo recorte da tela de detalhe (tipo==='quadro'): exclui CFP, UIS
-      // (Méd/Odonto) e Sede EM. O marcador CFP/UIS está no `municipio` —
-      // essas linhas têm opm="EM", então testar só o opm (como antes) não
-      // excluía nada e o total (e a %) vinham calculados sobre base errada.
-      const excl = s => /cfp|uis\s*m[eé]d|uis\s*odonto|^em$/i.test((s||'').trim());
+      // Exclui só CFP e UIS (Méd/Odonto) — o marcador está no `municipio`
+      // (essas linhas têm opm="EM"); testar só o opm, como era antes, não
+      // excluía nada e a base da % vinha errada. A Sede EM CONTINUA no
+      // quadro, contando como se fosse uma CIA (aparece 1ª na lista).
+      const excl = s => /cfp|uis\s*m[eé]d|uis\s*odonto/i.test((s||'').trim());
       const qRows = p1Quadro.filter(q => !excl(q.opm) && !excl(q.municipio));
       const gtFx = qRows.reduce((a,q) => a + (Number(q.fx_total)||0), 0);
       const gtEx = qRows.reduce((a,q) => a + (Number(q.ex_total)||0), 0);
@@ -499,7 +499,7 @@ function renderP1() {
         const pct   = d.fx > 0 ? Math.round(Math.abs(saldo) / d.fx * 100) : 0;
         const statusCor = saldo < 0 ? '#e05555' : '#4bc87a';
         const statusTxt = saldo < 0 ? `+${Math.abs(saldo)} exc. (${pct}%)` : saldo === 0 ? 'OK' : `−${saldo} vgs (${pct}%)`;
-        const ciaCor = ciaCorByName(cia);
+        const ciaCor = /^em$/i.test(cia.trim()) ? '#9b6de0' : ciaCorByName(cia); // EM não tem dígito p/ ciaCorByName achar
         return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:${ciaCor};font-size:17px;font-weight:700">${cia}</span><span style="color:${statusCor};font-weight:700;font-size:18px">${statusTxt}</span></div>`;
       }).join('');
       const sub = ciaStatusRows + `<div style="margin-top:6px">${_kpiRow('FX Total', gtFx, '#ffffff')}${_kpiRow('EX Total', gtEx, '#ffffff')}</div>`;
