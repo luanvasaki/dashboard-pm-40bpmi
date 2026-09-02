@@ -387,6 +387,34 @@ function loadLocalFallback() {
   }
 }
 
+// Garante que o cache não está velho ANTES de servir uma requisição de dados.
+// O setInterval abaixo cobre um servidor sempre ligado; num ambiente
+// serverless (Vercel) a função "congela" entre requisições e o timer não
+// dispara — então cada instância re-sincroniza sozinha aqui quando percebe
+// que passou do TTL. `_syncInFlight` funde requisições concorrentes numa
+// sincronização só (evita N syncs simultâneos ao expirar o cache).
+let _syncInFlight = null;
+async function ensureCacheFresh() {
+  if (!supabase) return;
+  const ageMs = cache.lastSync ? Date.now() - new Date(cache.lastSync).getTime() : Infinity;
+  if (cache.data.length && ageMs < CACHE_TTL) return;
+  if (!_syncInFlight) {
+    _syncInFlight = syncFromSupabase()
+      .then(ok => { if (!ok && !cache.data.length) loadLocalFallback(); })
+      .catch(err => console.error('✗ ensureCacheFresh:', err.message))
+      .finally(() => { _syncInFlight = null; });
+  }
+  await _syncInFlight;
+}
+
+// Middleware: aplica a checagem de frescor só nas rotas que leem o cache
+// em memória (metadados, registros RAC, analytics). Nunca derruba a
+// requisição — se a sync falhar, segue com o cache que tiver.
+async function withFreshCache(req, res, next) {
+  try { await ensureCacheFresh(); } catch (e) { /* já logado */ }
+  next();
+}
+
 // ═══════════════════════════════════════════════════════════════
 // INICIALIZAÇÃO DO SERVIDOR
 // ═══════════════════════════════════════════════════════════════
@@ -402,9 +430,10 @@ async function init() {
     loadLocalFallback();
   }
 
-  setInterval(async () => {
-    if (supabase) await syncFromSupabase();
-  }, CACHE_TTL);
+  // Servidor sempre ligado: refresh proativo. Serverless: não dispara, mas
+  // aí o withFreshCache cobre. Passa pelo ensureCacheFresh pra compartilhar
+  // o lock _syncInFlight com os refreshes disparados por requisição.
+  setInterval(() => { ensureCacheFresh().catch(() => {}); }, CACHE_TTL);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -820,6 +849,10 @@ app.get('/api/ocorrencias', requireAuth, async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // ROTAS DE METADADOS E LISTAS DE FILTRO
 // ═══════════════════════════════════════════════════════════════
+
+// Toda rota abaixo (metadados, registros RAC, analytics) lê do cache em
+// memória — re-sincroniza antes de servir se o cache estiver velho.
+app.use(['/api/meta', '/api/registros', '/api/analytics'], withFreshCache);
 
 // Cache extra para /api/meta — evita recomputar os valores únicos a cada requisição.
 // É invalidado pelo invalidateMetaCache() sempre que o cache principal é atualizado.
