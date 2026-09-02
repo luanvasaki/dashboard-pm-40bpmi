@@ -1849,9 +1849,12 @@ function p1ShowKpiDetail(tipo) {
       return found?.[1] || (q.opm||'').trim() || '—';
     };
 
-    // +X (estourado) = RED, -X (vagas) = GREEN, 0 = branco
+    // c = fx - ex.  c>0 = vagas em aberto (verde, "tem folga") · c<0 =
+    // efetivo acima do fixado (vermelho, anomalia) · 0 = exato.
+    // Mesma convenção do card do KPI. O valor da vaga vai sem sinal
+    // (é um nº de vagas, não "menos gente"); só o excedente leva "+".
     const cColor = c => c < 0 ? '#e05555' : c === 0 ? 'var(--tx3)' : '#4bc87a';
-    const cVal   = c => c < 0 ? `+${Math.abs(c)}` : c === 0 ? '0' : `−${c}`;
+    const cVal   = c => c < 0 ? `+${Math.abs(c)}` : c === 0 ? '—' : `${c}`;
     // % sempre em módulo (magnitude do desvio) — o sinal de "estourado" vs
     // "vaga" já é indicado pela cor e pelo prefixo +/− do valor absoluto ao
     // lado; % com sinal próprio gerava pares tipo "+2 (-200,0%)" que
@@ -1895,7 +1898,7 @@ function p1ShowKpiDetail(tipo) {
           <span style="font-size:19px;font-weight:700;color:${cor}">${r.cia}</span>
           ${bar}
         </div>
-        <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:800;color:${valColor};white-space:nowrap">${r.claro > 0 ? `−${r.claro}` : r.claro < 0 ? `+${Math.abs(r.claro)}` : '0'} <span style="font-size:17px;font-weight:400;color:#ffffff">(${dev.toFixed(0)}%)</span></span>
+        <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:800;color:${valColor};white-space:nowrap">${r.claro > 0 ? r.claro : r.claro < 0 ? `+${Math.abs(r.claro)}` : '—'} <span style="font-size:17px;font-weight:400;color:#ffffff">(${dev.toFixed(0)}%)</span></span>
       </div>`;
     }).join('');
 
@@ -1929,7 +1932,7 @@ function p1ShowKpiDetail(tipo) {
             <span style="font-size:15px;color:${cor};margin-left:5px">${r.cia}</span>
             ${bar}
           </div>
-          <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:800;color:${valColor};white-space:nowrap">${r.claro>0?`−${r.claro}`:r.claro<0?`+${Math.abs(r.claro)}`:'0'} <span style="font-size:15px;font-weight:400;color:#ffffff">(${dev.toFixed(0)}%)</span></span>
+          <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:800;color:${valColor};white-space:nowrap">${r.claro>0?r.claro:r.claro<0?`+${Math.abs(r.claro)}`:'—'} <span style="font-size:15px;font-weight:400;color:#ffffff">(${dev.toFixed(0)}%)</span></span>
         </div>`;
       }).join('');
 
@@ -2033,7 +2036,10 @@ function p1ShowKpiDetail(tipo) {
       return { cia, claroCb, claroSub, pctCb, pctSub, cor: ciaCorByName(cia) };
     }).filter(d => d.claroCb > 0 || d.claroSub > 0).sort((a,b) => b.pctCb - a.pctCb);
 
-    const urgIcon = pct => pct >= 40 ? '🔴' : pct >= 20 ? '🟡' : '🟢';
+    // Cor da % de claro por gravidade — no bloco de Insights, mais claro =
+    // mais necessidade de reforço, então aqui vermelho = pior (diferente da
+    // tabela/KPI onde verde = "tem vaga em aberto").
+    const urgColor = pct => pct >= 40 ? '#e05555' : pct >= 20 ? '#c8a84b' : '#4bc87a';
 
     // Insights por cidade
     const insightsMun = qRows.map(q => {
@@ -2058,23 +2064,23 @@ function p1ShowKpiDetail(tipo) {
         </div>
         ${d.claroCb > 0 ? `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
           <span style="color:#ffffff;font-size:16px">Cb/Sd: faltam <strong style="color:#e05555">${d.claroCb}</strong> PMs</span>
-          <span style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;color:#e05555">${urgIcon(d.pctCb)} ${d.pctCb.toFixed(0)}% claro</span>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;color:${urgColor(d.pctCb)}">${d.pctCb.toFixed(0)}% claro</span>
         </div>` : '<div style="color:#4bc87a;font-size:16px;margin-bottom:4px">✓ Cb/Sd dentro do fixado</div>'}
         ${d.claroSub > 0 ? `<div style="display:flex;justify-content:space-between;align-items:center">
           <span style="color:#ffffff;font-size:16px">Subten/Sgt: faltam <strong style="color:#e05555">${d.claroSub}</strong> PMs</span>
-          <span style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;color:#e05555">${urgIcon(d.pctSub)} ${d.pctSub.toFixed(0)}% claro</span>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;color:${urgColor(d.pctSub)}">${d.pctSub.toFixed(0)}% claro</span>
         </div>` : '<div style="color:#4bc87a;font-size:16px">✓ Subten/Sgt dentro do fixado</div>'}
       </div>`;
     };
 
     const insightsHtml = (insightsCia.length || insightsMun.length) ? `
       <div style="padding:16px 20px;border-bottom:1px solid var(--bd);background:rgba(255,255,255,.02)">
-        <div style="font-family:'DM Mono',monospace;font-size:18px;letter-spacing:2px;color:var(--gold2);text-transform:uppercase;margin-bottom:12px">⚡ Insights — Necessidade de Efetivo por CIA</div>
+        <div style="font-family:'DM Mono',monospace;font-size:18px;letter-spacing:2px;color:var(--gold2);text-transform:uppercase;margin-bottom:12px">Insights — Necessidade de Efetivo por CIA</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:20px">
           ${insightsCia.map((d,i) => mkInsightCard(d, i, insightsCia.length, true)).join('')}
         </div>
         ${insightsMun.length ? `
-        <div style="font-family:'DM Mono',monospace;font-size:18px;letter-spacing:2px;color:var(--gold2);text-transform:uppercase;margin-bottom:12px">⚡ Insights — Necessidade de Efetivo por Cidade</div>
+        <div style="font-family:'DM Mono',monospace;font-size:18px;letter-spacing:2px;color:var(--gold2);text-transform:uppercase;margin-bottom:12px">Insights — Necessidade de Efetivo por Cidade</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
           ${insightsMun.map((d,i) => mkInsightCard(d, i, insightsMun.length, false)).join('')}
         </div>` : ''}
