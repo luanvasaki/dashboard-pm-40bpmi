@@ -1970,53 +1970,52 @@ function p1ShowKpiDetail(tipo) {
     // Acumula totais por posto separadamente — nunca misturar St/Sgt com Cb/Sd
     let gtFxSub=0, gtCSub=0, gtFxCb=0, gtCCb=0;
 
+    // FIX (dim) · EX (branco, destaque) · Claro · % — por grupo de posto.
+    // A coluna "OPM" saiu: só repetia o nome da CIA que já está no
+    // cabeçalho do grupo. A coluna "FIX" entrou pra mostrar a base.
+    const nRow = (fx, ex, c) => `
+      <td style="${tdc};color:var(--tx3)">${fx}</td>
+      <td style="${tdc};color:#ffffff;font-weight:700">${ex}</td>
+      <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(c)}">${cVal(c)}</td>
+      <td style="${tdc};font-size:19px;color:${cColor(c)}">${cPct(c,fx)}</td>`;
+    const nRowCb = (fx, ex, c) => `
+      <td style="${tdc}${divL};color:var(--tx3)">${fx}</td>
+      <td style="${tdc};color:#ffffff;font-weight:700">${ex}</td>
+      <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(c)}">${cVal(c)}</td>
+      <td style="${tdc};font-size:19px;color:${cColor(c)}">${cPct(c,fx)}</td>`;
+
     cias.forEach(cia => {
       const rows = byCia[cia];
       const ciaCor = ciaCorByName(cia);
-      bodyQ += `<tr><td colspan="8" style="padding:9px 16px 5px;background:${ciaCor}12;border-top:1px solid ${ciaCor}44;border-bottom:1px solid ${ciaCor}28;font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:${ciaCor};text-transform:uppercase;font-weight:700">${cia}</td></tr>`;
-      let cExSub=0, cCSub=0, cExCb=0, cCCb=0;
+      bodyQ += `<tr><td colspan="9" style="padding:9px 16px 5px;background:${ciaCor}12;border-top:1px solid ${ciaCor}44;border-bottom:1px solid ${ciaCor}28;font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:${ciaCor};text-transform:uppercase;font-weight:700">${cia}</td></tr>`;
+      let cFxSub=0, cExSub=0, cCSub=0, cFxCb=0, cExCb=0, cCCb=0;
       rows.forEach(q => {
         const fxSub = Number(q.fx_subten_sgt)||0, exSub = Number(q.ex_subten_sgt)||0;
         const fxCb  = Number(q.fx_cb_sd)||0,      exCb  = Number(q.ex_cb_sd)||0;
-        const cS = fxSub - exSub;
-        const cC = fxCb  - exCb;
-        cExSub+=exSub; cCSub+=cS; cExCb+=exCb; cCCb+=cC;
+        const cS = fxSub - exSub, cC = fxCb - exCb;
+        cFxSub+=fxSub; cExSub+=exSub; cCSub+=cS; cFxCb+=fxCb; cExCb+=exCb; cCCb+=cC;
         bodyQ += `<tr>
           <td style="${tdcL}">${q.municipio||'—'}</td>
-          <td style="${tdcL};font-weight:400;font-size:19px;color:var(--tx3)">${q.opm||'—'}</td>
-          <td style="${tdc};color:#ffffff;font-weight:700">${exSub}</td>
-          <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(cS)}">${cVal(cS)}</td>
-          <td style="${tdc};font-size:19px;color:${cColor(cS)}">${cPct(cS,fxSub)}</td>
-          <td style="${tdc}${divL};color:#ffffff;font-weight:700">${exCb}</td>
-          <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(cC)}">${cVal(cC)}</td>
-          <td style="${tdc};font-size:19px;color:${cColor(cC)}">${cPct(cC,fxCb)}</td>
+          ${nRow(fxSub, exSub, cS)}
+          ${nRowCb(fxCb, exCb, cC)}
         </tr>`;
       });
-      // Subtotal CIA
-      const cFxSubTot = rows.reduce((a,q)=>a+(Number(q.fx_subten_sgt)||0),0);
-      const cFxCbTot  = rows.reduce((a,q)=>a+(Number(q.fx_cb_sd)||0),0);
       bodyQ += `<tr style="background:rgba(255,255,255,.03);border-top:1px solid rgba(255,255,255,.07)">
-        <td style="${tdcL};color:${ciaCor};font-size:19px;letter-spacing:.5px" colspan="2">Subtotal ${cia}</td>
-        <td style="${tdc};color:#fff;font-weight:700">${cExSub}</td>
-        <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(cCSub)}">${cVal(cCSub)}</td>
-        <td style="${tdc};font-size:19px;color:${cColor(cCSub)}">${cPct(cCSub,cFxSubTot)}</td>
-        <td style="${tdc}${divL};color:#fff;font-weight:700">${cExCb}</td>
-        <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(cCCb)}">${cVal(cCCb)}</td>
-        <td style="${tdc};font-size:19px;color:${cColor(cCCb)}">${cPct(cCCb,cFxCbTot)}</td>
+        <td style="${tdcL};color:${ciaCor};font-size:19px;letter-spacing:.5px">Subtotal ${cia}</td>
+        ${nRow(cFxSub, cExSub, cCSub)}
+        ${nRowCb(cFxCb, cExCb, cCCb)}
       </tr>`;
-      gtFxSub+=cFxSubTot; gtCSub+=cCSub; gtFxCb+=cFxCbTot; gtCCb+=cCCb;
+      gtFxSub+=cFxSub; gtCSub+=cCSub; gtFxCb+=cFxCb; gtCCb+=cCCb;
     });
 
     // Total geral — St/Sgt e Cb/Sd totalmente separados, sem somar entre si
     if (qRows.length) {
+      const gtExSub = qRows.reduce((a,q)=>a+(Number(q.ex_subten_sgt)||0),0);
+      const gtExCb  = qRows.reduce((a,q)=>a+(Number(q.ex_cb_sd)||0),0);
       bodyQ += `<tr style="border-top:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05)">
-        <td style="${tdcL};text-transform:uppercase;font-size:19px;letter-spacing:1px;color:var(--tx2)" colspan="2">Total Geral</td>
-        <td style="${tdc};color:#fff;font-weight:700;font-size:19px">${qRows.reduce((a,q)=>a+(Number(q.ex_subten_sgt)||0),0)}</td>
-        <td style="${tdc};font-size:19px;font-weight:900;color:${cColor(gtCSub)}">${cVal(gtCSub)}</td>
-        <td style="${tdc};font-size:19px;color:${cColor(gtCSub)}">${cPct(gtCSub,gtFxSub)}</td>
-        <td style="${tdc}${divL};color:#fff;font-weight:700;font-size:19px">${qRows.reduce((a,q)=>a+(Number(q.ex_cb_sd)||0),0)}</td>
-        <td style="${tdc};font-size:19px;font-weight:900;color:${cColor(gtCCb)}">${cVal(gtCCb)}</td>
-        <td style="${tdc};font-size:19px;color:${cColor(gtCCb)}">${cPct(gtCCb,gtFxCb)}</td>
+        <td style="${tdcL};text-transform:uppercase;font-size:19px;letter-spacing:1px;color:var(--tx2)">Total Geral</td>
+        ${nRow(gtFxSub, gtExSub, gtCSub)}
+        ${nRowCb(gtFxCb, gtExCb, gtCCb)}
       </tr>`;
     }
 
@@ -2081,31 +2080,29 @@ function p1ShowKpiDetail(tipo) {
         </div>` : ''}
       </div>` : '';
 
-    // Cabeçalho em 2 níveis: um grupo "Subten/Sgt" e outro "Cb/Sd", cada um
-    // com EX / Claro / %. Antes os rótulos longos ("Subten/Sgt EX") não
-    // cabiam na coluna (table-layout:fixed + nowrap) e transbordavam pra
-    // direita, desalinhando do número abaixo.
+    // Cabeçalho em 2 níveis: grupo "Subten/Sgt" e "Cb/Sd", cada um sobre
+    // FIX / EX / Claro / %. (Rótulos curtos que cabem na coluna — antes
+    // "Subten/Sgt EX" transbordava e desalinhava do número.)
     const thGrp = 'padding:6px 12px 4px;font-family:"DM Mono",monospace;font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);text-align:center;white-space:nowrap';
-    const thSub = 'padding:6px 12px 8px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:16px;letter-spacing:.5px;text-transform:uppercase;color:#ffffff;text-align:center;white-space:nowrap';
+    const thSub = 'padding:6px 10px 8px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:16px;letter-spacing:.5px;text-transform:uppercase;color:#ffffff;text-align:center;white-space:nowrap';
     const tableHdr = `<table style="width:100%;border-collapse:collapse;table-layout:fixed">
       <colgroup>
-        <col style="width:24%"><col style="width:16%">
-        <col style="width:10%"><col style="width:10%"><col style="width:10%">
-        <col style="width:10%"><col style="width:10%"><col style="width:10%">
+        <col style="width:24%">
+        <col style="width:9.5%"><col style="width:9.5%"><col style="width:9.5%"><col style="width:9.5%">
+        <col style="width:9.5%"><col style="width:9.5%"><col style="width:9.5%"><col style="width:9.5%">
       </colgroup>
       <thead>
         <tr>
           <th rowspan="2" style="${thHL};vertical-align:bottom;padding-bottom:8px">Município</th>
-          <th rowspan="2" style="${thHL};vertical-align:bottom;padding-bottom:8px">OPM</th>
-          <th colspan="3" style="${thGrp}">Subten / Sgt</th>
-          <th colspan="3" style="${thGrp}${divL}">Cb / Sd</th>
+          <th colspan="4" style="${thGrp}">Subten / Sgt</th>
+          <th colspan="4" style="${thGrp}${divL}">Cb / Sd</th>
         </tr>
         <tr>
-          <th style="${thSub}">EX</th><th style="${thSub}">Claro</th><th style="${thSub}">%</th>
-          <th style="${thSub}${divL}">EX</th><th style="${thSub}">Claro</th><th style="${thSub}">%</th>
+          <th style="${thSub}">Fix</th><th style="${thSub}">EX</th><th style="${thSub}">Claro</th><th style="${thSub}">%</th>
+          <th style="${thSub}${divL}">Fix</th><th style="${thSub}">EX</th><th style="${thSub}">Claro</th><th style="${thSub}">%</th>
         </tr>
       </thead>
-      <tbody>${bodyQ || '<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--tx3);font-size:19px">Nenhum dado. Importe o CSV pelo menu lateral.</td></tr>'}</tbody>
+      <tbody>${bodyQ || '<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--tx3);font-size:19px">Nenhum dado. Importe o CSV pelo menu lateral.</td></tr>'}</tbody>
     </table>`;
 
     html = wrapDetail('Quadro Fixado do Efetivo', null, '#4bc87a', closeBtn, rankHtml + insightsHtml + tableHdr);
