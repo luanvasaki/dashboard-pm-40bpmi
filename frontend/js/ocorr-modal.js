@@ -16,6 +16,13 @@ function normCiaKey(s) {
   return m ? m[1] : (s || '').toLowerCase().trim();
 }
 
+// Nome de município p/ comparação — o RAC guarda "Alumínio / Ibiúna / Araçoiaba
+// da Serra" e o InfoCrim guarda "Aluminio / Ibiuna / Aracoiaba Da Serra".
+// Sem isso, filtrar o detalhamento por cidade zerava quase toda cidade.
+function normMun(s) {
+  return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+}
+
 // Normaliza nome de CIA para exibição padronizada (ex: "1ª CIA PM" → "1ª CIA", "FT" → "FT")
 function normCiaDisplay(s) {
   const str = (s || '').trim();
@@ -116,7 +123,7 @@ function applyOcorrFilters() {
   if (moScopeType === 'cia' && moScopeVal)
     filtered = filtered.filter(r => normCiaKey(r.cia) === normCiaKey(moScopeVal));
   if (moScopeType === 'mun' && moScopeVal)
-    filtered = filtered.filter(r => r.municipio === moScopeVal);
+    filtered = filtered.filter(r => normMun(r.municipio) === normMun(moScopeVal));
   renderMoOcorrFilters();
   renderOcorrTable(filtered);
   renderMoIntel(filtered);
