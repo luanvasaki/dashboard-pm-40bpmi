@@ -1851,16 +1851,14 @@ function p1ShowKpiDetail(tipo) {
 
     // c = fx - ex.  c>0 = vagas em aberto (verde, "tem folga") · c<0 =
     // efetivo acima do fixado (vermelho, anomalia) · 0 = exato.
-    // Mesma convenção do card do KPI. O valor da vaga vai sem sinal
-    // (é um nº de vagas, não "menos gente"); só o excedente leva "+".
+    // Mesma convenção de cor do card do KPI "Quadro Fixado".
     const cColor = c => c < 0 ? '#e05555' : c === 0 ? 'var(--tx3)' : '#4bc87a';
-    const cVal   = c => c < 0 ? `+${Math.abs(c)}` : c === 0 ? '—' : `${c}`;
-    // % sempre em módulo (magnitude do desvio) — o sinal de "estourado" vs
-    // "vaga" já é indicado pela cor e pelo prefixo +/− do valor absoluto ao
-    // lado; % com sinal próprio gerava pares tipo "+2 (-200,0%)" que
-    // pareciam se contradizer (o "+2" positivo/vermelho ao lado de um "%"
-    // negativo), mesmo sendo consistente na conta.
-    const cPct   = (c, fx) => fx > 0 ? (Math.abs(c) / fx * 100).toFixed(1) + '%' : '—';
+    // % com o mesmo formato do card: −N% = vagas em aberto (verde),
+    // +N% = efetivo acima do fixado (vermelho). A cor já diz a direção;
+    // o sinal reforça e deixa a tabela idêntica ao card.
+    const cPct   = (c, fx) => fx > 0
+      ? `${c > 0 ? '−' : c < 0 ? '+' : ''}${(Math.abs(c) / fx * 100).toFixed(1)}%`
+      : '—';
 
     const thH  = 'padding:8px 14px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:19px;letter-spacing:1px;text-transform:uppercase;color:#ffffff;text-align:center;white-space:nowrap';
     const thHL = thH + ';text-align:left';
@@ -1973,24 +1971,21 @@ function p1ShowKpiDetail(tipo) {
     // Acumula totais por posto separadamente — nunca misturar St/Sgt com Cb/Sd
     let gtFxSub=0, gtCSub=0, gtFxCb=0, gtCCb=0;
 
-    // FIX (dim) · EX (branco, destaque) · Claro · % — por grupo de posto.
-    // A coluna "OPM" saiu: só repetia o nome da CIA que já está no
-    // cabeçalho do grupo. A coluna "FIX" entrou pra mostrar a base.
+    // EX (efetivo existente, base em branco) · % (desvio sobre o fixado,
+    // verde = vaga / vermelho = acima) — por grupo de posto. As colunas
+    // "Fix" e "Claro" (nº absoluto) saíram: o % sozinho já resume, e o
+    // fixado inteiro vive na tela do card / no upload do Quadro de Claros.
     const nRow = (fx, ex, c) => `
-      <td style="${tdc};color:var(--tx3)">${fx}</td>
       <td style="${tdc};color:#ffffff;font-weight:700">${ex}</td>
-      <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(c)}">${cVal(c)}</td>
-      <td style="${tdc};font-size:19px;color:${cColor(c)}">${cPct(c,fx)}</td>`;
+      <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(c)}">${cPct(c,fx)}</td>`;
     const nRowCb = (fx, ex, c) => `
-      <td style="${tdc}${divL};color:var(--tx3)">${fx}</td>
-      <td style="${tdc};color:#ffffff;font-weight:700">${ex}</td>
-      <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(c)}">${cVal(c)}</td>
-      <td style="${tdc};font-size:19px;color:${cColor(c)}">${cPct(c,fx)}</td>`;
+      <td style="${tdc}${divL};color:#ffffff;font-weight:700">${ex}</td>
+      <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(c)}">${cPct(c,fx)}</td>`;
 
     cias.forEach(cia => {
       const rows = byCia[cia];
       const ciaCor = ciaCorByName(cia);
-      bodyQ += `<tr><td colspan="9" style="padding:9px 16px 5px;background:${ciaCor}12;border-top:1px solid ${ciaCor}44;border-bottom:1px solid ${ciaCor}28;font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:${ciaCor};text-transform:uppercase;font-weight:700">${cia}</td></tr>`;
+      bodyQ += `<tr><td colspan="5" style="padding:9px 16px 5px;background:${ciaCor}12;border-top:1px solid ${ciaCor}44;border-bottom:1px solid ${ciaCor}28;font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:${ciaCor};text-transform:uppercase;font-weight:700">${cia}</td></tr>`;
       let cFxSub=0, cExSub=0, cCSub=0, cFxCb=0, cExCb=0, cCCb=0;
       rows.forEach(q => {
         const fxSub = Number(q.fx_subten_sgt)||0, exSub = Number(q.ex_subten_sgt)||0;
@@ -2022,96 +2017,32 @@ function p1ShowKpiDetail(tipo) {
       </tr>`;
     }
 
-    // Insights automáticos por CIA ordenados por % claro Cb/Sd
-    const insightsCia = cias.map(cia => {
-      const rows = byCia[cia];
-      const fxCb  = rows.reduce((a,q)=>a+(Number(q.fx_cb_sd)||0),0);
-      const exCb  = rows.reduce((a,q)=>a+(Number(q.ex_cb_sd)||0),0);
-      const fxSub = rows.reduce((a,q)=>a+(Number(q.fx_subten_sgt)||0),0);
-      const exSub = rows.reduce((a,q)=>a+(Number(q.ex_subten_sgt)||0),0);
-      const claroCb  = fxCb  - exCb;
-      const claroSub = fxSub - exSub;
-      const pctCb  = fxCb  > 0 ? (claroCb /fxCb *100)  : 0;
-      const pctSub = fxSub > 0 ? (claroSub/fxSub*100) : 0;
-      return { cia, claroCb, claroSub, pctCb, pctSub, cor: ciaCorByName(cia) };
-    }).filter(d => d.claroCb > 0 || d.claroSub > 0).sort((a,b) => b.pctCb - a.pctCb);
-
-    // Cor da % de claro por gravidade — no bloco de Insights, mais claro =
-    // mais necessidade de reforço, então aqui vermelho = pior (diferente da
-    // tabela/KPI onde verde = "tem vaga em aberto").
-    const urgColor = pct => pct >= 40 ? '#e05555' : pct >= 20 ? '#c8a84b' : '#4bc87a';
-
-    // Insights por cidade
-    const insightsMun = qRows.map(q => {
-      const fxCb  = Number(q.fx_cb_sd)||0,      exCb  = Number(q.ex_cb_sd)||0;
-      const fxSub = Number(q.fx_subten_sgt)||0, exSub = Number(q.ex_subten_sgt)||0;
-      const claroCb  = fxCb  - exCb;
-      const claroSub = fxSub - exSub;
-      const pctCb  = fxCb  > 0 ? (claroCb /fxCb *100)  : 0;
-      const pctSub = fxSub > 0 ? (claroSub/fxSub*100) : 0;
-      return { mun: q.municipio||q.opm||'—', cia: getCia(q), claroCb, claroSub, pctCb, pctSub };
-    }).filter(d => d.claroCb > 0 || d.claroSub > 0).sort((a,b) => b.pctCb - a.pctCb);
-
-    const mkInsightCard = (d, i, total, isCia) => {
-      const cor = isCia ? ciaCorByName(d.cia||d.mun) : ciaCorByName(d.cia);
-      const nome = isCia ? d.cia : d.mun;
-      const sub  = isCia ? '' : `<span style="font-size:14px;color:${cor};margin-left:6px">${d.cia}</span>`;
-      const rank = i === 0 ? 'MAIOR NECESSIDADE' : i === total-1 ? 'MENOR NECESSIDADE' : '';
-      return `<div style="background:var(--s2);border:1px solid var(--bd);border-left:3px solid ${cor};border-radius:8px;padding:14px 16px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-          <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:700;color:${cor};text-transform:uppercase">${nome}</span>${sub}
-          ${rank ? `<span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--gold2);letter-spacing:1px">${rank}</span>` : ''}
-        </div>
-        ${d.claroCb > 0 ? `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <span style="color:#ffffff;font-size:16px">Cb/Sd: faltam <strong style="color:#e05555">${d.claroCb}</strong> PMs</span>
-          <span style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;color:${urgColor(d.pctCb)}">${d.pctCb.toFixed(0)}% claro</span>
-        </div>` : '<div style="color:#4bc87a;font-size:16px;margin-bottom:4px">✓ Cb/Sd dentro do fixado</div>'}
-        ${d.claroSub > 0 ? `<div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="color:#ffffff;font-size:16px">Subten/Sgt: faltam <strong style="color:#e05555">${d.claroSub}</strong> PMs</span>
-          <span style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;color:${urgColor(d.pctSub)}">${d.pctSub.toFixed(0)}% claro</span>
-        </div>` : '<div style="color:#4bc87a;font-size:16px">✓ Subten/Sgt dentro do fixado</div>'}
-      </div>`;
-    };
-
-    const insightsHtml = (insightsCia.length || insightsMun.length) ? `
-      <div style="padding:16px 20px;border-bottom:1px solid var(--bd);background:rgba(255,255,255,.02)">
-        <div style="font-family:'DM Mono',monospace;font-size:18px;letter-spacing:2px;color:var(--gold2);text-transform:uppercase;margin-bottom:12px">Insights — Necessidade de Efetivo por CIA</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:20px">
-          ${insightsCia.map((d,i) => mkInsightCard(d, i, insightsCia.length, true)).join('')}
-        </div>
-        ${insightsMun.length ? `
-        <div style="font-family:'DM Mono',monospace;font-size:18px;letter-spacing:2px;color:var(--gold2);text-transform:uppercase;margin-bottom:12px">Insights — Necessidade de Efetivo por Cidade</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
-          ${insightsMun.map((d,i) => mkInsightCard(d, i, insightsMun.length, false)).join('')}
-        </div>` : ''}
-      </div>` : '';
-
     // Cabeçalho em 2 níveis: grupo "Subten/Sgt" e "Cb/Sd", cada um sobre
-    // FIX / EX / Claro / %. (Rótulos curtos que cabem na coluna — antes
-    // "Subten/Sgt EX" transbordava e desalinhava do número.)
+    // EX / %. (Os 4 rankings acima já dão a leitura por CIA/Cidade — os
+    // cards de "Insights" que ficavam aqui eram a mesma informação de novo.)
     const thGrp = 'padding:6px 12px 4px;font-family:"DM Mono",monospace;font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);text-align:center;white-space:nowrap';
     const thSub = 'padding:6px 10px 8px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:16px;letter-spacing:.5px;text-transform:uppercase;color:#ffffff;text-align:center;white-space:nowrap';
     const tableHdr = `<table style="width:100%;border-collapse:collapse;table-layout:fixed">
       <colgroup>
-        <col style="width:24%">
-        <col style="width:9.5%"><col style="width:9.5%"><col style="width:9.5%"><col style="width:9.5%">
-        <col style="width:9.5%"><col style="width:9.5%"><col style="width:9.5%"><col style="width:9.5%">
+        <col style="width:40%">
+        <col style="width:15%"><col style="width:15%">
+        <col style="width:15%"><col style="width:15%">
       </colgroup>
       <thead>
         <tr>
           <th rowspan="2" style="${thHL};vertical-align:bottom;padding-bottom:8px">Município</th>
-          <th colspan="4" style="${thGrp}">Subten / Sgt</th>
-          <th colspan="4" style="${thGrp}${divL}">Cb / Sd</th>
+          <th colspan="2" style="${thGrp}">Subten / Sgt</th>
+          <th colspan="2" style="${thGrp}${divL}">Cb / Sd</th>
         </tr>
         <tr>
-          <th style="${thSub}">Fix</th><th style="${thSub}">EX</th><th style="${thSub}">Claro</th><th style="${thSub}">%</th>
-          <th style="${thSub}${divL}">Fix</th><th style="${thSub}">EX</th><th style="${thSub}">Claro</th><th style="${thSub}">%</th>
+          <th style="${thSub}">EX</th><th style="${thSub}">%</th>
+          <th style="${thSub}${divL}">EX</th><th style="${thSub}">%</th>
         </tr>
       </thead>
-      <tbody>${bodyQ || '<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--tx3);font-size:19px">Nenhum dado. Importe o CSV pelo menu lateral.</td></tr>'}</tbody>
+      <tbody>${bodyQ || '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--tx3);font-size:19px">Nenhum dado. Importe o CSV pelo menu lateral.</td></tr>'}</tbody>
     </table>`;
 
-    html = wrapDetail('Quadro Fixado do Efetivo', null, '#4bc87a', closeBtn, rankHtml + insightsHtml + tableHdr);
+    html = wrapDetail('Quadro Fixado do Efetivo', null, '#4bc87a', closeBtn, rankHtml + tableHdr);
   }
 
   document.getElementById('p1d-body').innerHTML = html;
