@@ -2042,8 +2042,8 @@ function p1ShowKpiDetail(tipo) {
           <th colspan="2" style="${thGrp}${grpDiv}">Cb / Sd</th>
         </tr>
         <tr>
-          <th style="${thSub}">EX</th><th style="${thSub}">%</th>
-          <th style="${thSub}${grpDiv}">EX</th><th style="${thSub}">%</th>
+          <th style="${thSub}">EX</th><th style="${thSub}">Claro %</th>
+          <th style="${thSub}${grpDiv}">EX</th><th style="${thSub}">Claro %</th>
         </tr>
       </thead>
       <tbody>${bodyQ || '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--tx3);font-size:19px">Nenhum dado. Importe o CSV pelo menu lateral.</td></tr>'}</tbody>
