@@ -1860,11 +1860,14 @@ function p1ShowKpiDetail(tipo) {
       ? `${c > 0 ? '−' : c < 0 ? '+' : ''}${(Math.abs(c) / fx * 100).toFixed(1)}%`
       : '—';
 
-    const thH  = 'padding:8px 14px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:19px;letter-spacing:1px;text-transform:uppercase;color:#ffffff;text-align:center;white-space:nowrap';
-    const thHL = thH + ';text-align:left';
-    const tdc  = 'padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:19px;text-align:center;white-space:nowrap';
-    const tdcL = 'padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx);white-space:nowrap';
-    const divL = ';border-left:1px solid var(--bd2)'; // divisória entre os grupos Subten/Sgt e Cb/Sd
+    // Todas as células de número (cabeçalho E corpo) compartilham o mesmo
+    // padding lateral (8px) e text-align:center — assim o rótulo da coluna
+    // cai exatamente sobre os números de baixo. border-left em toda coluna
+    // de número = uma divisória vertical entre cada coluna.
+    const numLR = 'padding-left:8px;padding-right:8px;text-align:center;border-left:1px solid var(--bd2)';
+    const thHL = 'padding:8px 14px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:19px;letter-spacing:1px;text-transform:uppercase;color:#ffffff;text-align:left;white-space:nowrap';
+    const tdc  = `padding-top:7px;padding-bottom:7px;${numLR};border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:19px;white-space:nowrap`;
+    const tdcL = 'padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
 
     // Agrupa por CIA inferida
     const byCia = {};
@@ -1975,12 +1978,14 @@ function p1ShowKpiDetail(tipo) {
     // verde = vaga / vermelho = acima) — por grupo de posto. As colunas
     // "Fix" e "Claro" (nº absoluto) saíram: o % sozinho já resume, e o
     // fixado inteiro vive na tela do card / no upload do Quadro de Claros.
-    const nRow = (fx, ex, c) => `
-      <td style="${tdc};color:#ffffff;font-weight:700">${ex}</td>
-      <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(c)}">${cPct(c,fx)}</td>`;
-    const nRowCb = (fx, ex, c) => `
-      <td style="${tdc}${divL};color:#ffffff;font-weight:700">${ex}</td>
-      <td style="${tdc};font-size:19px;font-weight:800;color:${cColor(c)}">${cPct(c,fx)}</td>`;
+    // Um par EX + % por grupo de posto. A divisória vertical entre colunas
+    // já vem do border-left embutido em `tdc`; `grp` (só no 2º par de cada
+    // linha) engrossa essa borda pra marcar a divisão entre os dois grupos,
+    // alinhada com o `grpDiv` do cabeçalho.
+    const grpDiv = ';border-left:2px solid var(--bd2)';
+    const nPair = (fx, ex, c, grp) => `
+      <td style="${tdc}${grp ? grpDiv : ''};color:#ffffff;font-weight:700">${ex}</td>
+      <td style="${tdc};font-weight:800;color:${cColor(c)}">${cPct(c,fx)}</td>`;
 
     cias.forEach(cia => {
       const rows = byCia[cia];
@@ -1993,15 +1998,15 @@ function p1ShowKpiDetail(tipo) {
         const cS = fxSub - exSub, cC = fxCb - exCb;
         cFxSub+=fxSub; cExSub+=exSub; cCSub+=cS; cFxCb+=fxCb; cExCb+=exCb; cCCb+=cC;
         bodyQ += `<tr>
-          <td style="${tdcL}">${q.municipio||'—'}</td>
-          ${nRow(fxSub, exSub, cS)}
-          ${nRowCb(fxCb, exCb, cC)}
+          <td title="${q.municipio||''}" style="${tdcL}">${q.municipio||'—'}</td>
+          ${nPair(fxSub, exSub, cS)}
+          ${nPair(fxCb, exCb, cC, true)}
         </tr>`;
       });
       bodyQ += `<tr style="background:rgba(255,255,255,.03);border-top:1px solid rgba(255,255,255,.07)">
         <td style="${tdcL};color:${ciaCor};font-size:19px;letter-spacing:.5px">Subtotal ${cia}</td>
-        ${nRow(cFxSub, cExSub, cCSub)}
-        ${nRowCb(cFxCb, cExCb, cCCb)}
+        ${nPair(cFxSub, cExSub, cCSub)}
+        ${nPair(cFxCb, cExCb, cCCb, true)}
       </tr>`;
       gtFxSub+=cFxSub; gtCSub+=cCSub; gtFxCb+=cFxCb; gtCCb+=cCCb;
     });
@@ -2012,31 +2017,33 @@ function p1ShowKpiDetail(tipo) {
       const gtExCb  = qRows.reduce((a,q)=>a+(Number(q.ex_cb_sd)||0),0);
       bodyQ += `<tr style="border-top:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05)">
         <td style="${tdcL};text-transform:uppercase;font-size:19px;letter-spacing:1px;color:var(--tx2)">Total Geral</td>
-        ${nRow(gtFxSub, gtExSub, gtCSub)}
-        ${nRowCb(gtFxCb, gtExCb, gtCCb)}
+        ${nPair(gtFxSub, gtExSub, gtCSub)}
+        ${nPair(gtFxCb, gtExCb, gtCCb, true)}
       </tr>`;
     }
 
-    // Cabeçalho em 2 níveis: grupo "Subten/Sgt" e "Cb/Sd", cada um sobre
-    // EX / %. (Os 4 rankings acima já dão a leitura por CIA/Cidade — os
-    // cards de "Insights" que ficavam aqui eram a mesma informação de novo.)
-    const thGrp = 'padding:6px 12px 4px;font-family:"DM Mono",monospace;font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);text-align:center;white-space:nowrap';
-    const thSub = 'padding:6px 10px 8px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:16px;letter-spacing:.5px;text-transform:uppercase;color:#ffffff;text-align:center;white-space:nowrap';
+    // Cabeçalho em 2 níveis: grupo "Subten/Sgt" e "Cb/Sd" (nível 1, sobre
+    // as 2 colunas do posto) e "EX / %" (nível 2, uma sobre cada coluna).
+    // thGrp/thSub usam o MESMO `numLR` das células de número, então cada
+    // rótulo fica alinhado com a coluna que ele nomeia. O `grpDiv` (borda
+    // de 2px) marca a divisão entre os dois grupos, igual no corpo.
+    const thGrp  = `padding-top:6px;padding-bottom:4px;${numLR};font-family:"DM Mono",monospace;font-size:15px;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);white-space:nowrap`;
+    const thSub  = `padding-top:4px;padding-bottom:8px;${numLR};border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:16px;letter-spacing:.5px;text-transform:uppercase;color:#ffffff;white-space:nowrap`;
     const tableHdr = `<table style="width:100%;border-collapse:collapse;table-layout:fixed">
       <colgroup>
-        <col style="width:40%">
-        <col style="width:15%"><col style="width:15%">
-        <col style="width:15%"><col style="width:15%">
+        <col style="width:32%">
+        <col style="width:17%"><col style="width:17%">
+        <col style="width:17%"><col style="width:17%">
       </colgroup>
       <thead>
         <tr>
           <th rowspan="2" style="${thHL};vertical-align:bottom;padding-bottom:8px">Município</th>
           <th colspan="2" style="${thGrp}">Subten / Sgt</th>
-          <th colspan="2" style="${thGrp}${divL}">Cb / Sd</th>
+          <th colspan="2" style="${thGrp}${grpDiv}">Cb / Sd</th>
         </tr>
         <tr>
           <th style="${thSub}">EX</th><th style="${thSub}">%</th>
-          <th style="${thSub}${divL}">EX</th><th style="${thSub}">%</th>
+          <th style="${thSub}${grpDiv}">EX</th><th style="${thSub}">%</th>
         </tr>
       </thead>
       <tbody>${bodyQ || '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--tx3);font-size:19px">Nenhum dado. Importe o CSV pelo menu lateral.</td></tr>'}</tbody>
