@@ -452,12 +452,13 @@ function renderP1() {
       ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)', 'ferias') +
     (() => {
       if (!p1Quadro.length) return '';
-      // Exclui só CFP e UIS (Méd/Odonto) — o marcador está no `municipio`
-      // (essas linhas têm opm="EM"); testar só o opm, como era antes, não
-      // excluía nada e a base da % vinha errada. A Sede EM CONTINUA no
-      // quadro, contando como se fosse uma CIA (aparece 1ª na lista).
-      const excl = s => /cfp|uis\s*m[eé]d|uis\s*odonto/i.test((s||'').trim());
-      const qRows = p1Quadro.filter(q => !excl(q.opm) && !excl(q.municipio));
+      // 2026-09-04: CFP e UIS Méd/Odonto voltaram a contar (decisão do
+      // usuário) — entram dentro do grupo "EM" junto com a Sede EM (as 4
+      // linhas têm opm="EM", só o `municipio` distingue). Antes ficavam de
+      // fora e isso fazia o card mostrar bem menos gente que o Total
+      // Efetivo (332 vs 353), sem essa ser a intenção — as duas telas
+      // deviam bater no total de efetivo.
+      const qRows = p1Quadro;
       const gtFx = qRows.reduce((a,q) => a + (Number(q.fx_total)||0), 0);
       const gtEx = qRows.reduce((a,q) => a + (Number(q.ex_total)||0), 0);
       // Agrupa por CIA — a coluna q.cia raramente vem preenchida na
@@ -1827,8 +1828,14 @@ function p1ShowKpiDetail(tipo) {
   }
 
   else if (tipo === 'quadro') {
-    const excl = s => /cfp|uis\s*m[eé]d|uis\s*odonto|^em$/i.test((s||'').trim());
-    const qRows = p1Quadro.filter(q => !excl(q.opm) && !excl(q.municipio));
+    // 2026-09-04: nenhuma linha do quadro é mais excluída — CFP e UIS
+    // Méd/Odonto entram junto com a Sede EM no grupo "EM" (mesmo `opm`
+    // nas 4 linhas). Igual ao card do KPI (mesmo escopo nos dois lugares).
+    const qRows = p1Quadro;
+    // ciaCorByName não acha cor pra "EM" (não tem dígito nem é FT) — mesmo
+    // roxo usado no card do KPI, aplicado em todo lugar desta tela que
+    // colore por CIA.
+    const corDaCia = cia => /^em$/i.test((cia||'').trim()) ? '#9b6de0' : ciaCorByName(cia);
 
     // Inferir CIA a partir do p1Data (cruza por OPM ou municipio)
     const normStr = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[ªº°]/g,'').replace(/\s+/g,' ').trim();
@@ -1876,7 +1883,12 @@ function p1ShowKpiDetail(tipo) {
       if (!byCia[c]) byCia[c] = [];
       byCia[c].push(q);
     });
-    const cias = Object.keys(byCia).sort();
+    // Ordem fixa (EM primeiro, depois CIAs — mesma ordem de CIA_STRUCT),
+    // igual ao card do KPI. Antes era alfabética, mas "EM" nunca aparecia
+    // aqui de qualquer forma (linha excluída); agora que entra, precisa da
+    // mesma ordem pra não pular pro fim da lista.
+    const ciaOrderIdx = cia => { const i = CIA_STRUCT.findIndex(c => c.label === cia); return i < 0 ? CIA_STRUCT.length : i; };
+    const cias = Object.keys(byCia).sort((a,b) => ciaOrderIdx(a) - ciaOrderIdx(b) || a.localeCompare(b));
 
     // Rankings por CIA — inclui todas as CIAs, mesmo com 0%
     const mkRankByCia = (items) => items.map((r,i) => {
@@ -1885,7 +1897,7 @@ function p1ShowKpiDetail(tipo) {
       // que não pode ultrapassar o container nem ficar negativa).
       const dev = r.fx > 0 ? (Math.abs(r.claro) / r.fx) * 100 : 0;
       const barPct = Math.min(dev, 100);
-      const cor = ciaCorByName(r.cia);
+      const cor = corDaCia(r.cia);
       // Mesma convenção da tabela principal (cColor acima): claro<0 (ex >
       // fixado, estourado) = vermelho; claro>=0 (vaga ou exato) = verde.
       // Antes estava invertido aqui (claro>0 = vermelho), oposto da tabela
@@ -1923,7 +1935,7 @@ function p1ShowKpiDetail(tipo) {
       const mkRankByMun = (items) => items.map((r,i) => {
         const dev = r.fx > 0 ? (Math.abs(r.claro) / r.fx) * 100 : 0;
         const barPct = Math.min(dev, 100);
-        const cor = ciaCorByName(r.cia);
+        const cor = corDaCia(r.cia);
         const valColor = r.claro < 0 ? '#e05555' : '#4bc87a';
         const bar = `<div style="height:6px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:3px"><div style="height:100%;width:${barPct}%;background:${cor};border-radius:2px"></div></div>`;
         return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
@@ -1989,7 +2001,7 @@ function p1ShowKpiDetail(tipo) {
 
     cias.forEach(cia => {
       const rows = byCia[cia];
-      const ciaCor = ciaCorByName(cia);
+      const ciaCor = corDaCia(cia);
       bodyQ += `<tr><td colspan="5" style="padding:9px 16px 5px;background:${ciaCor}12;border-top:1px solid ${ciaCor}44;border-bottom:1px solid ${ciaCor}28;font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:${ciaCor};text-transform:uppercase;font-weight:700">${cia}</td></tr>`;
       let cFxSub=0, cExSub=0, cCSub=0, cFxCb=0, cExCb=0, cCCb=0;
       rows.forEach(q => {
