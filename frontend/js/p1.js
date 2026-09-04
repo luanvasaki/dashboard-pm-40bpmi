@@ -378,7 +378,14 @@ function renderP1() {
   const isLP  = t => /^lp$/i.test((t || '').trim());
   const em15s = (() => { const d = new Date(); d.setDate(d.getDate() + 15); return d.toISOString().split('T')[0]; })();
   const em30s = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split('T')[0]; })();
-  const afastsF      = (p1FiltroOpm ? p1Afasts.filter(a => reSetF.has(a.re)) : p1Afasts).filter(a => !p1EhSupervisao(a));
+  // reSetF já é o set certo nos dois casos (com ou sem filtro de OPM — sem
+  // filtro, dataF===p1Data, então reSetF cobre todo o efetivo_pm atual).
+  // Antes só filtrava por reSetF quando havia filtro de OPM ativo; sem
+  // filtro, contava direto de p1Afasts — incluindo afastamento de RE que
+  // não existe mais no efetivo_pm (gente transferida/removida), fazendo o
+  // card "Controle de Férias" divergir do "Afastamentos" (que já exigia
+  // isso via afastHoje/pmAfastados).
+  const afastsF      = p1Afasts.filter(a => reSetF.has(a.re) && !p1EhSupervisao(a));
   const ferEmGozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && (!a.termino || a.termino >= hoje));
   const ferEm15Dias  = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio > hoje && a.inicio <= em15s);
   const ferLpEm30    = afastsF.filter(a => (isFer(a.tipo_afastamento) || isLP(a.tipo_afastamento)) && a.inicio > hoje && a.inicio <= em30s);
@@ -397,24 +404,31 @@ function renderP1() {
   const em7 = new Date(); em7.setDate(em7.getDate() + 7);
   const em7s = em7.toISOString().split('T')[0];
   const retornando = p1Afasts.filter(a =>
-    !p1EhRestricao(a) && !p1EhSupervisao(a) && a.inicio <= hoje && a.termino >= hoje && a.termino <= em7s
+    reSetF.has(a.re) && !p1EhRestricao(a) && !p1EhSupervisao(a) && a.inicio <= hoje && a.termino >= hoje && a.termino <= em7s
   );
 
   const CATS = { cbsd: 'Cb / Sd', sgt: 'Sargentos', sub: 'Subtenentes', of: 'Oficiais' };
   const CATS_COLOR = { cbsd: '#4bc87a', sgt: '#e05555', sub: '#5a9de0', of: '#c8a84b' };
   const count = (arr, cat) => arr.filter(r => p1Cat(r.posto) === cat).length;
   const total = dataF.length;
+  // Efetivo total SEM filtro de OPM — denominador fixo do "% do efetivo"
+  // em cada card, pra não virar 100% sempre que um filtro de OPM estiver
+  // ativo (aí o % mostra a fatia real daquela OPM dentro do batalhão).
+  const totalGeral = p1Data.length;
+  const pctDe = n => totalGeral > 0 ? Math.round(n / totalGeral * 100) : 0;
 
   // ── KPI cards (clicáveis)
   // auto-fit (não auto-fill) — com menos KPIs (removemos 3 em 2026-08), os
   // cards restantes esticam pra preencher a linha em vez de deixar espaço
   // vazio à direita.
   kpisEl.style.gridTemplateColumns = 'repeat(auto-fit,minmax(210px,1fr))';
-  const kpiCard = (label, val, sub, color, key) => {
+  // `pct` opcional — quando passado, mostra "N (P%)" no valor grande, P
+  // sempre em relação ao efetivo total (pctDe).
+  const kpiCard = (label, val, sub, color, key, pct) => {
     return `<div onclick="p1ShowKpiDetail('${key}')" class="kpi">
       <div class="kpi-top"></div>
       <div class="kpi-lbl">${label}</div>
-      <div class="kpi-val">${val}</div>
+      <div class="kpi-val">${val}${pct != null ? `<span style="font-size:16px;color:var(--tx3);font-weight:600;margin-left:6px">${pct}%</span>` : ''}</div>
       ${sub ? `<div class="kpi-sub" style="line-height:1.7;width:100%">${sub}</div>` : ''}
       <div class="kpi-hint">▸ clique p/ detalhes</div>
     </div>`;
@@ -435,10 +449,10 @@ function renderP1() {
   const tiposSub = tiposEntries.map(([t,n]) => _kpiRow(t, n, P1_TIPO_COLOR[t] || '#607090')).join('') || '—';
 
   kpisEl.innerHTML =
-    kpiCard('Total Efetivo', total,
+    kpiCard('Efetivo', total,
       Object.keys(CATS).filter(k=>count(dataF,k)>0).map(k => _kpiRow(CATS[k], count(dataF,k), CATS_COLOR[k])).join(''),
-      'var(--tx)', 'total') +
-    kpiCard('Afastamentos', pmAfastados.length, tiposSub, pmAfastados.length > 0 ? '#e05555' : 'var(--tx3)', 'afastados') +
+      'var(--tx)', 'total', pctDe(total)) +
+    kpiCard('Afastamentos', pmAfastados.length, tiposSub, pmAfastados.length > 0 ? '#e05555' : 'var(--tx3)', 'afastados', pctDe(pmAfastados.length)) +
     kpiCard(`EAP / TAF / TAT ${anoAtual}`, pmEapFeito.length,
       [_kpiRow('Realizaram', pmEapFeito.length, '#4bc87a'),
        _kpiRow('Pendentes', pmEapPendente.length, '#c8a84b'),
@@ -446,10 +460,10 @@ function renderP1() {
        ...(inaptosTat.length ? [_kpiRow('Inaptos TAT', inaptosTat.length, '#e05555')] : []),
        ...(taftatVencidos.length ? [_kpiRow('Vencidos', taftatVencidos.length, '#e05555')] : [])
       ].join(''),
-      (inaptosTaf.length || inaptosTat.length || taftatVencidos.length) ? '#e05555' : pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a', 'eap') +
+      (inaptosTaf.length || inaptosTat.length || taftatVencidos.length) ? '#e05555' : pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a', 'eap', pctDe(pmEapFeito.length)) +
     kpiCard('Controle de Férias', ferEmGozo.length,
       [_kpiRow('Em gozo', ferEmGozo.length, '#5a9de0'), _kpiRow('Iniciam em 15d', ferEm15Dias.length, '#5a9de0')].join(''),
-      ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)', 'ferias') +
+      ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)', 'ferias', pctDe(ferEmGozo.length)) +
     (() => {
       if (!p1Quadro.length) return '';
       // 2026-09-04: CFP e UIS Méd/Odonto voltaram a contar (decisão do
@@ -1754,7 +1768,10 @@ function p1ShowKpiDetail(tipo) {
     const getCiaFer = opm => (typeof CIA_STRUCT === 'undefined' || !opm) ? -1 : CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
     const pmOfFer = re => p1Data.find(r => r.re === re);
 
-    const afastsF = p1FiltroOpm ? p1Afasts.filter(a => reSetF.has(a.re)) : p1Afasts;
+    // Mesmo fix do card na tela inicial: reSetF já cobre o efetivo_pm
+    // atual com ou sem filtro de OPM — sem isso, afastamento de RE que já
+    // não existe mais no efetivo_pm entrava aqui mesmo assim.
+    const afastsF = p1Afasts.filter(a => reSetF.has(a.re));
     const em15s   = (() => { const d = new Date(); d.setDate(d.getDate()+15); return d.toISOString().split('T')[0]; })();
     let gozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && (!a.termino || a.termino >= hoje));
     let prox    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio > hoje && a.inicio <= em15s);
