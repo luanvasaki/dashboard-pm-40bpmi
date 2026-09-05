@@ -1396,33 +1396,54 @@ function p1ShowKpiDetail(tipo) {
   }
 
   else if (tipo === 'quadro') {
-    // 2026-09-04: nenhuma linha do quadro é mais excluída — CFP e UIS
-    // Méd/Odonto entram junto com a Sede EM no grupo "EM" (mesmo `opm`
-    // nas 4 linhas). Igual ao card do KPI (mesmo escopo nos dois lugares).
-    const qRows = p1Quadro;
     // ciaCorByName não acha cor pra "EM" (não tem dígito nem é FT) — mesmo
     // roxo usado no card do KPI, aplicado em todo lugar desta tela que
     // colore por CIA.
     const corDaCia = cia => /^em$/i.test((cia||'').trim()) ? '#9b6de0' : ciaCorByName(cia);
 
-    // Inferir CIA a partir do p1Data (cruza por OPM ou municipio)
-    const normStr = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[ªº°]/g,'').replace(/\s+/g,' ').trim();
-    const opmCiaMap = {};
-    p1Data.forEach(pm => {
-      const cia = (pm.cia||'').trim();
-      if (!cia) return;
-      const key = normStr(pm.opm||'');
-      if (key && !opmCiaMap[key]) opmCiaMap[key] = normCiaDisp(cia);
-    });
-    const getCia = q => {
-      if ((q.cia||'').trim()) return normCiaDisp(q.cia);
-      const nOpm = normStr(q.opm||'');
-      const nMun = normStr(q.municipio||'');
-      const found = Object.entries(opmCiaMap).find(([k]) =>
-        k === nOpm || k === nMun || k.includes(nMun) || nMun.includes(k) || k.includes(nOpm) || nOpm.includes(k)
-      );
-      return found?.[1] || (q.opm||'').trim() || '—';
+    // ── Unidades da tela: uma por sub-unidade do CIA_STRUCT.
+    // FX (fixado) vem da planilha p1_quadro_fixado; EX (existente) é a
+    // CONTAGEM REAL do efetivo_pm por grupo de posto — não o ex_* digitado
+    // na planilha (que estava 1 desatualizado nos Subten/Sgt do EM).
+    // O EM tem 1 sub-unidade só ("Estado Maior"): as 4 linhas da planilha
+    // (Sede EM / CFP / UIS Méd / UIS Odonto) e todos os PMs do EM caem nela,
+    // agregados — o efetivo_pm não distingue essas 4 sub-lotações.
+    const normQ = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+    const matchQtoUnit = q => {
+      const nm = normQ(q.municipio), no = normQ(q.opm);
+      // As 4 linhas do EM (Sede EM / CFP / UIS Méd / UIS Odonto) têm opm
+      // "EM" e vão todas pra sub-unidade única do EM.
+      if (/^em\b/.test(no) || /\b(estado maior|sede em|cfp|uis)\b/.test(nm)) return CIA_STRUCT[0].units[0].label;
+      // Casa pelo MUNICÍPIO (o opm da planilha é só a CIA). Ignora as keys
+      // âncora (^1 cia$ etc.) — elas casariam "1ª CIA" com a 1ª sub-unidade
+      // e jogariam todas as linhas da CIA na mesma.
+      for (const c of CIA_STRUCT) for (const u of c.units) {
+        for (const k of u.keys) {
+          if (k.startsWith('^')) continue;
+          const nk = normQ(k);
+          if (nk && (nm.includes(nk) || nk.includes(nm))) return u.label;
+        }
+        for (const w of nm.split(' ')) if (w.length >= 4 && u.keys.some(k => !k.startsWith('^') && normQ(k).includes(w))) return u.label;
+      }
+      return null;
     };
+    const fxByUnit = {};
+    p1Quadro.forEach(q => {
+      const lbl = matchQtoUnit(q);
+      if (!lbl) return;
+      const cur = fxByUnit[lbl] || (fxByUnit[lbl] = { sub: 0, cb: 0 });
+      cur.sub += Number(q.fx_subten_sgt) || 0;
+      cur.cb  += Number(q.fx_cb_sd) || 0;
+    });
+    const units = [];
+    CIA_STRUCT.forEach(c => c.units.forEach(u => {
+      const pms = p1Data.filter(pm => _opmMatch(pm.opm, u.keys));
+      const fx = fxByUnit[u.label] || { sub: 0, cb: 0 };
+      if (!pms.length && !fx.sub && !fx.cb) return;
+      const exSub = pms.filter(pm => { const g = p1Cat(pm.posto); return g === 'sub' || g === 'sgt'; }).length;
+      const exCb  = pms.filter(pm => p1Cat(pm.posto) === 'cbsd').length;
+      units.push({ cia: c.label, mun: u.label, fxSub: fx.sub, fxCb: fx.cb, exSub, exCb });
+    }));
 
     // c = fx - ex.  c>0 = vagas em aberto (verde, "tem folga") · c<0 =
     // efetivo acima do fixado (vermelho, anomalia) · 0 = exato.
@@ -1444,18 +1465,10 @@ function p1ShowKpiDetail(tipo) {
     const tdc  = `padding-top:7px;padding-bottom:7px;${numLR};border-bottom:1px solid rgba(255,255,255,.04);font-family:"DM Mono",monospace;font-size:19px;white-space:nowrap`;
     const tdcL = 'padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:19px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
 
-    // Agrupa por CIA inferida
-    const byCia = {};
-    qRows.forEach(q => {
-      const c = getCia(q);
-      if (!byCia[c]) byCia[c] = [];
-      byCia[c].push(q);
-    });
-    // Ordem fixa (EM primeiro, depois CIAs — mesma ordem de CIA_STRUCT),
-    // igual ao card do KPI. Antes era alfabética, mas "EM" nunca aparecia
-    // aqui de qualquer forma (linha excluída); agora que entra, precisa da
-    // mesma ordem pra não pular pro fim da lista.
+    // Agrupa as unidades por CIA, na ordem fixa do CIA_STRUCT (EM primeiro).
     const ciaOrderIdx = cia => { const i = CIA_STRUCT.findIndex(c => c.label === cia); return i < 0 ? CIA_STRUCT.length : i; };
+    const byCia = {};
+    units.forEach(u => { (byCia[u.cia] || (byCia[u.cia] = [])).push(u); });
     const cias = Object.keys(byCia).sort((a,b) => ciaOrderIdx(a) - ciaOrderIdx(b) || a.localeCompare(b));
 
     // Rankings por CIA — inclui todas as CIAs, mesmo com 0%
@@ -1484,16 +1497,14 @@ function p1ShowKpiDetail(tipo) {
     }).join('');
 
     const rankCb = cias.map(cia => {
-      const rows = byCia[cia];
-      const fx = rows.reduce((a,q)=>a+(Number(q.fx_cb_sd)||0),0);
-      const ex = rows.reduce((a,q)=>a+(Number(q.ex_cb_sd)||0),0);
+      const fx = byCia[cia].reduce((a,u)=>a+u.fxCb,0);
+      const ex = byCia[cia].reduce((a,u)=>a+u.exCb,0);
       return { cia, claro: fx-ex, fx };
     }).sort((a,b) => (b.fx>0?b.claro/b.fx:0) - (a.fx>0?a.claro/a.fx:0));
 
     const rankSub = cias.map(cia => {
-      const rows = byCia[cia];
-      const fx = rows.reduce((a,q)=>a+(Number(q.fx_subten_sgt)||0),0);
-      const ex = rows.reduce((a,q)=>a+(Number(q.ex_subten_sgt)||0),0);
+      const fx = byCia[cia].reduce((a,u)=>a+u.fxSub,0);
+      const ex = byCia[cia].reduce((a,u)=>a+u.exSub,0);
       return { cia, claro: fx-ex, fx };
     }).sort((a,b) => (b.fx>0?b.claro/b.fx:0) - (a.fx>0?a.claro/a.fx:0));
 
@@ -1517,15 +1528,11 @@ function p1ShowKpiDetail(tipo) {
         </div>`;
       }).join('');
 
-      const rankMunCb = [...qRows].map(q => {
-        const fx=Number(q.fx_cb_sd)||0, ex=Number(q.ex_cb_sd)||0;
-        return { mun:q.municipio||q.opm||'—', cia:getCia(q), claro:fx-ex, fx };
-      }).sort((a,b)=>(b.fx>0?b.claro/b.fx:0)-(a.fx>0?a.claro/a.fx:0));
+      const rankMunCb = units.map(u => ({ mun:u.mun, cia:u.cia, claro:u.fxCb-u.exCb, fx:u.fxCb }))
+        .sort((a,b)=>(b.fx>0?b.claro/b.fx:0)-(a.fx>0?a.claro/a.fx:0));
 
-      const rankMunSub = [...qRows].map(q => {
-        const fx=Number(q.fx_subten_sgt)||0, ex=Number(q.ex_subten_sgt)||0;
-        return { mun:q.municipio||q.opm||'—', cia:getCia(q), claro:fx-ex, fx };
-      }).sort((a,b)=>(b.fx>0?b.claro/b.fx:0)-(a.fx>0?a.claro/a.fx:0));
+      const rankMunSub = units.map(u => ({ mun:u.mun, cia:u.cia, claro:u.fxSub-u.exSub, fx:u.fxSub }))
+        .sort((a,b)=>(b.fx>0?b.claro/b.fx:0)-(a.fx>0?a.claro/a.fx:0));
 
       // Título do bloco + legenda "Claro" alinhada à direita, sobre a coluna
       // de valores (claro absoluto). Verde = −N (vagas em aberto) · vermelho
@@ -1575,20 +1582,19 @@ function p1ShowKpiDetail(tipo) {
       <td style="${tdc}${grp ? grpDiv : ''};color:#ffffff;font-weight:700">${ex}</td>
       <td style="${tdc};font-weight:800;color:${cColor(c)}">${cPct(c,fx)}</td>`;
 
+    let gtExSub=0, gtExCb=0;
     cias.forEach(cia => {
       const rows = byCia[cia];
       const ciaCor = corDaCia(cia);
       bodyQ += `<tr><td colspan="5" style="padding:9px 16px 5px;background:${ciaCor}12;border-top:1px solid ${ciaCor}44;border-bottom:1px solid ${ciaCor}28;font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:${ciaCor};text-transform:uppercase;font-weight:700">${cia}</td></tr>`;
       let cFxSub=0, cExSub=0, cCSub=0, cFxCb=0, cExCb=0, cCCb=0;
-      rows.forEach(q => {
-        const fxSub = Number(q.fx_subten_sgt)||0, exSub = Number(q.ex_subten_sgt)||0;
-        const fxCb  = Number(q.fx_cb_sd)||0,      exCb  = Number(q.ex_cb_sd)||0;
-        const cS = fxSub - exSub, cC = fxCb - exCb;
-        cFxSub+=fxSub; cExSub+=exSub; cCSub+=cS; cFxCb+=fxCb; cExCb+=exCb; cCCb+=cC;
+      rows.forEach(u => {
+        const cS = u.fxSub - u.exSub, cC = u.fxCb - u.exCb;
+        cFxSub+=u.fxSub; cExSub+=u.exSub; cCSub+=cS; cFxCb+=u.fxCb; cExCb+=u.exCb; cCCb+=cC;
         bodyQ += `<tr>
-          <td title="${q.municipio||''}" style="${tdcL}">${q.municipio||'—'}</td>
-          ${nPair(fxSub, exSub, cS)}
-          ${nPair(fxCb, exCb, cC, true)}
+          <td title="${escHtml(u.mun)}" style="${tdcL}">${escHtml(u.mun)}</td>
+          ${nPair(u.fxSub, u.exSub, cS)}
+          ${nPair(u.fxCb, u.exCb, cC, true)}
         </tr>`;
       });
       bodyQ += `<tr style="background:rgba(255,255,255,.03);border-top:1px solid rgba(255,255,255,.07)">
@@ -1596,13 +1602,11 @@ function p1ShowKpiDetail(tipo) {
         ${nPair(cFxSub, cExSub, cCSub)}
         ${nPair(cFxCb, cExCb, cCCb, true)}
       </tr>`;
-      gtFxSub+=cFxSub; gtCSub+=cCSub; gtFxCb+=cFxCb; gtCCb+=cCCb;
+      gtFxSub+=cFxSub; gtExSub+=cExSub; gtCSub+=cCSub; gtFxCb+=cFxCb; gtExCb+=cExCb; gtCCb+=cCCb;
     });
 
     // Total geral — St/Sgt e Cb/Sd totalmente separados, sem somar entre si
-    if (qRows.length) {
-      const gtExSub = qRows.reduce((a,q)=>a+(Number(q.ex_subten_sgt)||0),0);
-      const gtExCb  = qRows.reduce((a,q)=>a+(Number(q.ex_cb_sd)||0),0);
+    if (units.length) {
       bodyQ += `<tr style="border-top:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05)">
         <td style="${tdcL};text-transform:uppercase;font-size:19px;letter-spacing:1px;color:var(--tx2)">Total Geral</td>
         ${nPair(gtFxSub, gtExSub, gtCSub)}
