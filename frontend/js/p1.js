@@ -58,13 +58,8 @@ const p1SomenteQuantitativo = () => {
 };
 
 // Estado dos filtros de CIA/Cidade/Graduação de cada detalhe de KPI do P1 —
-// todos usam o mesmo padrão de 3 seletores integrados (p1FiltroCMP). Gênero
-// (Total Efetivo) e Situação (IAS) são filtros à parte, específicos daquela tela.
-let _p1TotalDetCia = -1, _p1TotalDetMun = null, _p1TotalDetPosto = null, _p1TotalDetGen = null;
-function p1TotalSetCia(val)   { _p1TotalDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('total'); }
-function p1TotalSetMun(val)   { _p1TotalDetMun = val || null; p1ShowKpiDetail('total'); }
-function p1TotalSetPosto(val) { _p1TotalDetPosto = val || null; p1ShowKpiDetail('total'); }
-function p1TotalSetGen(val)   { _p1TotalDetGen = _p1TotalDetGen === val ? null : val; p1ShowKpiDetail('total'); }
+// todos usam o mesmo padrão de 3 seletores integrados (p1FiltroCMP).
+// Situação (IAS) é filtro à parte, específico daquela tela.
 
 // Filtro por curso (interno/externo) no KPI Total Efetivo — independentes,
 // combinados com E quando os dois estão ativos ao mesmo tempo.
@@ -371,6 +366,11 @@ function renderP1() {
   // ativo (aí o % mostra a fatia real daquela OPM dentro do batalhão).
   const totalGeral = p1Data.length;
   const pctDe = n => totalGeral > 0 ? Math.round(n / totalGeral * 100) : 0;
+  // Sufixo "(N%)" pequeno pra colar num valor dentro do card. `tip` vira o
+  // title (tooltip no hover) explicando de que a porcentagem é relação.
+  const pctTag = (n, base, tip) => base > 0
+    ? ` <span title="${escHtml(tip)}" style="font-size:13px;color:var(--tx3);font-weight:400;cursor:help">${Math.round(n / base * 100)}%</span>`
+    : '';
 
   // ── KPI cards (clicáveis)
   // auto-fit (não auto-fill) — com menos KPIs (removemos 3 em 2026-08), os
@@ -383,7 +383,7 @@ function renderP1() {
     return `<div onclick="p1ShowKpiDetail('${key}')" class="kpi">
       <div class="kpi-top"></div>
       <div class="kpi-lbl">${label}</div>
-      <div class="kpi-val">${val}${pct != null ? `<span style="font-size:16px;color:var(--tx3);font-weight:600;margin-left:6px">${pct}%</span>` : ''}</div>
+      <div class="kpi-val">${val}${pct != null ? `<span title="${pct}% do efetivo total do batalhão (${totalGeral} PMs)" style="font-size:16px;color:var(--tx3);font-weight:600;margin-left:6px;cursor:help">${pct}%</span>` : ''}</div>
       ${sub ? `<div class="kpi-sub" style="line-height:1.7;width:100%">${sub}</div>` : ''}
       <div class="kpi-hint">▸ clique p/ detalhes</div>
     </div>`;
@@ -401,19 +401,22 @@ function renderP1() {
   }); });
   const _kpiRow = (label, val, color) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:#ffffff;font-size:17px">${escHtml(label)}</span><span style="color:${color};font-weight:700;font-size:20px">${val}</span></div>`;
   const tiposEntries = Object.entries(tiposCount).sort(([,a],[,b]) => b - a);
-  const tiposSub = tiposEntries.map(([t,n]) => _kpiRow(t, n, P1_TIPO_COLOR[t] || '#607090')).join('') || '—';
+  const tiposSub = tiposEntries.map(([t,n]) => _kpiRow(t, `${n}${pctTag(n, total, `${t}: ${n} de ${total} do efetivo`)}`, P1_TIPO_COLOR[t] || '#607090')).join('') || '—';
 
   kpisEl.innerHTML =
     kpiCard('Efetivo', total,
-      Object.keys(CATS).filter(k=>count(dataF,k)>0).map(k => _kpiRow(CATS[k], count(dataF,k), CATS_COLOR[k])).join(''),
+      Object.keys(CATS).filter(k=>count(dataF,k)>0).map(k => {
+        const n = count(dataF,k);
+        return _kpiRow(CATS[k], `${n}${pctTag(n, total, `${CATS[k]}: ${n} de ${total} do efetivo`)}`, CATS_COLOR[k]);
+      }).join(''),
       'var(--tx)', 'total', pctDe(total)) +
     kpiCard('Afastamentos', pmAfastados.length, tiposSub, pmAfastados.length > 0 ? '#e05555' : 'var(--tx3)', 'afastados', pctDe(pmAfastados.length)) +
     kpiCard(`EAP / TAF / TAT ${anoAtual}`, pmEapFeito.length,
-      [_kpiRow('Realizaram', pmEapFeito.length, '#4bc87a'),
-       _kpiRow('Pendentes', pmEapPendente.length, '#c8a84b'),
-       ...(inaptosTaf.length ? [_kpiRow('Inaptos TAF', inaptosTaf.length, '#e05555')] : []),
-       ...(inaptosTat.length ? [_kpiRow('Inaptos TAT', inaptosTat.length, '#e05555')] : []),
-       ...(taftatVencidos.length ? [_kpiRow('Vencidos', taftatVencidos.length, '#e05555')] : [])
+      [_kpiRow('Realizaram', `${pmEapFeito.length}${pctTag(pmEapFeito.length, total, `Realizaram EAP: ${pmEapFeito.length} de ${total} do efetivo`)}`, '#4bc87a'),
+       _kpiRow('Pendentes', `${pmEapPendente.length}${pctTag(pmEapPendente.length, total, `EAP pendente: ${pmEapPendente.length} de ${total} do efetivo`)}`, '#c8a84b'),
+       ...(inaptosTaf.length ? [_kpiRow('Inaptos TAF', `${inaptosTaf.length}${pctTag(inaptosTaf.length, total, `Inaptos no TAF: ${inaptosTaf.length} de ${total} do efetivo`)}`, '#e05555')] : []),
+       ...(inaptosTat.length ? [_kpiRow('Inaptos TAT', `${inaptosTat.length}${pctTag(inaptosTat.length, total, `Inaptos no TAT: ${inaptosTat.length} de ${total} do efetivo`)}`, '#e05555')] : []),
+       ...(taftatVencidos.length ? [_kpiRow('Vencidos', `${taftatVencidos.length}${pctTag(taftatVencidos.length, total, `TAF/TAT vencido: ${taftatVencidos.length} de ${total} do efetivo`)}`, '#e05555')] : [])
       ].join(''),
       (inaptosTaf.length || inaptosTat.length || taftatVencidos.length) ? '#e05555' : pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a', 'eap', pctDe(pmEapFeito.length)) +
     (() => {
@@ -468,7 +471,7 @@ function renderP1() {
         const pctCor = saldo > 0 ? '#4bc87a' : saldo < 0 ? '#e05555' : 'var(--tx3)'; // verde = vaga sobrando · vermelho = efetivo a mais
         return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:${ciaCor};font-size:17px;font-weight:700">${cia}</span><span style="font-weight:700;font-size:18px"><span style="color:#ffffff">${d.ex}</span> <span style="color:${pctCor};font-family:'DM Mono',monospace;font-size:19px;font-weight:700">${pctStr}</span></span></div>`;
       }).join('');
-      const sub = ciaExRows + `<div style="margin-top:6px">${_kpiRow('FX Total', gtFx, '#ffffff')}${_kpiRow('EX Total', gtEx, '#ffffff')}</div>`;
+      const sub = ciaExRows + `<div style="margin-top:6px">${_kpiRow('FX Total', gtFx, '#ffffff')}${_kpiRow('EX Total', `${gtEx}${pctTag(gtEx, gtFx, `EX Total: ${gtEx} de ${gtFx} do efetivo fixado (FX Total)`)}`, '#ffffff')}</div>`;
       return kpiCard('Claro do Efetivo', gtEx, sub, 'var(--tx)', 'quadro');
     })();
 
@@ -487,114 +490,6 @@ function renderP1() {
   });
   p1ByUnit = byUnit;
   const unitsSorted = Object.entries(byUnit).sort((a, b) => b[1].length - a[1].length);
-  // ── Cards por CIA com sub-unidades ──────────────────────────────────────────
-  const getPms = keys => Object.entries(byUnit).filter(([opm]) => _opmMatch(opm, keys)).flatMap(([,arr]) => arr);
-  const statsOf = pms => {
-    const afst_ = pms.filter(r => afastHoje[r.re]).length;
-    const restr_ = pms.filter(p1RestrRua).length;
-    const aptos_ = pms.length - afst_;
-    const pct_   = pms.length ? Math.round(aptos_ / pms.length * 100) : 0;
-    const color_ = pct_ >= 85 ? '#4bc87a' : pct_ >= 70 ? '#c8a84b' : '#e8b840';
-    return { afst: afst_, restr: restr_, aptos: aptos_, pct: pct_, color: color_, total: pms.length };
-  };
-
-  // Detecta OPMs que não se encaixam em nenhuma CIA para exibir separado
-  const allCiaKeys = CIA_STRUCT.flatMap(c => c.units.flatMap(u => u.keys));
-  const unmatchedUnits = unitsSorted.filter(([opm]) => !_opmMatch(opm, allCiaKeys));
-
-  const ciaCards = CIA_STRUCT.map((cia, ci) => {
-    const ciaPms  = getPms(cia.units.flatMap(u => u.keys));
-    if (!ciaPms.length) return '';
-    const s = statsOf(ciaPms);
-    const catLine = Object.keys(CATS).map(k => {
-      const n = ciaPms.filter(r => p1Cat(r.posto) === k).length;
-      return n ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${CATS[k]}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${CATS_COLOR[k]}">${n}</span></div>` : '';
-    }).filter(Boolean).join('');
-
-    const unitBtns = p1SomenteQuantitativo() ? '' : cia.units.map((u, ui) => {
-      const upms = getPms(u.keys);
-      if (!upms.length) return '';
-      const us = statsOf(upms);
-      return `<button class="p1-ubtn" data-ci="${ci}" data-ui="${ui}" onclick="p1ShowByKeys(${ci},${ui},'${u.label.replace(/'/g,"\\'")}');event.stopPropagation()"
-        style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:8px 12px;cursor:pointer;text-align:left;transition:all .15s;color:var(--tx2)"
-        onmouseover="if(!this.classList.contains('sel')){this.style.borderColor='${cia.color}';this.style.color='var(--tx)'}"
-        onmouseout="if(!this.classList.contains('sel')){this.style.borderColor='rgba(255,255,255,.1)';this.style.color='var(--tx2)'}">
-        <div style="font-size:19px;font-weight:600;color:#ffffff;white-space:nowrap">${u.label}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:19px;margin-top:3px;display:flex;gap:8px">
-          <span style="color:#4bc87a">${us.aptos} aptos</span>
-          ${us.afst > 0 ? `<span style="color:#e05555">${us.afst} afst</span>` : ''}
-          ${us.restr > 0 ? `<span style="color:#c8a84b">${us.restr} restr</span>` : ''}
-        </div>
-      </button>`;
-    }).join('');
-
-    return `<div class="p1-uc" data-ci="${ci}"
-      style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${cia.color};border-radius:10px;padding:20px;transition:all .2s;cursor:default"
-      onmouseover="if(!this.classList.contains('sel')){this.style.boxShadow='0 4px 20px rgba(0,0,0,.3)';this.style.transform='translateY(-2px)'}"
-      onmouseout="if(!this.classList.contains('sel')){this.style.boxShadow='';this.style.transform=''}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
-        <div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${cia.color};letter-spacing:.5px;line-height:1">${cia.label}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;margin-top:2px">Sede · ${cia.sede}</div>
-        </div>
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:22px;font-weight:700;color:var(--tx)">${s.total}</span></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
-        <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;margin-top:1px">APTOS</div>
-        </div>
-        <div style="background:rgba(230,100,100,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.afst>0?'#e05555':'var(--tx3)'};line-height:1">${s.afst}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.afst>0?'#e05555':'var(--tx3)'};margin-top:1px">AFST</div>
-        </div>
-        <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
-        </div>
-      </div>
-      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;margin-bottom:12px;line-height:1.8">${catLine}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">${unitBtns}</div>
-    </div>`;
-  }).join('');
-
-  // OPMs não mapeadas na estrutura orgânica
-  const unmatchedCards = unmatchedUnits.map(([unit, d]) => {
-    const s = statsOf(d);
-    const _esc = unit.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const catLine = Object.keys(CATS).map(k => {
-      const n = count(d, k);
-      return n ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${CATS[k]}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${CATS_COLOR[k]}">${n}</span></div>` : '';
-    }).filter(Boolean).join('');
-    return `<div class="p1-uc" data-unit="${escHtml(unit)}" onclick="p1ShowUnit('${_esc}')"
-      style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${s.color};border-radius:10px;padding:20px;cursor:pointer;transition:all .2s"
-      onmouseover="if(!this.classList.contains('sel')){this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)';this.style.transform='translateY(-2px)'}"
-      onmouseout="if(!this.classList.contains('sel')){this.style.boxShadow='';this.style.transform=''}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
-        <div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${s.color};letter-spacing:.5px;line-height:1">${escHtml(unit)}</div>
-        </div>
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:22px;font-weight:700;color:var(--tx)">${d.length}</span></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
-        <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;margin-top:1px">APTOS</div>
-        </div>
-        <div style="background:rgba(230,100,100,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.afst>0?'#e05555':'var(--tx3)'};line-height:1">${s.afst}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.afst>0?'#e05555':'var(--tx3)'};margin-top:1px">AFST</div>
-        </div>
-        <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
-        </div>
-      </div>
-      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;border-top:1px solid rgba(255,255,255,.05);padding-top:10px;line-height:1.8">${catLine || '—'}</div>
-    </div>`;
-  }).join('');
 
   // ── Claro Operacional (visível e editável apenas por p1/ti)
   let claroSection = '';
@@ -642,14 +537,9 @@ function renderP1() {
     </div>`;
   }
 
-  bodyEl.innerHTML = claroSection + `
-    <div style="margin-bottom:6px">
-      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia${p1SomenteQuantitativo() ? '' : ' <span style="font-weight:400">· clique na sub-unidade para ver os PMs</span>'}</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
-        ${ciaCards}${unmatchedCards}
-      </div>
-    </div>
-    <div id="p1-unit-detail"></div>`;
+  // A grade "Efetivo por Companhia" saiu daqui — agora vive dentro do
+  // detalhe do KPI "Efetivo" (p1ShowKpiDetail('total') → p1CiaGridHtml()).
+  bodyEl.innerHTML = claroSection;
 
   // Mostra botão exportar quando há dados (oculto para comandantes — exportação contém dados nominais)
   const btnE = document.getElementById('btn-exportar-p1');
@@ -1048,7 +938,6 @@ function p1IasKpiCardHtml() {
 function closeP1Detail() {
   const mo = document.getElementById('p1-detail-mo');
   if (mo) { mo.classList.remove('on'); document.body.style.overflow = ''; }
-  _p1TotalDetCia = -1; _p1TotalDetGen = null; _p1TotalDetMun = null; _p1TotalDetPosto = null;
   _p1TotalDetCursoInt = null; _p1TotalDetCursoExt = null; _p1TotalDetBusca = null;
   _p1IasDetSit = null; _p1IasDetCia = -1; _p1IasDetMun = null; _p1IasDetPosto = null;
   _p1AfastDetCia = -1; _p1AfastDetMun = null; _p1AfastDetPosto = null;
@@ -1173,18 +1062,6 @@ function p1ShowKpiDetail(tipo) {
   let html = '';
 
   if (tipo === 'total') {
-    const genNorm = g => { const s = (g||'').toLowerCase().trim(); if (s.startsWith('f')) return 'F'; if (s.startsWith('m')) return 'M'; return null; };
-    const getCiaTot = opm => {
-      if (!opm || typeof CIA_STRUCT === 'undefined') return -1;
-      return CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
-    };
-    const getMunTot = opm => { if (!opm) return null; const p = opm.split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
-
-    const baseList = dataF.map(r => ({ r, ciaIdx: getCiaTot(r.opm), gen: genNorm(r.genero), mun: getMunTot(r.opm), posto: r.posto }));
-
-    const cntF = baseList.filter(x => x.gen === 'F').length;
-    const cntM = baseList.filter(x => x.gen === 'M').length;
-
     // Filtro por curso interno/externo (prod_cursos, carregado junto com o
     // resto do P1) — dois seletores independentes, combinados com E quando
     // os dois estão ativos.
@@ -1195,63 +1072,30 @@ function p1ShowKpiDetail(tipo) {
     const reComCursoInt = _p1TotalDetCursoInt ? new Set(cursosInt.filter(c => c.nome_curso === _p1TotalDetCursoInt).map(c => c.re_pm)) : null;
     const reComCursoExt = _p1TotalDetCursoExt ? new Set(cursosExt.filter(c => c.nome_curso === _p1TotalDetCursoExt).map(c => c.re_pm)) : null;
 
-    const filtro = p1FiltroCMP(baseList, _p1TotalDetCia, _p1TotalDetMun, _p1TotalDetPosto, 'p1TotalSetCia', 'p1TotalSetMun', 'p1TotalSetPosto');
-    _p1TotalDetCia = filtro.cia; _p1TotalDetMun = filtro.mun; _p1TotalDetPosto = filtro.posto;
+    let filtered = dataF.slice();
+    if (reComCursoInt) filtered = filtered.filter(r => reComCursoInt.has(r.re));
+    if (reComCursoExt) filtered = filtered.filter(r => reComCursoExt.has(r.re));
 
-    let filtered = baseList;
-    if (_p1TotalDetCia >= 0) filtered = filtered.filter(x => x.ciaIdx === _p1TotalDetCia);
-    if (_p1TotalDetGen)      filtered = filtered.filter(x => x.gen === _p1TotalDetGen);
-    if (_p1TotalDetMun)      filtered = filtered.filter(x => x.mun === _p1TotalDetMun);
-    if (_p1TotalDetPosto)    filtered = filtered.filter(x => x.posto === _p1TotalDetPosto);
-    if (reComCursoInt)       filtered = filtered.filter(x => reComCursoInt.has(x.r.re));
-    if (reComCursoExt)       filtered = filtered.filter(x => reComCursoExt.has(x.r.re));
-
-    // Busca por nome/RE é dado nominal — nunca disponibilizar (nem a lista
-    // de sugestão no DOM, nem o filtro) pra quem só tem acesso "Só números";
-    // mesmo padrão de p1SearchInput, que já bloqueia isso na busca global.
+    // Busca por nome/RE é dado nominal — bloqueada pra quem só tem acesso
+    // "Só números" (nem a lista de sugestão vai pro DOM).
     const somenteQtdBusca = p1SomenteQuantitativo();
-    // Lista de sugestão vem do que já está filtrado pelos outros critérios
-    // (CIA/gênero/município/posto/curso) — igual ao padrão dos outros filtros
-    // dessa tela, refina em cima do que já foi reduzido em vez de sempre
-    // sugerir o efetivo inteiro. Usa o NOME COMPLETO (não o QRA/nome de
-    // guerra) como valor da opção — o filtro nativo do navegador (o que
-    // aparece na lista suspensa enquanto digita) casa contra o texto da
-    // opção, então "LUAN" só encontrava quem tem "Luan" no QRA se a opção
-    // fosse o QRA; com o nome completo, casa em qualquer parte do nome de
-    // qualquer PM, igual ao filtro de verdade (que já checa nome e QRA).
-    const listaNomesBusca = somenteQtdBusca ? [] : [...new Set(filtered.map(x => x.r.nome).filter(Boolean))].sort((a,b) => a.localeCompare(b));
+    const listaNomesBusca = somenteQtdBusca ? [] : [...new Set(filtered.map(r => r.nome).filter(Boolean))].sort((a,b) => a.localeCompare(b));
     if (!somenteQtdBusca && _p1TotalDetBusca) {
       const q = _p1TotalDetBusca.toLowerCase();
       const isReQ = /^\d+$/.test(q);
-      filtered = filtered.filter(x => isReQ
-        ? (x.r.re || '').toLowerCase().startsWith(q)
-        : (x.r.nome || '').toLowerCase().includes(q) || (x.r.nome_guerra || '').toLowerCase().includes(q));
+      filtered = filtered.filter(r => isReQ
+        ? (r.re || '').toLowerCase().startsWith(q)
+        : (r.nome || '').toLowerCase().includes(q) || (r.nome_guerra || '').toLowerCase().includes(q));
     }
 
-    const btnBase = (lbl, cor, on, onclick) =>
-      `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
     const gridRow = (lbl, btns) =>
       `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
         <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
       </div>`;
-
-    const genBtns = [
-      btnBase(`FEMININO <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cntF}</span>`, '#e91e8c', _p1TotalDetGen === 'F', "p1TotalSetGen('F')"),
-      btnBase(`MASCULINO <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cntM}</span>`, '#5a9de0', _p1TotalDetGen === 'M', "p1TotalSetGen('M')"),
-    ].join('');
-
     // input+datalist: digita pra filtrar a lista suspensa ao vivo, mas
-    // continua mostrando a lista inteira ao focar/clicar (comportamento
-    // nativo do navegador) — em vez de um <select> que só rola. Reaproveitado
-    // tanto pros filtros de curso (seleção exata de um item) quanto pra busca
-    // de nome/RE (texto livre, casa por trecho — ver filtro de _p1TotalDetBusca acima).
-    // Placeholder curto o bastante pra nunca clipar (inputs de largura
-    // variável dependendo da tela) — texto longo com contagem dinâmica
-    // ("Buscar entre 352 PMs...") cortava sem reticências, já que o
-    // navegador não aplica "..." em placeholder por padrão. A contagem
-    // continua disponível no rótulo do campo (ex: "N PMs" abaixo), não
-    // precisa repetir dentro do placeholder.
+    // mostra a lista inteira ao focar (comportamento nativo). Serve tanto
+    // pros filtros de curso quanto pra busca livre de nome/RE.
     const inputBusca = (id, lista, valor, onchangeFn, placeholder) => `
       <div style="display:flex;gap:6px;align-items:center;max-width:100%">
         <input type="text" list="${id}-list" value="${escHtml(valor || '')}"
@@ -1272,17 +1116,24 @@ function p1ShowKpiDetail(tipo) {
       return `<div title="${escHtml(r.opm||'')}" style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${escHtml(r.opm||'—')}</div>${s}`;
     };
 
-    const tabelaTotalHtml = p1SomenteQuantitativo()
+    const temFiltro = !!(_p1TotalDetBusca || _p1TotalDetCursoInt || _p1TotalDetCursoExt);
+    const listaTitulo = temFiltro ? `Resultado — ${filtered.length}` : `Todo o efetivo — ${filtered.length}`;
+    const listaPmHtml = somenteQtdBusca
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
-      : p1CardGrid(filtered.map(({r}) => r), totalInfo);
+      : `<div style="margin-top:16px">
+          <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px">${listaTitulo}</div>
+          ${p1CardGrid(filtered, totalInfo)}
+        </div>`;
 
+    // Ordem: filtros → grade "Efetivo por Companhia" (com drill-down por
+    // sub-unidade no #p1-unit-detail) → lista de PMs (fotos), filtrável pela
+    // busca de nome/RE e pelos cursos.
     html = wrapDetail('Efetivo', filtered.length, '#c8a84b', closeBtn, `
-      ${filtro.html}
       ${buscaNomeRow}
-      ${gridRow('GÊNERO', genBtns)}
       ${cursosIntRow}
       ${cursosExtRow}
-      ${tabelaTotalHtml}`);
+      ${p1CiaGridHtml()}
+      ${listaPmHtml}`);
   }
 
   else if (tipo === 'afastados') {
@@ -2841,6 +2692,132 @@ async function p1RemoveFoto() {
   } catch (err) {
     msg.style.color = '#f07878'; msg.textContent = err.message;
   }
+}
+
+// Grade "Efetivo por Companhia" — cards de CIA (com sub-unidades clicáveis)
+// + OPMs não mapeadas. Antes ficava na home do P1; agora vive dentro do
+// detalhe do KPI "Efetivo". Lê de p1ByUnit / p1AfastHoje (populados em
+// renderP1); os cliques (p1ShowByKeys / p1ShowUnit) escrevem no
+// #p1-unit-detail incluído no fim do retorno.
+function p1CiaGridHtml() {
+  const byUnit = p1ByUnit || {};
+  const afastHoje = p1AfastHoje || {};
+  const CATS = { cbsd: 'Cb / Sd', sgt: 'Sargentos', sub: 'Subtenentes', of: 'Oficiais' };
+  const CATS_COLOR = { cbsd: '#4bc87a', sgt: '#e05555', sub: '#5a9de0', of: '#c8a84b' };
+  const count = (arr, cat) => arr.filter(r => p1Cat(r.posto) === cat).length;
+  const unitsSorted = Object.entries(byUnit).sort((a, b) => b[1].length - a[1].length);
+  const getPms = keys => Object.entries(byUnit).filter(([opm]) => _opmMatch(opm, keys)).flatMap(([,arr]) => arr);
+  const statsOf = pms => {
+    const afst_ = pms.filter(r => afastHoje[r.re]).length;
+    const restr_ = pms.filter(p1RestrRua).length;
+    const aptos_ = pms.length - afst_;
+    const pct_   = pms.length ? Math.round(aptos_ / pms.length * 100) : 0;
+    const color_ = pct_ >= 85 ? '#4bc87a' : pct_ >= 70 ? '#c8a84b' : '#e8b840';
+    return { afst: afst_, restr: restr_, aptos: aptos_, pct: pct_, color: color_, total: pms.length };
+  };
+  const allCiaKeys = CIA_STRUCT.flatMap(c => c.units.flatMap(u => u.keys));
+  const unmatchedUnits = unitsSorted.filter(([opm]) => !_opmMatch(opm, allCiaKeys));
+
+  const ciaCards = CIA_STRUCT.map((cia, ci) => {
+    const ciaPms  = getPms(cia.units.flatMap(u => u.keys));
+    if (!ciaPms.length) return '';
+    const s = statsOf(ciaPms);
+    const catLine = Object.keys(CATS).map(k => {
+      const n = ciaPms.filter(r => p1Cat(r.posto) === k).length;
+      return n ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${CATS[k]}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${CATS_COLOR[k]}">${n}</span></div>` : '';
+    }).filter(Boolean).join('');
+
+    const unitBtns = p1SomenteQuantitativo() ? '' : cia.units.map((u, ui) => {
+      const upms = getPms(u.keys);
+      if (!upms.length) return '';
+      const us = statsOf(upms);
+      return `<button class="p1-ubtn" data-ci="${ci}" data-ui="${ui}" onclick="p1ShowByKeys(${ci},${ui},'${u.label.replace(/'/g,"\\'")}');event.stopPropagation()"
+        style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:8px 12px;cursor:pointer;text-align:left;transition:all .15s;color:var(--tx2)"
+        onmouseover="if(!this.classList.contains('sel')){this.style.borderColor='${cia.color}';this.style.color='var(--tx)'}"
+        onmouseout="if(!this.classList.contains('sel')){this.style.borderColor='rgba(255,255,255,.1)';this.style.color='var(--tx2)'}">
+        <div style="font-size:19px;font-weight:600;color:#ffffff;white-space:nowrap">${u.label}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;margin-top:3px;display:flex;gap:8px">
+          <span style="color:#4bc87a">${us.aptos} aptos</span>
+          ${us.afst > 0 ? `<span style="color:#e05555">${us.afst} afst</span>` : ''}
+          ${us.restr > 0 ? `<span style="color:#c8a84b">${us.restr} restr</span>` : ''}
+        </div>
+      </button>`;
+    }).join('');
+
+    return `<div class="p1-uc" data-ci="${ci}"
+      style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${cia.color};border-radius:10px;padding:20px;transition:all .2s;cursor:default"
+      onmouseover="if(!this.classList.contains('sel')){this.style.boxShadow='0 4px 20px rgba(0,0,0,.3)';this.style.transform='translateY(-2px)'}"
+      onmouseout="if(!this.classList.contains('sel')){this.style.boxShadow='';this.style.transform=''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${cia.color};letter-spacing:.5px;line-height:1">${cia.label}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;margin-top:2px">Sede · ${cia.sede}</div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:22px;font-weight:700;color:var(--tx)">${s.total}</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
+        <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;margin-top:1px">APTOS</div>
+        </div>
+        <div style="background:rgba(230,100,100,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.afst>0?'#e05555':'var(--tx3)'};line-height:1">${s.afst}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.afst>0?'#e05555':'var(--tx3)'};margin-top:1px">AFST</div>
+        </div>
+        <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
+        </div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;margin-bottom:12px;line-height:1.8">${catLine}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${unitBtns}</div>
+    </div>`;
+  }).join('');
+
+  const unmatchedCards = unmatchedUnits.map(([unit, d]) => {
+    const s = statsOf(d);
+    const _esc = unit.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const catLine = Object.keys(CATS).map(k => {
+      const n = count(d, k);
+      return n ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${CATS[k]}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${CATS_COLOR[k]}">${n}</span></div>` : '';
+    }).filter(Boolean).join('');
+    return `<div class="p1-uc" data-unit="${escHtml(unit)}" onclick="p1ShowUnit('${_esc}')"
+      style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${s.color};border-radius:10px;padding:20px;cursor:pointer;transition:all .2s"
+      onmouseover="if(!this.classList.contains('sel')){this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)';this.style.transform='translateY(-2px)'}"
+      onmouseout="if(!this.classList.contains('sel')){this.style.boxShadow='';this.style.transform=''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${s.color};letter-spacing:.5px;line-height:1">${escHtml(unit)}</div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:22px;font-weight:700;color:var(--tx)">${d.length}</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
+        <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;margin-top:1px">APTOS</div>
+        </div>
+        <div style="background:rgba(230,100,100,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.afst>0?'#e05555':'var(--tx3)'};line-height:1">${s.afst}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.afst>0?'#e05555':'var(--tx3)'};margin-top:1px">AFST</div>
+        </div>
+        <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
+        </div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;border-top:1px solid rgba(255,255,255,.05);padding-top:10px;line-height:1.8">${catLine || '—'}</div>
+    </div>`;
+  }).join('');
+
+  return `<div style="margin-bottom:6px">
+      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia${p1SomenteQuantitativo() ? '' : ' <span style="font-weight:400">· clique na sub-unidade para ver os PMs</span>'}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+        ${ciaCards}${unmatchedCards}
+      </div>
+    </div>
+    <div id="p1-unit-detail"></div>`;
 }
 
 // Expande painel de efetivo por unidade com cards fotográficos
