@@ -540,14 +540,7 @@ function renderP1() {
         </div>
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:22px;font-weight:700;color:var(--tx)">${s.total}</span></div>
       </div>
-      <div style="background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin-bottom:10px">
-        <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:4px;transition:width .5s ease"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
-        <div style="background:rgba(255,255,255,.03);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.color};line-height:1">${s.pct}%</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-top:1px">DISP</div>
-        </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
         <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;margin-top:1px">APTOS</div>
@@ -585,14 +578,7 @@ function renderP1() {
         </div>
         <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:22px;font-weight:700;color:var(--tx)">${d.length}</span></div>
       </div>
-      <div style="background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin-bottom:10px">
-        <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:4px;transition:width .5s ease"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
-        <div style="background:rgba(255,255,255,.03);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.color};line-height:1">${s.pct}%</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-top:1px">DISP</div>
-        </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
         <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
           <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;margin-top:1px">APTOS</div>
