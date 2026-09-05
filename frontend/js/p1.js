@@ -367,6 +367,9 @@ function renderP1() {
   ];
   const countGrupo = (arr, g) => g.cats.reduce((s, c) => s + count(arr, c), 0);
   const total = dataF.length;
+  // Fixado total (soma de fx_total do Quadro de Claros) — denominador do
+  // "%" do card "Efetivo": mostra quanto do efetivo fixado está preenchido.
+  const fxTotal = p1Quadro.reduce((a, q) => a + (Number(q.fx_total) || 0), 0);
   // Efetivo total SEM filtro de OPM — denominador fixo do "% do efetivo"
   // em cada card, pra não virar 100% sempre que um filtro de OPM estiver
   // ativo (aí o % mostra a fatia real daquela OPM dentro do batalhão).
@@ -386,11 +389,11 @@ function renderP1() {
   kpisEl.style.gridTemplateColumns = 'repeat(auto-fit,minmax(210px,1fr))';
   // `pct` opcional — quando passado, mostra "N (P%)" no valor grande, P
   // sempre em relação ao efetivo total (pctDe).
-  const kpiCard = (label, val, sub, color, key, pct) => {
+  const kpiCard = (label, val, sub, color, key, pct, pctTip) => {
     return `<div onclick="p1ShowKpiDetail('${key}')" class="kpi">
       <div class="kpi-top"></div>
       <div class="kpi-lbl">${label}</div>
-      <div class="kpi-val">${val}${pct != null ? `<span class="kpi-pct" data-tip="${pct}% do efetivo total do batalhão (${totalGeral} PMs)" style="font-size:40px;color:#ffffff;font-weight:700;margin-left:8px">${pct}%</span>` : ''}</div>
+      <div class="kpi-val">${val}${pct != null ? `<span class="kpi-pct" data-tip="${pctTip || `${pct}% do efetivo total do batalhão (${totalGeral} PMs)`}" style="font-size:40px;color:#ffffff;font-weight:700;margin-left:8px">${pct}%</span>` : ''}</div>
       ${sub ? `<div class="kpi-sub" style="line-height:1.7;width:100%">${sub}</div>` : ''}
       <div class="kpi-hint">▸ clique p/ detalhes</div>
     </div>`;
@@ -414,9 +417,11 @@ function renderP1() {
     kpiCard('Efetivo', total,
       P1_GRAD_GRUPOS.map(g => {
         const n = countGrupo(dataF, g);
-        return n ? _kpiRow(g.lbl, `${n}${pctTag(n, total, `${g.lbl}: ${n} de ${total} do efetivo`)}`, g.cor) : '';
+        return n ? _kpiRow(g.lbl, `${n}${pctTag(n, fxTotal, `${g.lbl}: ${n} de ${fxTotal} do efetivo fixado (FX Total)`)}`, g.cor) : '';
       }).join(''),
-      'var(--tx)', 'total', pctDe(total)) +
+      'var(--tx)', 'total',
+      fxTotal > 0 ? Math.round(total / fxTotal * 100) : null,
+      fxTotal > 0 ? `${total} de ${fxTotal} do efetivo fixado (FX Total)` : null) +
     kpiCard('Afastamentos', pmAfastados.length, tiposSub, pmAfastados.length > 0 ? '#e05555' : 'var(--tx3)', 'afastados', pctDe(pmAfastados.length)) +
     kpiCard(`EAP / TAF / TAT ${anoAtual}`, pmEapFeito.length,
       [_kpiRow('Realizaram', `${pmEapFeito.length}${pctTag(pmEapFeito.length, total, `Realizaram EAP: ${pmEapFeito.length} de ${total} do efetivo`)}`, '#4bc87a'),
@@ -436,41 +441,37 @@ function renderP1() {
       // deviam bater no total de efetivo.
       const qRows = p1Quadro;
       const gtFx = qRows.reduce((a,q) => a + (Number(q.fx_total)||0), 0);
-      const gtEx = qRows.reduce((a,q) => a + (Number(q.ex_total)||0), 0);
-      // Agrupa por CIA — a coluna q.cia raramente vem preenchida na
-      // planilha (a maioria cai num "—" só, duplicando o total geral em
-      // vez de mostrar o detalhe por CIA); mesma inferência via OPM/
-      // município já usada no detalhe "Quadro Fixado" (tipo==='quadro').
-      const normStrKpi = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[ªº°]/g,'').replace(/\s+/g,' ').trim();
-      const opmCiaMapKpi = {};
-      p1Data.forEach(pm => {
-        const cia = (pm.cia||'').trim();
-        if (!cia) return;
-        const key = normStrKpi(pm.opm||'');
-        if (key && !opmCiaMapKpi[key]) opmCiaMapKpi[key] = typeof normCiaDisp === 'function' ? normCiaDisp(cia) : cia;
-      });
-      const getCiaKpi = q => {
-        if ((q.cia||'').trim()) return typeof normCiaDisp === 'function' ? normCiaDisp(q.cia) : q.cia.trim();
-        const nOpm = normStrKpi(q.opm||''), nMun = normStrKpi(q.municipio||'');
-        const found = Object.entries(opmCiaMapKpi).find(([k]) =>
-          k === nOpm || k === nMun || k.includes(nMun) || nMun.includes(k) || k.includes(nOpm) || nOpm.includes(k)
-        );
-        return found?.[1] || (q.opm||'').trim() || '—';
+      // EX = efetivo REALMENTE cadastrado (efetivo_pm), NÃO o `ex_total`
+      // digitado à mão no Quadro de Claros. Os dois divergiam (353 vs 352)
+      // porque a planilha estava 1 desatualizada (Subten/Sgt do EM). O FX
+      // continua vindo da planilha — é o único lugar que tem o fixado.
+      const gtEx = p1Data.length;
+      // Rótulo de CIA (CIA_STRUCT) a partir do opm/município — mesma regra
+      // do resto da tela (_opmMatch), pros dois lados (planilha e efetivo)
+      // caírem no mesmo rótulo/ordem.
+      const ciaDeOpm = (opm, mun) => {
+        const hit = CIA_STRUCT.find(c => {
+          const keys = c.units.flatMap(u => u.keys);
+          return _opmMatch(opm, keys) || (mun && _opmMatch(mun, keys));
+        });
+        return hit ? hit.label : (opm || '').trim() || '—';
       };
       const byCiaKpi = {};
+      CIA_STRUCT.forEach(c => { byCiaKpi[c.label] = { fx: 0, ex: 0 }; });
       qRows.forEach(q => {
-        const c = getCiaKpi(q);
-        if (!byCiaKpi[c]) byCiaKpi[c] = { fx: 0, ex: 0 };
-        byCiaKpi[c].fx += Number(q.fx_total)||0;
-        byCiaKpi[c].ex += Number(q.ex_total)||0;
+        const lbl = ciaDeOpm(q.opm, q.municipio);
+        (byCiaKpi[lbl] || (byCiaKpi[lbl] = { fx: 0, ex: 0 })).fx += Number(q.fx_total)||0;
       });
-      // Ordem fixa (EM primeiro, depois CIAs, esquerda p/ direita — mesma
-      // ordem de CIA_STRUCT), em vez de alfabética; o que não bate com
-      // nenhum label de CIA_STRUCT (OPM não mapeada) vai pro final.
+      p1Data.forEach(pm => {
+        const lbl = ciaDeOpm(pm.opm, null);
+        (byCiaKpi[lbl] || (byCiaKpi[lbl] = { fx: 0, ex: 0 })).ex += 1;
+      });
+      // Ordem fixa (EM primeiro, depois CIAs — mesma ordem de CIA_STRUCT);
+      // o que não bate com nenhum label vai pro final.
       const ciaOrderIdx = cia => { const i = CIA_STRUCT.findIndex(c => c.label === cia); return i < 0 ? CIA_STRUCT.length : i; };
       // Por CIA: efetivo existente + a % de vagas em aberto (−, verde) ou
       // de efetivo acima do fixado (+, vermelho), sobre o fixado da CIA.
-      const ciaExRows = Object.entries(byCiaKpi).sort(([a],[b]) => ciaOrderIdx(a) - ciaOrderIdx(b) || a.localeCompare(b)).map(([cia, d]) => {
+      const ciaExRows = Object.entries(byCiaKpi).filter(([,d]) => d.fx || d.ex).sort(([a],[b]) => ciaOrderIdx(a) - ciaOrderIdx(b) || a.localeCompare(b)).map(([cia, d]) => {
         const ciaCor = /^em$/i.test(cia.trim()) ? '#9b6de0' : ciaCorByName(cia); // EM não tem dígito p/ ciaCorByName achar
         const saldo  = d.fx - d.ex; // >0 = vagas sobrando · <0 = estourado
         const pct    = d.fx > 0 ? Math.round(Math.abs(saldo) / d.fx * 100) : 0;
