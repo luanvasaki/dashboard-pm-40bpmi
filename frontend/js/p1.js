@@ -58,13 +58,8 @@ const p1SomenteQuantitativo = () => {
 };
 
 // Estado dos filtros de CIA/Cidade/Graduação de cada detalhe de KPI do P1 —
-// todos usam o mesmo padrão de 3 seletores integrados (p1FiltroCMP). Gênero
-// (Total Efetivo) e Situação (IAS) são filtros à parte, específicos daquela tela.
-let _p1TotalDetCia = -1, _p1TotalDetMun = null, _p1TotalDetPosto = null, _p1TotalDetGen = null;
-function p1TotalSetCia(val)   { _p1TotalDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('total'); }
-function p1TotalSetMun(val)   { _p1TotalDetMun = val || null; p1ShowKpiDetail('total'); }
-function p1TotalSetPosto(val) { _p1TotalDetPosto = val || null; p1ShowKpiDetail('total'); }
-function p1TotalSetGen(val)   { _p1TotalDetGen = _p1TotalDetGen === val ? null : val; p1ShowKpiDetail('total'); }
+// todos usam o mesmo padrão de 3 seletores integrados (p1FiltroCMP).
+// Situação (IAS) é filtro à parte, específico daquela tela.
 
 // Filtro por curso (interno/externo) no KPI Total Efetivo — independentes,
 // combinados com E quando os dois estão ativos ao mesmo tempo.
@@ -93,17 +88,6 @@ let _p1EapDetCia = -1, _p1EapDetMun = null, _p1EapDetPosto = null;
 function p1EapSetCia(val)   { _p1EapDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('eap'); }
 function p1EapSetMun(val)   { _p1EapDetMun = val || null; p1ShowKpiDetail('eap'); }
 function p1EapSetPosto(val) { _p1EapDetPosto = val || null; p1ShowKpiDetail('eap'); }
-
-let _p1FeriasDetCia = -1, _p1FeriasDetMun = null, _p1FeriasDetPosto = null;
-function p1FeriasSetCia(val)   { _p1FeriasDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('ferias'); }
-function p1FeriasSetMun(val)   { _p1FeriasDetMun = val || null; p1ShowKpiDetail('ferias'); }
-function p1FeriasSetPosto(val) { _p1FeriasDetPosto = val || null; p1ShowKpiDetail('ferias'); }
-
-// Estado do filtro do bloco "Em Afastamento" na home do P1
-let _p1HomeAfastCia = -1, _p1HomeAfastMun = null, _p1HomeAfastPosto = null;
-function p1HomeAfastSetCia(val)   { _p1HomeAfastCia = (val === '' || val == null) ? -1 : parseInt(val, 10); renderP1(); }
-function p1HomeAfastSetMun(val)   { _p1HomeAfastMun = val || null; renderP1(); }
-function p1HomeAfastSetPosto(val) { _p1HomeAfastPosto = val || null; renderP1(); }
 
 function hasUisRestr(re) {
   return typeof uisNormRE === 'function' && !!_uisRestMap?.[uisNormRE(re)]?.length;
@@ -349,7 +333,6 @@ function renderP1() {
 
   // Filtro ativo por OPM
   const dataF = p1FiltroOpm ? p1Data.filter(r => r.opm === p1FiltroOpm) : p1Data;
-  const reSetF = new Set(dataF.map(r => r.re));
 
   // Status de cada PM
   const pmAfastados    = dataF.filter(r => afastHoje[r.re]);
@@ -374,39 +357,6 @@ function renderP1() {
   };
   const taftatVencidos = dataF.filter(taftatVencFn);
 
-  // ── Controle de Férias / LP
-  const isLP  = t => /^lp$/i.test((t || '').trim());
-  const em15s = (() => { const d = new Date(); d.setDate(d.getDate() + 15); return d.toISOString().split('T')[0]; })();
-  const em30s = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split('T')[0]; })();
-  // reSetF já é o set certo nos dois casos (com ou sem filtro de OPM — sem
-  // filtro, dataF===p1Data, então reSetF cobre todo o efetivo_pm atual).
-  // Antes só filtrava por reSetF quando havia filtro de OPM ativo; sem
-  // filtro, contava direto de p1Afasts — incluindo afastamento de RE que
-  // não existe mais no efetivo_pm (gente transferida/removida), fazendo o
-  // card "Controle de Férias" divergir do "Afastamentos" (que já exigia
-  // isso via afastHoje/pmAfastados).
-  const afastsF      = p1Afasts.filter(a => reSetF.has(a.re) && !p1EhSupervisao(a));
-  const ferEmGozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && (!a.termino || a.termino >= hoje));
-  const ferEm15Dias  = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio > hoje && a.inicio <= em15s);
-  const ferLpEm30    = afastsF.filter(a => (isFer(a.tipo_afastamento) || isLP(a.tipo_afastamento)) && a.inicio > hoje && a.inicio <= em30s);
-  // Todos os tipos de afastamento iniciando nos próximos 30 dias (para planejamento de escala)
-  const afastEm30    = afastsF.filter(a => a.inicio > hoje && a.inicio <= em30s);
-  const resFeriasAno = new Set(p1Afasts.filter(a => isFer(a.tipo_afastamento) && (a.inicio||'').startsWith(String(anoAtual))).map(a => a.re));
-  const semFeriasAno = dataF.filter(r => !resFeriasAno.has(r.re));
-
-  // Restrições vencendo em 30 dias
-  const vencendoRestricao = p1Data.filter(r =>
-    (r.possui_restricao || '').toLowerCase().startsWith('s') &&
-    r.restricao_termino && r.restricao_termino >= hoje && r.restricao_termino <= em30s
-  );
-
-  // Afastamentos vencendo em 7 dias
-  const em7 = new Date(); em7.setDate(em7.getDate() + 7);
-  const em7s = em7.toISOString().split('T')[0];
-  const retornando = p1Afasts.filter(a =>
-    reSetF.has(a.re) && !p1EhRestricao(a) && !p1EhSupervisao(a) && a.inicio <= hoje && a.termino >= hoje && a.termino <= em7s
-  );
-
   const CATS = { cbsd: 'Cb / Sd', sgt: 'Sargentos', sub: 'Subtenentes', of: 'Oficiais' };
   const CATS_COLOR = { cbsd: '#4bc87a', sgt: '#e05555', sub: '#5a9de0', of: '#c8a84b' };
   const count = (arr, cat) => arr.filter(r => p1Cat(r.posto) === cat).length;
@@ -416,6 +366,11 @@ function renderP1() {
   // ativo (aí o % mostra a fatia real daquela OPM dentro do batalhão).
   const totalGeral = p1Data.length;
   const pctDe = n => totalGeral > 0 ? Math.round(n / totalGeral * 100) : 0;
+  // Sufixo "(N%)" pequeno pra colar num valor dentro do card. `tip` vira o
+  // title (tooltip no hover) explicando de que a porcentagem é relação.
+  const pctTag = (n, base, tip) => base > 0
+    ? ` <span title="${escHtml(tip)}" style="font-size:13px;color:var(--tx3);font-weight:400;cursor:help">${Math.round(n / base * 100)}%</span>`
+    : '';
 
   // ── KPI cards (clicáveis)
   // auto-fit (não auto-fill) — com menos KPIs (removemos 3 em 2026-08), os
@@ -428,7 +383,7 @@ function renderP1() {
     return `<div onclick="p1ShowKpiDetail('${key}')" class="kpi">
       <div class="kpi-top"></div>
       <div class="kpi-lbl">${label}</div>
-      <div class="kpi-val">${val}${pct != null ? `<span style="font-size:16px;color:var(--tx3);font-weight:600;margin-left:6px">${pct}%</span>` : ''}</div>
+      <div class="kpi-val">${val}${pct != null ? `<span title="${pct}% do efetivo total do batalhão (${totalGeral} PMs)" style="font-size:16px;color:var(--tx3);font-weight:600;margin-left:6px;cursor:help">${pct}%</span>` : ''}</div>
       ${sub ? `<div class="kpi-sub" style="line-height:1.7;width:100%">${sub}</div>` : ''}
       <div class="kpi-hint">▸ clique p/ detalhes</div>
     </div>`;
@@ -446,24 +401,24 @@ function renderP1() {
   }); });
   const _kpiRow = (label, val, color) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:#ffffff;font-size:17px">${escHtml(label)}</span><span style="color:${color};font-weight:700;font-size:20px">${val}</span></div>`;
   const tiposEntries = Object.entries(tiposCount).sort(([,a],[,b]) => b - a);
-  const tiposSub = tiposEntries.map(([t,n]) => _kpiRow(t, n, P1_TIPO_COLOR[t] || '#607090')).join('') || '—';
+  const tiposSub = tiposEntries.map(([t,n]) => _kpiRow(t, `${n}${pctTag(n, total, `${t}: ${n} de ${total} do efetivo`)}`, P1_TIPO_COLOR[t] || '#607090')).join('') || '—';
 
   kpisEl.innerHTML =
     kpiCard('Efetivo', total,
-      Object.keys(CATS).filter(k=>count(dataF,k)>0).map(k => _kpiRow(CATS[k], count(dataF,k), CATS_COLOR[k])).join(''),
+      Object.keys(CATS).filter(k=>count(dataF,k)>0).map(k => {
+        const n = count(dataF,k);
+        return _kpiRow(CATS[k], `${n}${pctTag(n, total, `${CATS[k]}: ${n} de ${total} do efetivo`)}`, CATS_COLOR[k]);
+      }).join(''),
       'var(--tx)', 'total', pctDe(total)) +
     kpiCard('Afastamentos', pmAfastados.length, tiposSub, pmAfastados.length > 0 ? '#e05555' : 'var(--tx3)', 'afastados', pctDe(pmAfastados.length)) +
     kpiCard(`EAP / TAF / TAT ${anoAtual}`, pmEapFeito.length,
-      [_kpiRow('Realizaram', pmEapFeito.length, '#4bc87a'),
-       _kpiRow('Pendentes', pmEapPendente.length, '#c8a84b'),
-       ...(inaptosTaf.length ? [_kpiRow('Inaptos TAF', inaptosTaf.length, '#e05555')] : []),
-       ...(inaptosTat.length ? [_kpiRow('Inaptos TAT', inaptosTat.length, '#e05555')] : []),
-       ...(taftatVencidos.length ? [_kpiRow('Vencidos', taftatVencidos.length, '#e05555')] : [])
+      [_kpiRow('Realizaram', `${pmEapFeito.length}${pctTag(pmEapFeito.length, total, `Realizaram EAP: ${pmEapFeito.length} de ${total} do efetivo`)}`, '#4bc87a'),
+       _kpiRow('Pendentes', `${pmEapPendente.length}${pctTag(pmEapPendente.length, total, `EAP pendente: ${pmEapPendente.length} de ${total} do efetivo`)}`, '#c8a84b'),
+       ...(inaptosTaf.length ? [_kpiRow('Inaptos TAF', `${inaptosTaf.length}${pctTag(inaptosTaf.length, total, `Inaptos no TAF: ${inaptosTaf.length} de ${total} do efetivo`)}`, '#e05555')] : []),
+       ...(inaptosTat.length ? [_kpiRow('Inaptos TAT', `${inaptosTat.length}${pctTag(inaptosTat.length, total, `Inaptos no TAT: ${inaptosTat.length} de ${total} do efetivo`)}`, '#e05555')] : []),
+       ...(taftatVencidos.length ? [_kpiRow('Vencidos', `${taftatVencidos.length}${pctTag(taftatVencidos.length, total, `TAF/TAT vencido: ${taftatVencidos.length} de ${total} do efetivo`)}`, '#e05555')] : [])
       ].join(''),
       (inaptosTaf.length || inaptosTat.length || taftatVencidos.length) ? '#e05555' : pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a', 'eap', pctDe(pmEapFeito.length)) +
-    kpiCard('Controle de Férias', ferEmGozo.length,
-      [_kpiRow('Em gozo', ferEmGozo.length, '#5a9de0'), _kpiRow('Iniciam em 15d', ferEm15Dias.length, '#5a9de0')].join(''),
-      ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)', 'ferias', pctDe(ferEmGozo.length)) +
     (() => {
       if (!p1Quadro.length) return '';
       // 2026-09-04: CFP e UIS Méd/Odonto voltaram a contar (decisão do
@@ -516,7 +471,7 @@ function renderP1() {
         const pctCor = saldo > 0 ? '#4bc87a' : saldo < 0 ? '#e05555' : 'var(--tx3)'; // verde = vaga sobrando · vermelho = efetivo a mais
         return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:${ciaCor};font-size:17px;font-weight:700">${cia}</span><span style="font-weight:700;font-size:18px"><span style="color:#ffffff">${d.ex}</span> <span style="color:${pctCor};font-family:'DM Mono',monospace;font-size:19px;font-weight:700">${pctStr}</span></span></div>`;
       }).join('');
-      const sub = ciaExRows + `<div style="margin-top:6px">${_kpiRow('FX Total', gtFx, '#ffffff')}${_kpiRow('EX Total', gtEx, '#ffffff')}</div>`;
+      const sub = ciaExRows + `<div style="margin-top:6px">${_kpiRow('FX Total', gtFx, '#ffffff')}${_kpiRow('EX Total', `${gtEx}${pctTag(gtEx, gtFx, `EX Total: ${gtEx} de ${gtFx} do efetivo fixado (FX Total)`)}`, '#ffffff')}</div>`;
       return kpiCard('Claro do Efetivo', gtEx, sub, 'var(--tx)', 'quadro');
     })();
 
@@ -525,91 +480,6 @@ function renderP1() {
   const tdS = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-family:"DM Mono",monospace;font-size:19px;color:var(--tx3);text-align:right';
   const tdL = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:19px;font-weight:600;color:var(--tx)';
   const badge = (txt, color) => `<span style="padding:3px 9px;border-radius:20px;font-size:19px;font-family:'DM Mono',monospace;background:${color}22;color:${color}">${escHtml(txt)}</span>`;
-
-  // ── Seção: Afastados agora
-  let afastSection = '';
-  if (pmAfastados.length) {
-    const afRows = pmAfastados.map(r => {
-      const ats = afastHoje[r.re] || [];
-      const tipo = ats.map(a => a.tipo_afastamento).join(', ');
-      const termino = ats[0]?.termino || '';
-      const diasRest = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : '—';
-      const _escB = s => (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      const _fotoRe = _escB(r.re);
-      const _fotoNm = _escB(r.nome_guerra || r.nome);
-      const _fotoPt = _escB(r.posto || '');
-      const _av = `<div data-foto-re="${escHtml(r.re)}" data-nome="${escHtml(r.nome_guerra||r.nome)}" data-posto="${escHtml(r.posto||'')}" data-size="40" onclick="openProntuario('${_fotoRe}')" style="cursor:pointer;display:inline-block">${p1AvatarSVG(r.nome_guerra||r.nome, r.posto, 40)}</div>`;
-      return `<tr>
-        <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.03);width:52px;vertical-align:middle">${_av}</td>
-        <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx2)">${escHtml(r.posto || '—')}</td>
-        <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${escHtml(r.re || '—')}</td>
-        <td style="${tdL};cursor:pointer" onclick="openProntuario('${_fotoRe}')">${escHtml(r.nome_guerra || r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-        <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${escHtml(r.opm || '—')}</td>
-        <td style="${tdS.replace('text-align:right','text-align:left')}">${badge(tipo, '#e05555')}</td>
-        <td style="${tdS}">${fmtDate(ats[0]?.inicio)}</td>
-        <td style="${tdS}">${fmtDate(termino)}</td>
-        <td style="${tdS};color:${diasRest <= 3 ? '#4bc87a' : 'var(--tx3)'}">${diasRest !== '—' ? diasRest + 'd' : '—'}</td>
-      </tr>`;
-    }).join('');
-    afastSection = `
-      <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow-x:auto;margin-bottom:14px">
-        <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#e05555;padding:14px 16px 0;text-transform:uppercase">Afastamentos — ${pmAfastados.length}</div>
-        <table style="width:100%;border-collapse:collapse;margin-top:8px">
-          <thead><tr>
-            <th style="${thL};width:44px;padding:8px 4px 8px 8px"></th><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome de Guerra</th><th style="${thL}">OPM</th>
-            <th style="${thL}">Tipo</th><th style="${thS}">Início</th><th style="${thS}">Término</th><th style="${thS}">Dias restantes</th>
-          </tr></thead><tbody>${afRows}</tbody>
-        </table>
-      </div>`;
-  }
-
-  // ── Alertas
-  let alertSection = '';
-  const alertItems = [];
-  if (vencendoRestricao.length) {
-    vencendoRestricao.forEach(r => {
-      const dias = Math.ceil((new Date(r.restricao_termino) - new Date(hoje)) / 86400000);
-      alertItems.push(`<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center">
-        ${badge('RESTRIÇÃO', '#c8a84b')}
-        <span style="font-size:19px;color:var(--tx)">${escHtml(r.nome_guerra || r.nome)}</span>
-        <span style="font-size:19px;color:#ffffff">${escHtml(r.opm || '')}</span>
-        <span style="font-size:19px;color:#ffffff;margin-left:auto">Vence em <b style="color:#c8a84b">${dias}d</b> — ${fmtDate(r.restricao_termino)}</span>
-      </div>`);
-    });
-  }
-  if (retornando.length) {
-    retornando.forEach(a => {
-      const pm = p1Data.find(r => r.re === a.re);
-      const dias = Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000);
-      alertItems.push(`<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center">
-        ${badge('RETORNO', '#4bc87a')}
-        <span style="font-size:19px;color:var(--tx)">${escHtml(pm?.nome_guerra || a.nome || a.re)}</span>
-        <span style="font-size:19px;color:#ffffff">${escHtml(a.tipo_afastamento)}</span>
-        <span style="font-size:19px;color:#ffffff;margin-left:auto">Retorna em <b style="color:#4bc87a">${dias}d</b> — ${fmtDate(a.termino)}</span>
-      </div>`);
-    });
-  }
-  if (ferLpEm30.length) {
-    ferLpEm30.sort((a, b) => (a.inicio||'').localeCompare(b.inicio||'')).forEach(a => {
-      const pm = p1Data.find(r => r.re === a.re);
-      const diasAte = Math.ceil((new Date(a.inicio) - new Date(hoje)) / 86400000);
-      const tipo = isFer(a.tipo_afastamento) ? 'FÉRIAS' : 'LP';
-      const cor  = isFer(a.tipo_afastamento) ? '#5a9de0' : '#9b6de0';
-      alertItems.push(`<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center">
-        ${badge(tipo, cor)}
-        <span style="font-size:19px;color:var(--tx2)">${escHtml(pm?.posto||'')}</span>
-        <span style="font-size:19px;color:var(--tx)">${escHtml(pm?.nome_guerra || pm?.nome || a.re)}</span>
-        <span style="font-size:19px;color:#ffffff;margin-left:auto">Inicia em <b style="color:${cor}">${diasAte}d</b> — ${fmtDate(a.inicio)}</span>
-      </div>`);
-    });
-  }
-  if (alertItems.length) {
-    alertSection = `
-      <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-bottom:14px">
-        <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#c8a84b;padding:14px 16px 8px;text-transform:uppercase">Alertas</div>
-        ${alertItems.join('')}
-      </div>`;
-  }
 
   // ── Tabela por OPM
   const byUnit = {};
@@ -620,128 +490,6 @@ function renderP1() {
   });
   p1ByUnit = byUnit;
   const unitsSorted = Object.entries(byUnit).sort((a, b) => b[1].length - a[1].length);
-  // ── Cards por CIA com sub-unidades ──────────────────────────────────────────
-  const getPms = keys => Object.entries(byUnit).filter(([opm]) => _opmMatch(opm, keys)).flatMap(([,arr]) => arr);
-  const statsOf = pms => {
-    const afst_ = pms.filter(r => afastHoje[r.re]).length;
-    const restr_ = pms.filter(p1RestrRua).length;
-    const aptos_ = pms.length - afst_;
-    const pct_   = pms.length ? Math.round(aptos_ / pms.length * 100) : 0;
-    const color_ = pct_ >= 85 ? '#4bc87a' : pct_ >= 70 ? '#c8a84b' : '#e8b840';
-    return { afst: afst_, restr: restr_, aptos: aptos_, pct: pct_, color: color_, total: pms.length };
-  };
-
-  // Detecta OPMs que não se encaixam em nenhuma CIA para exibir separado
-  const allCiaKeys = CIA_STRUCT.flatMap(c => c.units.flatMap(u => u.keys));
-  const unmatchedUnits = unitsSorted.filter(([opm]) => !_opmMatch(opm, allCiaKeys));
-
-  const ciaCards = CIA_STRUCT.map((cia, ci) => {
-    const ciaPms  = getPms(cia.units.flatMap(u => u.keys));
-    if (!ciaPms.length) return '';
-    const s = statsOf(ciaPms);
-    const catLine = Object.keys(CATS).map(k => {
-      const n = ciaPms.filter(r => p1Cat(r.posto) === k).length;
-      return n ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${CATS[k]}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${CATS_COLOR[k]}">${n}</span></div>` : '';
-    }).filter(Boolean).join('');
-
-    const unitBtns = p1SomenteQuantitativo() ? '' : cia.units.map((u, ui) => {
-      const upms = getPms(u.keys);
-      if (!upms.length) return '';
-      const us = statsOf(upms);
-      return `<button class="p1-ubtn" data-ci="${ci}" data-ui="${ui}" onclick="p1ShowByKeys(${ci},${ui},'${u.label.replace(/'/g,"\\'")}');event.stopPropagation()"
-        style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:8px 12px;cursor:pointer;text-align:left;transition:all .15s;color:var(--tx2)"
-        onmouseover="if(!this.classList.contains('sel')){this.style.borderColor='${cia.color}';this.style.color='var(--tx)'}"
-        onmouseout="if(!this.classList.contains('sel')){this.style.borderColor='rgba(255,255,255,.1)';this.style.color='var(--tx2)'}">
-        <div style="font-size:19px;font-weight:600;color:#ffffff;white-space:nowrap">${u.label}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:19px;margin-top:3px;display:flex;gap:8px">
-          <span style="color:#4bc87a">${us.aptos} aptos</span>
-          ${us.afst > 0 ? `<span style="color:#e05555">${us.afst} afst</span>` : ''}
-          ${us.restr > 0 ? `<span style="color:#c8a84b">${us.restr} restr</span>` : ''}
-        </div>
-      </button>`;
-    }).join('');
-
-    return `<div class="p1-uc" data-ci="${ci}"
-      style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${cia.color};border-radius:10px;padding:20px;transition:all .2s;cursor:default"
-      onmouseover="if(!this.classList.contains('sel')){this.style.boxShadow='0 4px 20px rgba(0,0,0,.3)';this.style.transform='translateY(-2px)'}"
-      onmouseout="if(!this.classList.contains('sel')){this.style.boxShadow='';this.style.transform=''}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
-        <div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${cia.color};letter-spacing:.5px;line-height:1">${cia.label}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;margin-top:2px">Sede · ${cia.sede}</div>
-        </div>
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:22px;font-weight:700;color:var(--tx)">${s.total}</span></div>
-      </div>
-      <div style="background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin-bottom:10px">
-        <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:4px;transition:width .5s ease"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
-        <div style="background:rgba(255,255,255,.03);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.color};line-height:1">${s.pct}%</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-top:1px">DISP</div>
-        </div>
-        <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;margin-top:1px">APTOS</div>
-        </div>
-        <div style="background:rgba(230,100,100,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.afst>0?'#e05555':'var(--tx3)'};line-height:1">${s.afst}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.afst>0?'#e05555':'var(--tx3)'};margin-top:1px">AFST</div>
-        </div>
-        <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
-        </div>
-      </div>
-      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;margin-bottom:12px;line-height:1.8">${catLine}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">${unitBtns}</div>
-    </div>`;
-  }).join('');
-
-  // OPMs não mapeadas na estrutura orgânica
-  const unmatchedCards = unmatchedUnits.map(([unit, d]) => {
-    const s = statsOf(d);
-    const _esc = unit.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const catLine = Object.keys(CATS).map(k => {
-      const n = count(d, k);
-      return n ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${CATS[k]}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${CATS_COLOR[k]}">${n}</span></div>` : '';
-    }).filter(Boolean).join('');
-    return `<div class="p1-uc" data-unit="${escHtml(unit)}" onclick="p1ShowUnit('${_esc}')"
-      style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${s.color};border-radius:10px;padding:20px;cursor:pointer;transition:all .2s"
-      onmouseover="if(!this.classList.contains('sel')){this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)';this.style.transform='translateY(-2px)'}"
-      onmouseout="if(!this.classList.contains('sel')){this.style.boxShadow='';this.style.transform=''}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
-        <div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${s.color};letter-spacing:.5px;line-height:1">${escHtml(unit)}</div>
-        </div>
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:22px;font-weight:700;color:var(--tx)">${d.length}</span></div>
-      </div>
-      <div style="background:rgba(255,255,255,.06);border-radius:4px;height:5px;overflow:hidden;margin-bottom:10px">
-        <div style="height:100%;width:${s.pct}%;background:${s.color};border-radius:4px;transition:width .5s ease"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
-        <div style="background:rgba(255,255,255,.03);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.color};line-height:1">${s.pct}%</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);margin-top:1px">DISP</div>
-        </div>
-        <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;margin-top:1px">APTOS</div>
-        </div>
-        <div style="background:rgba(230,100,100,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.afst>0?'#e05555':'var(--tx3)'};line-height:1">${s.afst}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.afst>0?'#e05555':'var(--tx3)'};margin-top:1px">AFST</div>
-        </div>
-        <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:7px 4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
-        </div>
-      </div>
-      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;border-top:1px solid rgba(255,255,255,.05);padding-top:10px;line-height:1.8">${catLine || '—'}</div>
-    </div>`;
-  }).join('');
 
   // ── Claro Operacional (visível e editável apenas por p1/ti)
   let claroSection = '';
@@ -789,98 +537,9 @@ function renderP1() {
     </div>`;
   }
 
-  // ── Seção de afastamentos + alertas unificada (vai para o rodapé, abaixo das CIAs)
-  const _esc2 = s => (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  let bottomItems = [];
-
-  // Quem ESTÁ afastado agora — grade de fotos com filtro de posto/cidade.
-  // Restrição (Agregação) não entra aqui — isso é status de "trabalhando com
-  // limitação", não ausência; fica só no perfil do PM e no KPI de Restrições.
-  const getMunHome = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
-  const getCiaHome = opm => (typeof CIA_STRUCT === 'undefined' || !opm) ? -1 : CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
-  const baseHome = pmAfastados.map(r => ({ r, ciaIdx: getCiaHome(r.opm), mun: getMunHome(r.opm), posto: r.posto }));
-
-  const filtroHome = p1FiltroCMP(baseHome, _p1HomeAfastCia, _p1HomeAfastMun, _p1HomeAfastPosto, 'p1HomeAfastSetCia', 'p1HomeAfastSetMun', 'p1HomeAfastSetPosto');
-  _p1HomeAfastCia = filtroHome.cia; _p1HomeAfastMun = filtroHome.mun; _p1HomeAfastPosto = filtroHome.posto;
-
-  let pmAfastadosFiltrados = pmAfastados;
-  if (_p1HomeAfastCia >= 0) pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => getCiaHome(r.opm) === _p1HomeAfastCia);
-  if (_p1HomeAfastMun)      pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => getMunHome(r.opm) === _p1HomeAfastMun);
-  if (_p1HomeAfastPosto)    pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => r.posto === _p1HomeAfastPosto);
-
-  const homeAfastInfo = r => {
-    const ats = afastHoje[r.re] || [];
-    const tipo = (ats.map(a => a.tipo_afastamento).join(', ') || 'Afastado').split(',')[0].trim();
-    const termino = ats[0]?.termino || '';
-    const diasRest = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : null;
-    return `<div style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:6px;background:#e0555522;color:#e05555;display:inline-block">${escHtml(tipo.toUpperCase())}</div>
-      <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--tx3);margin-top:2px">${diasRest!==null ? diasRest+'d rest.' : (fmtDate(termino)||'—')}</div>`;
-  };
-
-  const emAfastamentoHtml = !pmAfastados.length ? '' : `
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-top:14px;overflow:hidden">
-      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#e05555;padding:10px 16px 8px;text-transform:uppercase;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px">
-        <span>Em Afastamento</span>
-        <span style="background:#e0555528;color:#e05555;border-radius:20px;padding:1px 10px;font-size:17px;letter-spacing:0">${pmAfastadosFiltrados.length}${pmAfastadosFiltrados.length !== pmAfastados.length ? ' de ' + pmAfastados.length : ''}</span>
-      </div>
-      ${filtroHome.html}
-      <div style="padding:14px 16px">${p1CardGrid(pmAfastadosFiltrados, homeAfastInfo)}</div>
-    </div>`;
-
-  if (afastEm30.length) {
-    const TIPO_COR = t => {
-      const tl = (t||'').toLowerCase();
-      if (/f[eé]rias/.test(tl))          return ['FÉRIAS',     '#5a9de0'];
-      if (/\blp\b|premio/.test(tl))       return ['LP',         '#9b6de0'];
-      if (/\blts\b|trat/.test(tl))        return ['LTS',        '#e05555'];
-      if (/\blsv\b|sem.venc/.test(tl))    return ['LSV',        '#c8a84b'];
-      if (/n[uú]pcia/.test(tl))           return ['NÚPCIAS',    '#f1c40f'];
-      if (/maternidade/.test(tl))         return ['MATERNIDADE','#e91e63'];
-      if (/paternidade/.test(tl))         return ['PATERNIDADE','#2196f3'];
-      if (/luto/.test(tl))                return ['LUTO',       '#95a5a6'];
-      if (/conval/.test(tl))              return ['CONVAL',     '#e67e22'];
-      return [(t||'AFASTAMENTO').toUpperCase().slice(0,12), '#607090'];
-    };
-    afastEm30.sort((a,b) => (a.inicio||'').localeCompare(b.inicio||'')).forEach(a => {
-      const pm = p1Data.find(r => r.re === a.re);
-      const diasAte = Math.ceil((new Date(a.inicio) - new Date(hoje)) / 86400000);
-      const [label, cor] = TIPO_COR(a.tipo_afastamento);
-      bottomItems.push({ order: 3, html: `<div style="display:grid;grid-template-columns:170px 1fr auto;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);border-left:3px solid ${cor};gap:14px">
-        ${badge(label, cor)}
-        <div>
-          <span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${escHtml(pm?.posto||'')}</span>
-          <span style="font-size:20px;font-weight:700;color:var(--tx);margin-left:6px;cursor:pointer" onclick="openProntuario('${_esc2(a.re)}')">${escHtml(pm?.nome_guerra||pm?.nome||a.re)}</span>
-          ${pm?.opm ? `<div style="font-size:17px;color:var(--tx3);margin-top:2px">${escHtml(pm.opm)}</div>` : ''}
-        </div>
-        <div style="font-size:19px;color:var(--tx3);text-align:right;white-space:nowrap">Inicia em <b style="color:${cor}">${diasAte}d</b> · ${fmtDate(a.inicio)} → ${fmtDate(a.termino)}</div>
-      </div>` });
-    });
-  }
-
-  const nextItems = bottomItems.filter(i => i.order >= 3); // próximos afastamentos
-
-  const mkBlock = (titulo, cor, items) => !items.length ? '' : `
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-top:14px;overflow:hidden">
-      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:${cor};padding:10px 16px 8px;text-transform:uppercase;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px">
-        <span>${titulo}</span>
-        <span style="background:${cor}28;color:${cor};border-radius:20px;padding:1px 10px;font-size:17px;letter-spacing:0">${items.length}</span>
-      </div>
-      ${items.sort((a,b)=>a.order-b.order).map(i=>i.html).join('')}
-    </div>`;
-
-  const bottomSection = p1SomenteQuantitativo() ? '' :
-    emAfastamentoHtml +
-    mkBlock('Próximos Afastamentos — 30 dias', '#5a9de0', nextItems);
-
-  bodyEl.innerHTML = claroSection + `
-    <div style="margin-bottom:6px">
-      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia${p1SomenteQuantitativo() ? '' : ' <span style="font-weight:400">· clique na sub-unidade para ver os PMs</span>'}</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
-        ${ciaCards}${unmatchedCards}
-      </div>
-    </div>
-    <div id="p1-unit-detail"></div>
-    ${bottomSection}`;
+  // A grade "Efetivo por Companhia" saiu daqui — agora vive dentro do
+  // detalhe do KPI "Efetivo" (p1ShowKpiDetail('total') → p1CiaGridHtml()).
+  bodyEl.innerHTML = claroSection;
 
   // Mostra botão exportar quando há dados (oculto para comandantes — exportação contém dados nominais)
   const btnE = document.getElementById('btn-exportar-p1');
@@ -1279,12 +938,10 @@ function p1IasKpiCardHtml() {
 function closeP1Detail() {
   const mo = document.getElementById('p1-detail-mo');
   if (mo) { mo.classList.remove('on'); document.body.style.overflow = ''; }
-  _p1TotalDetCia = -1; _p1TotalDetGen = null; _p1TotalDetMun = null; _p1TotalDetPosto = null;
   _p1TotalDetCursoInt = null; _p1TotalDetCursoExt = null; _p1TotalDetBusca = null;
   _p1IasDetSit = null; _p1IasDetCia = -1; _p1IasDetMun = null; _p1IasDetPosto = null;
   _p1AfastDetCia = -1; _p1AfastDetMun = null; _p1AfastDetPosto = null;
   _p1EapDetCia = -1; _p1EapDetMun = null; _p1EapDetPosto = null;
-  _p1FeriasDetCia = -1; _p1FeriasDetMun = null; _p1FeriasDetPosto = null;
 }
 
 
@@ -1373,13 +1030,12 @@ function p1ShowKpiDetail(tipo) {
   if (!mo) return;
 
   const KPI_META = {
-    total:    { title: 'TODO O EFETIVO',       color: 'var(--gold)' },
+    total:    { title: 'EFETIVO',              color: 'var(--gold)' },
     aptos:    { title: 'APTOS OPERACIONAL',     color: '#4bc87a' },
     afastados:{ title: 'AFASTAMENTOS',         color: '#e05555' },
     restricao:{ title: 'EM RESTRIÇÃO',         color: '#c8a84b' },
     eap:      { title: `EAP / TAF / TAT ${new Date().getFullYear()}`, color: '#c8a84b' },
     ias:      { title: 'IAS · INSPEÇÃO ANUAL DE SAÚDE', color: '#5a9de0' },
-    ferias:   { title: 'CONTROLE DE FÉRIAS',   color: '#5a9de0' },
     quadro:   { title: 'CLARO DO EFETIVO', color: '#4bc87a' },
   };
   const meta = KPI_META[tipo] || { title: tipo.toUpperCase(), color: 'var(--tx)' };
@@ -1406,18 +1062,6 @@ function p1ShowKpiDetail(tipo) {
   let html = '';
 
   if (tipo === 'total') {
-    const genNorm = g => { const s = (g||'').toLowerCase().trim(); if (s.startsWith('f')) return 'F'; if (s.startsWith('m')) return 'M'; return null; };
-    const getCiaTot = opm => {
-      if (!opm || typeof CIA_STRUCT === 'undefined') return -1;
-      return CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
-    };
-    const getMunTot = opm => { if (!opm) return null; const p = opm.split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
-
-    const baseList = dataF.map(r => ({ r, ciaIdx: getCiaTot(r.opm), gen: genNorm(r.genero), mun: getMunTot(r.opm), posto: r.posto }));
-
-    const cntF = baseList.filter(x => x.gen === 'F').length;
-    const cntM = baseList.filter(x => x.gen === 'M').length;
-
     // Filtro por curso interno/externo (prod_cursos, carregado junto com o
     // resto do P1) — dois seletores independentes, combinados com E quando
     // os dois estão ativos.
@@ -1428,63 +1072,30 @@ function p1ShowKpiDetail(tipo) {
     const reComCursoInt = _p1TotalDetCursoInt ? new Set(cursosInt.filter(c => c.nome_curso === _p1TotalDetCursoInt).map(c => c.re_pm)) : null;
     const reComCursoExt = _p1TotalDetCursoExt ? new Set(cursosExt.filter(c => c.nome_curso === _p1TotalDetCursoExt).map(c => c.re_pm)) : null;
 
-    const filtro = p1FiltroCMP(baseList, _p1TotalDetCia, _p1TotalDetMun, _p1TotalDetPosto, 'p1TotalSetCia', 'p1TotalSetMun', 'p1TotalSetPosto');
-    _p1TotalDetCia = filtro.cia; _p1TotalDetMun = filtro.mun; _p1TotalDetPosto = filtro.posto;
+    let filtered = dataF.slice();
+    if (reComCursoInt) filtered = filtered.filter(r => reComCursoInt.has(r.re));
+    if (reComCursoExt) filtered = filtered.filter(r => reComCursoExt.has(r.re));
 
-    let filtered = baseList;
-    if (_p1TotalDetCia >= 0) filtered = filtered.filter(x => x.ciaIdx === _p1TotalDetCia);
-    if (_p1TotalDetGen)      filtered = filtered.filter(x => x.gen === _p1TotalDetGen);
-    if (_p1TotalDetMun)      filtered = filtered.filter(x => x.mun === _p1TotalDetMun);
-    if (_p1TotalDetPosto)    filtered = filtered.filter(x => x.posto === _p1TotalDetPosto);
-    if (reComCursoInt)       filtered = filtered.filter(x => reComCursoInt.has(x.r.re));
-    if (reComCursoExt)       filtered = filtered.filter(x => reComCursoExt.has(x.r.re));
-
-    // Busca por nome/RE é dado nominal — nunca disponibilizar (nem a lista
-    // de sugestão no DOM, nem o filtro) pra quem só tem acesso "Só números";
-    // mesmo padrão de p1SearchInput, que já bloqueia isso na busca global.
+    // Busca por nome/RE é dado nominal — bloqueada pra quem só tem acesso
+    // "Só números" (nem a lista de sugestão vai pro DOM).
     const somenteQtdBusca = p1SomenteQuantitativo();
-    // Lista de sugestão vem do que já está filtrado pelos outros critérios
-    // (CIA/gênero/município/posto/curso) — igual ao padrão dos outros filtros
-    // dessa tela, refina em cima do que já foi reduzido em vez de sempre
-    // sugerir o efetivo inteiro. Usa o NOME COMPLETO (não o QRA/nome de
-    // guerra) como valor da opção — o filtro nativo do navegador (o que
-    // aparece na lista suspensa enquanto digita) casa contra o texto da
-    // opção, então "LUAN" só encontrava quem tem "Luan" no QRA se a opção
-    // fosse o QRA; com o nome completo, casa em qualquer parte do nome de
-    // qualquer PM, igual ao filtro de verdade (que já checa nome e QRA).
-    const listaNomesBusca = somenteQtdBusca ? [] : [...new Set(filtered.map(x => x.r.nome).filter(Boolean))].sort((a,b) => a.localeCompare(b));
+    const listaNomesBusca = somenteQtdBusca ? [] : [...new Set(filtered.map(r => r.nome).filter(Boolean))].sort((a,b) => a.localeCompare(b));
     if (!somenteQtdBusca && _p1TotalDetBusca) {
       const q = _p1TotalDetBusca.toLowerCase();
       const isReQ = /^\d+$/.test(q);
-      filtered = filtered.filter(x => isReQ
-        ? (x.r.re || '').toLowerCase().startsWith(q)
-        : (x.r.nome || '').toLowerCase().includes(q) || (x.r.nome_guerra || '').toLowerCase().includes(q));
+      filtered = filtered.filter(r => isReQ
+        ? (r.re || '').toLowerCase().startsWith(q)
+        : (r.nome || '').toLowerCase().includes(q) || (r.nome_guerra || '').toLowerCase().includes(q));
     }
 
-    const btnBase = (lbl, cor, on, onclick) =>
-      `<button onclick="${onclick}" style="padding:8px 18px;background:${on?cor+'22':'var(--s2)'};border:1px solid ${on?cor:cor+'44'};color:${on?cor:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
     const gridRow = (lbl, btns) =>
       `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
         <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
       </div>`;
-
-    const genBtns = [
-      btnBase(`FEMININO <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cntF}</span>`, '#e91e8c', _p1TotalDetGen === 'F', "p1TotalSetGen('F')"),
-      btnBase(`MASCULINO <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cntM}</span>`, '#5a9de0', _p1TotalDetGen === 'M', "p1TotalSetGen('M')"),
-    ].join('');
-
     // input+datalist: digita pra filtrar a lista suspensa ao vivo, mas
-    // continua mostrando a lista inteira ao focar/clicar (comportamento
-    // nativo do navegador) — em vez de um <select> que só rola. Reaproveitado
-    // tanto pros filtros de curso (seleção exata de um item) quanto pra busca
-    // de nome/RE (texto livre, casa por trecho — ver filtro de _p1TotalDetBusca acima).
-    // Placeholder curto o bastante pra nunca clipar (inputs de largura
-    // variável dependendo da tela) — texto longo com contagem dinâmica
-    // ("Buscar entre 352 PMs...") cortava sem reticências, já que o
-    // navegador não aplica "..." em placeholder por padrão. A contagem
-    // continua disponível no rótulo do campo (ex: "N PMs" abaixo), não
-    // precisa repetir dentro do placeholder.
+    // mostra a lista inteira ao focar (comportamento nativo). Serve tanto
+    // pros filtros de curso quanto pra busca livre de nome/RE.
     const inputBusca = (id, lista, valor, onchangeFn, placeholder) => `
       <div style="display:flex;gap:6px;align-items:center;max-width:100%">
         <input type="text" list="${id}-list" value="${escHtml(valor || '')}"
@@ -1505,17 +1116,25 @@ function p1ShowKpiDetail(tipo) {
       return `<div title="${escHtml(r.opm||'')}" style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${escHtml(r.opm||'—')}</div>${s}`;
     };
 
-    const tabelaTotalHtml = p1SomenteQuantitativo()
+    // A tela padrão do detalhe é a grade "EM + todas as CIAs". A lista de
+    // PMs (fotos) só aparece quando há filtro ativo (busca por nome/RE ou
+    // curso) — sem filtro seria o efetivo inteiro, que a grade já resume.
+    const temFiltro = !!(_p1TotalDetBusca || _p1TotalDetCursoInt || _p1TotalDetCursoExt);
+    const listaPmHtml = !temFiltro ? '' : (somenteQtdBusca
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
-      : p1CardGrid(filtered.map(({r}) => r), totalInfo);
+      : `<div style="margin-bottom:18px">
+          <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px">Resultado — ${filtered.length}</div>
+          ${p1CardGrid(filtered, totalInfo)}
+        </div>`);
 
-    html = wrapDetail('Todo o Efetivo', filtered.length, '#c8a84b', closeBtn, `
-      ${filtro.html}
+    // Ordem: filtros → (resultado da busca, se houver) → grade "Efetivo por
+    // Companhia" (com drill-down por sub-unidade no #p1-unit-detail).
+    html = wrapDetail('Efetivo', filtered.length, '#c8a84b', closeBtn, `
       ${buscaNomeRow}
-      ${gridRow('GÊNERO', genBtns)}
       ${cursosIntRow}
       ${cursosExtRow}
-      ${tabelaTotalHtml}`);
+      ${listaPmHtml}
+      ${p1CiaGridHtml()}`);
   }
 
   else if (tipo === 'afastados') {
@@ -1761,87 +1380,6 @@ function p1ShowKpiDetail(tipo) {
         ${filtroIas.html}
         ${tabelaIasHtml}`);
     }
-  }
-
-  else if (tipo === 'ferias') {
-    const getMunFer = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
-    const getCiaFer = opm => (typeof CIA_STRUCT === 'undefined' || !opm) ? -1 : CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
-    const pmOfFer = re => p1Data.find(r => r.re === re);
-
-    // Mesmo fix do card na tela inicial: reSetF já cobre o efetivo_pm
-    // atual com ou sem filtro de OPM — sem isso, afastamento de RE que já
-    // não existe mais no efetivo_pm entrava aqui mesmo assim.
-    const afastsF = p1Afasts.filter(a => reSetF.has(a.re));
-    const em15s   = (() => { const d = new Date(); d.setDate(d.getDate()+15); return d.toISOString().split('T')[0]; })();
-    let gozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && (!a.termino || a.termino >= hoje));
-    let prox    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio > hoje && a.inicio <= em15s);
-    const resFer  = new Set(p1Afasts.filter(a => isFer(a.tipo_afastamento) && (a.inicio||'').startsWith(String(anoAtual))).map(a => a.re));
-    let semFer  = dataF.filter(r => !resFer.has(r.re));
-
-    const baseFer = dataF.map(r => ({ r, ciaIdx: getCiaFer(r.opm), mun: getMunFer(r.opm), posto: r.posto }));
-    const filtroFer = p1FiltroCMP(baseFer, _p1FeriasDetCia, _p1FeriasDetMun, _p1FeriasDetPosto, 'p1FeriasSetCia', 'p1FeriasSetMun', 'p1FeriasSetPosto');
-    _p1FeriasDetCia = filtroFer.cia; _p1FeriasDetMun = filtroFer.mun; _p1FeriasDetPosto = filtroFer.posto;
-
-    if (_p1FeriasDetCia >= 0) {
-      gozo   = gozo.filter(a => getCiaFer(pmOfFer(a.re)?.opm) === _p1FeriasDetCia);
-      prox   = prox.filter(a => getCiaFer(pmOfFer(a.re)?.opm) === _p1FeriasDetCia);
-      semFer = semFer.filter(r => getCiaFer(r.opm) === _p1FeriasDetCia);
-    }
-    if (_p1FeriasDetMun) {
-      gozo   = gozo.filter(a => getMunFer(pmOfFer(a.re)?.opm) === _p1FeriasDetMun);
-      prox   = prox.filter(a => getMunFer(pmOfFer(a.re)?.opm) === _p1FeriasDetMun);
-      semFer = semFer.filter(r => getMunFer(r.opm) === _p1FeriasDetMun);
-    }
-    if (_p1FeriasDetPosto) {
-      gozo   = gozo.filter(a => pmOfFer(a.re)?.posto === _p1FeriasDetPosto);
-      prox   = prox.filter(a => pmOfFer(a.re)?.posto === _p1FeriasDetPosto);
-      semFer = semFer.filter(r => r.posto === _p1FeriasDetPosto);
-    }
-    const filtroBarFer = filtroFer.html;
-
-    // Junta o registro de afastamento com o cadastro da pessoa, pra virar card.
-    const ferCardData = list => list.map(a => {
-      const pm = p1Data.find(r => r.re === a.re);
-      return { re: a.re, nome: pm?.nome || a.nome, nome_guerra: pm?.nome_guerra, posto: pm?.posto, opm: pm?.opm || a.opm, _afast: a };
-    });
-    const ferInfo = showDias => r => {
-      const a = r._afast;
-      const dias = a.termino ? Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000) : null;
-      return `<div title="${escHtml(r.opm||'')}" style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${escHtml(r.opm||'—')}</div>
-        <div style="font-size:10px;font-family:'DM Mono',monospace;color:${showDias && dias!==null && dias<=3?'#4bc87a':'var(--tx3)'}">${fmtD(a.inicio)} → ${showDias && dias!==null ? dias+'d rest.' : fmtD(a.termino)}</div>`;
-    };
-
-    let inner = '';
-    if (p1SomenteQuantitativo()) {
-      inner = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:14px 12px">
-        <div style="background:var(--bg2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:8px;padding:14px 16px">
-          <div style="font-family:'DM Mono',monospace;font-size:15px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Em Gozo</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#5a9de0;line-height:1">${gozo.length}</div>
-        </div>
-        <div style="background:var(--bg2);border:1px solid var(--bd);border-top:3px solid #c8a84b;border-radius:8px;padding:14px 16px">
-          <div style="font-family:'DM Mono',monospace;font-size:15px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Iniciam em 15d</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#c8a84b;line-height:1">${prox.length}</div>
-        </div>
-        <div style="background:var(--bg2);border:1px solid var(--bd);border-top:3px solid #e05555;border-radius:8px;padding:14px 16px">
-          <div style="font-family:'DM Mono',monospace;font-size:15px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Sem Férias ${anoAtual}</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#e05555;line-height:1">${semFer.length}</div>
-        </div>
-      </div>
-      <div style="padding:12px 16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA</div>`;
-    } else {
-      if (gozo.length) inner += `
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#5a9de0;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Em Gozo — ${gozo.length}</div>
-        <div style="padding:0 12px 12px">${p1CardGrid(ferCardData(gozo), ferInfo(true))}</div>`;
-      if (prox.length) inner += `
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#c8a84b;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Iniciando em 15 dias — ${prox.length}</div>
-        <div style="padding:0 12px 12px">${p1CardGrid(ferCardData(prox), ferInfo(false))}</div>`;
-      if (semFer.length) {
-        inner += `
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#e05555;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Sem Férias em ${anoAtual} — ${semFer.length}</div>
-          <div style="padding:0 12px 12px">${p1CardGrid(semFer)}</div>`;
-      }
-    }
-    html = wrapDetail('Controle de Férias', null, '#5a9de0', closeBtn, filtroBarFer + inner);
   }
 
   else if (tipo === 'quadro') {
@@ -3157,6 +2695,132 @@ async function p1RemoveFoto() {
   }
 }
 
+// Grade "Efetivo por Companhia" — cards de CIA (com sub-unidades clicáveis)
+// + OPMs não mapeadas. Antes ficava na home do P1; agora vive dentro do
+// detalhe do KPI "Efetivo". Lê de p1ByUnit / p1AfastHoje (populados em
+// renderP1); os cliques (p1ShowByKeys / p1ShowUnit) escrevem no
+// #p1-unit-detail incluído no fim do retorno.
+function p1CiaGridHtml() {
+  const byUnit = p1ByUnit || {};
+  const afastHoje = p1AfastHoje || {};
+  const CATS = { cbsd: 'Cb / Sd', sgt: 'Sargentos', sub: 'Subtenentes', of: 'Oficiais' };
+  const CATS_COLOR = { cbsd: '#4bc87a', sgt: '#e05555', sub: '#5a9de0', of: '#c8a84b' };
+  const count = (arr, cat) => arr.filter(r => p1Cat(r.posto) === cat).length;
+  const unitsSorted = Object.entries(byUnit).sort((a, b) => b[1].length - a[1].length);
+  const getPms = keys => Object.entries(byUnit).filter(([opm]) => _opmMatch(opm, keys)).flatMap(([,arr]) => arr);
+  const statsOf = pms => {
+    const afst_ = pms.filter(r => afastHoje[r.re]).length;
+    const restr_ = pms.filter(p1RestrRua).length;
+    const aptos_ = pms.length - afst_;
+    const pct_   = pms.length ? Math.round(aptos_ / pms.length * 100) : 0;
+    const color_ = pct_ >= 85 ? '#4bc87a' : pct_ >= 70 ? '#c8a84b' : '#e8b840';
+    return { afst: afst_, restr: restr_, aptos: aptos_, pct: pct_, color: color_, total: pms.length };
+  };
+  const allCiaKeys = CIA_STRUCT.flatMap(c => c.units.flatMap(u => u.keys));
+  const unmatchedUnits = unitsSorted.filter(([opm]) => !_opmMatch(opm, allCiaKeys));
+
+  const ciaCards = CIA_STRUCT.map((cia, ci) => {
+    const ciaPms  = getPms(cia.units.flatMap(u => u.keys));
+    if (!ciaPms.length) return '';
+    const s = statsOf(ciaPms);
+    const catLine = Object.keys(CATS).map(k => {
+      const n = ciaPms.filter(r => p1Cat(r.posto) === k).length;
+      return n ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${CATS[k]}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${CATS_COLOR[k]}">${n}</span></div>` : '';
+    }).filter(Boolean).join('');
+
+    const unitBtns = p1SomenteQuantitativo() ? '' : cia.units.map((u, ui) => {
+      const upms = getPms(u.keys);
+      if (!upms.length) return '';
+      const us = statsOf(upms);
+      return `<button class="p1-ubtn" data-ci="${ci}" data-ui="${ui}" onclick="p1ShowByKeys(${ci},${ui},'${u.label.replace(/'/g,"\\'")}');event.stopPropagation()"
+        style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:8px 12px;cursor:pointer;text-align:left;transition:all .15s;color:var(--tx2)"
+        onmouseover="if(!this.classList.contains('sel')){this.style.borderColor='${cia.color}';this.style.color='var(--tx)'}"
+        onmouseout="if(!this.classList.contains('sel')){this.style.borderColor='rgba(255,255,255,.1)';this.style.color='var(--tx2)'}">
+        <div style="font-size:19px;font-weight:600;color:#ffffff;white-space:nowrap">${u.label}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;margin-top:3px;display:flex;gap:8px">
+          <span style="color:#4bc87a">${us.aptos} aptos</span>
+          ${us.afst > 0 ? `<span style="color:#e05555">${us.afst} afst</span>` : ''}
+          ${us.restr > 0 ? `<span style="color:#c8a84b">${us.restr} restr</span>` : ''}
+        </div>
+      </button>`;
+    }).join('');
+
+    return `<div class="p1-uc" data-ci="${ci}"
+      style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${cia.color};border-radius:10px;padding:20px;transition:all .2s;cursor:default"
+      onmouseover="if(!this.classList.contains('sel')){this.style.boxShadow='0 4px 20px rgba(0,0,0,.3)';this.style.transform='translateY(-2px)'}"
+      onmouseout="if(!this.classList.contains('sel')){this.style.boxShadow='';this.style.transform=''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${cia.color};letter-spacing:.5px;line-height:1">${cia.label}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;margin-top:2px">Sede · ${cia.sede}</div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:22px;font-weight:700;color:var(--tx)">${s.total}</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
+        <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;margin-top:1px">APTOS</div>
+        </div>
+        <div style="background:rgba(230,100,100,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.afst>0?'#e05555':'var(--tx3)'};line-height:1">${s.afst}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.afst>0?'#e05555':'var(--tx3)'};margin-top:1px">AFST</div>
+        </div>
+        <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
+        </div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;margin-bottom:12px;line-height:1.8">${catLine}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${unitBtns}</div>
+    </div>`;
+  }).join('');
+
+  const unmatchedCards = unmatchedUnits.map(([unit, d]) => {
+    const s = statsOf(d);
+    const _esc = unit.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const catLine = Object.keys(CATS).map(k => {
+      const n = count(d, k);
+      return n ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${CATS[k]}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${CATS_COLOR[k]}">${n}</span></div>` : '';
+    }).filter(Boolean).join('');
+    return `<div class="p1-uc" data-unit="${escHtml(unit)}" onclick="p1ShowUnit('${_esc}')"
+      style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${s.color};border-radius:10px;padding:20px;cursor:pointer;transition:all .2s"
+      onmouseover="if(!this.classList.contains('sel')){this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)';this.style.transform='translateY(-2px)'}"
+      onmouseout="if(!this.classList.contains('sel')){this.style.boxShadow='';this.style.transform=''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">40º BPM/I</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${s.color};letter-spacing:.5px;line-height:1">${escHtml(unit)}</div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:19px;color:var(--tx3);text-align:right">efetivo<br><span style="font-size:22px;font-weight:700;color:var(--tx)">${d.length}</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px;text-align:center">
+        <div style="background:rgba(75,200,122,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4bc87a;line-height:1">${s.aptos}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#4bc87a;margin-top:1px">APTOS</div>
+        </div>
+        <div style="background:rgba(230,100,100,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.afst>0?'#e05555':'var(--tx3)'};line-height:1">${s.afst}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.afst>0?'#e05555':'var(--tx3)'};margin-top:1px">AFST</div>
+        </div>
+        <div style="background:rgba(200,168,75,.07);border-radius:5px;padding:7px 4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${s.restr>0?'#c8a84b':'var(--tx3)'};line-height:1">${s.restr}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;color:${s.restr>0?'#c8a84b':'var(--tx3)'};margin-top:1px">RESTR</div>
+        </div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:19px;color:#ffffff;border-top:1px solid rgba(255,255,255,.05);padding-top:10px;line-height:1.8">${catLine || '—'}</div>
+    </div>`;
+  }).join('');
+
+  return `<div style="margin-bottom:6px">
+      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia${p1SomenteQuantitativo() ? '' : ' <span style="font-weight:400">· clique na sub-unidade para ver os PMs</span>'}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+        ${ciaCards}${unmatchedCards}
+      </div>
+    </div>
+    <div id="p1-unit-detail"></div>`;
+}
+
 // Expande painel de efetivo por unidade com cards fotográficos
 function p1CloseUnit() {
   const det = document.getElementById('p1-unit-detail');
@@ -3321,9 +2985,9 @@ function renderHome() {
       ...unmatchedOpms.map(opm => makeRow(opm, 'var(--tx3)', p1Data.filter(r => r.opm === opm)))
     ].filter(Boolean).join('');
 
-    // Cidades mais críticas em Cb/Sd (maior % de claro em relação ao
-    // efetivo fixado) — só Cb/Sd, top 3, pedido explícito do usuário. Usa
-    // p1_quadro_fixado (mesma fonte do KPI "Quadro Fixado do Efetivo").
+    // Cidades com os maiores claros em Cb/Sd (maior % de claro em relação
+    // ao efetivo fixado) — só Cb/Sd, top 3, pedido explícito do usuário. Usa
+    // p1_quadro_fixado (mesma fonte do KPI "Claro do Efetivo").
     let cidadesCriticasHtml = '';
     if (typeof p1Quadro !== 'undefined' && p1Quadro && p1Quadro.length) {
       const cidadesCriticas = p1Quadro.map(q => {
@@ -3335,7 +2999,7 @@ function renderHome() {
       if (cidadesCriticas.length) {
         cidadesCriticasHtml = `
           <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)">
-            <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase">Mais críticas · Cb/Sd</div>
+            <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase">Maiores claros · Cb / Sd</div>
             ${cidadesCriticas.map(d => `<div style="display:flex;justify-content:space-between;align-items:center;font-family:'DM Mono',monospace;font-size:17px;margin-bottom:3px">
               <span style="color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%">${escHtml(d.mun)}</span>
               <span style="color:#e05555;font-weight:700">−${d.claro} <span style="color:var(--tx3);font-weight:400">(${d.pct}%)</span></span>
