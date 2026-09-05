@@ -1116,24 +1116,25 @@ function p1ShowKpiDetail(tipo) {
       return `<div title="${escHtml(r.opm||'')}" style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${escHtml(r.opm||'—')}</div>${s}`;
     };
 
+    // A tela padrão do detalhe é a grade "EM + todas as CIAs". A lista de
+    // PMs (fotos) só aparece quando há filtro ativo (busca por nome/RE ou
+    // curso) — sem filtro seria o efetivo inteiro, que a grade já resume.
     const temFiltro = !!(_p1TotalDetBusca || _p1TotalDetCursoInt || _p1TotalDetCursoExt);
-    const listaTitulo = temFiltro ? `Resultado — ${filtered.length}` : `Todo o efetivo — ${filtered.length}`;
-    const listaPmHtml = somenteQtdBusca
+    const listaPmHtml = !temFiltro ? '' : (somenteQtdBusca
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
-      : `<div style="margin-top:16px">
-          <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px">${listaTitulo}</div>
+      : `<div style="margin-bottom:18px">
+          <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px">Resultado — ${filtered.length}</div>
           ${p1CardGrid(filtered, totalInfo)}
-        </div>`;
+        </div>`);
 
-    // Ordem: filtros → grade "Efetivo por Companhia" (com drill-down por
-    // sub-unidade no #p1-unit-detail) → lista de PMs (fotos), filtrável pela
-    // busca de nome/RE e pelos cursos.
+    // Ordem: filtros → (resultado da busca, se houver) → grade "Efetivo por
+    // Companhia" (com drill-down por sub-unidade no #p1-unit-detail).
     html = wrapDetail('Efetivo', filtered.length, '#c8a84b', closeBtn, `
       ${buscaNomeRow}
       ${cursosIntRow}
       ${cursosExtRow}
-      ${p1CiaGridHtml()}
-      ${listaPmHtml}`);
+      ${listaPmHtml}
+      ${p1CiaGridHtml()}`);
   }
 
   else if (tipo === 'afastados') {
