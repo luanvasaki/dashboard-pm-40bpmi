@@ -366,10 +366,11 @@ function renderP1() {
   // ativo (aí o % mostra a fatia real daquela OPM dentro do batalhão).
   const totalGeral = p1Data.length;
   const pctDe = n => totalGeral > 0 ? Math.round(n / totalGeral * 100) : 0;
-  // Sufixo "(N%)" pequeno pra colar num valor dentro do card. `tip` vira o
-  // title (tooltip no hover) explicando de que a porcentagem é relação.
+  // Sufixo "N%" pra colar num valor dentro do card — branco, negrito, quase
+  // do tamanho do número ao lado (mesmo padrão do card "Claro do Efetivo").
+  // `tip` vira o data-tip do tooltip escuro (.kpi-pct::after) no hover.
   const pctTag = (n, base, tip) => base > 0
-    ? ` <span title="${escHtml(tip)}" style="font-size:13px;color:var(--tx3);font-weight:400;cursor:help">${Math.round(n / base * 100)}%</span>`
+    ? ` <span class="kpi-pct" data-tip="${escHtml(tip)}" style="font-size:19px;color:#ffffff;font-weight:700">${Math.round(n / base * 100)}%</span>`
     : '';
 
   // ── KPI cards (clicáveis)
@@ -383,7 +384,7 @@ function renderP1() {
     return `<div onclick="p1ShowKpiDetail('${key}')" class="kpi">
       <div class="kpi-top"></div>
       <div class="kpi-lbl">${label}</div>
-      <div class="kpi-val">${val}${pct != null ? `<span title="${pct}% do efetivo total do batalhão (${totalGeral} PMs)" style="font-size:16px;color:var(--tx3);font-weight:600;margin-left:6px;cursor:help">${pct}%</span>` : ''}</div>
+      <div class="kpi-val">${val}${pct != null ? `<span class="kpi-pct" data-tip="${pct}% do efetivo total do batalhão (${totalGeral} PMs)" style="font-size:32px;color:#ffffff;font-weight:700;margin-left:8px">${pct}%</span>` : ''}</div>
       ${sub ? `<div class="kpi-sub" style="line-height:1.7;width:100%">${sub}</div>` : ''}
       <div class="kpi-hint">▸ clique p/ detalhes</div>
     </div>`;
