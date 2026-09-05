@@ -1380,7 +1380,7 @@ function p1ShowKpiDetail(tipo) {
     eap:      { title: `EAP / TAF / TAT ${new Date().getFullYear()}`, color: '#c8a84b' },
     ias:      { title: 'IAS · INSPEÇÃO ANUAL DE SAÚDE', color: '#5a9de0' },
     ferias:   { title: 'CONTROLE DE FÉRIAS',   color: '#5a9de0' },
-    quadro:   { title: 'QUADRO FIXADO DO EFETIVO', color: '#4bc87a' },
+    quadro:   { title: 'CLARO DO EFETIVO', color: '#4bc87a' },
   };
   const meta = KPI_META[tipo] || { title: tipo.toUpperCase(), color: 'var(--tx)' };
   document.getElementById('p1d-accent').style.background = meta.color;
