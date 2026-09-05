@@ -514,10 +514,10 @@ function renderP1() {
         const pct    = d.fx > 0 ? Math.round(Math.abs(saldo) / d.fx * 100) : 0;
         const pctStr = saldo === 0 ? '0%' : `${saldo > 0 ? '−' : '+'}${pct}%`;
         const pctCor = saldo > 0 ? '#4bc87a' : saldo < 0 ? '#e05555' : 'var(--tx3)'; // verde = vaga sobrando · vermelho = efetivo a mais
-        return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:${ciaCor};font-size:17px;font-weight:700">${cia}</span><span style="font-weight:700;font-size:18px"><span style="color:#ffffff">${d.ex}</span> <span style="color:${pctCor};font-family:'DM Mono',monospace;font-size:15px;font-weight:600">${pctStr}</span></span></div>`;
+        return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:${ciaCor};font-size:17px;font-weight:700">${cia}</span><span style="font-weight:700;font-size:18px"><span style="color:#ffffff">${d.ex}</span> <span style="color:${pctCor};font-family:'DM Mono',monospace;font-size:19px;font-weight:700">${pctStr}</span></span></div>`;
       }).join('');
       const sub = ciaExRows + `<div style="margin-top:6px">${_kpiRow('FX Total', gtFx, '#ffffff')}${_kpiRow('EX Total', gtEx, '#ffffff')}</div>`;
-      return kpiCard('Quadro Fixado', gtEx, sub, 'var(--tx)', 'quadro');
+      return kpiCard('Claro do Efetivo', gtEx, sub, 'var(--tx)', 'quadro');
     })();
 
   const thS = 'padding:8px 12px;border-bottom:1px solid var(--bd2);font-family:"DM Mono",monospace;font-size:19px;color:#ffffff;letter-spacing:1px;text-transform:uppercase;text-align:right';
@@ -1380,7 +1380,7 @@ function p1ShowKpiDetail(tipo) {
     eap:      { title: `EAP / TAF / TAT ${new Date().getFullYear()}`, color: '#c8a84b' },
     ias:      { title: 'IAS · INSPEÇÃO ANUAL DE SAÚDE', color: '#5a9de0' },
     ferias:   { title: 'CONTROLE DE FÉRIAS',   color: '#5a9de0' },
-    quadro:   { title: 'QUADRO FIXADO DO EFETIVO', color: '#4bc87a' },
+    quadro:   { title: 'CLARO DO EFETIVO', color: '#4bc87a' },
   };
   const meta = KPI_META[tipo] || { title: tipo.toUpperCase(), color: 'var(--tx)' };
   document.getElementById('p1d-accent').style.background = meta.color;
@@ -1928,7 +1928,7 @@ function p1ShowKpiDetail(tipo) {
           <span style="font-size:19px;font-weight:700;color:${cor}">${r.cia}</span>
           ${bar}
         </div>
-        <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:800;color:${valColor};white-space:nowrap">${r.claro > 0 ? r.claro : r.claro < 0 ? `+${Math.abs(r.claro)}` : '—'} <span style="font-size:17px;font-weight:400;color:#ffffff">(${dev.toFixed(0)}%)</span></span>
+        <span style="font-family:'DM Mono',monospace;font-size:19px;font-weight:800;color:${valColor};white-space:nowrap">${r.claro > 0 ? `−${r.claro}` : r.claro < 0 ? `+${Math.abs(r.claro)}` : '—'} <span style="font-size:17px;font-weight:400;color:#ffffff">(${dev.toFixed(0)}%)</span></span>
       </div>`;
     }).join('');
 
@@ -1962,7 +1962,7 @@ function p1ShowKpiDetail(tipo) {
             <span style="font-size:15px;color:${cor};margin-left:5px">${r.cia}</span>
             ${bar}
           </div>
-          <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:800;color:${valColor};white-space:nowrap">${r.claro>0?r.claro:r.claro<0?`+${Math.abs(r.claro)}`:'—'} <span style="font-size:15px;font-weight:400;color:#ffffff">(${dev.toFixed(0)}%)</span></span>
+          <span style="font-family:'DM Mono',monospace;font-size:17px;font-weight:800;color:${valColor};white-space:nowrap">${r.claro>0?`−${r.claro}`:r.claro<0?`+${Math.abs(r.claro)}`:'—'} <span style="font-size:15px;font-weight:400;color:#ffffff">(${dev.toFixed(0)}%)</span></span>
         </div>`;
       }).join('');
 
@@ -1976,24 +1976,32 @@ function p1ShowKpiDetail(tipo) {
         return { mun:q.municipio||q.opm||'—', cia:getCia(q), claro:fx-ex, fx };
       }).sort((a,b)=>(b.fx>0?b.claro/b.fx:0)-(a.fx>0?a.claro/a.fx:0));
 
+      // Título do bloco + legenda "Claro" alinhada à direita, sobre a coluna
+      // de valores (claro absoluto). Verde = −N (vagas em aberto) · vermelho
+      // = +N (efetivo acima do fixado) — mesma convenção da tabela abaixo.
+      const rankHdr = name => `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+            <span style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase">${name}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:14px;letter-spacing:1px;color:var(--tx3);text-transform:uppercase">Claro</span>
+          </div>`;
+
       rankHtml = `
         <div style="padding:14px 18px;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:1fr 1fr;gap:24px">
           <div>
-            <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px">Cb / Sd — Por CIA</div>
+            ${rankHdr('Cb / Sd — Por CIA')}
             <div style="display:flex;flex-direction:column;gap:10px">${mkRankByCia(rankCb)}</div>
           </div>
           <div>
-            <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px">Subten / Sgt — Por CIA</div>
+            ${rankHdr('Subten / Sgt — Por CIA')}
             <div style="display:flex;flex-direction:column;gap:10px">${mkRankByCia(rankSub)}</div>
           </div>
         </div>
         <div style="padding:14px 18px;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:1fr 1fr;gap:24px">
           <div>
-            <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px">Cb / Sd — Por Cidade</div>
+            ${rankHdr('Cb / Sd — Por Cidade')}
             <div style="display:flex;flex-direction:column;gap:8px">${mkRankByMun(rankMunCb)}</div>
           </div>
           <div>
-            <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:10px">Subten / Sgt — Por Cidade</div>
+            ${rankHdr('Subten / Sgt — Por Cidade')}
             <div style="display:flex;flex-direction:column;gap:8px">${mkRankByMun(rankMunSub)}</div>
           </div>
         </div>`;
@@ -2078,7 +2086,7 @@ function p1ShowKpiDetail(tipo) {
       <tbody>${bodyQ || '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--tx3);font-size:19px">Nenhum dado. Importe o CSV pelo menu lateral.</td></tr>'}</tbody>
     </table>`;
 
-    html = wrapDetail('Quadro Fixado do Efetivo', null, '#4bc87a', closeBtn, rankHtml + tableHdr);
+    html = wrapDetail('Claro do Efetivo', null, '#4bc87a', closeBtn, rankHtml + tableHdr);
   }
 
   document.getElementById('p1d-body').innerHTML = html;
