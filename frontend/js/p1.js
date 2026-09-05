@@ -357,19 +357,26 @@ function renderP1() {
   };
   const taftatVencidos = dataF.filter(taftatVencFn);
 
-  const CATS = { cbsd: 'Cb / Sd', sgt: 'Sargentos', sub: 'Subtenentes', of: 'Oficiais' };
-  const CATS_COLOR = { cbsd: '#4bc87a', sgt: '#e05555', sub: '#5a9de0', of: '#c8a84b' };
+  // Graduação agrupada pro card — Subtenente e Sargento no mesmo grupo
+  // "Subten / Sgt" (mesma quebra do card "Claro do Efetivo").
   const count = (arr, cat) => arr.filter(r => p1Cat(r.posto) === cat).length;
+  const P1_GRAD_GRUPOS = [
+    { lbl: 'Cb / Sd',      cor: '#4bc87a', cats: ['cbsd'] },
+    { lbl: 'Subten / Sgt', cor: '#5a9de0', cats: ['sub', 'sgt'] },
+    { lbl: 'Oficiais',     cor: '#c8a84b', cats: ['of'] },
+  ];
+  const countGrupo = (arr, g) => g.cats.reduce((s, c) => s + count(arr, c), 0);
   const total = dataF.length;
   // Efetivo total SEM filtro de OPM — denominador fixo do "% do efetivo"
   // em cada card, pra não virar 100% sempre que um filtro de OPM estiver
   // ativo (aí o % mostra a fatia real daquela OPM dentro do batalhão).
   const totalGeral = p1Data.length;
   const pctDe = n => totalGeral > 0 ? Math.round(n / totalGeral * 100) : 0;
-  // Sufixo "(N%)" pequeno pra colar num valor dentro do card. `tip` vira o
-  // title (tooltip no hover) explicando de que a porcentagem é relação.
+  // Sufixo "N%" pra colar num valor dentro do card — branco, negrito, quase
+  // do tamanho do número ao lado (mesmo padrão do card "Claro do Efetivo").
+  // `tip` vira o data-tip do tooltip escuro (.kpi-pct::after) no hover.
   const pctTag = (n, base, tip) => base > 0
-    ? ` <span title="${escHtml(tip)}" style="font-size:13px;color:var(--tx3);font-weight:400;cursor:help">${Math.round(n / base * 100)}%</span>`
+    ? ` <span class="kpi-pct" data-tip="${escHtml(tip)}" style="font-size:19px;color:#ffffff;font-weight:700">${Math.round(n / base * 100)}%</span>`
     : '';
 
   // ── KPI cards (clicáveis)
@@ -383,7 +390,7 @@ function renderP1() {
     return `<div onclick="p1ShowKpiDetail('${key}')" class="kpi">
       <div class="kpi-top"></div>
       <div class="kpi-lbl">${label}</div>
-      <div class="kpi-val">${val}${pct != null ? `<span title="${pct}% do efetivo total do batalhão (${totalGeral} PMs)" style="font-size:16px;color:var(--tx3);font-weight:600;margin-left:6px;cursor:help">${pct}%</span>` : ''}</div>
+      <div class="kpi-val">${val}${pct != null ? `<span class="kpi-pct" data-tip="${pct}% do efetivo total do batalhão (${totalGeral} PMs)" style="font-size:40px;color:#ffffff;font-weight:700;margin-left:8px">${pct}%</span>` : ''}</div>
       ${sub ? `<div class="kpi-sub" style="line-height:1.7;width:100%">${sub}</div>` : ''}
       <div class="kpi-hint">▸ clique p/ detalhes</div>
     </div>`;
@@ -405,9 +412,9 @@ function renderP1() {
 
   kpisEl.innerHTML =
     kpiCard('Efetivo', total,
-      Object.keys(CATS).filter(k=>count(dataF,k)>0).map(k => {
-        const n = count(dataF,k);
-        return _kpiRow(CATS[k], `${n}${pctTag(n, total, `${CATS[k]}: ${n} de ${total} do efetivo`)}`, CATS_COLOR[k]);
+      P1_GRAD_GRUPOS.map(g => {
+        const n = countGrupo(dataF, g);
+        return n ? _kpiRow(g.lbl, `${n}${pctTag(n, total, `${g.lbl}: ${n} de ${total} do efetivo`)}`, g.cor) : '';
       }).join(''),
       'var(--tx)', 'total', pctDe(total)) +
     kpiCard('Afastamentos', pmAfastados.length, tiposSub, pmAfastados.length > 0 ? '#e05555' : 'var(--tx3)', 'afastados', pctDe(pmAfastados.length)) +
@@ -1088,11 +1095,6 @@ function p1ShowKpiDetail(tipo) {
         : (r.nome || '').toLowerCase().includes(q) || (r.nome_guerra || '').toLowerCase().includes(q));
     }
 
-    const gridRow = (lbl, btns) =>
-      `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px">
-        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
-      </div>`;
     // input+datalist: digita pra filtrar a lista suspensa ao vivo, mas
     // mostra a lista inteira ao focar (comportamento nativo). Serve tanto
     // pros filtros de curso quanto pra busca livre de nome/RE.
@@ -1104,9 +1106,21 @@ function p1ShowKpiDetail(tipo) {
         <datalist id="${id}-list">${lista.map(c => `<option value="${escHtml(c)}">`).join('')}</datalist>
         ${valor ? `<button onclick="${onchangeFn}('')" title="Limpar filtro" style="padding:6px 10px;background:var(--s2);border:1px solid var(--bd);color:var(--tx3);border-radius:6px;cursor:pointer;font-size:15px;flex-shrink:0">✕</button>` : ''}
       </div>`;
-    const buscaNomeRow  = somenteQtdBusca ? '' : gridRow(`BUSCAR PM (NOME OU RE) · ${listaNomesBusca.length}`, inputBusca('p1-total-busca', listaNomesBusca, _p1TotalDetBusca, 'p1TotalSetBusca', 'Nome ou RE...'));
-    const cursosIntRow = listaCursosInt.length ? gridRow(`CURSOS INTERNOS · ${listaCursosInt.length}`, inputBusca('p1-curso-int', listaCursosInt, _p1TotalDetCursoInt, 'p1TotalSetCursoInt', 'Nome do curso...')) : '';
-    const cursosExtRow = listaCursosExt.length ? gridRow(`CURSOS EXTERNOS · ${listaCursosExt.length}`, inputBusca('p1-curso-ext', listaCursosExt, _p1TotalDetCursoExt, 'p1TotalSetCursoExt', 'Nome do curso...')) : '';
+    // Campo (rótulo + input). Os 3 ficam lado a lado num grid que quebra em
+    // telas estreitas, em vez de empilhados um sob o outro.
+    const campoFiltro = (lbl, input) => `
+      <div style="min-width:0">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div>
+        ${input}
+      </div>`;
+    const filtrosCampos = [
+      somenteQtdBusca ? '' : campoFiltro(`BUSCAR PM (NOME OU RE) · ${listaNomesBusca.length}`, inputBusca('p1-total-busca', listaNomesBusca, _p1TotalDetBusca, 'p1TotalSetBusca', 'Nome ou RE...')),
+      listaCursosInt.length ? campoFiltro(`CURSOS INTERNOS · ${listaCursosInt.length}`, inputBusca('p1-curso-int', listaCursosInt, _p1TotalDetCursoInt, 'p1TotalSetCursoInt', 'Nome do curso...')) : '',
+      listaCursosExt.length ? campoFiltro(`CURSOS EXTERNOS · ${listaCursosExt.length}`, inputBusca('p1-curso-ext', listaCursosExt, _p1TotalDetCursoExt, 'p1TotalSetCursoExt', 'Nome do curso...')) : '',
+    ].filter(Boolean).join('');
+    const filtrosHtml = filtrosCampos
+      ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;border-bottom:1px solid var(--bd);padding-bottom:14px;margin-bottom:16px">${filtrosCampos}</div>`
+      : '';
 
     const totalInfo = r => {
       const afst = p1AfastHoje[r.re];
@@ -1130,9 +1144,7 @@ function p1ShowKpiDetail(tipo) {
     // Ordem: filtros → (resultado da busca, se houver) → grade "Efetivo por
     // Companhia" (com drill-down por sub-unidade no #p1-unit-detail).
     html = wrapDetail('Efetivo', filtered.length, '#c8a84b', closeBtn, `
-      ${buscaNomeRow}
-      ${cursosIntRow}
-      ${cursosExtRow}
+      ${filtrosHtml}
       ${listaPmHtml}
       ${p1CiaGridHtml()}`);
   }
@@ -2703,9 +2715,17 @@ async function p1RemoveFoto() {
 function p1CiaGridHtml() {
   const byUnit = p1ByUnit || {};
   const afastHoje = p1AfastHoje || {};
-  const CATS = { cbsd: 'Cb / Sd', sgt: 'Sargentos', sub: 'Subtenentes', of: 'Oficiais' };
-  const CATS_COLOR = { cbsd: '#4bc87a', sgt: '#e05555', sub: '#5a9de0', of: '#c8a84b' };
+  // Graduação agrupada — Subtenente + Sargento juntos ("Subten / Sgt").
   const count = (arr, cat) => arr.filter(r => p1Cat(r.posto) === cat).length;
+  const GRAD_GRUPOS = [
+    { lbl: 'Cb / Sd',      cor: '#4bc87a', cats: ['cbsd'] },
+    { lbl: 'Subten / Sgt', cor: '#5a9de0', cats: ['sub', 'sgt'] },
+    { lbl: 'Oficiais',     cor: '#c8a84b', cats: ['of'] },
+  ];
+  const catLineOf = pms => GRAD_GRUPOS.map(g => {
+    const n = g.cats.reduce((s, c) => s + count(pms, c), 0);
+    return n ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${g.lbl}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${g.cor}">${n}</span></div>` : '';
+  }).filter(Boolean).join('');
   const unitsSorted = Object.entries(byUnit).sort((a, b) => b[1].length - a[1].length);
   const getPms = keys => Object.entries(byUnit).filter(([opm]) => _opmMatch(opm, keys)).flatMap(([,arr]) => arr);
   const statsOf = pms => {
@@ -2723,10 +2743,7 @@ function p1CiaGridHtml() {
     const ciaPms  = getPms(cia.units.flatMap(u => u.keys));
     if (!ciaPms.length) return '';
     const s = statsOf(ciaPms);
-    const catLine = Object.keys(CATS).map(k => {
-      const n = ciaPms.filter(r => p1Cat(r.posto) === k).length;
-      return n ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${CATS[k]}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${CATS_COLOR[k]}">${n}</span></div>` : '';
-    }).filter(Boolean).join('');
+    const catLine = catLineOf(ciaPms);
 
     const unitBtns = p1SomenteQuantitativo() ? '' : cia.units.map((u, ui) => {
       const upms = getPms(u.keys);
@@ -2779,10 +2796,7 @@ function p1CiaGridHtml() {
   const unmatchedCards = unmatchedUnits.map(([unit, d]) => {
     const s = statsOf(d);
     const _esc = unit.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const catLine = Object.keys(CATS).map(k => {
-      const n = count(d, k);
-      return n ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:1px 0"><span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${CATS[k]}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${CATS_COLOR[k]}">${n}</span></div>` : '';
-    }).filter(Boolean).join('');
+    const catLine = catLineOf(d);
     return `<div class="p1-uc" data-unit="${escHtml(unit)}" onclick="p1ShowUnit('${_esc}')"
       style="background:var(--s2);border:1px solid var(--bd);border-top:3px solid ${s.color};border-radius:10px;padding:20px;cursor:pointer;transition:all .2s"
       onmouseover="if(!this.classList.contains('sel')){this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)';this.style.transform='translateY(-2px)'}"
