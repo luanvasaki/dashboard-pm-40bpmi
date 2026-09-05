@@ -94,17 +94,6 @@ function p1EapSetCia(val)   { _p1EapDetCia = (val === '' || val == null) ? -1 : 
 function p1EapSetMun(val)   { _p1EapDetMun = val || null; p1ShowKpiDetail('eap'); }
 function p1EapSetPosto(val) { _p1EapDetPosto = val || null; p1ShowKpiDetail('eap'); }
 
-let _p1FeriasDetCia = -1, _p1FeriasDetMun = null, _p1FeriasDetPosto = null;
-function p1FeriasSetCia(val)   { _p1FeriasDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('ferias'); }
-function p1FeriasSetMun(val)   { _p1FeriasDetMun = val || null; p1ShowKpiDetail('ferias'); }
-function p1FeriasSetPosto(val) { _p1FeriasDetPosto = val || null; p1ShowKpiDetail('ferias'); }
-
-// Estado do filtro do bloco "Em Afastamento" na home do P1
-let _p1HomeAfastCia = -1, _p1HomeAfastMun = null, _p1HomeAfastPosto = null;
-function p1HomeAfastSetCia(val)   { _p1HomeAfastCia = (val === '' || val == null) ? -1 : parseInt(val, 10); renderP1(); }
-function p1HomeAfastSetMun(val)   { _p1HomeAfastMun = val || null; renderP1(); }
-function p1HomeAfastSetPosto(val) { _p1HomeAfastPosto = val || null; renderP1(); }
-
 function hasUisRestr(re) {
   return typeof uisNormRE === 'function' && !!_uisRestMap?.[uisNormRE(re)]?.length;
 }
@@ -349,7 +338,6 @@ function renderP1() {
 
   // Filtro ativo por OPM
   const dataF = p1FiltroOpm ? p1Data.filter(r => r.opm === p1FiltroOpm) : p1Data;
-  const reSetF = new Set(dataF.map(r => r.re));
 
   // Status de cada PM
   const pmAfastados    = dataF.filter(r => afastHoje[r.re]);
@@ -373,39 +361,6 @@ function renderP1() {
     return new Date() > lim;
   };
   const taftatVencidos = dataF.filter(taftatVencFn);
-
-  // ── Controle de Férias / LP
-  const isLP  = t => /^lp$/i.test((t || '').trim());
-  const em15s = (() => { const d = new Date(); d.setDate(d.getDate() + 15); return d.toISOString().split('T')[0]; })();
-  const em30s = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split('T')[0]; })();
-  // reSetF já é o set certo nos dois casos (com ou sem filtro de OPM — sem
-  // filtro, dataF===p1Data, então reSetF cobre todo o efetivo_pm atual).
-  // Antes só filtrava por reSetF quando havia filtro de OPM ativo; sem
-  // filtro, contava direto de p1Afasts — incluindo afastamento de RE que
-  // não existe mais no efetivo_pm (gente transferida/removida), fazendo o
-  // card "Controle de Férias" divergir do "Afastamentos" (que já exigia
-  // isso via afastHoje/pmAfastados).
-  const afastsF      = p1Afasts.filter(a => reSetF.has(a.re) && !p1EhSupervisao(a));
-  const ferEmGozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && (!a.termino || a.termino >= hoje));
-  const ferEm15Dias  = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio > hoje && a.inicio <= em15s);
-  const ferLpEm30    = afastsF.filter(a => (isFer(a.tipo_afastamento) || isLP(a.tipo_afastamento)) && a.inicio > hoje && a.inicio <= em30s);
-  // Todos os tipos de afastamento iniciando nos próximos 30 dias (para planejamento de escala)
-  const afastEm30    = afastsF.filter(a => a.inicio > hoje && a.inicio <= em30s);
-  const resFeriasAno = new Set(p1Afasts.filter(a => isFer(a.tipo_afastamento) && (a.inicio||'').startsWith(String(anoAtual))).map(a => a.re));
-  const semFeriasAno = dataF.filter(r => !resFeriasAno.has(r.re));
-
-  // Restrições vencendo em 30 dias
-  const vencendoRestricao = p1Data.filter(r =>
-    (r.possui_restricao || '').toLowerCase().startsWith('s') &&
-    r.restricao_termino && r.restricao_termino >= hoje && r.restricao_termino <= em30s
-  );
-
-  // Afastamentos vencendo em 7 dias
-  const em7 = new Date(); em7.setDate(em7.getDate() + 7);
-  const em7s = em7.toISOString().split('T')[0];
-  const retornando = p1Afasts.filter(a =>
-    reSetF.has(a.re) && !p1EhRestricao(a) && !p1EhSupervisao(a) && a.inicio <= hoje && a.termino >= hoje && a.termino <= em7s
-  );
 
   const CATS = { cbsd: 'Cb / Sd', sgt: 'Sargentos', sub: 'Subtenentes', of: 'Oficiais' };
   const CATS_COLOR = { cbsd: '#4bc87a', sgt: '#e05555', sub: '#5a9de0', of: '#c8a84b' };
@@ -461,9 +416,6 @@ function renderP1() {
        ...(taftatVencidos.length ? [_kpiRow('Vencidos', taftatVencidos.length, '#e05555')] : [])
       ].join(''),
       (inaptosTaf.length || inaptosTat.length || taftatVencidos.length) ? '#e05555' : pmEapPendente.length > 0 ? '#c8a84b' : '#4bc87a', 'eap', pctDe(pmEapFeito.length)) +
-    kpiCard('Controle de Férias', ferEmGozo.length,
-      [_kpiRow('Em gozo', ferEmGozo.length, '#5a9de0'), _kpiRow('Iniciam em 15d', ferEm15Dias.length, '#5a9de0')].join(''),
-      ferEmGozo.length > 0 ? '#5a9de0' : 'var(--tx3)', 'ferias', pctDe(ferEmGozo.length)) +
     (() => {
       if (!p1Quadro.length) return '';
       // 2026-09-04: CFP e UIS Méd/Odonto voltaram a contar (decisão do
@@ -525,91 +477,6 @@ function renderP1() {
   const tdS = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-family:"DM Mono",monospace;font-size:19px;color:var(--tx3);text-align:right';
   const tdL = 'padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03);font-size:19px;font-weight:600;color:var(--tx)';
   const badge = (txt, color) => `<span style="padding:3px 9px;border-radius:20px;font-size:19px;font-family:'DM Mono',monospace;background:${color}22;color:${color}">${escHtml(txt)}</span>`;
-
-  // ── Seção: Afastados agora
-  let afastSection = '';
-  if (pmAfastados.length) {
-    const afRows = pmAfastados.map(r => {
-      const ats = afastHoje[r.re] || [];
-      const tipo = ats.map(a => a.tipo_afastamento).join(', ');
-      const termino = ats[0]?.termino || '';
-      const diasRest = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : '—';
-      const _escB = s => (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      const _fotoRe = _escB(r.re);
-      const _fotoNm = _escB(r.nome_guerra || r.nome);
-      const _fotoPt = _escB(r.posto || '');
-      const _av = `<div data-foto-re="${escHtml(r.re)}" data-nome="${escHtml(r.nome_guerra||r.nome)}" data-posto="${escHtml(r.posto||'')}" data-size="40" onclick="openProntuario('${_fotoRe}')" style="cursor:pointer;display:inline-block">${p1AvatarSVG(r.nome_guerra||r.nome, r.posto, 40)}</div>`;
-      return `<tr>
-        <td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.03);width:52px;vertical-align:middle">${_av}</td>
-        <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx2)">${escHtml(r.posto || '—')}</td>
-        <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${escHtml(r.re || '—')}</td>
-        <td style="${tdL};cursor:pointer" onclick="openProntuario('${_fotoRe}')">${escHtml(r.nome_guerra || r.nome)}${uisBadge(r.re)}${iasBadge(r.re)}</td>
-        <td style="${tdS.replace('text-align:right','text-align:left')};color:var(--tx3)">${escHtml(r.opm || '—')}</td>
-        <td style="${tdS.replace('text-align:right','text-align:left')}">${badge(tipo, '#e05555')}</td>
-        <td style="${tdS}">${fmtDate(ats[0]?.inicio)}</td>
-        <td style="${tdS}">${fmtDate(termino)}</td>
-        <td style="${tdS};color:${diasRest <= 3 ? '#4bc87a' : 'var(--tx3)'}">${diasRest !== '—' ? diasRest + 'd' : '—'}</td>
-      </tr>`;
-    }).join('');
-    afastSection = `
-      <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow-x:auto;margin-bottom:14px">
-        <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#e05555;padding:14px 16px 0;text-transform:uppercase">Afastamentos — ${pmAfastados.length}</div>
-        <table style="width:100%;border-collapse:collapse;margin-top:8px">
-          <thead><tr>
-            <th style="${thL};width:44px;padding:8px 4px 8px 8px"></th><th style="${thL}">Posto</th><th style="${thL}">RE</th><th style="${thL}">Nome de Guerra</th><th style="${thL}">OPM</th>
-            <th style="${thL}">Tipo</th><th style="${thS}">Início</th><th style="${thS}">Término</th><th style="${thS}">Dias restantes</th>
-          </tr></thead><tbody>${afRows}</tbody>
-        </table>
-      </div>`;
-  }
-
-  // ── Alertas
-  let alertSection = '';
-  const alertItems = [];
-  if (vencendoRestricao.length) {
-    vencendoRestricao.forEach(r => {
-      const dias = Math.ceil((new Date(r.restricao_termino) - new Date(hoje)) / 86400000);
-      alertItems.push(`<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center">
-        ${badge('RESTRIÇÃO', '#c8a84b')}
-        <span style="font-size:19px;color:var(--tx)">${escHtml(r.nome_guerra || r.nome)}</span>
-        <span style="font-size:19px;color:#ffffff">${escHtml(r.opm || '')}</span>
-        <span style="font-size:19px;color:#ffffff;margin-left:auto">Vence em <b style="color:#c8a84b">${dias}d</b> — ${fmtDate(r.restricao_termino)}</span>
-      </div>`);
-    });
-  }
-  if (retornando.length) {
-    retornando.forEach(a => {
-      const pm = p1Data.find(r => r.re === a.re);
-      const dias = Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000);
-      alertItems.push(`<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center">
-        ${badge('RETORNO', '#4bc87a')}
-        <span style="font-size:19px;color:var(--tx)">${escHtml(pm?.nome_guerra || a.nome || a.re)}</span>
-        <span style="font-size:19px;color:#ffffff">${escHtml(a.tipo_afastamento)}</span>
-        <span style="font-size:19px;color:#ffffff;margin-left:auto">Retorna em <b style="color:#4bc87a">${dias}d</b> — ${fmtDate(a.termino)}</span>
-      </div>`);
-    });
-  }
-  if (ferLpEm30.length) {
-    ferLpEm30.sort((a, b) => (a.inicio||'').localeCompare(b.inicio||'')).forEach(a => {
-      const pm = p1Data.find(r => r.re === a.re);
-      const diasAte = Math.ceil((new Date(a.inicio) - new Date(hoje)) / 86400000);
-      const tipo = isFer(a.tipo_afastamento) ? 'FÉRIAS' : 'LP';
-      const cor  = isFer(a.tipo_afastamento) ? '#5a9de0' : '#9b6de0';
-      alertItems.push(`<div style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:12px;align-items:center">
-        ${badge(tipo, cor)}
-        <span style="font-size:19px;color:var(--tx2)">${escHtml(pm?.posto||'')}</span>
-        <span style="font-size:19px;color:var(--tx)">${escHtml(pm?.nome_guerra || pm?.nome || a.re)}</span>
-        <span style="font-size:19px;color:#ffffff;margin-left:auto">Inicia em <b style="color:${cor}">${diasAte}d</b> — ${fmtDate(a.inicio)}</span>
-      </div>`);
-    });
-  }
-  if (alertItems.length) {
-    alertSection = `
-      <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-bottom:14px">
-        <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#c8a84b;padding:14px 16px 8px;text-transform:uppercase">Alertas</div>
-        ${alertItems.join('')}
-      </div>`;
-  }
 
   // ── Tabela por OPM
   const byUnit = {};
@@ -789,89 +656,6 @@ function renderP1() {
     </div>`;
   }
 
-  // ── Seção de afastamentos + alertas unificada (vai para o rodapé, abaixo das CIAs)
-  const _esc2 = s => (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  let bottomItems = [];
-
-  // Quem ESTÁ afastado agora — grade de fotos com filtro de posto/cidade.
-  // Restrição (Agregação) não entra aqui — isso é status de "trabalhando com
-  // limitação", não ausência; fica só no perfil do PM e no KPI de Restrições.
-  const getMunHome = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
-  const getCiaHome = opm => (typeof CIA_STRUCT === 'undefined' || !opm) ? -1 : CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
-  const baseHome = pmAfastados.map(r => ({ r, ciaIdx: getCiaHome(r.opm), mun: getMunHome(r.opm), posto: r.posto }));
-
-  const filtroHome = p1FiltroCMP(baseHome, _p1HomeAfastCia, _p1HomeAfastMun, _p1HomeAfastPosto, 'p1HomeAfastSetCia', 'p1HomeAfastSetMun', 'p1HomeAfastSetPosto');
-  _p1HomeAfastCia = filtroHome.cia; _p1HomeAfastMun = filtroHome.mun; _p1HomeAfastPosto = filtroHome.posto;
-
-  let pmAfastadosFiltrados = pmAfastados;
-  if (_p1HomeAfastCia >= 0) pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => getCiaHome(r.opm) === _p1HomeAfastCia);
-  if (_p1HomeAfastMun)      pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => getMunHome(r.opm) === _p1HomeAfastMun);
-  if (_p1HomeAfastPosto)    pmAfastadosFiltrados = pmAfastadosFiltrados.filter(r => r.posto === _p1HomeAfastPosto);
-
-  const homeAfastInfo = r => {
-    const ats = afastHoje[r.re] || [];
-    const tipo = (ats.map(a => a.tipo_afastamento).join(', ') || 'Afastado').split(',')[0].trim();
-    const termino = ats[0]?.termino || '';
-    const diasRest = termino ? Math.ceil((new Date(termino) - new Date(hoje)) / 86400000) : null;
-    return `<div style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:6px;background:#e0555522;color:#e05555;display:inline-block">${escHtml(tipo.toUpperCase())}</div>
-      <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--tx3);margin-top:2px">${diasRest!==null ? diasRest+'d rest.' : (fmtDate(termino)||'—')}</div>`;
-  };
-
-  const emAfastamentoHtml = !pmAfastados.length ? '' : `
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-top:14px;overflow:hidden">
-      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#e05555;padding:10px 16px 8px;text-transform:uppercase;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px">
-        <span>Em Afastamento</span>
-        <span style="background:#e0555528;color:#e05555;border-radius:20px;padding:1px 10px;font-size:17px;letter-spacing:0">${pmAfastadosFiltrados.length}${pmAfastadosFiltrados.length !== pmAfastados.length ? ' de ' + pmAfastados.length : ''}</span>
-      </div>
-      ${filtroHome.html}
-      <div style="padding:14px 16px">${p1CardGrid(pmAfastadosFiltrados, homeAfastInfo)}</div>
-    </div>`;
-
-  if (afastEm30.length) {
-    const TIPO_COR = t => {
-      const tl = (t||'').toLowerCase();
-      if (/f[eé]rias/.test(tl))          return ['FÉRIAS',     '#5a9de0'];
-      if (/\blp\b|premio/.test(tl))       return ['LP',         '#9b6de0'];
-      if (/\blts\b|trat/.test(tl))        return ['LTS',        '#e05555'];
-      if (/\blsv\b|sem.venc/.test(tl))    return ['LSV',        '#c8a84b'];
-      if (/n[uú]pcia/.test(tl))           return ['NÚPCIAS',    '#f1c40f'];
-      if (/maternidade/.test(tl))         return ['MATERNIDADE','#e91e63'];
-      if (/paternidade/.test(tl))         return ['PATERNIDADE','#2196f3'];
-      if (/luto/.test(tl))                return ['LUTO',       '#95a5a6'];
-      if (/conval/.test(tl))              return ['CONVAL',     '#e67e22'];
-      return [(t||'AFASTAMENTO').toUpperCase().slice(0,12), '#607090'];
-    };
-    afastEm30.sort((a,b) => (a.inicio||'').localeCompare(b.inicio||'')).forEach(a => {
-      const pm = p1Data.find(r => r.re === a.re);
-      const diasAte = Math.ceil((new Date(a.inicio) - new Date(hoje)) / 86400000);
-      const [label, cor] = TIPO_COR(a.tipo_afastamento);
-      bottomItems.push({ order: 3, html: `<div style="display:grid;grid-template-columns:170px 1fr auto;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);border-left:3px solid ${cor};gap:14px">
-        ${badge(label, cor)}
-        <div>
-          <span style="font-family:'DM Mono',monospace;font-size:18px;color:var(--tx3)">${escHtml(pm?.posto||'')}</span>
-          <span style="font-size:20px;font-weight:700;color:var(--tx);margin-left:6px;cursor:pointer" onclick="openProntuario('${_esc2(a.re)}')">${escHtml(pm?.nome_guerra||pm?.nome||a.re)}</span>
-          ${pm?.opm ? `<div style="font-size:17px;color:var(--tx3);margin-top:2px">${escHtml(pm.opm)}</div>` : ''}
-        </div>
-        <div style="font-size:19px;color:var(--tx3);text-align:right;white-space:nowrap">Inicia em <b style="color:${cor}">${diasAte}d</b> · ${fmtDate(a.inicio)} → ${fmtDate(a.termino)}</div>
-      </div>` });
-    });
-  }
-
-  const nextItems = bottomItems.filter(i => i.order >= 3); // próximos afastamentos
-
-  const mkBlock = (titulo, cor, items) => !items.length ? '' : `
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-top:14px;overflow:hidden">
-      <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:${cor};padding:10px 16px 8px;text-transform:uppercase;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px">
-        <span>${titulo}</span>
-        <span style="background:${cor}28;color:${cor};border-radius:20px;padding:1px 10px;font-size:17px;letter-spacing:0">${items.length}</span>
-      </div>
-      ${items.sort((a,b)=>a.order-b.order).map(i=>i.html).join('')}
-    </div>`;
-
-  const bottomSection = p1SomenteQuantitativo() ? '' :
-    emAfastamentoHtml +
-    mkBlock('Próximos Afastamentos — 30 dias', '#5a9de0', nextItems);
-
   bodyEl.innerHTML = claroSection + `
     <div style="margin-bottom:6px">
       <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-bottom:14px">Efetivo por Companhia${p1SomenteQuantitativo() ? '' : ' <span style="font-weight:400">· clique na sub-unidade para ver os PMs</span>'}</div>
@@ -879,8 +663,7 @@ function renderP1() {
         ${ciaCards}${unmatchedCards}
       </div>
     </div>
-    <div id="p1-unit-detail"></div>
-    ${bottomSection}`;
+    <div id="p1-unit-detail"></div>`;
 
   // Mostra botão exportar quando há dados (oculto para comandantes — exportação contém dados nominais)
   const btnE = document.getElementById('btn-exportar-p1');
@@ -1284,7 +1067,6 @@ function closeP1Detail() {
   _p1IasDetSit = null; _p1IasDetCia = -1; _p1IasDetMun = null; _p1IasDetPosto = null;
   _p1AfastDetCia = -1; _p1AfastDetMun = null; _p1AfastDetPosto = null;
   _p1EapDetCia = -1; _p1EapDetMun = null; _p1EapDetPosto = null;
-  _p1FeriasDetCia = -1; _p1FeriasDetMun = null; _p1FeriasDetPosto = null;
 }
 
 
@@ -1373,13 +1155,12 @@ function p1ShowKpiDetail(tipo) {
   if (!mo) return;
 
   const KPI_META = {
-    total:    { title: 'TODO O EFETIVO',       color: 'var(--gold)' },
+    total:    { title: 'EFETIVO',              color: 'var(--gold)' },
     aptos:    { title: 'APTOS OPERACIONAL',     color: '#4bc87a' },
     afastados:{ title: 'AFASTAMENTOS',         color: '#e05555' },
     restricao:{ title: 'EM RESTRIÇÃO',         color: '#c8a84b' },
     eap:      { title: `EAP / TAF / TAT ${new Date().getFullYear()}`, color: '#c8a84b' },
     ias:      { title: 'IAS · INSPEÇÃO ANUAL DE SAÚDE', color: '#5a9de0' },
-    ferias:   { title: 'CONTROLE DE FÉRIAS',   color: '#5a9de0' },
     quadro:   { title: 'CLARO DO EFETIVO', color: '#4bc87a' },
   };
   const meta = KPI_META[tipo] || { title: tipo.toUpperCase(), color: 'var(--tx)' };
@@ -1509,7 +1290,7 @@ function p1ShowKpiDetail(tipo) {
       ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
       : p1CardGrid(filtered.map(({r}) => r), totalInfo);
 
-    html = wrapDetail('Todo o Efetivo', filtered.length, '#c8a84b', closeBtn, `
+    html = wrapDetail('Efetivo', filtered.length, '#c8a84b', closeBtn, `
       ${filtro.html}
       ${buscaNomeRow}
       ${gridRow('GÊNERO', genBtns)}
@@ -1761,87 +1542,6 @@ function p1ShowKpiDetail(tipo) {
         ${filtroIas.html}
         ${tabelaIasHtml}`);
     }
-  }
-
-  else if (tipo === 'ferias') {
-    const getMunFer = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
-    const getCiaFer = opm => (typeof CIA_STRUCT === 'undefined' || !opm) ? -1 : CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
-    const pmOfFer = re => p1Data.find(r => r.re === re);
-
-    // Mesmo fix do card na tela inicial: reSetF já cobre o efetivo_pm
-    // atual com ou sem filtro de OPM — sem isso, afastamento de RE que já
-    // não existe mais no efetivo_pm entrava aqui mesmo assim.
-    const afastsF = p1Afasts.filter(a => reSetF.has(a.re));
-    const em15s   = (() => { const d = new Date(); d.setDate(d.getDate()+15); return d.toISOString().split('T')[0]; })();
-    let gozo    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio <= hoje && (!a.termino || a.termino >= hoje));
-    let prox    = afastsF.filter(a => isFer(a.tipo_afastamento) && a.inicio > hoje && a.inicio <= em15s);
-    const resFer  = new Set(p1Afasts.filter(a => isFer(a.tipo_afastamento) && (a.inicio||'').startsWith(String(anoAtual))).map(a => a.re));
-    let semFer  = dataF.filter(r => !resFer.has(r.re));
-
-    const baseFer = dataF.map(r => ({ r, ciaIdx: getCiaFer(r.opm), mun: getMunFer(r.opm), posto: r.posto }));
-    const filtroFer = p1FiltroCMP(baseFer, _p1FeriasDetCia, _p1FeriasDetMun, _p1FeriasDetPosto, 'p1FeriasSetCia', 'p1FeriasSetMun', 'p1FeriasSetPosto');
-    _p1FeriasDetCia = filtroFer.cia; _p1FeriasDetMun = filtroFer.mun; _p1FeriasDetPosto = filtroFer.posto;
-
-    if (_p1FeriasDetCia >= 0) {
-      gozo   = gozo.filter(a => getCiaFer(pmOfFer(a.re)?.opm) === _p1FeriasDetCia);
-      prox   = prox.filter(a => getCiaFer(pmOfFer(a.re)?.opm) === _p1FeriasDetCia);
-      semFer = semFer.filter(r => getCiaFer(r.opm) === _p1FeriasDetCia);
-    }
-    if (_p1FeriasDetMun) {
-      gozo   = gozo.filter(a => getMunFer(pmOfFer(a.re)?.opm) === _p1FeriasDetMun);
-      prox   = prox.filter(a => getMunFer(pmOfFer(a.re)?.opm) === _p1FeriasDetMun);
-      semFer = semFer.filter(r => getMunFer(r.opm) === _p1FeriasDetMun);
-    }
-    if (_p1FeriasDetPosto) {
-      gozo   = gozo.filter(a => pmOfFer(a.re)?.posto === _p1FeriasDetPosto);
-      prox   = prox.filter(a => pmOfFer(a.re)?.posto === _p1FeriasDetPosto);
-      semFer = semFer.filter(r => r.posto === _p1FeriasDetPosto);
-    }
-    const filtroBarFer = filtroFer.html;
-
-    // Junta o registro de afastamento com o cadastro da pessoa, pra virar card.
-    const ferCardData = list => list.map(a => {
-      const pm = p1Data.find(r => r.re === a.re);
-      return { re: a.re, nome: pm?.nome || a.nome, nome_guerra: pm?.nome_guerra, posto: pm?.posto, opm: pm?.opm || a.opm, _afast: a };
-    });
-    const ferInfo = showDias => r => {
-      const a = r._afast;
-      const dias = a.termino ? Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000) : null;
-      return `<div title="${escHtml(r.opm||'')}" style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${escHtml(r.opm||'—')}</div>
-        <div style="font-size:10px;font-family:'DM Mono',monospace;color:${showDias && dias!==null && dias<=3?'#4bc87a':'var(--tx3)'}">${fmtD(a.inicio)} → ${showDias && dias!==null ? dias+'d rest.' : fmtD(a.termino)}</div>`;
-    };
-
-    let inner = '';
-    if (p1SomenteQuantitativo()) {
-      inner = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;padding:14px 12px">
-        <div style="background:var(--bg2);border:1px solid var(--bd);border-top:3px solid #5a9de0;border-radius:8px;padding:14px 16px">
-          <div style="font-family:'DM Mono',monospace;font-size:15px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Em Gozo</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#5a9de0;line-height:1">${gozo.length}</div>
-        </div>
-        <div style="background:var(--bg2);border:1px solid var(--bd);border-top:3px solid #c8a84b;border-radius:8px;padding:14px 16px">
-          <div style="font-family:'DM Mono',monospace;font-size:15px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Iniciam em 15d</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#c8a84b;line-height:1">${prox.length}</div>
-        </div>
-        <div style="background:var(--bg2);border:1px solid var(--bd);border-top:3px solid #e05555;border-radius:8px;padding:14px 16px">
-          <div style="font-family:'DM Mono',monospace;font-size:15px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Sem Férias ${anoAtual}</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#e05555;line-height:1">${semFer.length}</div>
-        </div>
-      </div>
-      <div style="padding:12px 16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA</div>`;
-    } else {
-      if (gozo.length) inner += `
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#5a9de0;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Em Gozo — ${gozo.length}</div>
-        <div style="padding:0 12px 12px">${p1CardGrid(ferCardData(gozo), ferInfo(true))}</div>`;
-      if (prox.length) inner += `
-        <div style="font-family:'DM Mono',monospace;font-size:19px;color:#c8a84b;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Iniciando em 15 dias — ${prox.length}</div>
-        <div style="padding:0 12px 12px">${p1CardGrid(ferCardData(prox), ferInfo(false))}</div>`;
-      if (semFer.length) {
-        inner += `
-          <div style="font-family:'DM Mono',monospace;font-size:19px;color:#e05555;letter-spacing:1.5px;padding:12px 14px 6px;text-transform:uppercase">Sem Férias em ${anoAtual} — ${semFer.length}</div>
-          <div style="padding:0 12px 12px">${p1CardGrid(semFer)}</div>`;
-      }
-    }
-    html = wrapDetail('Controle de Férias', null, '#5a9de0', closeBtn, filtroBarFer + inner);
   }
 
   else if (tipo === 'quadro') {
@@ -3321,9 +3021,9 @@ function renderHome() {
       ...unmatchedOpms.map(opm => makeRow(opm, 'var(--tx3)', p1Data.filter(r => r.opm === opm)))
     ].filter(Boolean).join('');
 
-    // Cidades mais críticas em Cb/Sd (maior % de claro em relação ao
-    // efetivo fixado) — só Cb/Sd, top 3, pedido explícito do usuário. Usa
-    // p1_quadro_fixado (mesma fonte do KPI "Quadro Fixado do Efetivo").
+    // Cidades com os maiores claros em Cb/Sd (maior % de claro em relação
+    // ao efetivo fixado) — só Cb/Sd, top 3, pedido explícito do usuário. Usa
+    // p1_quadro_fixado (mesma fonte do KPI "Claro do Efetivo").
     let cidadesCriticasHtml = '';
     if (typeof p1Quadro !== 'undefined' && p1Quadro && p1Quadro.length) {
       const cidadesCriticas = p1Quadro.map(q => {
@@ -3335,7 +3035,7 @@ function renderHome() {
       if (cidadesCriticas.length) {
         cidadesCriticasHtml = `
           <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)">
-            <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase">Mais críticas · Cb/Sd</div>
+            <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--tx3);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase">Maiores claros · Cb / Sd</div>
             ${cidadesCriticas.map(d => `<div style="display:flex;justify-content:space-between;align-items:center;font-family:'DM Mono',monospace;font-size:17px;margin-bottom:3px">
               <span style="color:#ffffff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%">${escHtml(d.mun)}</span>
               <span style="color:#e05555;font-weight:700">−${d.claro} <span style="color:var(--tx3);font-weight:400">(${d.pct}%)</span></span>
