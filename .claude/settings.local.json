@@ -88,20 +88,7 @@
       "mcp__supabase__list_tables",
       "mcp__supabase__get_project_url",
       "mcp__supabase__get_publishable_keys",
-      "Bash(nslookup *)",
-      "Artifact",
-      "Bash(awk 'NR==354,NR==930' \"C:\\\\Users\\\\Luan\\\\OneDrive\\\\Documentos\\\\Projeto PM RAC - HTML Backup - teste\\\\frontend\\\\js\\\\p1.js\")",
-      "Bash(npm ls *)",
-      "Bash(pkill -f \"undici-test/server.js\")",
-      "Bash(npm audit *)",
-      "Bash(pkill -f \"undici-test.server.js\")",
-      "Bash(pkill -f \"8899\")",
-      "Bash(pkill -f \"backend/server.js\")",
-      "Bash(pkill -f \"8898\")",
-      "Bash(pkill -f \"8897\")",
-      "Bash(pkill -f \"8896\")",
-      "mcp__supabase__list_migrations",
-      "Bash(awk -F: '$1>=3150 && $1<=3720')"
+      "Bash(nslookup *)"
     ]
   }
 }
