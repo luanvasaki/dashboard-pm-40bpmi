@@ -79,6 +79,25 @@ function p1IasSetMun(val)   { _p1IasDetMun = val || null; p1ShowKpiDetail('ias')
 function p1IasSetPosto(val) { _p1IasDetPosto = val || null; p1ShowKpiDetail('ias'); }
 function p1IasSetSit(val)   { _p1IasDetSit = _p1IasDetSit === val ? null : val; p1ShowKpiDetail('ias'); }
 
+// CAPS/NAPS (Supervisão psicossocial) — usado na tela da UIS. Mesmo padrão
+// do IAS: card + detalhe com grade de fotos, filtro CIA/Cidade/Graduação e
+// sub-filtro por Nível (I/II/III) + donut.
+let _p1CapsDetCia = -1, _p1CapsDetMun = null, _p1CapsDetPosto = null, _p1CapsDetNivel = null;
+let _capsDonutEntries = [];
+function p1CapsSetCia(val)   { _p1CapsDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('caps'); }
+function p1CapsSetMun(val)   { _p1CapsDetMun = val || null; p1ShowKpiDetail('caps'); }
+function p1CapsSetPosto(val) { _p1CapsDetPosto = val || null; p1ShowKpiDetail('caps'); }
+function p1CapsSetNivel(val) { _p1CapsDetNivel = _p1CapsDetNivel === val ? null : val; p1ShowKpiDetail('caps'); }
+
+// Restrições (fonte: efetivo_pm.possui_restricao, sincronizado do SGP) —
+// usado na tela da UIS. Mesmo padrão do IAS.
+let _p1RestDetCia = -1, _p1RestDetMun = null, _p1RestDetPosto = null, _p1RestDetSit = null;
+let _restDonutEntries = [];
+function p1RestSetCia(val)   { _p1RestDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('restricoes'); }
+function p1RestSetMun(val)   { _p1RestDetMun = val || null; p1ShowKpiDetail('restricoes'); }
+function p1RestSetPosto(val) { _p1RestDetPosto = val || null; p1ShowKpiDetail('restricoes'); }
+function p1RestSetSit(val)   { _p1RestDetSit = _p1RestDetSit === val ? null : val; p1ShowKpiDetail('restricoes'); }
+
 let _p1AfastDetCia = -1, _p1AfastDetMun = null, _p1AfastDetPosto = null;
 function p1AfastSetCia(val)   { _p1AfastDetCia = (val === '' || val == null) ? -1 : parseInt(val, 10); p1ShowKpiDetail('afastados'); }
 function p1AfastSetMun(val)   { _p1AfastDetMun = val || null; p1ShowKpiDetail('afastados'); }
@@ -943,6 +962,88 @@ function p1IasKpiCardHtml() {
     </div>`;
 }
 
+// Supervisões ativas (CAPS/NAPS) — de p1Afasts, via p1EhSupervisao.
+function _p1CapsAtivos() {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const ehSup = a => typeof p1EhSupervisao === 'function' ? p1EhSupervisao(a) : /supervis[aã]o|caps\s*\/\s*naps/i.test(a.tipo_afastamento || '');
+  return (typeof p1Afasts !== 'undefined' ? p1Afasts : []).filter(a =>
+    ehSup(a) && a.inicio && a.inicio <= hoje && (!a.termino || a.termino >= hoje));
+}
+function _p1CapsNivel(a) { const m = /n[ií]vel\s*(i{1,3})\b/i.exec(a.tipo_afastamento || ''); return m ? m[1].toUpperCase() : null; }
+
+// Card do KPI CAPS/NAPS — mesmo padrão do card do IAS (abre o modal de
+// detalhe do P1 com grade de fotos).
+function p1CapsKpiCardHtml() {
+  const ativos = _p1CapsAtivos();
+  const porNivel = { I: 0, II: 0, III: 0 };
+  ativos.forEach(a => { const n = _p1CapsNivel(a); if (n && porNivel[n] !== undefined) porNivel[n]++; });
+  const kpiRow = (label, val, color) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:#ffffff;font-size:17px">${escHtml(label)}</span><span style="color:${color};font-weight:700;font-size:20px">${val}</span></div>`;
+  const sub = [
+    porNivel.I   ? kpiRow('Nível I',   porNivel.I,   '#9b6de0') : '',
+    porNivel.II  ? kpiRow('Nível II',  porNivel.II,  '#9b6de0') : '',
+    porNivel.III ? kpiRow('Nível III', porNivel.III, '#9b6de0') : '',
+  ].filter(Boolean).join('') || '—';
+  return `<div onclick="p1ShowKpiDetail('caps')" class="kpi">
+      <div class="kpi-top"></div>
+      <div class="kpi-lbl">CAPS / NAPS</div>
+      <div class="kpi-val">${ativos.length}</div>
+      <div class="kpi-sub" style="line-height:1.7;width:100%">${sub}</div>
+      <div class="kpi-hint">▸ clique p/ detalhes</div>
+    </div>`;
+}
+
+// PMs com restrição (efetivo_pm.possui_restricao, sincronizado do SGP).
+function _p1ComRestricao() {
+  return (typeof p1Data !== 'undefined' ? p1Data : []).filter(r => (r.possui_restricao || '').toLowerCase().startsWith('s'));
+}
+function _p1RestStatus(r) {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const em30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  if (!r.restricao_termino) return 'ativa';
+  if (r.restricao_termino < hoje) return 'vencida';
+  if (r.restricao_termino <= em30) return 'vencendo';
+  return 'ativa';
+}
+
+// Card do KPI Restrições — mesmo padrão do card do IAS.
+function p1RestricoesKpiCardHtml() {
+  const comRest = _p1ComRestricao();
+  const venc = { vencendo: 0, vencida: 0 };
+  comRest.forEach(r => { const s = _p1RestStatus(r); if (venc[s] !== undefined) venc[s]++; });
+  const kpiRow = (label, val, color) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:#ffffff;font-size:17px">${escHtml(label)}</span><span style="color:${color};font-weight:700;font-size:20px">${val}</span></div>`;
+  const sub = [
+    venc.vencendo ? kpiRow('Vencendo 30d', venc.vencendo, '#c8a84b') : '',
+    venc.vencida  ? kpiRow('Vencida',      venc.vencida,  '#e05555') : '',
+  ].filter(Boolean).join('') || '—';
+  return `<div onclick="p1ShowKpiDetail('restricoes')" class="kpi">
+      <div class="kpi-top"></div>
+      <div class="kpi-lbl">Restrições</div>
+      <div class="kpi-val">${comRest.length}</div>
+      <div class="kpi-sub" style="line-height:1.7;width:100%">${sub}</div>
+      <div class="kpi-hint">▸ clique p/ detalhes</div>
+    </div>`;
+}
+
+// Donut genérico pros detalhes de KPI (CAPS, Restrições). entries: [[label, n, cor], ...]
+function _p1MiniDonut(canvasId, entries) {
+  const c = document.getElementById(canvasId);
+  if (!c || typeof Chart === 'undefined') return;
+  const ex = Chart.getChart ? Chart.getChart(c) : null; if (ex) ex.destroy();
+  const total = entries.reduce((a, e) => a + e[1], 0);
+  new Chart(c.getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: entries.map(e => e[0]), datasets: [{ data: entries.map(e => e[1]), backgroundColor: entries.map(e => e[2]), borderWidth: 0 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,.7)', font: { size: 12 }, padding: 10, boxWidth: 14 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} (${total ? Math.round(ctx.parsed / total * 100) : 0}%)` } }
+      },
+      cutout: '52%'
+    }
+  });
+}
+
 function closeP1Detail() {
   const mo = document.getElementById('p1-detail-mo');
   if (mo) { mo.classList.remove('on'); document.body.style.overflow = ''; }
@@ -950,6 +1051,8 @@ function closeP1Detail() {
   _p1IasDetSit = null; _p1IasDetCia = -1; _p1IasDetMun = null; _p1IasDetPosto = null;
   _p1AfastDetCia = -1; _p1AfastDetMun = null; _p1AfastDetPosto = null;
   _p1EapDetCia = -1; _p1EapDetMun = null; _p1EapDetPosto = null;
+  _p1CapsDetCia = -1; _p1CapsDetMun = null; _p1CapsDetPosto = null; _p1CapsDetNivel = null;
+  _p1RestDetCia = -1; _p1RestDetMun = null; _p1RestDetPosto = null; _p1RestDetSit = null;
 }
 
 
@@ -1044,6 +1147,8 @@ function p1ShowKpiDetail(tipo) {
     restricao:{ title: 'EM RESTRIÇÃO',         color: '#c8a84b' },
     eap:      { title: `EAP / TAF / TAT ${new Date().getFullYear()}`, color: '#c8a84b' },
     ias:      { title: 'IAS · INSPEÇÃO ANUAL DE SAÚDE', color: '#5a9de0' },
+    caps:     { title: 'CAPS / NAPS · SUPERVISÃO PSICOSSOCIAL', color: '#9b6de0' },
+    restricoes:{ title: 'RESTRIÇÕES', color: '#5a9de0' },
     quadro:   { title: 'CLARO DO EFETIVO', color: '#4bc87a' },
   };
   const meta = KPI_META[tipo] || { title: tipo.toUpperCase(), color: 'var(--tx)' };
@@ -1395,6 +1500,86 @@ function p1ShowKpiDetail(tipo) {
     }
   }
 
+  else if (tipo === 'caps' || tipo === 'restricoes') {
+    // Mesmo padrão do IAS: sub-filtro (Nível / Situação) + filtro
+    // CIA/Cidade/Graduação + donut + grade de fotos.
+    const getMun = opm => { if (!opm) return null; const p = opm.split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
+    const getCia = opm => (!opm || typeof CIA_STRUCT === 'undefined') ? -1
+      : CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
+    const fmtV = s => s ? String(s).split('-').reverse().join('/') : '—';
+
+    const isCaps = tipo === 'caps';
+    const cor = isCaps ? '#9b6de0' : '#5a9de0';
+
+    // baseList: [{ r: pm, seg: nível|status, extra..., mun, ciaIdx, posto }]
+    let baseList, subKeys, subAtual, setSubFn, donut, infoFn, titulo;
+    if (isCaps) {
+      baseList = _p1CapsAtivos().map(a => {
+        const pm = (p1Data || []).find(r => r.re === a.re) || { re: a.re, nome: a.nome, nome_guerra: a.nome, opm: a.opm, posto: a.posto };
+        return { r: pm, a, seg: _p1CapsNivel(a), mun: getMun(pm.opm), ciaIdx: getCia(pm.opm), posto: pm.posto };
+      });
+      subKeys  = [['I','NÍVEL I'],['II','NÍVEL II'],['III','NÍVEL III']];
+      subAtual = _p1CapsDetNivel; setSubFn = 'p1CapsSetNivel';
+      titulo   = 'CAPS / NAPS';
+      infoFn = x => `<div style="font-size:10px;font-family:'DM Mono',monospace;color:${cor};font-weight:700">NÍVEL ${x.seg || '—'}</div>
+        <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--tx3);margin-top:2px">${fmtV(x.a?.inicio)} → ${fmtV(x.a?.termino)}</div>`;
+    } else {
+      baseList = _p1ComRestricao().map(r => ({ r, seg: _p1RestStatus(r), mun: getMun(r.opm), ciaIdx: getCia(r.opm), posto: r.posto }));
+      subKeys  = [['ativa','ATIVA'],['vencendo','VENCENDO 30d'],['vencida','VENCIDA']];
+      subAtual = _p1RestDetSit; setSubFn = 'p1RestSetSit';
+      titulo   = 'Restrições';
+      const SIT_COR = { ativa:'#5a9de0', vencendo:'#c8a84b', vencida:'#e05555' };
+      infoFn = x => `<div style="font-size:10px;font-family:'DM Mono',monospace;color:${SIT_COR[x.seg] || cor};font-weight:700">${x.r?.restricao_termino ? fmtV(x.r.restricao_termino) : 'sem término'}</div>
+        <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--tx3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${escHtml(x.r?.tipos_restricao || '—')}</div>`;
+    }
+
+    const detCia = isCaps ? _p1CapsDetCia : _p1RestDetCia;
+    const detMun = isCaps ? _p1CapsDetMun : _p1RestDetMun;
+    const detPos = isCaps ? _p1CapsDetPosto : _p1RestDetPosto;
+    const setCia = isCaps ? 'p1CapsSetCia' : 'p1RestSetCia';
+    const setMun = isCaps ? 'p1CapsSetMun' : 'p1RestSetMun';
+    const setPos = isCaps ? 'p1CapsSetPosto' : 'p1RestSetPosto';
+    const filtroCMP = p1FiltroCMP(baseList, detCia, detMun, detPos, setCia, setMun, setPos);
+    if (isCaps) { _p1CapsDetCia = filtroCMP.cia; _p1CapsDetMun = filtroCMP.mun; _p1CapsDetPosto = filtroCMP.posto; }
+    else        { _p1RestDetCia = filtroCMP.cia; _p1RestDetMun = filtroCMP.mun; _p1RestDetPosto = filtroCMP.posto; }
+
+    let filtered = baseList;
+    if (subAtual)           filtered = filtered.filter(x => x.seg === subAtual);
+    if (filtroCMP.cia >= 0)  filtered = filtered.filter(x => x.ciaIdx === filtroCMP.cia);
+    if (filtroCMP.mun)       filtered = filtered.filter(x => x.mun === filtroCMP.mun);
+    if (filtroCMP.posto)     filtered = filtered.filter(x => x.posto === filtroCMP.posto);
+
+    const cntSeg = k => baseList.filter(x => x.seg === k).length;
+    const anyFilter = !!subAtual || filtroCMP.cia >= 0 || !!filtroCMP.mun || !!filtroCMP.posto;
+
+    const btnB = (lbl, c, on, onclick) => `<button onclick="${onclick}" style="padding:8px 18px;background:${on?c+'22':'var(--s2)'};border:1px solid ${on?c:c+'44'};color:${on?c:'var(--tx)'};border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-size:15px;font-weight:600;transition:all .15s;white-space:nowrap">${lbl}</button>`;
+    const gRow = (lbl, btns) => `<div style="border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:10px"><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${lbl}</div><div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div></div>`;
+    const subBtns = subKeys.map(([k, l]) => btnB(`${l} <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-left:6px">${cntSeg(k)}</span>`, cor, subAtual === k, `${setSubFn}('${k}')`)).join('');
+
+    const byRe = {}; filtered.forEach(x => { byRe[x.r.re] = x; });
+    const cardInfo = r => infoFn(byRe[r.re] || {});
+
+    donut = subKeys.map(([k, l], i) => [l.replace(/ 30d$/,''), cntSeg(k), [cor+'99', cor, isCaps ? '#6a3fb0' : (k==='vencida'?'#e05555':k==='vencendo'?'#c8a84b':cor)][i] || cor]);
+    if (isCaps) _capsDonutEntries = donut; else _restDonutEntries = donut;
+
+    const tabela = p1SomenteQuantitativo()
+      ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
+      : (baseList.length ? p1CardGrid(filtered.map(x => x.r), cardInfo)
+        : `<div style="padding:24px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">Nenhum registro.</div>`);
+
+    const chartId = isCaps ? 'caps-chart-status' : 'rest-chart-status';
+    const chartHtml = baseList.length ? `<div style="padding:0 0 16px;border-bottom:1px solid var(--bd);margin-bottom:12px">
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx3);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">${isCaps ? 'Em supervisão por nível' : 'Restrições por situação'}</div>
+      <div style="position:relative;height:230px;max-width:360px"><canvas id="${chartId}"></canvas></div>
+    </div>` : '';
+
+    html = wrapDetail(`${titulo} — ${anyFilter ? filtered.length + ' de ' + baseList.length : baseList.length}`, null, cor, closeBtn, `
+      ${chartHtml}
+      ${gRow(isCaps ? 'NÍVEL' : 'SITUAÇÃO', subBtns)}
+      ${filtroCMP.html}
+      ${tabela}`);
+  }
+
   else if (tipo === 'quadro') {
     // ciaCorByName não acha cor pra "EM" (não tem dígito nem é FT) — mesmo
     // roxo usado no card do KPI, aplicado em todo lugar desta tela que
@@ -1646,6 +1831,8 @@ function p1ShowKpiDetail(tipo) {
 
   document.getElementById('p1d-body').innerHTML = html;
   if (tipo === 'ias' && _iasChartData) requestAnimationFrame(() => _renderIasCharts(_iasChartData));
+  if (tipo === 'caps') requestAnimationFrame(() => _p1MiniDonut('caps-chart-status', _capsDonutEntries));
+  if (tipo === 'restricoes') requestAnimationFrame(() => _p1MiniDonut('rest-chart-status', _restDonutEntries));
   mo.classList.add('on');
   document.body.style.overflow = 'hidden';
 }
