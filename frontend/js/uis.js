@@ -227,7 +227,7 @@ async function loadUisSection() {
     // Filtros de CIA em cima dos KPIs removidos (2026-09-07) — a tela usa
     // sempre o batalhão inteiro; o filtro por CIA vive dentro de cada detalhe.
     const _fb = document.getElementById('uis-filtro-bar');
-    if (_fb) _fb.innerHTML = '';
+    if (_fb) { _fb.innerHTML = ''; _fb.style.display = 'none'; }
     renderUisPage();
   } catch (e) {
     if (content) content.innerHTML = `<div style="color:#f07878;font-size:17px">Erro ao carregar UIS: ${e.message}</div>`;
@@ -238,7 +238,7 @@ async function loadUisSection() {
 async function loadUisQuantitativo() {
   const content = document.getElementById('uis-content');
   const filtroBar = document.getElementById('uis-filtro-bar');
-  if (filtroBar) filtroBar.innerHTML = '';
+  if (filtroBar) { filtroBar.innerHTML = ''; filtroBar.style.display = 'none'; }
   try {
     const [uisStats, iasStats] = await Promise.all([
       authFetch(`${API}/uis/stats`).then(r => r.json()),
