@@ -224,7 +224,10 @@ async function loadUisSection() {
       tasks.push(authFetch(`${API}/afastamentos`).then(r => r.json()).then(d => { if (Array.isArray(d)) p1Afasts = d; }).catch(() => {}));
     }
     await Promise.all(tasks);
-    renderUisFiltroBar();
+    // Filtros de CIA em cima dos KPIs removidos (2026-09-07) — a tela usa
+    // sempre o batalhão inteiro; o filtro por CIA vive dentro de cada detalhe.
+    const _fb = document.getElementById('uis-filtro-bar');
+    if (_fb) _fb.innerHTML = '';
     renderUisPage();
   } catch (e) {
     if (content) content.innerHTML = `<div style="color:#f07878;font-size:17px">Erro ao carregar UIS: ${e.message}</div>`;
@@ -1060,27 +1063,18 @@ function renderUisPage() {
       <div class="kpi-hint">▸ clique p/ detalhes</div>
     </div>`;
 
-  // ── Render final ───────────────────────────────────────────
+  // ── Render final — só os 3 KPIs (Restrições, IAS, CAPS/NAPS), todos no
+  // mesmo padrão: card com sub-linhas + clique → modal de detalhe do P1 com
+  // grade de fotos (p1ShowKpiDetail). Removidos daqui (2026-09-07, pedido do
+  // usuário): Capacidade Operacional Plena, IAS Vencimentos por Período, IAS
+  // Situação por OPM, IAS Agendar Inspeção, e os filtros de CIA em cima.
   el.innerHTML = `
-    ${capacidadeHtml}
-
     <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5ae09a;letter-spacing:1.5px;margin-bottom:10px">SAÚDE DO EFETIVO · DADOS SINCRONIZADOS DO SGP</div>
-    <div class="kpi-row" style="margin-bottom:24px">
-      ${kpi('uis-ativas',  uisCor,    'COM RESTRIÇÃO ATIVA',    restAtivas,  `${pctCampo}% de campo`)}
-      ${typeof p1IasKpiCardHtml === 'function' ? p1IasKpiCardHtml() : kpi('ias-total', '#5a9de0', 'IAS · INSPEÇÃO DE SAÚDE', iasAptos, `${pctAptos}% aptos`)}
+    <div class="kpi-row" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-bottom:24px">
+      ${typeof p1RestricoesKpiCardHtml === 'function' ? p1RestricoesKpiCardHtml() : ''}
+      ${typeof p1IasKpiCardHtml === 'function' ? p1IasKpiCardHtml() : ''}
+      ${typeof p1CapsKpiCardHtml === 'function' ? p1CapsKpiCardHtml() : ''}
     </div>
-
-    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#9b6de0;letter-spacing:1.5px;margin-bottom:10px">CAPS / NAPS · SUPERVISÃO PSICOSSOCIAL</div>
-    <div class="kpi-row" style="margin-bottom:24px">
-      ${kpi('caps-total',  '#9b6de0', 'EM SUPERVISÃO', capsAtivos.length,   null)}
-      ${kpi('caps-nivel1', '#9b6de0', 'NÍVEL I',       capsPorNivel.I,   null)}
-      ${kpi('caps-nivel2', '#9b6de0', 'NÍVEL II',      capsPorNivel.II,  null)}
-      ${kpi('caps-nivel3', '#9b6de0', 'NÍVEL III',     capsPorNivel.III, null)}
-    </div>
-
-    ${iasTimelineHtml}
-    ${iasPorOpmHtml}
-    ${iasAgendarHtml}
   `;
 
   if (window.lucide) lucide.createIcons();
