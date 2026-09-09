@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<!-- Auth guard: redireciona para login se não autenticado -->
-<script>(function(){var u=localStorage.getItem('auth_user');if(!u){document.documentElement.style.visibility='hidden';window.location.replace('/login.html');}})();</script>
+<!-- Auth guard: redireciona para login se não autenticado (base relativa: funciona em subpasta) -->
+<script>(function(){var u=localStorage.getItem('auth_user');if(!u){document.documentElement.style.visibility='hidden';window.location.replace(location.pathname.replace(/[^/]*$/,'')+'login.html');}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>40 BPM/I — Inteligência Criminal 2026</title>

@@ -80,21 +80,21 @@ if (JWT_SECRET === '') {
 }
 
 // ── Resolve a rota ──────────────────────────────────────────────────────────
+// Ordem: ?__route= (usado no deploy da PM — nginx sem PATH_INFO) → PATH_INFO
+// (hosts com rewrite) → sufixo depois de "/api/" no REQUEST_URI.
 $routePath = (static function (): string {
+    if (isset($_GET['__route']) && $_GET['__route'] !== '') {
+        return '/' . trim((string) $_GET['__route'], '/');
+    }
     $p = $_SERVER['PATH_INFO'] ?? '';
     if ($p === '') {
         $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
-        $script = $_SERVER['SCRIPT_NAME'] ?? '/api/index.php';
-        if (str_starts_with($uri, $script)) {
+        $script = $_SERVER['SCRIPT_NAME'] ?? '';
+        if ($script !== '' && str_starts_with($uri, $script)) {
             $p = substr($uri, strlen($script));
-        } elseif (($i = strpos($uri, '/api/')) !== false) {
-            $p = substr($uri, $i + 4);
-        } elseif (str_ends_with($uri, '/api')) {
-            $p = '';
+        } elseif (($i = strrpos($uri, '/api/')) !== false) {
+            $p = substr($uri, $i + strlen('/api'));
         }
-    }
-    if ($p === '' && isset($_GET['__route'])) {
-        $p = (string) $_GET['__route'];
     }
     return '/' . trim($p, '/');
 })();

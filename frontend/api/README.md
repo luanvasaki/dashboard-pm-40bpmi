@@ -52,15 +52,38 @@ frontend/                     ← docroot (substitui o Vercel)
 4. **Testar**: abrir `https://<host>/` (login.html deve carregar) e
    `https://<host>/api/index.php/status` autenticado deve responder JSON.
 
-## Roteamento
+## Deploy real na PM (confirmado 2026-09)
 
-Sem depender de `mod_rewrite`: o frontend chama `/api/index.php/<rota>` e o
-`index.php` lê a rota do `PATH_INFO` (ou do `REQUEST_URI`, ou de `?__route=`).
+- Servido por **nginx + PHP-FPM 8.3.23** (mesma máquina do phpMyAdmin, `www9`).
+  Extensões presentes: mysqli, mbstring, curl, pdo_mysql.
+- A pasta de rede `\\dados.intranet.policiamilitar.sp.gov.br\k8s.40bpmi` é
+  publicada em `https://www9.intranet.policiamilitar.sp.gov.br/unidades/40bpmi/`.
+  O sistema vai numa subpasta: **`.../unidades/40bpmi/sis40bpmi/`**.
+- Banco MySQL: usuário `dba.40bpmi`, banco **`foo`** (único nome que o grant
+  permite hoje — a TI pode trocar depois).
 
-Se a TI confirmar que o Apache aceita `.htaccess` (`AllowOverride` com pelo
-menos `FileInfo`), renomeie `.htaccess.example` → `.htaccess` e troque o `API`
-em `frontend/js/utils.js` e `frontend/login.html` de volta para
-`` `${window.location.origin}/api` ``.
+### Roteamento
+
+O nginx da PM **não passa `PATH_INFO`** (`/api/index.php/x` dá 404) e **não tem
+`try_files … /index.php`**. Então a rota vai por **query string**:
+
+```
+<base>api/index.php?__route=/<rota>&<demais params>
+```
+
+O `apiUrl()` em `frontend/js/auth.js` reescreve `${API}/<rota>?<query>` para esse
+formato automaticamente — nenhuma outra chamada precisa mudar. `index.php` lê
+`$_GET['__route']` primeiro; `PATH_INFO` e o sufixo de `REQUEST_URI` ficam como
+fallback para hosts com rewrite.
+
+### Subpasta
+
+O frontend é "ciente da subpasta": `APP_BASE` (em `utils.js` / `login.html`) é
+calculado de `location.pathname` no carregamento. Todos os assets já eram
+relativos; só os redirects e a base da API precisaram do `APP_BASE`.
+
+`.htaccess.example` **não serve** nesse host (é nginx, não Apache). O `.user.ini`
+funciona (PHP-FPM lê por diretório) — mantém os limites de upload.
 
 ## Diferença de comportamento vs. Node
 
