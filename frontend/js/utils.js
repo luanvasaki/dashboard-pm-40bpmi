@@ -24,7 +24,11 @@
  * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
-const API = `${window.location.origin}/api`;
+// Backend PHP (Apache da PM). O front-controller lê a rota do PATH_INFO —
+// as chamadas ficam `<origin>/api/index.php/<rota>`. Se a TI habilitar o
+// mod_rewrite (ver frontend/api/.htaccess.example), dá pra voltar a usar
+// só `${window.location.origin}/api`.
+const API = `${window.location.origin}/api/index.php`;
 
 // flag: indica se fonte_texto foi carregado do banco (impede updateSyncStatus de sobrescrever)
 let _fonteFromConfig = false;

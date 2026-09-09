@@ -1,14 +1,15 @@
 /**
  * server.js — Servidor único do Dashboard 40º BPM/I (PM-SP)
  * ─────────────────────────────────────────────────────────────
- * Tecnologias: Node.js · Express · Supabase (PostgreSQL) · JWT · bcrypt
+ * Tecnologias: Node.js · Express · MySQL (servidor da PM) · JWT · bcrypt
  * Porta padrão: 3001
- * Deploy: servidor local dedicado na LAN (ver CLAUDE.md → Deploy)
+ * Deploy: infra da PM (ver CLAUDE.md → Deploy)
+ * Acesso ao banco: tudo via ./db.js (pool mysql2 + helpers). Schema: ../schema_mysql.sql
  *
  * ARQUITETURA GERAL
  * ─────────────────
  * - Todos os dados criminais (RAC PM) ficam em cache em memória (objeto `cache`)
- *   e são sincronizados com o Supabase a cada 5 minutos (CACHE_TTL).
+ *   e são sincronizados com o banco a cada 5 minutos (CACHE_TTL).
  * - Toda lógica de filtro (KPIs, gráficos, analytics) opera sobre esse cache,
  *   sem consultar o banco diretamente — isso garante baixa latência nas leituras.
  * - O frontend é servido como arquivos estáticos por este mesmo servidor
@@ -30,9 +31,9 @@
  *   comandante     → somente leitura
  *   comandante_cia → somente leitura por CIA
  *
- * TABELAS PRINCIPAIS no Supabase
+ * TABELAS PRINCIPAIS (ver ../schema_mysql.sql)
  * ────────────────────────────────
- *   "Base de Dados RAC PM"  → dados criminais (Ano, Mes, Cia, Municipio, Crime, Anterior, Meta, Avaliado, Tendencia)
+ *   `Base de Dados RAC PM`  → dados criminais (Ano, Mes, Cia, Municipio, Crime, Anterior, Meta, Avaliado, Tendencia)
  *   usuarios                → autenticação própria
  *   ocorrencias             → ocorrências InfoCrim
  *   efetivo_pm              → efetivo P1
@@ -43,12 +44,12 @@
  *   disque_denuncia_registros → registros Disque Denúncia
  *   config_dashboard        → configurações chave/valor
  *
- * ⚠ CRÍTICO — para o upload RAC funcionar, o Supabase precisa da constraint:
- *   ALTER TABLE "Base de Dados RAC PM"
- *   ADD CONSTRAINT rac_pm_unique UNIQUE ("Ano","Mes","Cia","Municipio","Crime");
+ * ⚠ O upload RAC depende da UNIQUE(Ano,Mes,Cia,Municipio,Crime) — já criada
+ *   pelo schema_mysql.sql (índice `rac_pm_unique`).
  */
 
 require('dotenv').config();
+const db           = require('./db');
 const express      = require('express');
 const compression  = require('compression');
 const cors         = require('cors');
@@ -178,11 +179,11 @@ function requireSectionNominal(...secoes) {
 
 // Fire-and-forget: registra evento na tabela logs_acesso sem bloquear a resposta.
 async function logAcesso(req, acao, detalhe, userOverride) {
-  if (!supabase) return;
+  if (!dbReady) return;
   try {
     const u = userOverride || req.user || {};
     const fwd = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-    await supabase.from('logs_acesso').insert({
+    await db.insert('logs_acesso', {
       usuario_id:   u.id   || null,
       usuario_nome: u.nome || null,
       matricula:    u.matricula || null,
@@ -197,34 +198,21 @@ async function logAcesso(req, acao, detalhe, userOverride) {
 }
 
 // ============================================================
-// Supabase — credenciais via variáveis de ambiente OBRIGATÓRIAS
-// Use a service_role key (não a anon/publishable key)
-// Vercel: Settings → Environment Variables
-// Local:  arquivo .env (nunca comitar)
+// Banco de dados — MySQL (servidor da PM)
+// Credenciais em backend/.env (MYSQL_*). A conexão em si vive em ./db.js,
+// que já aborta o processo se as variáveis obrigatórias faltarem.
+// `dbReady` vira true depois do primeiro ping bem-sucedido (ver init()).
 // ============================================================
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('FATAL: variáveis SUPABASE_URL e SUPABASE_KEY não definidas');
-  process.exit(1);
-}
+let dbReady = false;
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIGURAÇÕES GLOBAIS
 // ═══════════════════════════════════════════════════════════════
 
-// Tempo de vida do cache em memória: 5 minutos. Após esse prazo, syncFromSupabase() é chamado automaticamente.
+// Tempo de vida do cache em memória: 5 minutos. Após esse prazo, syncFromDb() é chamado automaticamente.
 const CACHE_TTL  = 5 * 60 * 1000;
-// ⚠ CRÍTICO: nome exato da tabela no Supabase — sensível a maiúsculas e espaços.
+// Nome exato da tabela RAC PM (mantido idêntico ao do Supabase, com espaços).
 const TABLE_NAME = 'Base de Dados RAC PM';
-
-// Inicializa o cliente Supabase usando a service_role key (bypassa RLS).
-let supabase = null;
-{
-  const { createClient } = require('@supabase/supabase-js');
-  supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-  console.log('✓ Supabase client inicializado');
-}
 
 // CORS: em produção aceita apenas ALLOWED_ORIGIN; em dev aceita qualquer origem.
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || null;
@@ -260,7 +248,7 @@ const MES_ORD    = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho
 const CRIMES_ORD = ['Homicídio','Estupro','Estupro de Vulnerável','Roubo','Furto','Roubo de Veículos','Furto de Veículos'];
 
 // Cache em memória: toda a API de leitura opera sobre este objeto, não consulta o banco.
-// { data: registro[], lastSync: ISO string, source: 'supabase'|'local', error: string|null }
+// { data: registro[], lastSync: ISO string, source: 'mysql'|'local', error: string|null }
 let cache = { data: [], lastSync: null, source: null, error: null };
 
 // ═══════════════════════════════════════════════════════════════
@@ -282,11 +270,11 @@ function parseCSVLine(line) {
   return result;
 }
 
-// Converte um registro bruto do Supabase para o formato interno do cache.
+// Converte um registro bruto do banco para o formato interno do cache.
 // A busca de chaves é case-insensitive para tolerar variações nos nomes de colunas.
 // Campos numéricos são convertidos com parseFloat — valores inválidos viram 0.
 // O campo `crime` é canonicalizado para garantir que a grafia bata com CRIMES_ORD.
-function fromSupabase(r) {
+function fromDbRow(r) {
   const keys = Object.keys(r);
   const get = (...names) => {
     for (const name of names) {
@@ -313,60 +301,46 @@ function fromSupabase(r) {
 }
 
 // ---------------------------------------------------------------------------
-// Helper: busca todas as linhas paginando em lotes de 1000 (limite Supabase)
+// Helper: busca todas as linhas de uma tabela com filtros/ordenação opcionais.
+// Mantém a assinatura antiga (filters no formato [metodo, coluna, valor]) pra
+// não mexer nas rotas que já usavam fetchAll com o vocabulário antigo (Supabase).
+// Métodos aceitos: eq, neq, gt, gte, lt, lte, like, ilike, in.
 // ---------------------------------------------------------------------------
+const _FETCHALL_OPS = { eq: '=', neq: '<>', gt: '>', gte: '>=', lt: '<', lte: '<=', like: 'LIKE', ilike: 'LIKE', in: 'IN' };
 async function fetchAll(table, { select = '*', filters = [], order = [] } = {}) {
-  const PAGE = 1000;
-  let all = [], from = 0;
-  while (true) {
-    let q = supabase.from(table).select(select).range(from, from + PAGE - 1);
-    filters.forEach(([method, ...args]) => { q = q[method](...args); });
-    order.forEach(([col, opts]) => { q = q.order(col, opts); });
-    const { data, error } = await q;
-    if (error) throw new Error(error.message);
-    if (!data?.length) break;
-    all = all.concat(data);
-    if (data.length < PAGE) break;
-    from += PAGE;
-  }
-  return all;
+  const where = filters.map(([method, col, val]) => {
+    const op = _FETCHALL_OPS[method];
+    if (!op) throw new Error(`fetchAll: filtro não suportado "${method}"`);
+    return [col, op, val];
+  });
+  const orderBy = order.map(([col, opts]) => ({ col, dir: opts?.ascending === false ? 'desc' : 'asc' }));
+  return db.select(table, { columns: select, where, orderBy });
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CACHE E SINCRONIZAÇÃO COM SUPABASE
+// CACHE E SINCRONIZAÇÃO COM O BANCO
 // ═══════════════════════════════════════════════════════════════
 
-// Busca todos os registros da tabela RAC PM do Supabase e atualiza o cache em memória.
+// Busca todos os registros da tabela RAC PM e atualiza o cache em memória.
 // É chamada na inicialização e repetida automaticamente a cada CACHE_TTL (5 min).
 // Retorna true em caso de sucesso, false em caso de erro (cache não é limpo no erro).
-async function syncFromSupabase() {
-  if (!supabase) return false;
+async function syncFromDb() {
+  if (!dbReady) return false;
   try {
-    console.log('↻ Sincronizando com Supabase...');
-    // Pagina em lotes de 1000 — Supabase limita 1000 linhas por query no server-side
-    const PAGE = 1000;
-    let allData = [];
-    let from = 0;
-    while (true) {
-      const { data, error } = await supabase.from(TABLE_NAME).select('*').range(from, from + PAGE - 1);
-      if (error) throw new Error(error.message);
-      if (!data?.length) break;
-      allData = allData.concat(data);
-      if (data.length < PAGE) break;
-      from += PAGE;
-    }
-    if (!allData.length) throw new Error('Nenhum registro encontrado no Supabase');
+    console.log('↻ Sincronizando RAC PM com o banco...');
+    const allData = await db.select(TABLE_NAME);
+    if (!allData.length) throw new Error('Nenhum registro encontrado na tabela RAC PM');
 
-    cache.data     = allData.map(fromSupabase);
+    cache.data     = allData.map(fromDbRow);
     cache.lastSync = new Date().toISOString();
-    cache.source   = 'supabase';
+    cache.source   = 'mysql';
     cache.error    = null;
     invalidateMetaCache();
-    console.log(`✓ Supabase: ${cache.data.length} registros carregados (${cache.lastSync})`);
+    console.log(`✓ Banco: ${cache.data.length} registros carregados (${cache.lastSync})`);
     return true;
   } catch (err) {
     cache.error = err.message;
-    console.error('✗ Erro ao sincronizar Supabase:', err.message);
+    console.error('✗ Erro ao sincronizar com o banco:', err.message);
     return false;
   }
 }
@@ -395,11 +369,11 @@ function loadLocalFallback() {
 // sincronização só (evita N syncs simultâneos ao expirar o cache).
 let _syncInFlight = null;
 async function ensureCacheFresh() {
-  if (!supabase) return;
+  if (!dbReady) return;
   const ageMs = cache.lastSync ? Date.now() - new Date(cache.lastSync).getTime() : Infinity;
   if (cache.data.length && ageMs < CACHE_TTL) return;
   if (!_syncInFlight) {
-    _syncInFlight = syncFromSupabase()
+    _syncInFlight = syncFromDb()
       .then(ok => { if (!ok && !cache.data.length) loadLocalFallback(); })
       .catch(err => console.error('✗ ensureCacheFresh:', err.message))
       .finally(() => { _syncInFlight = null; });
@@ -419,14 +393,22 @@ async function withFreshCache(req, res, next) {
 // INICIALIZAÇÃO DO SERVIDOR
 // ═══════════════════════════════════════════════════════════════
 
-// Sequência de inicialização: tenta Supabase → fallback para arquivo local.
-// Após carregar, agenda sincronização periódica a cada CACHE_TTL.
+// Sequência de inicialização: conecta no MySQL → carrega o cache RAC PM →
+// fallback para raw_data.json se o banco não responder.
 async function init() {
-  if (supabase) {
-    const ok = await syncFromSupabase();
+  try {
+    await db.ping();
+    dbReady = true;
+    console.log('✓ MySQL conectado');
+  } catch (err) {
+    console.error('✗ Falha ao conectar no MySQL:', err.message);
+  }
+
+  if (dbReady) {
+    const ok = await syncFromDb();
     if (!ok) loadLocalFallback();
   } else {
-    console.warn('⚠ Supabase não configurado. Usando raw_data.json local.');
+    console.warn('⚠ Banco indisponível. Usando raw_data.json local.');
     loadLocalFallback();
   }
 
@@ -462,7 +444,7 @@ function uniq(arr) { return [...new Set(arr)]; }
 // O usuário fica com status 'pending' até aprovação manual pelo P3.
 // Role atribuído automaticamente: P1 → 'p1', qualquer outra seção → 'viewer'.
 app.post('/api/auth/register', async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { nome, posto, matricula, senha, secao } = req.body;
   if (!nome || !posto || !matricula || !senha || !secao)
     return res.status(400).json({ error: 'Preencha todos os campos' });
@@ -473,18 +455,19 @@ app.post('/api/auth/register', async (req, res) => {
     const hash = await bcrypt.hash(senha, 10);
     const secaoTrim = secao.trim();
     const autoRole = secaoTrim === 'P1' ? 'p1' : 'viewer';
-    const { error } = await supabase.from(USUARIOS_TABLE).insert({
-      nome:       nome.trim(),
-      posto:      posto.trim(),
-      matricula:  matricula.trim().toUpperCase(),
-      senha_hash: hash,
-      secao:      secaoTrim,
-      role:       autoRole,
-      status:     'pending'
-    });
-    if (error) {
-      if (error.code === '23505') return res.status(400).json({ error: 'Matrícula já cadastrada' });
-      throw new Error(error.message);
+    try {
+      await db.insert(USUARIOS_TABLE, {
+        nome:       nome.trim(),
+        posto:      posto.trim(),
+        matricula:  matricula.trim().toUpperCase(),
+        senha_hash: hash,
+        secao:      secaoTrim,
+        role:       autoRole,
+        status:     'pending'
+      });
+    } catch (e) {
+      if (db.isDuplicateError(e)) return res.status(400).json({ error: 'Matrícula já cadastrada' });
+      throw e;
     }
     res.json({ ok: true, message: 'Solicitação enviada. Aguarde aprovação da seção P1 ou P3.' });
   } catch (err) {
@@ -497,18 +480,14 @@ app.post('/api/auth/register', async (req, res) => {
 // Limitado a 20 tentativas por 15 min (loginLimiter) para evitar força bruta.
 // Em caso de sucesso, emite JWT em cookie httpOnly com expiração de 8h.
 app.post('/api/auth/login', loginLimiter, async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { matricula, senha } = req.body;
   if (!matricula || !senha) return res.status(400).json({ error: 'Preencha todos os campos' });
 
   try {
-    const { data, error } = await supabase
-      .from(USUARIOS_TABLE)
-      .select('*')
-      .eq('matricula', matricula.trim().toUpperCase())
-      .single();
+    const data = await db.selectOne(USUARIOS_TABLE, { where: { matricula: matricula.trim().toUpperCase() } });
 
-    if (error || !data) { await logAcesso(req, 'login_falhou', `Matrícula não encontrada: ${matricula}`); return res.status(401).json({ error: 'Matrícula ou senha incorretos' }); }
+    if (!data) { await logAcesso(req, 'login_falhou', `Matrícula não encontrada: ${matricula}`); return res.status(401).json({ error: 'Matrícula ou senha incorretos' }); }
     if (data.status === 'pending')
       return res.status(403).json({ error: 'Cadastro aguardando aprovação da seção P1 ou P3' });
     if (data.status === 'rejected')
@@ -550,13 +529,12 @@ app.post('/api/auth/logout', requireAuth, async (req, res) => {
 // [POST /api/auth/nova-senha] — define nova senha quando reset_senha=true no JWT.
 // O P3 pode forçar um reset; na próxima vez que o usuário logar, o frontend redireciona para esta rota.
 app.post('/api/auth/nova-senha', requireAuth, async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco não configurado' });
   const { senha } = req.body;
   if (!senha || senha.length < 6) return res.status(400).json({ error: 'Senha deve ter no mínimo 6 caracteres' });
   try {
     const hash = await bcrypt.hash(senha, 10);
-    const { error } = await supabase.from(USUARIOS_TABLE).update({ senha_hash: hash, reset_senha: false }).eq('id', req.user.id);
-    if (error) throw new Error(error.message);
+    await db.update(USUARIOS_TABLE, { senha_hash: hash, reset_senha: false }, { id: req.user.id });
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -569,13 +547,12 @@ app.post('/api/auth/nova-senha', requireAuth, async (req, res) => {
 
 // [GET /api/admin/users] — lista todos os usuários (sem senha_hash), ordenados por criação.
 app.get('/api/admin/users', requireAuth, requireRole('admin', 'p1', 'p3'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   try {
-    const { data, error } = await supabase
-      .from(USUARIOS_TABLE)
-      .select('id, nome, posto, matricula, secao, role, status, created_at, secoes_acesso')
-      .order('created_at', { ascending: false });
-    if (error) throw new Error(error.message);
+    const data = await db.select(USUARIOS_TABLE, {
+      columns: 'id, nome, posto, matricula, secao, role, status, created_at, secoes_acesso',
+      orderBy: { col: 'created_at', dir: 'desc' },
+    });
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -584,14 +561,10 @@ app.get('/api/admin/users', requireAuth, requireRole('admin', 'p1', 'p3'), async
 
 // [GET /api/admin/users/pending/count] — contagem de usuários pendentes, sem carregar a lista completa.
 app.get('/api/admin/users/pending/count', requireAuth, requireRole('admin', 'p1', 'p3', 'ti'), async (req, res) => {
-  if (!supabase) return res.json({ count: 0 });
+  if (!dbReady) return res.json({ count: 0 });
   try {
-    const { count, error } = await supabase
-      .from(USUARIOS_TABLE)
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'pending');
-    if (error) throw new Error(error.message);
-    res.json({ count: count || 0 });
+    const n = await db.count(USUARIOS_TABLE, { status: 'pending' });
+    res.json({ count: n || 0 });
   } catch (_) {
     res.json({ count: 0 });
   }
@@ -602,7 +575,7 @@ app.get('/api/admin/users/pending/count', requireAuth, requireRole('admin', 'p1'
 // secoes_acesso auto-deriva o role interno para manter compatibilidade com requireRole.
 // Usuários com role 'admin' são protegidos contra qualquer alteração.
 app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'p1', 'p3'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { status, secao, secoes_acesso } = req.body;
   const updates = {};
   const canAdmin = ['admin', 'p3', 'ti'].includes(req.user.role);
@@ -624,13 +597,12 @@ app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'p1', 'p3'),
   if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nenhuma alteração informada' });
 
   try {
-    const { data: target } = await supabase.from(USUARIOS_TABLE).select('role').eq('id', req.params.id).single();
+    const target = await db.selectOne(USUARIOS_TABLE, { columns: 'role', where: { id: req.params.id } });
     if (target?.role === 'admin') return res.status(403).json({ error: 'Usuário protegido — não pode ser alterado.' });
     // Roles especiais não podem ser sobrescritos pela derivação de secoes_acesso
     if (target?.role === 'ti' && updates.role) delete updates.role;
 
-    const { error } = await supabase.from(USUARIOS_TABLE).update(updates).eq('id', req.params.id);
-    if (error) throw new Error(error.message);
+    await db.update(USUARIOS_TABLE, updates, { id: req.params.id });
     await logAcesso(req, 'admin_usuario_editado', `ID ${req.params.id}: ${JSON.stringify(updates)}`);
     res.json({ ok: true });
   } catch (err) {
@@ -640,15 +612,14 @@ app.patch('/api/admin/users/:id', requireAuth, requireRole('admin', 'p1', 'p3'),
 
 // [PATCH /api/admin/users/:id/posto] — atualiza posto/graduação do usuário (mais permissivo que alterar role).
 app.patch('/api/admin/users/:id/posto', requireAuth, requireRole('admin', 'p1', 'p3', 'ti'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { posto } = req.body;
   if (!posto || !posto.trim()) return res.status(400).json({ error: 'Posto/Grad não informado' });
   try {
-    const { data: target } = await supabase.from(USUARIOS_TABLE).select('role').eq('id', req.params.id).single();
+    const target = await db.selectOne(USUARIOS_TABLE, { columns: 'role', where: { id: req.params.id } });
     if (!target) return res.status(404).json({ error: 'Usuário não encontrado' });
     if (target.role === 'admin') return res.status(403).json({ error: 'Usuário protegido — não pode ser alterado.' });
-    const { error } = await supabase.from(USUARIOS_TABLE).update({ posto: posto.trim() }).eq('id', req.params.id);
-    if (error) throw new Error(error.message);
+    await db.update(USUARIOS_TABLE, { posto: posto.trim() }, { id: req.params.id });
     await logAcesso(req, 'admin_posto_editado', `ID ${req.params.id}: ${posto.trim()}`);
     res.json({ ok: true });
   } catch (err) {
@@ -661,16 +632,15 @@ app.patch('/api/admin/users/:id/posto', requireAuth, requireRole('admin', 'p1', 
 // Apenas admin pode resetar contas ti (evita p3 escalar via reset de conta ti).
 // Marca reset_senha=true: o frontend obriga troca de senha no próximo login.
 app.post('/api/admin/users/:id/reset-senha', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco não configurado' });
   try {
-    const { data: target } = await supabase.from(USUARIOS_TABLE).select('role, matricula').eq('id', req.params.id).single();
+    const target = await db.selectOne(USUARIOS_TABLE, { columns: 'role, matricula', where: { id: req.params.id } });
     if (!target) return res.status(404).json({ error: 'Usuário não encontrado' });
     if (target.role === 'admin') return res.status(403).json({ error: 'Usuário protegido' });
     if (target.role === 'ti' && req.user.role !== 'admin') return res.status(403).json({ error: 'Apenas admin pode resetar a senha de uma conta ti.' });
     const tempSenha = crypto.randomBytes(6).toString('base64url'); // ~8 chars aleatórios
     const hash = await bcrypt.hash(tempSenha, 10);
-    const { error } = await supabase.from(USUARIOS_TABLE).update({ senha_hash: hash, reset_senha: true }).eq('id', req.params.id);
-    if (error) throw new Error(error.message);
+    await db.update(USUARIOS_TABLE, { senha_hash: hash, reset_senha: true }, { id: req.params.id });
     await logAcesso(req, 'admin_reset_senha', `ID ${req.params.id} (${target.matricula})`);
     res.json({ ok: true, senhaTemporaria: tempSenha });
   } catch (err) {
@@ -680,13 +650,12 @@ app.post('/api/admin/users/:id/reset-senha', requireAuth, requireRole('admin', '
 
 // [DELETE /api/admin/users/:id] — exclusão permanente de usuário. Role 'admin' é protegido.
 app.delete('/api/admin/users/:id', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco de dados não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   try {
-    const { data: target } = await supabase.from(USUARIOS_TABLE).select('role').eq('id', req.params.id).single();
+    const target = await db.selectOne(USUARIOS_TABLE, { columns: 'role', where: { id: req.params.id } });
     if (target?.role === 'admin') return res.status(403).json({ error: 'Usuário protegido — não pode ser excluído.' });
 
-    const { error } = await supabase.from(USUARIOS_TABLE).delete().eq('id', req.params.id);
-    if (error) throw new Error(error.message);
+    await db.remove(USUARIOS_TABLE, { id: req.params.id });
     await logAcesso(req, 'admin_usuario_excluido', `ID ${req.params.id}`);
     res.json({ ok: true });
   } catch (err) {
@@ -705,15 +674,16 @@ app.get('/api/status', requireAuth, (req, res) => {
     source:             cache.source,
     records:            cache.data.length,
     error:              cache.error,
-    supabaseConfigured: !!supabase
+    supabaseConfigured: dbReady,   // nome mantido p/ compat. com o frontend
+    dbReady
   });
 });
 
-// [GET /api/sync] — força sincronização imediata com o Supabase, sem esperar o TTL.
+// [POST /api/sync] — força sincronização imediata do cache RAC PM com o banco.
 // Útil após um upload manual para ver os dados atualizados antes dos 5 min.
 app.post('/api/sync', requireAuth, async (req, res) => {
-  if (!supabase) return res.status(400).json({ error: 'Supabase não configurado no server.js' });
-  let ok = await syncFromSupabase();
+  if (!dbReady) return res.status(400).json({ error: 'Banco de dados não configurado' });
+  let ok = await syncFromDb();
   res.json({ ok, lastSync: cache.lastSync, source: cache.source, records: cache.data.length, error: cache.error });
 });
 
@@ -725,10 +695,8 @@ app.post('/api/sync', requireAuth, async (req, res) => {
 // Fluxo: recebe records[] do frontend → valida → apaga anos presentes → upsert → sincroniza cache.
 // Requer role: admin, p3 ou ti.
 app.post('/api/upload', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
-  if (!supabase) {
-    return res.status(400).json({
-      error: 'Supabase não configurado. Preencha SUPABASE_URL e SUPABASE_KEY no server.js e reinicie o servidor.'
-    });
+  if (!dbReady) {
+    return res.status(400).json({ error: 'Banco de dados não configurado. Verifique o backend/.env e reinicie o servidor.' });
   }
 
   const { records, overrideAno } = req.body;
@@ -738,7 +706,7 @@ app.post('/api/upload', requireAuth, requireRole('admin', 'p3', 'ti'), async (re
     // Helper: busca campo case-insensitive no objeto
     const gf = (r, name) => { const k = Object.keys(r).find(k => k.toLowerCase() === name.toLowerCase()); return k ? r[k] : ''; };
 
-    // Mapeia os campos do CSV para as colunas exatas da tabela no Supabase
+    // Mapeia os campos do CSV para as colunas exatas da tabela RAC PM
     const rows = records.map(r => ({
       'Ano':       overrideAno ? parseInt(overrideAno) : (parseInt(gf(r,'ano')) || 0),
       'Mes':       normMes(gf(r,'mes')  || ''),
@@ -759,18 +727,15 @@ app.post('/api/upload', requireAuth, requireRole('admin', 'p3', 'ti'), async (re
     // Apaga todos os registros dos anos presentes no arquivo antes de inserir
     const anosPresentes = [...new Set(rows.map(r => r['Ano']))];
     for (const ano of anosPresentes) {
-      const { error: delError } = await supabase.from(TABLE_NAME).delete().eq('Ano', ano);
-      if (delError) throw new Error(delError.message);
+      await db.remove(TABLE_NAME, { Ano: ano });
     }
 
-    const { error } = await supabase
-      .from(TABLE_NAME)
-      .upsert(rows, { onConflict: 'Ano,Mes,Cia,Municipio,Crime' });
+    // upsert (ON DUPLICATE KEY) pela UNIQUE(Ano,Mes,Cia,Municipio,Crime) —
+    // resiliente a linhas repetidas dentro do próprio CSV.
+    await db.upsertMany(TABLE_NAME, rows, { updateCols: ['Anterior', 'Meta', 'Avaliado', 'Tendencia', 'Variação'] });
 
-    if (error) throw new Error(error.message);
-
-    // Recarrega o cache a partir do Supabase para refletir os dados atualizados
-    await syncFromSupabase();
+    // Recarrega o cache a partir do banco para refletir os dados atualizados
+    await syncFromDb();
 
     await logAcesso(req, 'upload_rac_pm', `${rows.length} registros importados`);
     res.json({ ok: true, uploaded: rows.length, total: cache.data.length });
@@ -790,7 +755,7 @@ app.post('/api/upload', requireAuth, requireRole('admin', 'p3', 'ti'), async (re
 // ⚠ Esta rota apaga toda a tabela 'ocorrencias' antes de inserir — não é incremental.
 // Requer role: admin, p3 ou ti.
 app.post('/api/upload/ocorrencias', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { records } = req.body;
   if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
   try {
@@ -809,17 +774,9 @@ app.post('/api/upload/ocorrencias', requireAuth, requireRole('admin', 'p3', 'ti'
       tipo_local:      (r.TipoLocal || '').trim(),
     })).filter(r => r.data_ocorrencia && r.rubrica);
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
-    const { error: do1 } = await supabase.from(OCORRENCIAS_TABLE).delete().not('numero_bo', 'is', null);
-    if (do1) throw new Error('Erro ao limpar registros antigos: ' + do1.message);
-    const { error: do2 } = await supabase.from(OCORRENCIAS_TABLE).delete().is('numero_bo', null);
-    if (do2) throw new Error('Erro ao limpar registros antigos: ' + do2.message);
-    const BATCH = 500;
-    let total = 0;
-    for (let i = 0; i < rows.length; i += BATCH) {
-      const { error } = await supabase.from(OCORRENCIAS_TABLE).insert(rows.slice(i, i + BATCH));
-      if (error) throw new Error(error.message);
-      total += rows.slice(i, i + BATCH).length;
-    }
+    // Rota não-incremental: limpa a tabela inteira antes de reinserir.
+    await db.remove(OCORRENCIAS_TABLE, {});
+    const { affectedRows: total } = await db.insertMany(OCORRENCIAS_TABLE, rows);
     await logAcesso(req, 'upload_infocrim', `${total} ocorrências importadas`);
     res.json({ ok: true, inserted: total });
   } catch (err) {
@@ -832,7 +789,7 @@ app.post('/api/upload/ocorrencias', requireAuth, requireRole('admin', 'p3', 'ti'
 // Query params: rubrica (ilike), cia (eq), municipio (eq).
 // Usado pelo modal de crime no frontend para exibir detalhes de BO por rubrica/CIA.
 app.get('/api/ocorrencias', requireAuth, async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { rubrica, cia, municipio } = req.query;
   try {
     const filters = [];
@@ -1007,7 +964,7 @@ const EFETIVO_TABLE = 'efetivo_pm';
 // [GET /api/efetivo] — retorna todos os PMs cadastrados. Qualquer usuário autenticado pode consultar.
 app.get('/api/efetivo', requireAuth, async (req, res) => {
   try {
-    if (!supabase) return res.json([]);
+    if (!dbReady) return res.json([]);
     const data = await fetchAll(EFETIVO_TABLE);
     res.json(data);
   } catch (err) {
@@ -1020,7 +977,7 @@ app.get('/api/efetivo', requireAuth, async (req, res) => {
 // A busca de colunas é case-insensitive e aceita variações de nome (ex: "Posto / Grad" ou "Posto").
 app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3', 'p1'), async (req, res) => {
   try {
-    if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+    if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
     const { records } = req.body;
     if (!Array.isArray(records) || !records.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
 
@@ -1035,10 +992,9 @@ app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3', 'p1'), a
     // Restrição, nascimento e ingresso são alimentados só pelo SGP (nunca
     // pela planilha) — guarda os valores atuais antes de apagar a tabela pra
     // não perdê-los no reinsert (o INSERT abaixo não tem esses campos).
-    const { data: restricaoAntes, error: erroRestrAntes } = await supabase
-      .from(EFETIVO_TABLE)
-      .select('re, possui_restricao, tipos_restricao, restricao_inicio, restricao_termino, data_nascimento, data_ingresso');
-    if (erroRestrAntes) throw new Error(erroRestrAntes.message);
+    const restricaoAntes = await db.select(EFETIVO_TABLE, {
+      columns: 're, possui_restricao, tipos_restricao, restricao_inicio, restricao_termino, data_nascimento, data_ingresso',
+    });
     const restricaoPorRe = {};
     (restricaoAntes || []).forEach(r => { restricaoPorRe[r.re] = r; });
 
@@ -1067,18 +1023,9 @@ app.post('/api/efetivo/upload', requireAuth, requireRole('admin', 'p3', 'p1'), a
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique as colunas do CSV.' });
 
-    const { error: d1 } = await supabase.from(EFETIVO_TABLE).delete().not('nome', 'is', null);
-    if (d1) throw new Error(d1.message);
-    const { error: d2 } = await supabase.from(EFETIVO_TABLE).delete().is('nome', null);
-    if (d2) throw new Error(d2.message);
-
-    const BATCH = 500;
-    let inserted = 0;
-    for (let i = 0; i < rows.length; i += BATCH) {
-      const { error } = await supabase.from(EFETIVO_TABLE).insert(rows.slice(i, i + BATCH));
-      if (error) throw new Error(error.message);
-      inserted += Math.min(BATCH, rows.length - i);
-    }
+    // Substituição completa: limpa a tabela inteira antes de reinserir.
+    await db.remove(EFETIVO_TABLE, {});
+    const { affectedRows: inserted } = await db.insertMany(EFETIVO_TABLE, rows);
     await logAcesso(req, 'upload_efetivo', `${inserted} registros importados`);
     res.json({ ok: true, inserted });
   } catch (err) {
@@ -1097,7 +1044,7 @@ const SGP_SYNC_TABLE = 'sgp_sync_jobs';
 // [POST /api/efetivo/sync] — cria um pedido de sincronização (RE único ou efetivo completo).
 app.post('/api/efetivo/sync', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
   try {
-    if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+    if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
     const { tipo, re } = req.body;
     const TIPOS_VALIDOS = ['single', 'bulk', 'ias_single', 'ias_bulk', 'cursos_single', 'cursos_bulk', 'laureas_single', 'laureas_bulk'];
     if (!TIPOS_VALIDOS.includes(tipo)) return res.status(400).json({ error: `tipo deve ser um de: ${TIPOS_VALIDOS.join(', ')}.` });
@@ -1106,16 +1053,19 @@ app.post('/api/efetivo/sync', requireAuth, requireRole('admin', 'p1'), async (re
       return res.status(400).json({ error: 'Informe os 6 dígitos do RE (sem o dígito verificador).' });
     }
 
-    const { data, error } = await supabase.from(SGP_SYNC_TABLE).insert({
-      tipo,
-      re: ehSingle ? re : null,
-      solicitado_por: req.user.nome || req.user.matricula,
-    }).select().single();
-
-    if (error) {
-      // Índice único impede 2 pedidos "bulk"/"ias_bulk" simultâneos (do mesmo tipo) — devolve mensagem amigável.
-      if (error.code === '23505') return res.status(409).json({ error: 'Já existe uma atualização desse tipo em andamento.' });
-      throw new Error(error.message);
+    let data;
+    try {
+      const { insertId } = await db.insert(SGP_SYNC_TABLE, {
+        tipo,
+        re: ehSingle ? re : null,
+        solicitado_por: req.user.nome || req.user.matricula,
+      });
+      data = await db.selectOne(SGP_SYNC_TABLE, { where: { id: insertId } });
+    } catch (e) {
+      // A coluna gerada bulk_lock + UNIQUE impede 2 pedidos "*_bulk" ativos do
+      // mesmo tipo — devolve mensagem amigável em vez de erro 500.
+      if (db.isDuplicateError(e)) return res.status(409).json({ error: 'Já existe uma atualização desse tipo em andamento.' });
+      throw e;
     }
     await logAcesso(req, 'sgp_sync_pedido', ehSingle ? `${tipo} RE ${re}` : tipo);
     res.json(data);
@@ -1127,13 +1077,11 @@ app.post('/api/efetivo/sync', requireAuth, requireRole('admin', 'p1'), async (re
 // [GET /api/efetivo/sync/status] — últimos pedidos, para o dashboard acompanhar o andamento.
 app.get('/api/efetivo/sync/status', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
   try {
-    if (!supabase) return res.json([]);
-    const { data, error } = await supabase
-      .from(SGP_SYNC_TABLE)
-      .select('*')
-      .order('criado_em', { ascending: false })
-      .limit(10);
-    if (error) throw new Error(error.message);
+    if (!dbReady) return res.json([]);
+    const data = await db.select(SGP_SYNC_TABLE, {
+      orderBy: { col: 'criado_em', dir: 'desc' },
+      limit: 10,
+    });
     res.json(data || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1156,18 +1104,17 @@ const SGP_DP_SESSAO_TABLE = 'sgp_dp_sessao';
 // [PUT /api/sgp-dp/sessao] — salva o cookie colado pelo usuário.
 app.put('/api/sgp-dp/sessao', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
   try {
-    if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+    if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
     const { cookie } = req.body;
     if (!cookie || typeof cookie !== 'string' || cookie.trim().length < 20) {
       return res.status(400).json({ error: 'Cole o valor completo do cookie de sessão do SGP-DP.' });
     }
-    const { error } = await supabase.from(SGP_DP_SESSAO_TABLE).upsert({
+    await db.upsert(SGP_DP_SESSAO_TABLE, {
       id: 1,
       cookie: cookie.trim(),
       atualizado_em: new Date().toISOString(),
       atualizado_por: req.user.nome || req.user.matricula,
-    }, { onConflict: 'id' });
-    if (error) throw new Error(error.message);
+    }, { updateCols: ['cookie', 'atualizado_em', 'atualizado_por'] });
     await logAcesso(req, 'sgp_dp_sessao_atualizada', '');
     res.json({ ok: true });
   } catch (err) {
@@ -1178,13 +1125,11 @@ app.put('/api/sgp-dp/sessao', requireAuth, requireRole('admin', 'p1'), async (re
 // [GET /api/sgp-dp/sessao/status] — quando a sessão foi salva e por quem (nunca o valor do cookie).
 app.get('/api/sgp-dp/sessao/status', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
   try {
-    if (!supabase) return res.json({ atualizado_em: null, atualizado_por: null });
-    const { data, error } = await supabase
-      .from(SGP_DP_SESSAO_TABLE)
-      .select('atualizado_em, atualizado_por')
-      .eq('id', 1)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (!dbReady) return res.json({ atualizado_em: null, atualizado_por: null });
+    const data = await db.selectOne(SGP_DP_SESSAO_TABLE, {
+      columns: 'atualizado_em, atualizado_por',
+      where: { id: 1 },
+    });
     res.json(data || { atualizado_em: null, atualizado_por: null });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1200,7 +1145,7 @@ const AFASTAMENTOS_TABLE = 'afastamentos_pm';
 // [GET /api/afastamentos] — retorna todos os afastamentos. Qualquer usuário autenticado pode consultar.
 app.get('/api/afastamentos', requireAuth, async (req, res) => {
   try {
-    if (!supabase) return res.json([]);
+    if (!dbReady) return res.json([]);
     const data = await fetchAll(AFASTAMENTOS_TABLE);
     res.json(data);
   } catch (err) {
@@ -1221,13 +1166,11 @@ const FOTOS_TABLE = 'fotos_pm';
 // [GET /api/p1/foto/:re] — retorna foto_base64 do PM identificado pelo RE. Leitura pública (qualquer role).
 app.get('/api/p1/foto/:re', requireAuth, async (req, res) => {
   try {
-    if (!supabase) return res.json({ foto_base64: null });
-    const { data, error } = await supabase
-      .from(FOTOS_TABLE)
-      .select('re, foto_base64, updated_at')
-      .eq('re', req.params.re)
-      .single();
-    if (error && error.code !== 'PGRST116') throw new Error(error.message);
+    if (!dbReady) return res.json({ foto_base64: null });
+    const data = await db.selectOne(FOTOS_TABLE, {
+      columns: 're, foto_base64, updated_at',
+      where: { re: req.params.re },
+    });
     res.json(data || { foto_base64: null });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1237,14 +1180,13 @@ app.get('/api/p1/foto/:re', requireAuth, async (req, res) => {
 // [POST /api/p1/fotos/lote] — retorna foto_base64 de vários RE de uma vez (evita 1 chamada por PM na tela).
 app.post('/api/p1/fotos/lote', requireAuth, async (req, res) => {
   try {
-    if (!supabase) return res.json({});
+    if (!dbReady) return res.json({});
     const { res: listaRe } = req.body;
     if (!Array.isArray(listaRe) || !listaRe.length) return res.json({});
-    const { data, error } = await supabase
-      .from(FOTOS_TABLE)
-      .select('re, foto_base64')
-      .in('re', listaRe.slice(0, 500));
-    if (error) throw new Error(error.message);
+    const data = await db.select(FOTOS_TABLE, {
+      columns: 're, foto_base64',
+      where: [['re', 'IN', listaRe.slice(0, 500)]],
+    });
     const mapa = {};
     (data || []).forEach(r => { mapa[r.re] = r.foto_base64; });
     res.json(mapa);
@@ -1256,17 +1198,16 @@ app.post('/api/p1/fotos/lote', requireAuth, async (req, res) => {
 // [POST /api/p1/foto/:re] — faz upsert da foto (insert ou update pelo RE). Requer role p1 ou admin.
 app.post('/api/p1/foto/:re', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
   try {
-    if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+    if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
     const { foto_base64 } = req.body;
     if (!foto_base64 || !foto_base64.startsWith('data:image/'))
       return res.status(400).json({ error: 'Imagem inválida. Envie um arquivo de imagem (JPG, PNG).' });
     if (foto_base64.length > 1_100_000)
       return res.status(400).json({ error: 'Imagem muito grande. Máximo 800 KB após compressão.' });
-    const { error } = await supabase.from(FOTOS_TABLE).upsert(
+    await db.upsert(FOTOS_TABLE,
       { re: req.params.re, foto_base64, updated_at: new Date().toISOString() },
-      { onConflict: 're' }
+      { updateCols: ['foto_base64', 'updated_at'] }
     );
-    if (error) throw new Error(error.message);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1276,9 +1217,8 @@ app.post('/api/p1/foto/:re', requireAuth, requireRole('admin', 'p1'), async (req
 // [DELETE /api/p1/foto/:re] — remove a foto do PM. Requer role p1 ou admin.
 app.delete('/api/p1/foto/:re', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
   try {
-    if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
-    const { error } = await supabase.from(FOTOS_TABLE).delete().eq('re', req.params.re);
-    if (error) throw new Error(error.message);
+    if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
+    await db.remove(FOTOS_TABLE, { re: req.params.re });
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1293,9 +1233,8 @@ const VAGAS_TABLE = 'vagas_pm';
 
 app.get('/api/p1/vagas', requireAuth, async (req, res) => {
   try {
-    if (!supabase) return res.json([]);
-    const { data, error } = await supabase.from(VAGAS_TABLE).select('*').order('opm');
-    if (error) throw new Error(error.message);
+    if (!dbReady) return res.json([]);
+    const data = await db.select(VAGAS_TABLE, { orderBy: 'opm' });
     res.json(data || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1304,15 +1243,14 @@ app.get('/api/p1/vagas', requireAuth, async (req, res) => {
 
 app.post('/api/p1/vagas', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
   try {
-    if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+    if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
     const { opm, vagas } = req.body;
     if (!opm || vagas == null || isNaN(Number(vagas)) || Number(vagas) < 0)
       return res.status(400).json({ error: 'OPM e vagas (número ≥ 0) são obrigatórios.' });
-    const { error } = await supabase.from(VAGAS_TABLE).upsert(
+    await db.upsert(VAGAS_TABLE,
       { opm: opm.trim(), vagas: Number(vagas), updated_at: new Date().toISOString() },
-      { onConflict: 'opm' }
+      { updateCols: ['vagas', 'updated_at'] }
     );
-    if (error) throw new Error(error.message);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1327,16 +1265,15 @@ const QUADRO_TABLE = 'p1_quadro_fixado';
 
 app.get('/api/p1/quadro', requireAuth, async (req, res) => {
   try {
-    if (!supabase) return res.json([]);
-    const { data, error } = await supabase.from(QUADRO_TABLE).select('*').order('opm').order('municipio');
-    if (error) throw new Error(error.message);
+    if (!dbReady) return res.json([]);
+    const data = await db.select(QUADRO_TABLE, { orderBy: ['opm', 'municipio'] });
     res.json(data || []);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/p1/quadro/upload', requireAuth, requireRole('admin', 'p1'), async (req, res) => {
   try {
-    if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+    if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
     const records = req.body?.records;
     if (!Array.isArray(records) || !records.length)
       return res.status(400).json({ error: 'Nenhum registro recebido.' });
@@ -1379,12 +1316,8 @@ app.post('/api/p1/quadro/upload', requireAuth, requireRole('admin', 'p1'), async
 
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido. Verifique a coluna OPM.' });
 
-    await supabase.from(QUADRO_TABLE).delete().gte('id', 1);
-    const BATCH = 100;
-    for (let i = 0; i < rows.length; i += BATCH) {
-      const { error } = await supabase.from(QUADRO_TABLE).insert(rows.slice(i, i + BATCH));
-      if (error) throw new Error(error.message);
-    }
+    await db.remove(QUADRO_TABLE, {});
+    await db.insertMany(QUADRO_TABLE, rows);
     await logAcesso(req, 'upload_quadro', `${rows.length} registros importados`);
     res.json({ ok: true, inserted: rows.length });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -1392,7 +1325,7 @@ app.post('/api/p1/quadro/upload', requireAuth, requireRole('admin', 'p1'), async
 
 // ═══════════════════════════════════════════════════════════════
 // PRODUTIVIDADE P3
-// Mapeamento de tipo (URL) → nome da tabela no Supabase.
+// Mapeamento de tipo (URL) → nome da tabela no banco.
 // Usado pelas rotas genéricas GET /api/prod/:tipo e POST /api/upload/prod/:tipo.
 // ═══════════════════════════════════════════════════════════════
 const PROD_TABS = {
@@ -1539,22 +1472,11 @@ function mapProdRow(tipo, r) {
 // [GET /api/prod/:tipo] — retorna todos os registros de produtividade do tipo informado.
 // Tipos válidos: ocorrencias, presos, armas, veiculos, entorpecentes, visita-solidaria, tempo-resposta, conseg.
 app.get('/api/prod/:tipo', requireAuth, async (req, res) => {
-  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
   const tab = PROD_TABS[req.params.tipo];
   if (!tab) return res.status(400).json({ error: 'Tipo inválido' });
   try {
-    // Pagina em lotes de 1000 — Supabase limita 1000 linhas por query
-    const PAGE = 1000;
-    let all = [], from = 0;
-    while (true) {
-      const { data, error } = await supabase.from(tab).select('*').range(from, from + PAGE - 1);
-      if (error) throw new Error(error.message);
-      if (!data?.length) break;
-      all = all.concat(data);
-      if (data.length < PAGE) break;
-      from += PAGE;
-    }
-    res.json(all);
+    res.json(await db.select(tab));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1564,7 +1486,7 @@ app.get('/api/prod/:tipo', requireAuth, async (req, res) => {
 // Apaga apenas os registros dos anos presentes no CSV (não limpa anos anteriores).
 // CONSEG: deduplicação especial — mantém houve_reuniao=true quando há duplicatas no mesmo mês/município.
 app.post('/api/upload/prod/:tipo', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
-  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
   const tab = PROD_TABS[req.params.tipo];
   if (!tab) return res.status(400).json({ error: 'Tipo inválido' });
   const { records } = req.body;
@@ -1584,16 +1506,9 @@ app.post('/api/upload/prod/:tipo', requireAuth, requireRole('admin', 'p3'), asyn
     }
     const anos = [...new Set(rows.map(r => r.ano))];
     for (const ano of anos) {
-      const { error: delErr } = await supabase.from(tab).delete().eq('ano', ano);
-      if (delErr) throw new Error(delErr.message);
+      await db.remove(tab, { ano });
     }
-    const BATCH = 500;
-    let total = 0;
-    for (let i = 0; i < rows.length; i += BATCH) {
-      const { error: insErr } = await supabase.from(tab).insert(rows.slice(i, i + BATCH));
-      if (insErr) throw new Error(insErr.message);
-      total += Math.min(BATCH, rows.length - i);
-    }
+    const { affectedRows: total } = await db.insertMany(tab, rows);
     await logAcesso(req, 'upload_produtividade', `${req.params.tipo}: ${total} registros importados`);
     res.json({ ok: true, total });
   } catch (err) {
@@ -1606,16 +1521,15 @@ app.post('/api/upload/prod/:tipo', requireAuth, requireRole('admin', 'p3'), asyn
 // Dados por CIA/município: bairros, núcleos, famílias, modais, eficácia.
 // ═══════════════════════════════════════════════════════════════
 app.get('/api/pvs', requireAuth, async (req, res) => {
-  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
   try {
-    const filters = req.query.ano ? [['eq', 'ano', parseInt(req.query.ano)]] : [];
-    const data = await fetchAll('pvs', { filters });
-    res.json(data);
+    const where = req.query.ano ? { ano: parseInt(req.query.ano) } : {};
+    res.json(await db.select('pvs', { where }));
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/pvs', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
-  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
   const { records } = req.body;
   if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
   try {
@@ -1647,11 +1561,9 @@ app.post('/api/pvs', requireAuth, requireRole('admin', 'p3'), async (req, res) =
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido.' });
     const anos = [...new Set(rows.map(r => r.ano))];
     for (const ano of anos) {
-      const { error: delErr } = await supabase.from('pvs').delete().eq('ano', ano);
-      if (delErr) throw new Error(delErr.message);
+      await db.remove('pvs', { ano });
     }
-    const { error: insErr } = await supabase.from('pvs').insert(rows);
-    if (insErr) throw new Error(insErr.message);
+    await db.insertMany('pvs', rows);
     await logAcesso(req, 'upload_pvs', `${rows.length} registros importados`);
     res.json({ ok: true, total: rows.length });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -1664,10 +1576,9 @@ app.post('/api/pvs', requireAuth, requireRole('admin', 'p3'), async (req, res) =
 
 // [GET /api/config] — retorna todas as configurações como objeto { chave: valor }.
 app.get('/api/config', requireAuth, async (req, res) => {
-  if (!supabase) return res.json({});
+  if (!dbReady) return res.json({});
   try {
-    const { data, error } = await supabase.from('config_dashboard').select('chave, valor');
-    if (error) return res.json({});
+    const data = await db.select('config_dashboard', { columns: 'chave, valor' });
     const cfg = {};
     (data || []).forEach(r => { cfg[r.chave] = r.valor; });
     res.json(cfg);
@@ -1676,12 +1587,11 @@ app.get('/api/config', requireAuth, async (req, res) => {
 
 // [PUT /api/config] — cria ou atualiza (upsert) uma chave de configuração. Requer admin ou p3.
 app.put('/api/config', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
-  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
   const { chave, valor } = req.body;
   if (!chave) return res.status(400).json({ error: 'chave obrigatória' });
   try {
-    const { error } = await supabase.from('config_dashboard').upsert({ chave, valor }, { onConflict: 'chave' });
-    if (error) throw new Error(error.message);
+    await db.upsert('config_dashboard', { chave, valor }, { updateCols: ['valor'] });
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1697,14 +1607,9 @@ app.put('/api/config', requireAuth, requireRole('admin', 'p3'), async (req, res)
 
 // [GET /api/indicadores-p3] — lista todos os indicadores, ordenados por ano/mês. Leitura pública (qualquer role).
 app.get('/api/indicadores-p3', requireAuth, async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   try {
-    const { data, error } = await supabase
-      .from('indicadores_qualidade_p3')
-      .select('*')
-      .order('ano', { ascending: true })
-      .order('mes', { ascending: true });
-    if (error) throw new Error(error.message);
+    const data = await db.select('indicadores_qualidade_p3', { orderBy: ['ano', 'mes'] });
     res.json(data || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1714,7 +1619,7 @@ app.get('/api/indicadores-p3', requireAuth, async (req, res) => {
 // [POST /api/indicadores-p3] — salva/atualiza indicadores do mês informado.
 // Meses passados exigem que desbloqueado_ate seja futuro (bloqueio de edição retroativa).
 app.post('/api/indicadores-p3', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { mes, ano, disque_denuncia, tempo_resposta, cursos_pm, alunos_proerd, atendimento_vitima, conseg_ativo, bairros_pvs } = req.body;
   if (!mes || !ano) return res.status(400).json({ error: 'Mês e ano são obrigatórios' });
   try {
@@ -1725,12 +1630,12 @@ app.post('/api/indicadores-p3', requireAuth, requireRole('admin', 'p3', 'ti'), a
     const anoAtual = hoje.getFullYear();
     const isCurrentMonth = mes === mesAtualStr && Number(ano) === anoAtual;
     if (!isCurrentMonth) {
-      const { data: existing } = await supabase.from('indicadores_qualidade_p3').select('desbloqueado_ate').eq('mes', mes).eq('ano', Number(ano)).maybeSingle();
+      const existing = await db.selectOne('indicadores_qualidade_p3', { columns: 'desbloqueado_ate', where: { mes, ano: Number(ano) } });
       if (existing && (!existing.desbloqueado_ate || new Date(existing.desbloqueado_ate) <= new Date())) {
         return res.status(403).json({ error: 'Registro bloqueado. Solicite ao P3 para desbloquear por 24h.' });
       }
     }
-    const { error } = await supabase.from('indicadores_qualidade_p3').upsert({
+    await db.upsert('indicadores_qualidade_p3', {
       mes, ano,
       disque_denuncia:    disque_denuncia    != null ? Number(disque_denuncia)    : null,
       tempo_resposta:     tempo_resposta     != null ? Number(tempo_resposta)     : null,
@@ -1741,8 +1646,7 @@ app.post('/api/indicadores-p3', requireAuth, requireRole('admin', 'p3', 'ti'), a
       bairros_pvs:        bairros_pvs        != null ? Number(bairros_pvs)        : null,
       preenchido_em:      new Date().toISOString(),
       preenchido_por:     req.user.nome || req.user.matricula
-    }, { onConflict: 'mes,ano' });
-    if (error) throw new Error(error.message);
+    }, { updateCols: ['disque_denuncia', 'tempo_resposta', 'cursos_pm', 'alunos_proerd', 'atendimento_vitima', 'conseg_ativo', 'bairros_pvs', 'preenchido_em', 'preenchido_por'] });
     await logAcesso(req, 'indicadores_p3_salvo', `${mes}/${ano}`);
     res.json({ ok: true });
   } catch (err) {
@@ -1754,18 +1658,18 @@ app.post('/api/indicadores-p3', requireAuth, requireRole('admin', 'p3', 'ti'), a
 // cruzando as tabelas RAC PM, prod_pessoas_presas e prod_armas, por ano.
 // POP_SEADE = população da área do 40º BPM/I usada para índices per capita.
 app.get('/api/indicadores-p3/calculado', requireAuth, async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const POP_SEADE = 44539225;
   const r3 = v => Math.round(v * 1000) / 1000;
   try {
-    const efetivoRes = await supabase.from('efetivo_pm').select('re', { count: 'exact', head: true });
-    const [racData, presosData, armasData] = await Promise.all([
-      fetchAll(TABLE_NAME, { select: 'Ano,Crime,Avaliado' }),
-      fetchAll('prod_pessoas_presas', { select: 'ano,situacao,quantidade' }),
-      fetchAll('prod_armas', { select: 'ano,quantidade' }),
+    const [efetivoCount, racData, presosData, armasData] = await Promise.all([
+      db.count('efetivo_pm'),
+      db.select(TABLE_NAME, { columns: 'Ano,Crime,Avaliado' }),
+      db.select('prod_pessoas_presas', { columns: 'ano,situacao,quantidade' }),
+      db.select('prod_armas', { columns: 'ano,quantidade' }),
     ]);
 
-    const efetivo = efetivoRes.count || 1;
+    const efetivo = efetivoCount || 1;
 
     const anos = [...new Set([
       ...racData.map(r => r.Ano),
@@ -1810,15 +1714,12 @@ app.get('/api/indicadores-p3/calculado', requireAuth, async (req, res) => {
 // [POST /api/indicadores-p3/desbloquear] — libera edição de um mês bloqueado por 24 horas.
 // Atualiza o campo desbloqueado_ate = agora + 24h. Requer admin, p3 ou ti.
 app.post('/api/indicadores-p3/desbloquear', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { mes, ano } = req.body;
   if (!mes || !ano) return res.status(400).json({ error: 'Mês e ano obrigatórios' });
   try {
     const desbloqueado_ate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    const { error } = await supabase.from('indicadores_qualidade_p3')
-      .update({ desbloqueado_ate })
-      .eq('mes', mes).eq('ano', Number(ano));
-    if (error) throw new Error(error.message);
+    await db.update('indicadores_qualidade_p3', { desbloqueado_ate }, { mes, ano: Number(ano) });
     res.json({ ok: true, desbloqueado_ate });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1841,60 +1742,57 @@ app.get('/api/disque-denuncia/cias', requireAuth, (req, res) => res.json(DD_CIAS
 
 // [GET /api/disque-denuncia] — lista denúncias, opcionalmente filtradas por ano (query: ?ano=2025).
 app.get('/api/disque-denuncia', requireAuth, async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { ano } = req.query;
   try {
-    const filters = ano ? [['gte', 'data', `${ano}-01-01`], ['lte', 'data', `${ano}-12-31`]] : [];
-    const data = await fetchAll('disque_denuncia_registros', { filters, order: [['data', { ascending: false }]] });
+    const where = ano ? [['data', '>=', `${ano}-01-01`], ['data', '<=', `${ano}-12-31`]] : {};
+    const data = await db.select('disque_denuncia_registros', { where, orderBy: { col: 'data', dir: 'desc' } });
     res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // [POST /api/disque-denuncia] — cria um novo registro de denúncia.
 app.post('/api/disque-denuncia', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { data, cia, numero_dd, data_atendimento, status, flagrante, quant_presos, municipio } = req.body;
   if (!data || !cia || !numero_dd || !status) return res.status(400).json({ error: 'Campos obrigatórios ausentes' });
   if (!DD_CIAS.includes(cia)) return res.status(400).json({ error: 'Cia inválida' });
   if (!DD_STATUS.includes(status)) return res.status(400).json({ error: 'Status inválido' });
   try {
-    const { data: rec, error } = await supabase.from('disque_denuncia_registros').insert({
+    const { insertId } = await db.insert('disque_denuncia_registros', {
       data, cia, numero_dd: numero_dd.trim(),
       data_atendimento: data_atendimento || null,
       status, flagrante: !!flagrante,
       quant_presos: Number(quant_presos) || 0,
       municipio: municipio?.trim() || null,
       created_by: req.user.nome
-    }).select().single();
-    if (error) throw new Error(error.message);
-    res.json(rec);
+    });
+    res.json(await db.selectOne('disque_denuncia_registros', { where: { id: insertId } }));
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // [PUT /api/disque-denuncia/:id] — atualiza um registro de denúncia existente pelo ID.
 app.put('/api/disque-denuncia/:id', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { data, cia, numero_dd, data_atendimento, status, flagrante, quant_presos, municipio } = req.body;
   if (!data || !cia || !numero_dd || !status) return res.status(400).json({ error: 'Campos obrigatórios ausentes' });
   try {
-    const { error } = await supabase.from('disque_denuncia_registros').update({
+    await db.update('disque_denuncia_registros', {
       data, cia, numero_dd: numero_dd.trim(),
       data_atendimento: data_atendimento || null,
       status, flagrante: !!flagrante,
       quant_presos: Number(quant_presos) || 0,
       municipio: municipio?.trim() || null
-    }).eq('id', req.params.id);
-    if (error) throw new Error(error.message);
+    }, { id: req.params.id });
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // [DELETE /api/disque-denuncia/:id] — exclui um registro de denúncia. Requer admin ou p3.
 app.delete('/api/disque-denuncia/:id', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   try {
-    const { error } = await supabase.from('disque_denuncia_registros').delete().eq('id', req.params.id);
-    if (error) throw new Error(error.message);
+    await db.remove('disque_denuncia_registros', { id: req.params.id });
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -1903,7 +1801,7 @@ app.delete('/api/disque-denuncia/:id', requireAuth, requireRole('admin', 'p3'), 
 // Apaga registros dos anos presentes no CSV antes de inserir (não é incremental).
 // Normaliza status com tolerância a variações de grafia e acento.
 app.post('/api/disque-denuncia/upload', requireAuth, requireRole('admin', 'p3', 'ti'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Banco não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { records } = req.body;
   if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
 
@@ -1949,18 +1847,13 @@ app.post('/api/disque-denuncia/upload', requireAuth, requireRole('admin', 'p3', 
     // Apaga registros dos anos presentes no CSV antes de inserir
     const anos = [...new Set(rows.map(r => r.data.slice(0, 4)))];
     for (const ano of anos) {
-      const { error: delErr } = await supabase.from('disque_denuncia_registros')
-        .delete().gte('data', `${ano}-01-01`).lte('data', `${ano}-12-31`);
-      if (delErr) throw new Error(delErr.message);
+      await db.remove('disque_denuncia_registros', [
+        ['data', '>=', `${ano}-01-01`],
+        ['data', '<=', `${ano}-12-31`],
+      ]);
     }
 
-    const BATCH = 500;
-    let total = 0;
-    for (let i = 0; i < rows.length; i += BATCH) {
-      const { error } = await supabase.from('disque_denuncia_registros').insert(rows.slice(i, i + BATCH));
-      if (error) throw new Error(error.message);
-      total += Math.min(BATCH, rows.length - i);
-    }
+    const { affectedRows: total } = await db.insertMany('disque_denuncia_registros', rows);
     res.json({ ok: true, total });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -1984,7 +1877,7 @@ function normUISopm(s) {
 // Colunas esperadas: OPM, Posto/Grad, RE, Nome, Código de restrição, Início, Término, Dias, Verificar
 // Estratégia: substitui tudo e insere deduplicado por RE+Início+Término+Códigos.
 app.post('/api/upload/uis-restricoes', requireAuth, requireRole('admin', 'p1', 'ti'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   const { records } = req.body;
   if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
   const nk = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
@@ -2030,15 +1923,8 @@ app.post('/api/upload/uis-restricoes', requireAuth, requireRole('admin', 'p1', '
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
     // Só apaga as linhas de origem 'manual' (CSV) — as de origem 'sgp' são
     // mantidas pelo agente-sgp e alimentam a tela UIS; este upload nunca as toca.
-    const { error: du1 } = await supabase.from('uis_restricoes').delete().eq('origem', 'manual');
-    if (du1) throw new Error('Erro ao limpar registros antigos: ' + du1.message);
-    const BATCH = 500;
-    let total = 0;
-    for (let i = 0; i < rows.length; i += BATCH) {
-      const { error } = await supabase.from('uis_restricoes').insert(rows.slice(i, i + BATCH));
-      if (error) throw new Error(error.message);
-      total += Math.min(BATCH, rows.length - i);
-    }
+    await db.remove('uis_restricoes', { origem: 'manual' });
+    const { affectedRows: total } = await db.insertMany('uis_restricoes', rows);
     await logAcesso(req, 'upload_uis', `${total} registros importados`);
     res.json({ ok: true, inserted: total });
   } catch (err) {
@@ -2050,7 +1936,7 @@ app.post('/api/upload/uis-restricoes', requireAuth, requireRole('admin', 'p1', '
 // [GET /api/uis/stats] — estatísticas gerais para a seção UIS (somente números, sem nomes).
 // Para cada RE, considera apenas a restrição mais recente (maior término).
 app.get('/api/uis/stats', requireAuth, async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   try {
     const today = new Date().toISOString().slice(0, 10);
     const em30  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
@@ -2100,7 +1986,7 @@ app.get('/api/uis/stats', requireAuth, async (req, res) => {
 // Filtra no backend para garantir comparação correta de datas.
 // Retorna array de { re, codigos, termino, opm } — um registro por RE (o mais recente).
 app.get('/api/uis/mapa', requireAuth, requireSectionNominal('uis', 'p1'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   try {
     const today = new Date().toISOString().slice(0, 10);
     const resAtivos = await reAtivosSet();
@@ -2115,7 +2001,7 @@ app.get('/api/uis/mapa', requireAuth, requireSectionNominal('uis', 'p1'), async 
 // O RE passado pode ter dígito verificador (7 digits, efetivo) ou não (5-6, planilha UIS).
 // Busca por match exato primeiro; se não achar, tenta sem o último dígito.
 app.get('/api/uis/restricoes/:re', requireAuth, requireSectionNominal('uis', 'p1'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   try {
     // RE do efetivo vem como "180673-4" — corta no hífen para obter "180673"
     const reBase = req.params.re.split('-')[0].replace(/\D/g,'');
@@ -2150,7 +2036,7 @@ async function reAtivosSet() {
 
 // [GET /api/ias/stats] — estatísticas gerais para a seção UIS/IAS (somente números).
 app.get('/api/ias/stats', requireAuth, async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   try {
     const today = new Date().toISOString().slice(0, 10);
     const em30  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
@@ -2165,7 +2051,7 @@ app.get('/api/ias/stats', requireAuth, async (req, res) => {
 
 // [GET /api/ias/mapa] — todos os registros IAS para badges no P1.
 app.get('/api/ias/mapa', requireAuth, requireSectionNominal('uis', 'p1'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   try {
     const resAtivos = await reAtivosSet();
     const all = (await fetchAll('ias_registros', {})).filter(r => resAtivos.has(r.re));
@@ -2175,7 +2061,7 @@ app.get('/api/ias/mapa', requireAuth, requireSectionNominal('uis', 'p1'), async 
 
 // [GET /api/ias/:re] — registro IAS de um PM pelo RE.
 app.get('/api/ias/:re', requireAuth, requireSectionNominal('uis', 'p1'), async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(500).json({ error: 'Banco de dados não configurado' });
   try {
     const reBase = req.params.re.replace(/[^0-9]/g, '');
     const reNorm = reBase.length >= 7 ? reBase.slice(0, reBase.length - 1) : reBase;
@@ -2199,7 +2085,7 @@ app.get('/api/ias/:re', requireAuth, requireSectionNominal('uis', 'p1'), async (
 // inserir — nunca toca nas linhas geradas pela sincronização SGP-DP.
 // Um curso pode gerar N linhas na tabela — uma por PM listado no campo PM/interessados.
 app.post('/api/upload/cursos', requireAuth, requireRole('admin', 'p3'), async (req, res) => {
-  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
   const { records } = req.body;
   if (!records?.length) return res.status(400).json({ error: 'Nenhum registro recebido.' });
   const nk = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
@@ -2238,16 +2124,9 @@ app.post('/api/upload/cursos', requireAuth, requireRole('admin', 'p3'), async (r
     if (!rows.length) return res.status(400).json({ error: 'Nenhum registro válido após validação.' });
     const anos = [...new Set(rows.map(r => r.ano).filter(a => a > 0))];
     for (const ano of anos) {
-      const { error: delErr } = await supabase.from('prod_cursos').delete().eq('ano', ano).eq('origem', 'manual');
-      if (delErr) throw new Error(delErr.message);
+      await db.remove('prod_cursos', { ano, origem: 'manual' });
     }
-    const BATCH = 500;
-    let total = 0;
-    for (let i = 0; i < rows.length; i += BATCH) {
-      const { error: insErr } = await supabase.from('prod_cursos').insert(rows.slice(i, i + BATCH));
-      if (insErr) throw new Error(insErr.message);
-      total += Math.min(BATCH, rows.length - i);
-    }
+    const { affectedRows: total } = await db.insertMany('prod_cursos', rows);
     await logAcesso(req, 'upload_cursos', `${total} registros importados`);
     res.json({ ok: true, total });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -2255,20 +2134,18 @@ app.post('/api/upload/cursos', requireAuth, requireRole('admin', 'p3'), async (r
 
 // [GET /api/pm/:re/cursos] — lista todos os cursos de um PM específico (pelo RE), em ordem decrescente por data.
 app.get('/api/pm/:re/cursos', requireAuth, async (req, res) => {
-  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
   try {
-    const { data, error } = await supabase.from('prod_cursos').select('*').eq('re_pm', req.params.re).order('data', { ascending: false });
-    if (error) throw new Error(error.message);
+    const data = await db.select('prod_cursos', { where: { re_pm: req.params.re }, orderBy: { col: 'data', dir: 'desc' } });
     res.json(data || []);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // [GET /api/pm/:re/laureas] — lista todas as láureas de um PM específico (pelo RE), em ordem decrescente por data de concessão.
 app.get('/api/pm/:re/laureas', requireAuth, async (req, res) => {
-  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
   try {
-    const { data, error } = await supabase.from('prod_laureas').select('*').eq('re_pm', req.params.re).order('concessao', { ascending: false });
-    if (error) throw new Error(error.message);
+    const data = await db.select('prod_laureas', { where: { re_pm: req.params.re }, orderBy: { col: 'concessao', dir: 'desc' } });
     res.json(data || []);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -2283,7 +2160,7 @@ app.get('/api/pm/:re/laureas', requireAuth, async (req, res) => {
 // não tem coluna `cia` própria, só `opm`); `re` em `laureas` já vem sem
 // dígito verificador (casa com `efetivo[].re.split('-')[0]`).
 app.get('/api/laureas/resumo', requireAuth, async (req, res) => {
-  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
   try {
     // fetchAll pagina de 1000 em 1000 — prod_laureas já passou de 1000 linhas
     // e um .select() cru descartava silenciosamente as excedentes, fazendo
@@ -2331,15 +2208,10 @@ app.get('/api/laureas/resumo', requireAuth, async (req, res) => {
 
 // [GET /api/logs/acesso] — retorna o histórico de acessos. Restrito a admin.
 app.get('/api/logs/acesso', requireAuth, requireRole('admin', 'ti'), async (req, res) => {
-  if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
+  if (!dbReady) return res.status(503).json({ error: 'Banco de dados não configurado' });
   try {
     const limit = Math.min(parseInt(req.query.limit) || 500, 2000);
-    const { data, error } = await supabase
-      .from('logs_acesso')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    if (error) throw new Error(error.message);
+    const data = await db.select('logs_acesso', { orderBy: { col: 'created_at', dir: 'desc' }, limit });
     res.json(data || []);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -2361,12 +2233,12 @@ app.get('*', (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // START — inicializa dados e sobe o servidor
 // ═══════════════════════════════════════════════════════════════
-// init() faz a primeira carga do cache (Supabase ou fallback local),
+// init() conecta no MySQL e faz a primeira carga do cache (ou fallback local),
 // depois o servidor começa a escutar na porta 3001.
 init().then(() => {
   app.listen(PORT, () => {
     console.log(`✓ API rodando em http://localhost:${PORT}`);
-    if (supabase) console.log(`  Supabase: ${SUPABASE_URL}`);
-    else          console.log(`  ⚠ Configure SUPABASE_URL e SUPABASE_KEY no server.js`);
+    if (dbReady) console.log(`  MySQL: ${process.env.MYSQL_HOST}/${process.env.MYSQL_DATABASE}`);
+    else         console.log(`  ⚠ Banco indisponível — rodando só com raw_data.json. Verifique o backend/.env.`);
   });
 });

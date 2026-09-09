@@ -105,7 +105,7 @@ async function confirmUpload() {
   const btn = document.getElementById('upl-confirm');
   btn.disabled = true;
   btn.textContent = 'Importando...';
-  showUplMsg('Enviando para o Supabase...', 'info');
+  showUplMsg('Enviando para o servidor...', 'info');
 
   try {
     const res  = await authFetch(`${API}/upload`, {
@@ -307,7 +307,7 @@ async function confirmOcorrUpload() {
   const btn = document.getElementById('ocorr-confirm');
   btn.disabled = true;
   btn.textContent = 'Importando...';
-  showOcorrMsg('Enviando para o Supabase...', 'info');
+  showOcorrMsg('Enviando para o servidor...', 'info');
 
   try {
     const res  = await authFetch(`${API}/upload/ocorrencias`, {

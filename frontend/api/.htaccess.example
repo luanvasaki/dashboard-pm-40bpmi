@@ -1,0 +1,28 @@
+# =============================================================================
+# OPCIONAL — só use se a TI confirmar que o Apache aceita .htaccess
+# (AllowOverride com pelo menos FileInfo). Se AllowOverride estiver "None",
+# qualquer .htaccess derruba o diretório com HTTP 500 — nesse caso NÃO renomeie
+# este arquivo; o backend já funciona sem ele via /api/index.php/<rota>.
+#
+# Para ativar:  renomeie para  .htaccess  e troque o `API` do frontend
+# (frontend/js/utils.js e frontend/login.html) de volta para
+#   `${window.location.origin}/api`
+# =============================================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /api
+
+    # /api/<rota>  →  /api/index.php  (a rota real sai do REQUEST_URI)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Bloqueia acesso direto a arquivos sensíveis (defesa em profundidade —
+# secrets.php já não vaza nada por ser .php, mas .env vazaria).
+<FilesMatch "^\.env|secrets\.php$|\.user\.ini$">
+    Require all denied
+</FilesMatch>
+
+# PATH_INFO explícito, caso o handler do PHP precise.
+AcceptPathInfo On

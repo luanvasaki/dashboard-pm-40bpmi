@@ -2,7 +2,7 @@ require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
 const tls = require('node:tls');
-const { createClient } = require('@supabase/supabase-js');
+const db = require('./db');
 const { XMLParser } = require('fast-xml-parser');
 
 // O SGP-DP (HTTPS) usa uma CA interna da corporação — o Windows confia nela
@@ -20,9 +20,10 @@ const { XMLParser } = require('fast-xml-parser');
 //
 // IMPORTANTE: o `ca` do undici SUBSTITUI a lista padrão de CAs confiáveis
 // em vez de complementá-la — sem incluir tls.rootCertificates junto, TODO
-// outro HTTPS do processo (Supabase, etc.) passa a falhar. Já aconteceu em
-// produção (loop virou "Erro ao consultar fila: fetch failed" depois dessa
-// mudança) — por isso é essencial concatenar as duas listas, nunca só a nossa.
+// outro HTTPS do processo passa a falhar. Já aconteceu em produção (loop
+// virou "fetch failed" depois dessa mudança) — por isso é essencial
+// concatenar as duas listas, nunca só a nossa. (O MySQL não usa fetch/undici,
+// então não é afetado por isso — mas mantém-se a concatenação por segurança.)
 const CA_CERT_PATH = process.env.SGPDP_CA_CERT_PATH || path.join(__dirname, 'certs', 'sgp-dp-ca.pem');
 if (fs.existsSync(CA_CERT_PATH)) {
   if (!process.env.NODE_EXTRA_CA_CERTS) process.env.NODE_EXTRA_CA_CERTS = CA_CERT_PATH;
@@ -44,17 +45,10 @@ if (fs.existsSync(CA_CERT_PATH)) {
 // não é alcançável de fora da intranet.
 const WSSCPM_URL = 'http://webservices.intranet.policiamilitar.sp.gov.br/WSSCPM/Service.asmx';
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
+// Config do MySQL vem via MYSQL_* no .env — ./db.js já aborta se faltar.
 const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS) || 60000;
 const CALL_DELAY_MS = Number(process.env.CALL_DELAY_MS) || 1500;
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env (veja .env.example).');
-  process.exit(1);
-}
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const xmlParser = new XMLParser({ removeNSPrefix: true, ignoreAttributes: true });
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -242,15 +236,13 @@ async function buscarAfastamentosPM(cpf) {
 // planilha de efetivo geral, não por essa sincronização.
 // Devolve a OPM já cadastrada, pra reaproveitar nos afastamentos.
 async function upsertEfetivo(dados) {
-  const { data: existentes, error: erroBusca } = await supabase.from('efetivo_pm').select('id, opm').eq('re', dados.re);
-  if (erroBusca) throw new Error(`Falha ao consultar efetivo_pm: ${erroBusca.message}`);
+  const existentes = await db.select('efetivo_pm', { columns: 'id, opm', where: { re: dados.re } });
 
   if (!existentes.length) {
     throw new Error(`RE ${dados.re} não está no efetivo — adicione pela planilha antes de sincronizar.`);
   }
 
-  const { error } = await supabase.from('efetivo_pm').update(dados).eq('re', dados.re);
-  if (error) throw new Error(`Falha ao atualizar efetivo_pm: ${error.message}`);
+  await db.update('efetivo_pm', dados, { re: dados.re });
 
   return existentes[0].opm;
 }
@@ -267,8 +259,7 @@ async function sincronizarAfastamentos(dados, cpf, opm) {
   console.log(`  (afastamentos) RE ${dados.re}: ${afastamentos.length} afastamento(s), ${restricoes.length} restrição(ões) no WSSCPM (também gravadas no assentamento).`);
   restricoes.forEach(r => console.log(`    - tipo="${r.tipo}" inicio=${r.inicio} termino=${r.termino}`));
 
-  const { error: erroDelete } = await supabase.from('afastamentos_pm').delete().eq('re', dados.re);
-  if (erroDelete) throw new Error(`Falha ao limpar afastamentos_pm: ${erroDelete.message}`);
+  await db.remove('afastamentos_pm', { re: dados.re });
   // Restrições também entram no assentamento (afastamentos_pm), pra aparecer
   // no extrato individual do PM — além de alimentar o flag de restrição em
   // efetivo_pm (abaixo). Marcadas com restricao=true pra não contarem como
@@ -281,8 +272,7 @@ async function sincronizarAfastamentos(dados, cpf, opm) {
   const todasLinhas = [...afastamentosComFlag, ...restricoesComoLinha];
   if (todasLinhas.length) {
     const rows = todasLinhas.map(l => ({ ...l, re: dados.re, nome: dados.nome, opm: opm || '' }));
-    const { error: erroInsert } = await supabase.from('afastamentos_pm').insert(rows);
-    if (erroInsert) throw new Error(`Falha ao gravar afastamentos_pm: ${erroInsert.message}`);
+    await db.insertMany('afastamentos_pm', rows);
   }
 
   // WSSCPM é a fonte única pra restrição agora — substitui sempre, mesmo pra
@@ -292,12 +282,11 @@ async function sincronizarAfastamentos(dados, cpf, opm) {
   // Restrição sem término definido (em aberto, sem previsão de acabar) continua ativa.
   const ativa = restricoes.find(r => r.inicio && r.inicio <= hoje && (!r.termino || r.termino >= hoje));
   console.log(`  (restrição) RE ${dados.re}: hoje=${hoje}, ativa=${ativa ? `tipo="${ativa.tipo}" ${ativa.inicio}→${ativa.termino}` : 'nenhuma'}`);
-  const { error: erroRestr } = await supabase.from('efetivo_pm').update(
+  await db.update('efetivo_pm',
     ativa
       ? { possui_restricao: 'S', tipos_restricao: ativa.tipo, restricao_inicio: ativa.inicio, restricao_termino: ativa.termino }
-      : { possui_restricao: 'N', tipos_restricao: null, restricao_inicio: null, restricao_termino: null }
-  ).eq('re', dados.re);
-  if (erroRestr) throw new Error(`Falha ao gravar restrição em efetivo_pm: ${erroRestr.message}`);
+      : { possui_restricao: 'N', tipos_restricao: null, restricao_inicio: null, restricao_termino: null },
+    { re: dados.re });
 }
 
 async function sincronizarUmRE(re6) {
@@ -307,10 +296,11 @@ async function sincronizarUmRE(re6) {
   try {
     const foto = await buscarFotoPM(re6);
     if (foto) {
-      const { error: erroFoto } = await supabase
-        .from('fotos_pm')
-        .upsert({ re: dados.re, foto_base64: foto, updated_at: new Date().toISOString() }, { onConflict: 're' });
-      if (erroFoto) console.error(`  (foto) erro ao gravar RE ${re6}: ${erroFoto.message}`);
+      try {
+        await db.upsert('fotos_pm',
+          { re: dados.re, foto_base64: foto, updated_at: new Date().toISOString() },
+          { updateCols: ['foto_base64', 'updated_at'] });
+      } catch (e) { console.error(`  (foto) erro ao gravar RE ${re6}: ${e.message}`); }
     }
   } catch (err) {
     // Foto é melhor-esforço — não derruba a sincronização do resto dos dados.
@@ -347,8 +337,7 @@ async function sincronizarUmRE(re6) {
 const SGPDP_BASE = 'https://sgp-prod.intranet.policiamilitar.sp.gov.br';
 
 async function buscarSessaoSgpDp() {
-  const { data, error } = await supabase.from('sgp_dp_sessao').select('cookie').eq('id', 1).maybeSingle();
-  if (error) throw new Error(`Falha ao consultar sessão do SGP-DP: ${error.message}`);
+  const data = await db.selectOne('sgp_dp_sessao', { columns: 'cookie', where: { id: 1 } });
   if (!data?.cookie) throw new Error('Nenhuma sessão do SGP-DP salva ainda — cole o cookie no dashboard antes de sincronizar a IAS.');
   return data.cookie;
 }
@@ -655,8 +644,8 @@ async function sincronizarIasUmRE(pmEfetivo, cookie) {
     const upd = {};
     if (data_nascimento) upd.data_nascimento = data_nascimento;
     if (data_ingresso) upd.data_ingresso = data_ingresso;
-    const { error: erroPessoais } = await supabase.from('efetivo_pm').update(upd).eq('re', pmEfetivo.re);
-    if (erroPessoais) console.error(`  (dados pessoais) erro ao gravar RE ${re6}: ${erroPessoais.message}`);
+    try { await db.update('efetivo_pm', upd, { re: pmEfetivo.re }); }
+    catch (e) { console.error(`  (dados pessoais) erro ao gravar RE ${re6}: ${e.message}`); }
   }
 
   // Restrição médica detalhada (códigos tipo "LP,OU,PO,SE,SP") — substitui o
@@ -664,24 +653,25 @@ async function sincronizarIasUmRE(pmEfetivo, cookie) {
   // genérico "APTO COM RESTRIÇÃO"), sempre que essa sincronização de IAS
   // rodar depois. WSSCPM é a fonte só até a IAS ser sincronizada 1x.
   const ativa = restricao?.ativa;
-  const { error: erroRestr } = await supabase.from('efetivo_pm').update(
-    ativa
-      ? { possui_restricao: 'S', tipos_restricao: ativa.tipo, restricao_inicio: ativa.inicio, restricao_termino: ativa.termino }
-      : { possui_restricao: 'N', tipos_restricao: null, restricao_inicio: null, restricao_termino: null }
-  ).eq('re', pmEfetivo.re);
-  if (erroRestr) console.error(`  (restrição) erro ao gravar RE ${re6}: ${erroRestr.message}`);
+  try {
+    await db.update('efetivo_pm',
+      ativa
+        ? { possui_restricao: 'S', tipos_restricao: ativa.tipo, restricao_inicio: ativa.inicio, restricao_termino: ativa.termino }
+        : { possui_restricao: 'N', tipos_restricao: null, restricao_inicio: null, restricao_termino: null },
+      { re: pmEfetivo.re });
+  } catch (e) { console.error(`  (restrição) erro ao gravar RE ${re6}: ${e.message}`); }
   console.log(`  (restrição) RE ${re6}: ${ativa ? `ativa="${ativa.tipo}" ${ativa.inicio}→${ativa.termino}` : 'nenhuma'}`);
 
   // Histórico completo de restrições (uis_restricoes, origem='sgp') — só
   // apaga o que essa própria sincronização gerou antes, nunca linhas
   // origem='manual' (upload de CSV, que continua existindo em paralelo).
   const historico = restricao?.historico || [];
-  const { error: erroDelUis } = await supabase.from('uis_restricoes').delete().eq('re', re6).eq('origem', 'sgp');
-  if (erroDelUis) console.error(`  (uis) erro ao limpar RE ${re6}: ${erroDelUis.message}`);
+  try { await db.remove('uis_restricoes', { re: re6, origem: 'sgp' }); }
+  catch (e) { console.error(`  (uis) erro ao limpar RE ${re6}: ${e.message}`); }
   if (historico.length) {
     const rowsUis = historico.map(h => ({ ...h, origem: 'sgp' }));
-    const { error: erroInsUis } = await supabase.from('uis_restricoes').insert(rowsUis);
-    if (erroInsUis) console.error(`  (uis) erro ao gravar RE ${re6}: ${erroInsUis.message}`);
+    try { await db.insertMany('uis_restricoes', rowsUis); }
+    catch (e) { console.error(`  (uis) erro ao gravar RE ${re6}: ${e.message}`); }
   }
 
   if (semIas) {
@@ -700,15 +690,12 @@ async function sincronizarIasUmRE(pmEfetivo, cookie) {
     updated_at: new Date().toISOString(),
   };
 
-  const { data: existentes, error: erroBusca } = await supabase.from('ias_registros').select('id').eq('re', re6);
-  if (erroBusca) throw new Error(`Falha ao consultar ias_registros: ${erroBusca.message}`);
+  const existentes = await db.select('ias_registros', { columns: 'id', where: { re: re6 } });
 
   if (existentes.length) {
-    const { error } = await supabase.from('ias_registros').update(linha).eq('id', existentes[0].id);
-    if (error) throw new Error(`Falha ao atualizar ias_registros: ${error.message}`);
+    await db.update('ias_registros', linha, { id: existentes[0].id });
   } else {
-    const { error } = await supabase.from('ias_registros').insert(linha);
-    if (error) throw new Error(`Falha ao gravar ias_registros: ${error.message}`);
+    await db.insert('ias_registros', linha);
   }
   console.log(`  (IAS) RE ${re6}: vencimento=${ias.data_vencimento || 'sem data'}.`);
 }
@@ -716,8 +703,7 @@ async function sincronizarIasUmRE(pmEfetivo, cookie) {
 async function processarJobIasSingle(job) {
   const re6 = String(job.re).slice(0, 6);
   const cookie = await buscarSessaoSgpDp();
-  const { data: pm, error } = await supabase.from('efetivo_pm').select('re, nome, posto, opm, genero, nome_guerra').like('re', `${re6}%`).limit(1);
-  if (error) throw new Error(`Falha ao consultar efetivo_pm: ${error.message}`);
+  const pm = await db.select('efetivo_pm', { columns: 're, nome, posto, opm, genero, nome_guerra', where: [['re', 'LIKE', `${re6}%`]], limit: 1 });
   if (!pm.length) throw new Error(`RE ${re6} não está no efetivo.`);
   await sincronizarIasUmRE(pm[0], cookie);
   return { ok: true, re: pm[0].re, nome: pm[0].nome };
@@ -725,8 +711,7 @@ async function processarJobIasSingle(job) {
 
 async function processarJobIasBulk() {
   const cookie = await buscarSessaoSgpDp();
-  const { data: efetivo, error } = await supabase.from('efetivo_pm').select('re, nome, posto, opm, genero, nome_guerra');
-  if (error) throw new Error(`Falha ao ler efetivo_pm: ${error.message}`);
+  const efetivo = await db.select('efetivo_pm', { columns: 're, nome, posto, opm, genero, nome_guerra' });
 
   const resultado = { total: efetivo.length, atualizados: 0, erros: [] };
   let falhasSeguidas = 0;
@@ -905,8 +890,7 @@ async function sincronizarCursosUmRE(pmEfetivo, cookie) {
   // Só apaga o que essa própria sincronização gerou antes (interno/externo) —
   // nunca toca em linhas de origem='manual' (upload de CSV, cursos que a PM
   // registra fora do SGP-DP e não têm como vir por essa via).
-  const { error: erroDelete } = await supabase.from('prod_cursos').delete().eq('re_pm', pmEfetivo.re).in('origem', ['interno', 'externo']);
-  if (erroDelete) throw new Error(`Falha ao limpar prod_cursos: ${erroDelete.message}`);
+  await db.remove('prod_cursos', [['re_pm', '=', pmEfetivo.re], ['origem', 'IN', ['interno', 'externo']]]);
 
   if (cursos.length) {
     const rows = cursos.map(c => ({
@@ -922,19 +906,17 @@ async function sincronizarCursosUmRE(pmEfetivo, cookie) {
     // outra pessoa), e um INSERT puro derrubava TODOS os cursos dessa pessoa
     // por causa de 1 item conflitante. upsert por id_crs_pm é resiliente a
     // isso (só atualiza a linha em conflito em vez de falhar tudo) — mas
-    // duplicata DENTRO do mesmo lote ainda quebra o upsert do Postgres
-    // ("cannot affect row a second time"), daí o dedup antes.
+    // duplicata DENTRO do mesmo lote ainda quebra o upsert (mesma questão no
+    // MySQL), daí o dedup antes.
     const rowsUnicas = [...new Map(rows.map(r => [r.id_crs_pm, r])).values()];
-    const { error: erroUpsert } = await supabase.from('prod_cursos').upsert(rowsUnicas, { onConflict: 'id_crs_pm' });
-    if (erroUpsert) throw new Error(`Falha ao gravar prod_cursos: ${erroUpsert.message}${erroUpsert.details ? ' — ' + erroUpsert.details : ''}`);
+    await db.upsertMany('prod_cursos', rowsUnicas);
   }
 }
 
 async function processarJobCursosSingle(job) {
   const re6 = String(job.re).slice(0, 6);
   const cookie = await buscarSessaoSgpDp();
-  const { data: pm, error } = await supabase.from('efetivo_pm').select('re, nome, posto, opm').like('re', `${re6}%`).limit(1);
-  if (error) throw new Error(`Falha ao consultar efetivo_pm: ${error.message}`);
+  const pm = await db.select('efetivo_pm', { columns: 're, nome, posto, opm', where: [['re', 'LIKE', `${re6}%`]], limit: 1 });
   if (!pm.length) throw new Error(`RE ${re6} não está no efetivo.`);
   await sincronizarCursosUmRE(pm[0], cookie);
   return { ok: true, re: pm[0].re, nome: pm[0].nome };
@@ -942,8 +924,7 @@ async function processarJobCursosSingle(job) {
 
 async function processarJobCursosBulk() {
   const cookie = await buscarSessaoSgpDp();
-  const { data: efetivo, error } = await supabase.from('efetivo_pm').select('re, nome, posto, opm');
-  if (error) throw new Error(`Falha ao ler efetivo_pm: ${error.message}`);
+  const efetivo = await db.select('efetivo_pm', { columns: 're, nome, posto, opm' });
 
   const resultado = { total: efetivo.length, atualizados: 0, erros: [] };
   let falhasSeguidas = 0;
@@ -1035,8 +1016,7 @@ async function sincronizarLaureasUmRE(pmEfetivo, cookie) {
   const laureas = await comRetryTransiente(() => buscarLaureasPM(re6, cookie));
   console.log(`  (láureas) RE ${re6}: ${laureas.length} láurea(s) no SGP-DP.`);
 
-  const { error: erroDelete } = await supabase.from('prod_laureas').delete().eq('re_pm', pmEfetivo.re);
-  if (erroDelete) throw new Error(`Falha ao limpar prod_laureas: ${erroDelete.message}`);
+  await db.remove('prod_laureas', { re_pm: pmEfetivo.re });
 
   if (laureas.length) {
     const rows = laureas.map(l => ({
@@ -1050,16 +1030,14 @@ async function sincronizarLaureasUmRE(pmEfetivo, cookie) {
     // Dedup por id_laurea dentro do próprio lote — mesma cautela já aplicada
     // aos cursos, caso o SGP-DP repita um Boletim pra mesma pessoa.
     const rowsUnicas = [...new Map(rows.map(r => [r.id_laurea, r])).values()];
-    const { error: erroInsert } = await supabase.from('prod_laureas').insert(rowsUnicas);
-    if (erroInsert) throw new Error(`Falha ao gravar prod_laureas: ${erroInsert.message}${erroInsert.details ? ' — ' + erroInsert.details : ''}`);
+    await db.insertMany('prod_laureas', rowsUnicas);
   }
 }
 
 async function processarJobLaureasSingle(job) {
   const re6 = String(job.re).slice(0, 6);
   const cookie = await buscarSessaoSgpDp();
-  const { data: pm, error } = await supabase.from('efetivo_pm').select('re, nome, posto, opm').like('re', `${re6}%`).limit(1);
-  if (error) throw new Error(`Falha ao consultar efetivo_pm: ${error.message}`);
+  const pm = await db.select('efetivo_pm', { columns: 're, nome, posto, opm', where: [['re', 'LIKE', `${re6}%`]], limit: 1 });
   if (!pm.length) throw new Error(`RE ${re6} não está no efetivo.`);
   await sincronizarLaureasUmRE(pm[0], cookie);
   return { ok: true, re: pm[0].re, nome: pm[0].nome };
@@ -1067,8 +1045,7 @@ async function processarJobLaureasSingle(job) {
 
 async function processarJobLaureasBulk() {
   const cookie = await buscarSessaoSgpDp();
-  const { data: efetivo, error } = await supabase.from('efetivo_pm').select('re, nome, posto, opm');
-  if (error) throw new Error(`Falha ao ler efetivo_pm: ${error.message}`);
+  const efetivo = await db.select('efetivo_pm', { columns: 're, nome, posto, opm' });
 
   const resultado = { total: efetivo.length, atualizados: 0, erros: [] };
   let falhasSeguidas = 0;
@@ -1101,8 +1078,7 @@ async function processarJobSingle(job) {
 }
 
 async function processarJobBulk() {
-  const { data: efetivo, error } = await supabase.from('efetivo_pm').select('re');
-  if (error) throw new Error(`Falha ao ler efetivo_pm: ${error.message}`);
+  const efetivo = await db.select('efetivo_pm', { columns: 're' });
 
   const resultado = { total: efetivo.length, atualizados: 0, erros: [] };
   for (const { re } of efetivo) {
@@ -1118,19 +1094,20 @@ async function processarJobBulk() {
 }
 
 async function processarProximoJob() {
-  const { data: jobs, error } = await supabase
-    .from('sgp_sync_jobs')
-    .select('*')
-    .eq('status', 'pending')
-    .order('criado_em', { ascending: true })
-    .limit(1);
-  if (error) { console.error('Erro ao consultar fila:', error.message); return; }
+  let jobs;
+  try {
+    jobs = await db.select('sgp_sync_jobs', {
+      where: { status: 'pending' },
+      orderBy: { col: 'criado_em', dir: 'asc' },
+      limit: 1,
+    });
+  } catch (err) { console.error('Erro ao consultar fila:', err.message); return; }
   if (!jobs.length) return;
 
   const job = jobs[0];
   console.log(`[${new Date().toISOString()}] Processando job #${job.id} (${job.tipo}${job.re ? ', RE ' + job.re : ''})`);
 
-  await supabase.from('sgp_sync_jobs').update({ status: 'processing', atualizado_em: new Date().toISOString() }).eq('id', job.id);
+  await db.update('sgp_sync_jobs', { status: 'processing', atualizado_em: new Date().toISOString() }, { id: job.id });
 
   const PROCESSADORES = {
     bulk:          () => processarJobBulk(),
@@ -1145,20 +1122,27 @@ async function processarProximoJob() {
 
   try {
     const resultado = await PROCESSADORES[job.tipo]();
-    await supabase.from('sgp_sync_jobs').update({
+    await db.update('sgp_sync_jobs', {
       status: 'done', resultado, atualizado_em: new Date().toISOString(),
-    }).eq('id', job.id);
+    }, { id: job.id });
     console.log('  concluído:', resultado);
   } catch (err) {
-    await supabase.from('sgp_sync_jobs').update({
+    await db.update('sgp_sync_jobs', {
       status: 'error', resultado: { erro: err.message }, atualizado_em: new Date().toISOString(),
-    }).eq('id', job.id);
+    }, { id: job.id });
     console.error(`  falhou: ${err.message}`);
   }
 }
 
 async function loop() {
   console.log('Agente SGP iniciado. Lembrete: só funciona dentro da intranet da PM.');
+  try {
+    await db.ping();
+    console.log(`MySQL conectado (${process.env.MYSQL_HOST}/${process.env.MYSQL_DATABASE}).`);
+  } catch (err) {
+    console.error(`FATAL: não conectou no MySQL (${err.message}). Verifique o .env.`);
+    process.exit(1);
+  }
   for (;;) {
     await processarProximoJob().catch(err => console.error('Erro inesperado no loop:', err));
     await sleep(POLL_INTERVAL_MS);

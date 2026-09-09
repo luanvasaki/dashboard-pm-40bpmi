@@ -1,0 +1,79 @@
+# Backend PHP — Dashboard 40º BPM/I
+
+Porta em PHP do antigo `backend/server.js` (Node/Express). Roda no Apache/PHP
+da intranet da PM — o **mesmo ambiente do phpMyAdmin** (`www9.intranet…`),
+sem Node, sem Composer, sem build.
+
+O frontend (`frontend/`) é servido como arquivo estático pelo Apache e chama
+esta API em `<origin>/api/index.php/<rota>`.
+
+## Estrutura
+
+```
+frontend/                     ← docroot (substitui o Vercel)
+  index.html, login.html, css/, js/, images/
+  api/
+    index.php                 ← front controller (roteia por PATH_INFO)
+    config.php                ← carrega secrets.php / .env
+    secrets.php               ← credenciais (NÃO vai pro git) — criar a partir do .example
+    .user.ini                 ← limites de upload (post_max_size etc.)
+    .htaccess.example         ← opcional: URL limpa + hardening (só se AllowOverride permitir)
+    lib/       db, jwt, http, auth, helpers, query, cache, ratelimit, router, prodmap
+    analytics/ crime_pressure, trend_analysis, target_deviation, priority_score,
+               city_ranking, insight_generator
+    routes/    auth, users, rac, efetivo, fotos_vagas, prod, disque, uis, logs
+```
+
+## Requisitos no host
+
+- PHP 8.1+ (o servidor da PM tem 8.3) com extensões **mysqli** e **mbstring**
+  (ambas presentes — o phpMyAdmin usa mysqli). `openssl`/`hash` para o JWT já
+  são padrão.
+- MySQL/MariaDB acessível (no cluster: `mysql-svc.database.svc.cluster.local`).
+- Um diretório gravável para cache (o PHP tenta `sys_get_temp_dir()` e
+  `frontend/api/.cache/` automaticamente; ou defina `APP_CACHE_DIR`).
+
+## Instalação
+
+1. **Banco**: no phpMyAdmin, criar o banco e importar `../../schema_mysql.sql`
+   (ver instruções no topo daquele arquivo). Criar o usuário admin (INSERT
+   comentado no fim do schema; hash com
+   `php -r "echo password_hash('SENHA', PASSWORD_BCRYPT, ['cost'=>10]);"`).
+
+2. **Credenciais**: copiar `secrets.php.example` → `secrets.php` e preencher
+   `MYSQL_*` e `JWT_SECRET` (gerar: `php -r "echo bin2hex(random_bytes(64));"`).
+   Um `.php` pedido pelo navegador só executa (não imprime), então as
+   credenciais não vazam mesmo sem `.htaccess`.
+
+3. **Deploy**: subir a pasta `frontend/` inteira para o docroot (o mesmo lugar
+   onde hoje ficam os arquivos estáticos — via WS_FTP). O `secrets.php` fica em
+   `api/secrets.php`.
+
+4. **Testar**: abrir `https://<host>/` (login.html deve carregar) e
+   `https://<host>/api/index.php/status` autenticado deve responder JSON.
+
+## Roteamento
+
+Sem depender de `mod_rewrite`: o frontend chama `/api/index.php/<rota>` e o
+`index.php` lê a rota do `PATH_INFO` (ou do `REQUEST_URI`, ou de `?__route=`).
+
+Se a TI confirmar que o Apache aceita `.htaccess` (`AllowOverride` com pelo
+menos `FileInfo`), renomeie `.htaccess.example` → `.htaccess` e troque o `API`
+em `frontend/js/utils.js` e `frontend/login.html` de volta para
+`` `${window.location.origin}/api` ``.
+
+## Diferença de comportamento vs. Node
+
+- **Cache do RAC PM**: o Node mantinha em memória (processo sempre ligado). Em
+  PHP é um arquivo JSON em `APP_CACHE_DIR` com TTL de 5 min — cada request
+  revalida. `POST /api/.../sync` força a atualização.
+- **Rate limit de login**: 20/15 min por IP, estado em arquivo (era
+  `express-rate-limit` em memória).
+- Todo o resto (rotas, payloads, regras de autorização, parsing de CSV,
+  analytics) é idêntico — os módulos de analytics batem byte a byte com o Node.
+
+## Ainda em Node
+
+O `agente-sgp/` (sincronização WSSCPM / SGP-DP → MySQL) continua em Node por
+enquanto. Ele roda separado do site; o dashboard funciona sem ele (só não
+recebe atualização automática de efetivo/IAS/cursos). Porta para PHP pendente.

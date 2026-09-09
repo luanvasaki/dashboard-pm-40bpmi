@@ -6,6 +6,12 @@ node_modules/
 .env.local
 .env.production
 .env.development
+secrets.php
+frontend/api/secrets.php
+
+# Cache/estado do backend PHP (RAC PM + rate limiting)
+frontend/api/.cache/
+agente-sgp-php/certs/*.pem
 
 # Dados locais (não versionar)
 raw_data.json

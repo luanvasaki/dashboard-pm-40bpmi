@@ -1,5 +1,9 @@
 # Agente SGP — sincronização de efetivo via WSSCPM
 
+> **LEGADO (Node).** Uma porta em PHP CLI está em `../agente-sgp-php/` — é a
+> versão que vai pro ar (a infra da PM não roda Node). Este diretório fica como
+> referência até a versão PHP ser confirmada em uso.
+
 Script que **precisa rodar no computador do batalhão**, conectado à intranet
 da PM. Não funciona em casa, notebook pessoal, ou na Vercel — o webservice
 `webservices.intranet.policiamilitar.sp.gov.br` só é alcançável de dentro
@@ -7,14 +11,14 @@ da rede da PM.
 
 ## O que faz
 
-Fica de plantão verificando a tabela `sgp_sync_jobs` no Supabase (a cada
+Fica de plantão verificando a tabela `sgp_sync_jobs` no MySQL (a cada
 `POLL_INTERVAL_MS`, padrão 1 minuto). Quando alguém clica em "Adicionar/Atualizar
 PM por RE" ou "Atualizar efetivo completo" no dashboard, um pedido aparece
 nessa tabela e o agente:
 
 1. Chama `procuraPMPorRE` no WSSCPM (nome, posto, OPM, sexo, função).
 2. Chama `procuraFotoPorRE` (foto — melhor esforço, não falha o resto se não achar).
-3. Grava em `efetivo_pm` e `fotos_pm` no Supabase.
+3. Grava em `efetivo_pm` e `fotos_pm` no MySQL.
 4. Marca o pedido como concluído (ou com erro, se algo falhar).
 
 Só extrai o subconjunto de campos que o `efetivo_pm` usa — CPF, RG, dados
@@ -27,7 +31,8 @@ também retorna) são descartados e nunca chegam a ser gravados.
 cd agente-sgp
 npm install
 cp .env.example .env
-# preencher SUPABASE_URL e SUPABASE_KEY no .env
+# preencher MYSQL_HOST/PORT/USER/PASSWORD/DATABASE no .env
+# (os mesmos valores do backend/.env)
 npm start
 ```
 
@@ -41,9 +46,9 @@ alguém logado o tempo todo:
 
 ## Pré-requisito no banco
 
-Rodar `create_sgp_sync_jobs.sql` no SQL Editor do Supabase antes de usar
-(cria a tabela de fila e explica como checar/criar a constraint de RE único
-em `efetivo_pm`).
+O schema completo (`../schema_mysql.sql`) já cria `sgp_sync_jobs` e todas as
+outras tabelas — basta importá-lo uma vez no phpMyAdmin. O antigo
+`create_sgp_sync_jobs.sql` (PostgreSQL/Supabase) ficou obsoleto.
 
 ## Certificado da CA interna (necessário para IAS e Cursos via SGP-DP)
 
