@@ -101,6 +101,12 @@ CREATE TABLE IF NOT EXISTS `efetivo_pm` (
   `funcao`            VARCHAR(160)    NULL,
   `genero`            VARCHAR(20)     NULL,
   `nome_guerra`       VARCHAR(120)    NULL,
+  -- Lotação derivada do SGP (WSSCPM: codigoOPMAtualPM.codigoOPM). `opm` acima
+  -- continua vindo da planilha; estes três são só do agente-sgp e são
+  -- preservados no reinsert do upload de efetivo.
+  `cia`               VARCHAR(12)     NULL,   -- 'EM' | '1ª Cia' | '2ª Cia' | '3ª Cia' | 'FT' | raw
+  `municipio`         VARCHAR(80)     NULL,   -- sede/subunidade (Alumínio, Piedade, …)
+  `codigo_opm`        VARCHAR(16)     NULL,   -- código bruto do WSSCPM
   `data_eap`          DATE            NULL,
   `taf`               VARCHAR(40)     NULL,
   `tat`               VARCHAR(40)     NULL,

@@ -216,7 +216,9 @@ async function loadUisSection() {
   try {
     const tasks = [loadUisRestricoes(), loadIasMapa()];
     if (typeof p1Data !== 'undefined' && !p1Data.length) {
-      tasks.push(authFetch(`${API}/efetivo`).then(r => r.json()).then(d => { if (Array.isArray(d)) p1Data = d; }).catch(() => {}));
+      tasks.push(authFetch(`${API}/efetivo`).then(r => r.json()).then(d => {
+        if (Array.isArray(d)) p1Data = (typeof enriquecerLotacao === 'function') ? d.map(enriquecerLotacao) : d;
+      }).catch(() => {}));
     }
     // p1Afasts alimenta o KPI de Restrições (fonte efetivo_pm.possui_restricao) e o
     // novo KPI CAPS/NAPS (Supervisão Nível I/II/III) — carrega se ainda não veio do P1.

@@ -1255,7 +1255,7 @@ async function renderCursosModalDetail() {
     try {
       const r = await authFetch(`${API}/efetivo`);
       const ef = await r.json();
-      if (Array.isArray(ef) && ef.length) p1Data = ef;
+      if (Array.isArray(ef) && ef.length) p1Data = (typeof enriquecerLotacao === 'function') ? ef.map(enriquecerLotacao) : ef;
     } catch { /* segue sem CIA */ }
   }
 

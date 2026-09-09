@@ -20,9 +20,10 @@ return function (Router $r): void {
     });
 
     // [POST /efetivo/upload] — substitui todo o efetivo pelo CSV.
-    // Gênero, nome de guerra, restrição, nascimento e ingresso vêm do SGP
-    // (WSSCPM: sexoPM / nomeGuePM etc.) — nunca da planilha; são preservados
-    // no reinsert e (re)preenchidos ao rodar "Atualizar efetivo completo".
+    // Gênero, nome de guerra, lotação (cia/município), restrição, nascimento e
+    // ingresso vêm do SGP (WSSCPM) — nunca da planilha; são preservados no
+    // reinsert e (re)preenchidos ao rodar "Atualizar efetivo completo".
+    // (`opm` e `funcao` continuam vindo da planilha.)
     $r->post('/efetivo/upload', function (): void {
         $user = require_auth();
         require_role($user, 'admin', 'p3', 'p1');
@@ -46,7 +47,7 @@ return function (Router $r): void {
         };
 
         $restricaoAntes = DB::select(EFETIVO_TABLE, [
-            'columns' => 're, genero, nome_guerra, possui_restricao, tipos_restricao, restricao_inicio, restricao_termino, data_nascimento, data_ingresso',
+            'columns' => 're, genero, nome_guerra, cia, municipio, codigo_opm, possui_restricao, tipos_restricao, restricao_inicio, restricao_termino, data_nascimento, data_ingresso',
         ]);
         $porRe = [];
         foreach ($restricaoAntes as $row) {
@@ -66,9 +67,13 @@ return function (Router $r): void {
                 're'                => $re,
                 'nome'              => $gf($rec, 'Nome', 'nome', 'Nome Completo', 'nome completo'),
                 'funcao'            => $gf($rec, 'Funcao', 'funcao', 'Função', 'função'),
-                // gênero e nome de guerra: só do SGP — preserva o que já existe
+                // gênero, nome de guerra e lotação (cia/município): só do SGP —
+                // preserva o que já existe no reinsert.
                 'genero'            => $a['genero']      ?? null,
                 'nome_guerra'       => $a['nome_guerra'] ?? null,
+                'cia'               => $a['cia']         ?? null,
+                'municipio'         => $a['municipio']   ?? null,
+                'codigo_opm'        => $a['codigo_opm']  ?? null,
                 'data_eap'          => parseDateBR($gf($rec, 'DataEAP', 'dataeap', 'DATA EAP', 'data eap')) ?: null,
                 'taf'               => $gf($rec, 'TAF', 'taf') ?: null,
                 'tat'               => $gf($rec, 'TAT', 'tat') ?: null,

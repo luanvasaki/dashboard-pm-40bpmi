@@ -266,12 +266,21 @@ function buscar_dados_pm(string $re6): array
         throw new RuntimeException("RE $re6 não encontrado ou erro no WSSCPM (" . s($desc) . ')');
     }
 
+    // Lotação: derivada do código do WSSCPM (codigoOPMAtualPM.codigoOPM). `opm`
+    // e `funcao` continuam vindo da planilha — aqui só gravamos cia/municipio,
+    // que a planilha não distingue direito (ex: dois "1º Pel" em Cias diferentes).
+    $codigoOpm = s(dig($result, 'codigoOPMAtualPM', 'codigoOPM') ?? '');
+    [$cia, $municipio] = derivar_lotacao($codigoOpm);
+
     $dados = [
         're'          => s($result['numeroREPM'] ?? '') . '-' . s(trim_nfc($result['digitoREPM'] ?? '')),
         'nome'        => trim_nfc(s($result['nomePM'] ?? '')),
         'nome_guerra' => trim_nfc(s($result['nomeGuePM'] ?? '')),
         'genero'      => trim_nfc(s($result['sexoPM'] ?? '')),
         'posto'       => trim_nfc(s(dig($result, 'codigoPostoGraduacaoPM', 'siglaPostoGraduacaoPM') ?? '')),
+        'cia'         => $cia,
+        'municipio'   => $municipio,
+        'codigo_opm'  => $codigoOpm !== '' ? $codigoOpm : null,
         // OPM e função ficam de fora de propósito (definidos pela planilha).
     ];
 
@@ -322,6 +331,41 @@ function _is_ausencia_agregacao(?string $d): bool
 function _is_status_apenas(?string $d): bool
 {
     return (bool) preg_match('/^apto\b/iu', trim($d ?? ''));
+}
+
+/**
+ * Deriva Cia + município da lotação a partir do código do WSSCPM.
+ * O código tem 9 dígitos `6074 C SSS` onde:
+ *   - 6074 = 40º BPM/I
+ *   - dígito 6 (índice 5) = Cia: 0=EM, 1=1ª, 2=2ª, 3=3ª
+ *   - últimos 3 = subunidade/município dentro da Cia
+ * Exemplos: 607400000=EM Sede · 607401001=1ª Cia/Alumínio · 607403300=3ª Cia/Iperó
+ * @return array{0:?string,1:?string} [cia, municipio]
+ */
+function derivar_lotacao(string $codigo): array
+{
+    $c = preg_replace('/\D/', '', $codigo);
+    if (strlen($c) < 6) {
+        return [null, null];
+    }
+    $ciaDigit = $c[5];
+    $cia = match ($ciaDigit) {
+        '0' => 'EM',
+        '1' => '1ª Cia',
+        '2' => '2ª Cia',
+        '3' => '3ª Cia',
+        default => null, // FT e outros: sem match — o frontend cai no ciaDeOpm(opm)
+    };
+
+    // (dígito da Cia => (últimos 3 dígitos => município)). Sede = '000'.
+    static $MUN = [
+        '1' => ['000' => 'Votorantim', '001' => 'Alumínio'],
+        '2' => ['000' => 'Ibiúna', '300' => 'Piedade'], // Tapiraí: código ainda não mapeado
+        '3' => ['000' => 'Salto de Pirapora', '100' => 'Pilar do Sul', '200' => 'Araçoiaba da Serra', '300' => 'Iperó'],
+    ];
+    $municipio = $MUN[$ciaDigit][substr($c, -3)] ?? null;
+
+    return [$cia, $municipio];
 }
 
 /** @return array{afastamentos:list<array>, restricoes:list<array>} */

@@ -145,8 +145,8 @@ const CIA_STRUCT = [
     label: '3ª CIA', sede: 'Salto de Pirapora', color: CIA_COR['3'],
     units: [
       { label: 'Sede · Salto de Pirapora',    keys: ['3 cia - sede', 'salto de pirapora', 'salto pirapora', '^3 cia$'] },
-      { label: '1º Pel · Araçoiaba da Serra', keys: ['aracoiaba'] },
-      { label: '2º Pel · Pilar do Sul',       keys: ['pilar do sul', 'pilar'] },
+      { label: '1º Pel · Pilar do Sul',       keys: ['pilar do sul', 'pilar'] },
+      { label: '2º Pel · Araçoiaba da Serra', keys: ['aracoiaba'] },
       { label: '3º Pel · Iperó',              keys: ['ipero'] },
     ]
   },
@@ -163,6 +163,21 @@ const _opmMatch = (opm, keys) => {
   const n = _normOpm(opm);
   return keys.some(k => k.startsWith('^') ? new RegExp(k).test(n) : n.includes(_normOpm(k)));
 };
+
+// Enriquece o `opm` do PM com a lotação vinda do SGP (cia/municipio — ver
+// agente-sgp: derivar_lotacao). A planilha manda só "1º Pel"/"1º GP", que é
+// ambíguo (cada Cia tem o seu). O SGP dá a Cia e o município; com isso o `opm`
+// passa a casar com as chaves do CIA_STRUCT. O valor da planilha fica em
+// `opm_planilha` (exibição). PM ainda não sincronizado mantém o opm da planilha.
+function enriquecerLotacao(pm) {
+  pm.opm_planilha = pm.opm || '';
+  if (pm.municipio) {
+    pm.opm = [pm.municipio, pm.opm_planilha].filter(Boolean).join(' · ');
+  } else if (pm.cia) {
+    pm.opm = pm.cia; // Sede sem cidade / código não mapeado → casa com ^N cia$ / ^em$
+  }
+  return pm;
+}
 
 // Categoriza posto/graduação em 4 grupos
 function p1Cat(posto) {
@@ -290,7 +305,7 @@ async function loadP1() {
       authFetch(`${API}/p1/quadro`),
       authFetch(`${API}/prod/cursos`)
     ]);
-    p1Data   = await r1.json();
+    p1Data   = (await r1.json()).map(enriquecerLotacao);
     p1Afasts = await r2.json();
     const vagasRaw = await r3.json();
     p1Vagas  = Array.isArray(vagasRaw) ? vagasRaw : [];
