@@ -536,7 +536,8 @@ async function confirmUisUpload() {
     if (!res.ok || !json.ok) throw new Error(json.error || 'Erro desconhecido');
     showUisMsg(`✓ ${json.inserted} registros importados com sucesso.`, 'ok');
     btn.textContent = 'Importar';
-    loadUisSection();
+    await registraUpload();
+    recarregarAposUpload(`${json.inserted} restrições UIS importadas.`);
   } catch (err) {
     showUisMsg('✗ ' + err.message, 'err');
     btn.disabled = false; btn.textContent = 'Importar';

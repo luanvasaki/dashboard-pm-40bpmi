@@ -921,9 +921,8 @@ async function p1ConfirmUpload() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
     msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.inserted} registros importados com sucesso.</span>`;
-    registraUpload();
-    await loadP1();
-    setTimeout(closeP1Upload, 1500);
+    await registraUpload();
+    recarregarAposUpload(`${data.inserted} registros de efetivo importados.`);
   } catch (err) {
     msg.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`;
     btn.disabled = false;
@@ -2583,9 +2582,8 @@ async function quadroConfirmUpload() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
     msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.inserted || p1QuadroParsed.length} registros importados.</span>`;
-    registraUpload();
-    await loadP1();
-    setTimeout(closeQuadroUpload, 1500);
+    await registraUpload();
+    recarregarAposUpload(`${data.inserted || p1QuadroParsed.length} registros do quadro fixado importados.`);
   } catch (err) {
     msg.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`;
     btn.disabled = false; btn.style.opacity = '1';

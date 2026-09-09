@@ -136,6 +136,26 @@ async function registraUpload() {
   if (el) el.textContent = fmt;
 }
 
+// Após um upload bem-sucedido: mostra o aviso por um instante e recarrega a
+// página. Recarregar garante que TODAS as listas globais (crimes, municípios,
+// anos, efetivo, ocorrências…) — carregadas só no boot — fiquem consistentes,
+// sem depender de cada tela refazer seu próprio carregamento na hora certa.
+function recarregarAposUpload(msg) {
+  try { sessionStorage.setItem('flash_upload', msg || 'Importação concluída.'); } catch (_) {}
+  setTimeout(() => window.location.reload(), 1500);
+}
+
+// Toast simples exibido uma vez após o reload de um upload (ver init()).
+function flashToast(txt) {
+  const d = document.createElement('div');
+  d.textContent = '✓ ' + txt;
+  d.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;'
+    + 'background:#0f2a1a;border:1px solid #2f7d4f;color:#7fe0a5;padding:12px 22px;border-radius:8px;'
+    + "font:600 15px/1.35 'Barlow Condensed',system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.45)";
+  document.body.appendChild(d);
+  setTimeout(() => { d.style.transition = 'opacity .4s'; d.style.opacity = '0'; setTimeout(() => d.remove(), 400); }, 4500);
+}
+
 function toggleEditPeriodo() {
   const inp  = document.getElementById('inp-p3-periodo');
   const lbl  = document.getElementById('lbl-p3-periodo');

@@ -724,9 +724,8 @@ async function prodUplConfirm() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
     msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.total} registros importados.</span>`;
-    registraUpload();
-    await loadProdData(true);
-    setTimeout(closeProdUpl, 1800);
+    await registraUpload();
+    recarregarAposUpload(`${data.total} registros de produtividade importados.`);
   } catch (err) {
     msg.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`;
     btn.disabled = false; btn.style.opacity = '1';
@@ -4231,9 +4230,8 @@ async function ddUplConfirm() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
     msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.total} registros importados.</span>`;
-    registraUpload();
-    await loadDDData();
-    setTimeout(closeDDUpl, 1800);
+    await registraUpload();
+    recarregarAposUpload(`${data.total} registros de Disque Denúncia importados.`);
   } catch (err) {
     msg.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`;
     btn.disabled = false; btn.style.opacity = '1';
