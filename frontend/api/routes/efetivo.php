@@ -20,7 +20,9 @@ return function (Router $r): void {
     });
 
     // [POST /efetivo/upload] — substitui todo o efetivo pelo CSV.
-    // Restrição/nascimento/ingresso são do SGP — preservados no reinsert.
+    // Gênero, nome de guerra, restrição, nascimento e ingresso vêm do SGP
+    // (WSSCPM: sexoPM / nomeGuePM etc.) — nunca da planilha; são preservados
+    // no reinsert e (re)preenchidos ao rodar "Atualizar efetivo completo".
     $r->post('/efetivo/upload', function (): void {
         $user = require_auth();
         require_role($user, 'admin', 'p3', 'p1');
@@ -44,7 +46,7 @@ return function (Router $r): void {
         };
 
         $restricaoAntes = DB::select(EFETIVO_TABLE, [
-            'columns' => 're, possui_restricao, tipos_restricao, restricao_inicio, restricao_termino, data_nascimento, data_ingresso',
+            'columns' => 're, genero, nome_guerra, possui_restricao, tipos_restricao, restricao_inicio, restricao_termino, data_nascimento, data_ingresso',
         ]);
         $porRe = [];
         foreach ($restricaoAntes as $row) {
@@ -64,8 +66,9 @@ return function (Router $r): void {
                 're'                => $re,
                 'nome'              => $gf($rec, 'Nome', 'nome', 'Nome Completo', 'nome completo'),
                 'funcao'            => $gf($rec, 'Funcao', 'funcao', 'Função', 'função'),
-                'genero'            => $gf($rec, 'Genero', 'genero', 'Gênero', 'gênero'),
-                'nome_guerra'       => $gf($rec, 'NomeGuerra', 'nomeguerra', 'Nome de Guerra', 'nome de guerra'),
+                // gênero e nome de guerra: só do SGP — preserva o que já existe
+                'genero'            => $a['genero']      ?? null,
+                'nome_guerra'       => $a['nome_guerra'] ?? null,
                 'data_eap'          => parseDateBR($gf($rec, 'DataEAP', 'dataeap', 'DATA EAP', 'data eap')) ?: null,
                 'taf'               => $gf($rec, 'TAF', 'taf') ?: null,
                 'tat'               => $gf($rec, 'TAT', 'tat') ?: null,

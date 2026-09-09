@@ -870,8 +870,8 @@ function p1FileChange() {
     're': 'RE',
     'nome completo': 'Nome', 'nome': 'Nome',
     'função': 'Funcao', 'funcao': 'Funcao',
-    'genero': 'Genero', 'gênero': 'Genero',
-    'nome de guerra': 'NomeGuerra',
+    // Gênero e Nome de Guerra NÃO vêm mais da planilha — são puxados do SGP
+    // ("Atualizar efetivo completo"). Se estiverem no CSV, o backend ignora.
     'data eap': 'DataEAP',
   };
 
