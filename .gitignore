@@ -29,3 +29,4 @@ Thumbs.db
 .agents/
 .claude/skills/
 .claude/settings.json
+_*.sql
