@@ -2111,10 +2111,14 @@ async function openProntuario(re) {
   if (p1SomenteQuantitativo()) return;
   const mo = document.getElementById('pronto-mo');
   if (!mo) return;
+  // aceita RE completo ("155031-4") ou só os 6 dígitos ("155031") — o badge da
+  // IAS/UIS passa a forma normalizada.
+  const _re6 = s => String(s || '').replace(/\D/g, '').slice(0, 6);
+  const pm = p1Data.find(r => r.re === re) || p1Data.find(r => _re6(r.re) === _re6(re));
+  if (!pm) { return; }
   mo.style.display = 'flex';
-  prontoCurrentRe = re;
-  const pm = p1Data.find(r => r.re === re);
-  if (!pm) { mo.style.display = 'none'; return; }
+  prontoCurrentRe = pm.re;
+  re = pm.re;
 
   const hoje = new Date().toISOString().split('T')[0];
   const anoAtual = new Date().getFullYear();

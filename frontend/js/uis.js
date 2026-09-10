@@ -812,20 +812,11 @@ async function loadIasSection() {
   if (_iasMap !== null && _uisRestMap !== null) renderUisPage();
 }
 
-// ─── Modal individual: IAS de um PM ───────────────────────────
-async function openIasPmModal(re, nomePm) {
-  const el = document.getElementById('ias-pm-nome');
-  if (el) el.textContent = `RE ${re}${nomePm ? ' · ' + nomePm : ''}`;
-  const ct = document.getElementById('ias-pm-content');
-  if (ct) ct.innerHTML = '<div style="color:#ffffff;font-size:13px">Carregando...</div>';
-  document.getElementById('ias-pm-mo').classList.add('on');
-  document.body.style.overflow = 'hidden';
-  try {
-    const data = await authFetch(`${API}/ias/${re}`).then(r => r.json());
-    if (ct) ct.innerHTML = renderIasPmContent(data);
-  } catch (e) {
-    if (ct) ct.innerHTML = `<div style="color:#f07878">Erro: ${e.message}</div>`;
-  }
+// Clicar num PM (badge 💉 ou card do detalhe IAS) abre o PRONTUÁRIO completo,
+// não uma tela só da IAS — pedido do usuário (2026-09-11). O prontuário já tem
+// a sua própria seção de IAS. openProntuario (p1.js) aceita RE de 6 dígitos.
+async function openIasPmModal(re, _nomePm) {
+  if (typeof openProntuario === 'function') { openProntuario(re); return; }
 }
 
 function closeIasPmModal() {
