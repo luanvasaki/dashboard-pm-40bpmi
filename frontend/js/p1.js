@@ -275,6 +275,25 @@ const p1EhRestricao = a => !!a.restricao;
 // afastamentos do prontuário (diferente de restrição, que fica no histórico).
 // Viram o KPI próprio "CAPS/NAPS" na UIS (uis.js).
 const p1EhSupervisao = a => /supervis[aã]o|caps\s*\/\s*naps/i.test(a.tipo_afastamento || '');
+function p1SupervNivel(a) { const m = /n[ií]vel\s*(i{1,3})\b/i.exec(a.tipo_afastamento || ''); return m ? m[1].toUpperCase() : null; }
+// O WSSCPM guarda o HISTÓRICO de supervisões CAPS/NAPS — um PM pode ter várias
+// linhas ativas hoje ao mesmo tempo (períodos que se sobrepõem, ex: RE 155031-4).
+// O KPI CAPS/NAPS conta PESSOAS, não linhas: recebe as supervisões já filtradas
+// por "ativa hoje" e devolve UMA por RE — a de início mais recente (decisão mais
+// nova); em empate, o nível mais alto (III > II > I).
+function p1DedupSupervisao(ativos) {
+  const ordN = { III: 3, II: 2, I: 1 };
+  const porRe = new Map();
+  for (const a of ativos) {
+    const cur = porRe.get(a.re);
+    if (!cur) { porRe.set(a.re, a); continue; }
+    const ai = a.inicio || '', ci = cur.inicio || '';
+    if (ai > ci || (ai === ci && (ordN[p1SupervNivel(a)] || 0) > (ordN[p1SupervNivel(cur)] || 0))) {
+      porRe.set(a.re, a);
+    }
+  }
+  return [...porRe.values()];
+}
 
 // Licença-Prêmio convertida EM PECÚNIA (indenizada) — o PM recebe o valor e
 // continua trabalhando, não é ausência. Não conta em nenhum KPI/lista de
@@ -1044,12 +1063,15 @@ function p1IasKpiCardHtml() {
     </div>`;
 }
 
-// Supervisões ativas (CAPS/NAPS) — de p1Afasts, via p1EhSupervisao.
+// Supervisões ativas (CAPS/NAPS) — de p1Afasts, via p1EhSupervisao. Uma linha
+// por PM (p1DedupSupervisao): o WSSCPM guarda o histórico e o mesmo PM pode ter
+// vários períodos ativos sobrepostos (ex: RE 155031-4).
 function _p1CapsAtivos() {
   const hoje = new Date().toISOString().slice(0, 10);
   const ehSup = a => typeof p1EhSupervisao === 'function' ? p1EhSupervisao(a) : /supervis[aã]o|caps\s*\/\s*naps/i.test(a.tipo_afastamento || '');
-  return (typeof p1Afasts !== 'undefined' ? p1Afasts : []).filter(a =>
+  const ativos = (typeof p1Afasts !== 'undefined' ? p1Afasts : []).filter(a =>
     ehSup(a) && a.inicio && a.inicio <= hoje && (!a.termino || a.termino >= hoje));
+  return typeof p1DedupSupervisao === 'function' ? p1DedupSupervisao(ativos) : ativos;
 }
 function _p1CapsNivel(a) { const m = /n[ií]vel\s*(i{1,3})\b/i.exec(a.tipo_afastamento || ''); return m ? m[1].toUpperCase() : null; }
 

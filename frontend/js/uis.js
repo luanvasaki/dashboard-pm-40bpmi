@@ -1045,10 +1045,13 @@ function renderUisPage() {
   const sgpRestVenc30 = sgpRestPms.filter(r => r.restricao_termino && r.restricao_termino >= today && r.restricao_termino <= em30).length;
 
   // ── CAPS/NAPS · Supervisão Nível I/II/III (não é afastamento, 2026-08) ──
-  const capsAtivos = (typeof p1Afasts !== 'undefined' ? p1Afasts : []).filter(a =>
+  // Uma linha por PM (p1DedupSupervisao) — o WSSCPM guarda o histórico e o
+  // mesmo PM pode ter vários períodos ativos sobrepostos (ex: RE 155031-4).
+  const capsAtivosRaw = (typeof p1Afasts !== 'undefined' ? p1Afasts : []).filter(a =>
     (typeof p1EhSupervisao === 'function' ? p1EhSupervisao(a) : /supervis[aã]o|caps\s*\/\s*naps/i.test(a.tipo_afastamento||'')) &&
     a.inicio && a.inicio <= today && (!a.termino || a.termino >= today)
   );
+  const capsAtivos = typeof p1DedupSupervisao === 'function' ? p1DedupSupervisao(capsAtivosRaw) : capsAtivosRaw;
   const capsPorNivel = { I: 0, II: 0, III: 0 };
   capsAtivos.forEach(a => {
     const m = /n[ií]vel\s*(i{1,3})\b/i.exec(a.tipo_afastamento || '');
@@ -1369,9 +1372,11 @@ function renderUisDetail() {
     // Não é afastamento — vem de tipo_afastamento sincronizado do SGP que
     // contém "Supervisão" ou "CAPS/NAPS" (ver p1EhSupervisao em p1.js).
     const ehSup = a => typeof p1EhSupervisao === 'function' ? p1EhSupervisao(a) : /supervis[aã]o|caps\s*\/\s*naps/i.test(a.tipo_afastamento||'');
-    const ativos = (typeof p1Afasts !== 'undefined' ? p1Afasts : []).filter(a =>
+    const ativosRaw = (typeof p1Afasts !== 'undefined' ? p1Afasts : []).filter(a =>
       ehSup(a) && a.inicio && a.inicio <= today && (!a.termino || a.termino >= today)
     );
+    // Uma linha por PM — ver p1DedupSupervisao (mesmo critério do KPI).
+    const ativos = typeof p1DedupSupervisao === 'function' ? p1DedupSupervisao(ativosRaw) : ativosRaw;
     const nivelDe = a => { const m = /n[ií]vel\s*(i{1,3})\b/i.exec(a.tipo_afastamento||''); return m ? m[1].toUpperCase() : null; };
     const rows = (_uisDetTipo === 'caps-total' ? ativos : ativos.filter(a => nivelDe(a) === _uisDetTipo.replace('caps-nivel','').replace('1','I').replace('2','II').replace('3','III')))
       .slice().sort((a,b) => (a.re||'').localeCompare(b.re||''));

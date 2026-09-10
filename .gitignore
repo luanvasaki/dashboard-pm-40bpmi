@@ -30,3 +30,4 @@ Thumbs.db
 .claude/skills/
 .claude/settings.json
 _*.sql
+_*.csv
