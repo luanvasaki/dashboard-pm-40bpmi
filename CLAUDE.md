@@ -180,7 +180,9 @@ Checklist:
 5. `agente-sgp-php/` roda no próprio www9 (alcança WSSCPM/SGP-DP + MySQL).
    Deploy: copiar `agente-sgp-php/agente.php` para `frontend/api/agente.php` e a
    CA do SGP-DP para `frontend/api/certs/sgp-dp-ca.pem`. O backend web dispara
-   `php agente.php --once` em background quando cria um job (`lib/agente.php`);
-   um cron `* * * * * php .../agente.php --once` cobre o caso do disparo falhar.
-   A sessão do SGP-DP (cookie) é colada pelo usuário no dashboard (tela P1) e
-   dura ~1–4h — bulks de IAS/cursos/láureas precisam dela fresca.
+   `php agente.php --once` em background quando cria um job (`lib/agente.php`).
+   Cron recomendado: `--once` a cada minuto (rede de segurança) + `--diario`
+   às 5h (enfileira só o bulk do WSSCPM — não precisa de cookie).
+   IAS/cursos/láureas: a sessão do SGP-DP (cookie) dura ~1–4h, então às 5h
+   estaria vencida — o usuário dispara essas pela tela P1 ("salvar cookie +
+   sincronizar IAS/cursos/láureas agora"), com o cookie recém-colado.

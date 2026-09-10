@@ -1213,7 +1213,12 @@ function processar_proximo_job(): bool
 
 function main(array $argv): void
 {
-    $once = in_array('--once', $argv, true);
+    // --diario: enfileira o bulk do WSSCPM e processa (p/ cron das 5h). NÃO
+    // enfileira IAS/cursos/láureas — essas precisam do cookie do SGP-DP fresco,
+    // que às 5h estaria vencido; o usuário dispara essas pela tela (colando o
+    // cookie na hora). Implica --once (processa a fila e sai).
+    $diario = in_array('--diario', $argv, true);
+    $once   = $diario || in_array('--once', $argv, true);
 
     // Lock: um agente por vez. Vários disparos (botão + cron) não colidem —
     // quem não pega o lock sai na hora (o job fica pending pro próximo).
@@ -1255,6 +1260,21 @@ function main(array $argv): void
         }
     } catch (Throwable $e) {
         logerr('  aviso: falha ao recuperar jobs travados: ' . $e->getMessage());
+    }
+
+    if ($diario) {
+        // Bulk do WSSCPM (efetivo/foto/afastamentos/restrição) — sem cookie.
+        // Ignora se já houver um bulk pendente/rodando (UNIQUE bulk_lock).
+        try {
+            DB::insert('sgp_sync_jobs', ['tipo' => 'bulk', 're' => null, 'solicitado_por' => 'cron diário']);
+            logline('  [diário] job "bulk" (WSSCPM) enfileirado.');
+        } catch (Throwable $e) {
+            if (DB::isDuplicateError($e)) {
+                logline('  [diário] já há um bulk pendente/rodando — nada a enfileirar.');
+            } else {
+                logerr('  [diário] falha ao enfileirar bulk: ' . $e->getMessage());
+            }
+        }
     }
 
     if ($once) {

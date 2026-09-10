@@ -720,6 +720,41 @@ async function p1SgpDpSalvarSessao() {
   }
 }
 
+// Salva o cookie e JÁ dispara IAS + cursos + láureas do efetivo inteiro, na
+// ordem mais rápida → mais lenta (láureas, cursos, IAS) pra aproveitar o cookie
+// enquanto ele está fresco. Uso típico: 1×/dia antes de sair, já logado no SGP.
+async function p1SgpDpSalvarESincronizar() {
+  const msg = document.getElementById('p1-sgpdp-msg');
+  const cookie = document.getElementById('p1-sgpdp-cookie').value.trim();
+  if (cookie.length < 20) { msg.innerHTML = '<span style="color:#f07878">Cole o valor completo do cookie primeiro.</span>'; return; }
+  if (!confirm('Salva o cookie e reconsulta IAS + cursos + láureas de TODO o efetivo, um por um (pode levar 1–2h no total). Rode só com o cookie recém-colado e logado no SGP. Continuar?')) return;
+  msg.innerHTML = '<span style="color:var(--tx3)">Salvando cookie…</span>';
+  try {
+    const res = await authFetch(`${API}/sgp-dp/sessao`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cookie })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao salvar sessão.');
+    document.getElementById('p1-sgpdp-cookie').value = '';
+
+    const criados = [];
+    for (const tipo of ['laureas_bulk', 'cursos_bulk', 'ias_bulk']) {
+      const r = await authFetch(`${API}/efetivo/sync`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo })
+      });
+      if (r.ok) criados.push(tipo.replace('_bulk', ''));
+      else if (r.status === 409) criados.push(tipo.replace('_bulk', '') + ' (já em andamento)');
+    }
+    msg.innerHTML = `<span style="color:#4bc87a">Cookie salvo e sincronização disparada: ${escHtml(criados.join(', '))}. Pode fechar — o agente processa em segundo plano.</span>`;
+    p1SgpDpStatusSessao();
+    if (typeof p1SgpRefreshStatus === 'function') p1SgpRefreshStatus();
+  } catch (err) {
+    msg.innerHTML = `<span style="color:#f07878">${escHtml(err.message)}</span>`;
+  }
+}
+
 async function p1SgpIasRequestSingle() {
   const msg = document.getElementById('p1-sgpdp-msg');
   const re = document.getElementById('p1-sgpdp-re').value.trim();

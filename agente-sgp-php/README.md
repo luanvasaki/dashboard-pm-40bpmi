@@ -33,17 +33,26 @@ cp secrets.php.example secrets.php     # (ou .env.example → .env)
 
 ```bash
 php agente.php            # loop contínuo (poll a cada POLL_INTERVAL_MS)
-php agente.php --once     # processa 1 job pendente e sai  ← para cron
+php agente.php --once     # processa a fila pendente e sai
+php agente.php --diario   # enfileira o bulk do WSSCPM + processa (--once)  ← cron 5h
 ```
 
-**Cron** (Linux, a cada minuto):
+`--diario` NÃO mexe em IAS/cursos/láureas — essas dependem do cookie do SGP-DP,
+que às 5h estaria vencido. Elas são disparadas pela tela P1 (botão "salvar cookie
++ sincronizar agora"), com o cookie recém-colado.
+
+**Cron** (Linux):
 
 ```
-* * * * * cd /caminho/agente-sgp-php && php agente.php --once >> /var/log/agente-sgp.log 2>&1
+# rede de segurança: drena a fila a cada minuto (caso o disparo do backend falhe)
+* * * * * php /caminho/frontend/api/agente.php --once >> /var/log/agente-sgp.log 2>&1
+# sincronização automática do WSSCPM todo dia às 5h
+0 5 * * *  php /caminho/frontend/api/agente.php --diario >> /var/log/agente-sgp.log 2>&1
 ```
 
-**Windows** (Agendador de Tarefas): tarefa que roda `php agente.php --once` de
-minuto em minuto, ou `php agente.php` (loop) na inicialização.
+**Windows** (Agendador de Tarefas): duas tarefas equivalentes — uma `--once` de
+minuto em minuto, outra `--diario` diária às 5h. (Ou só o loop `php agente.php`
+na inicialização + uma tarefa `--diario` às 5h.)
 
 ## Certificado da CA do SGP-DP (IAS / cursos / láureas)
 
