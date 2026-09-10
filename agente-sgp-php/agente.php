@@ -372,7 +372,8 @@ function _is_status_apenas(?string $d): bool
  *   - 6074 = 40º BPM/I
  *   - dígito 6 (índice 5) = Cia: 0=EM, 1=1ª, 2=2ª, 3=3ª
  *   - últimos 3 = subunidade/município dentro da Cia
- * Exemplos: 607400000=EM Sede · 607401001=1ª Cia/Alumínio · 607403300=3ª Cia/Iperó
+ * Exemplos: 607400000=EM · 607401001=1ª Cia/Alumínio · 607402001=2ª Cia/Tapiraí
+ *           607403300=3ª Cia/Iperó
  * @return array{0:?string,1:?string} [cia, municipio]
  */
 function derivar_lotacao(string $codigo): array
@@ -393,10 +394,11 @@ function derivar_lotacao(string $codigo): array
         default => null, // FT e outros: sem match — o frontend cai no ciaDeOpm(opm)
     };
 
-    // (dígito da Cia => (últimos 3 dígitos => município)). Sede = '000'.
+    // (dígito da Cia => (últimos 3 dígitos => município)). Sede = '000',
+    // '001' = 1º GP da Cia.
     static $MUN = [
         '1' => ['000' => 'Votorantim', '001' => 'Alumínio'],
-        '2' => ['000' => 'Ibiúna', '300' => 'Piedade'], // Tapiraí: código ainda não mapeado
+        '2' => ['000' => 'Ibiúna', '001' => 'Tapiraí', '300' => 'Piedade'],
         '3' => ['000' => 'Salto de Pirapora', '100' => 'Pilar do Sul', '200' => 'Araçoiaba da Serra', '300' => 'Iperó'],
     ];
     $municipio = $MUN[$ciaDigit][substr($c, -3)] ?? null;
