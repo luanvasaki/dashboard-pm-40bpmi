@@ -438,4 +438,127 @@ return function (Router $r): void {
 
         Res::json(['efetivo' => $efetivo, 'laureas' => $laureas]);
     });
+
+    // ── TAF (Teste de Aptidão Física) — tabela prod_taf ─────────────────────
+
+    /** DD/MM/YYYY, YYYY-MM-DD ou ISO → 'YYYY-MM-DD'. null se vazio/ inválido. */
+    $tafData = static function ($v): ?string {
+        $s = trim((string) ($v ?? ''));
+        if ($s === '') {
+            return null;
+        }
+        $d = parseDateBR($s);
+        if (!$d && preg_match('/^(\d{4})-(\d{2})-(\d{2})/', $s, $m)) {
+            $d = "$m[1]-$m[2]-$m[3]";
+        }
+        return $d ?: null;
+    };
+
+    // [POST /taf/upload] — substitui o histórico de TAF. Body: { records: [...] }
+    // Cada record (case-insensitive): RE, Nome, Posto, OPM, Data, Pontos/Pts,
+    // Conceito, Boletim/BOL, Data Boletim, OPM Boletim. Role p1/admin.
+    $r->post('/taf/upload', function () use ($tafData): void {
+        $user = require_auth();
+        require_role($user, 'admin', 'p1');
+        if (!db_ready()) {
+            Res::error('Banco de dados não configurado', 503);
+        }
+        $records = Req::input('records');
+        if (!is_array($records) || !$records) {
+            Res::error('Nenhum registro recebido.', 400);
+        }
+        $rows = [];
+        foreach ($records as $rec) {
+            if (!is_array($rec)) {
+                continue;
+            }
+            $re   = preg_replace('/\D/', '', csv_get($rec, 're', 're_pm', 'registro'));
+            $data = $tafData(csv_get($rec, 'data', 'data taf', 'data do teste', 'data_taf'));
+            if ($re === '' || !$data) {
+                continue;
+            }
+            $re6   = substr($re, 0, 6);
+            $ptStr = csv_get($rec, 'pontos', 'pts', 'pts total', 'pts. total', 'pontuacao', 'nota');
+            $bol   = csv_get($rec, 'boletim', 'bol', 'n bol', 'nº bol') ?: null;
+            $rows[] = [
+                'id_taf'       => "$re6-$data",
+                're_pm'        => $re,
+                'nome_pm'      => csv_get($rec, 'nome', 'nome_pm', 'nome pm') ?: null,
+                'posto_pm'     => csv_get($rec, 'posto', 'posto_pm', 'posto/grad') ?: null,
+                'opm'          => csv_get($rec, 'opm', 'unidade') ?: null,
+                'data'         => $data,
+                'pontos'       => is_numeric($ptStr) ? (int) $ptStr : null,
+                'conceito'     => csv_get($rec, 'conceito', 'mencao', 'menção') ?: null,
+                'boletim'      => $bol,
+                'data_boletim' => $tafData(csv_get($rec, 'data boletim', 'data bol', 'data bol.', 'data_boletim')),
+                'opm_boletim'  => csv_get($rec, 'opm boletim', 'opm bol', 'opm bol.', 'opm_boletim') ?: null,
+                'origem'       => csv_get($rec, 'origem') ?: 'singes',
+                'updated_at'   => iso_now(),
+            ];
+        }
+        if (!$rows) {
+            Res::error('Nenhum registro válido (precisa de RE + Data).', 400);
+        }
+        // dedup por id_taf dentro do lote (mesmo PM+data 2x na fonte)
+        $unicas = [];
+        foreach ($rows as $x) {
+            $unicas[$x['id_taf']] = $x;
+        }
+        $rows = array_values($unicas);
+        DB::remove('prod_taf', ['origem' => $rows[0]['origem']]);
+        $res = DB::insertMany('prod_taf', $rows);
+        log_acesso($user, 'upload_taf', $res['affectedRows'] . ' TAF importados');
+        Res::json(['ok' => true, 'inserted' => $res['affectedRows']]);
+    });
+
+    // [GET /pm/:re/taf] — histórico de TAF de um PM (data desc). Dado nominal.
+    $r->get('/pm/:re/taf', function (): void {
+        $user = require_auth();
+        require_section_nominal($user, 'p1', 'uis');
+        if (!db_ready()) {
+            Res::error('Banco de dados não configurado', 503);
+        }
+        $re6 = substr(preg_replace('/\D/', '', (string) Req::param('re')), 0, 6);
+        Res::json(DB::select('prod_taf', [
+            'where'   => [['re_pm', 'LIKE', "$re6%"]],
+            'orderBy' => ['col' => 'data', 'dir' => 'desc'],
+        ]));
+    });
+
+    // [GET /taf/mapa] — TAF mais recente por RE do efetivo atual (pro KPI).
+    // Anexa `validade` = data + 1 ano. Zera o nome sem acesso nominal.
+    $r->get('/taf/mapa', function (): void {
+        $user = require_auth();
+        require_secao($user, 'p1', 'uis');
+        if (!db_ready()) {
+            Res::json([]);
+        }
+        $nominal = pode_nominal($user, 'p1', 'uis');
+        $ativos  = re_ativos_set();
+        $maisRecente = [];
+        foreach (fetch_all('prod_taf') as $t) {
+            $re6 = substr((string) ($t['re_pm'] ?? ''), 0, 6);
+            if (!isset($ativos[$re6])) {
+                continue;
+            }
+            $d = (string) ($t['data'] ?? '');
+            if (!isset($maisRecente[$re6]) || $d > (string) ($maisRecente[$re6]['data'] ?? '')) {
+                $maisRecente[$re6] = $t;
+            }
+        }
+        $out = [];
+        foreach ($maisRecente as $re6 => $t) {
+            $validade = $t['data'] ? gmdate('Y-m-d', strtotime($t['data'] . ' +1 year')) : null;
+            $out[] = [
+                're'         => $re6,
+                'nome_pm'    => $nominal ? ($t['nome_pm'] ?? null) : null,
+                'data'       => $t['data'] ?? null,
+                'pontos'     => $t['pontos'] ?? null,
+                'conceito'   => $t['conceito'] ?? null,
+                'boletim'    => $t['boletim'] ?? null,
+                'validade'   => $validade,
+            ];
+        }
+        Res::json($out);
+    });
 };

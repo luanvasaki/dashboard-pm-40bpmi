@@ -39,7 +39,32 @@ let p1AfastHoje  = {};   // RE → afastamentos ativos hoje (populado em renderP
 let p1Vagas      = [];   // efetivo fixado por OPM
 let p1Quadro     = [];   // quadro fixado do efetivo (por posto)
 let p1Cursos     = [];   // prod_cursos (internos+externos+manuais) — pra filtro no KPI Total Efetivo
+let _tafMap      = null;  // RE6 → TAF mais recente { data, pontos, conceito, boletim, validade } (de /taf/mapa)
 let p1FiltroOpm  = '';   // filtro ativo por OPM
+
+// Carrega o TAF mais recente por PM (tabela prod_taf, via /taf/mapa). Não é
+// fatal: sem dados, o efetivo_pm.taf/tat da planilha continua sendo o fallback.
+async function loadTafMapa() {
+  _tafMap = {};
+  try {
+    const r = await authFetch(`${API}/taf/mapa`);
+    if (!r.ok) return;
+    const all = await r.json();
+    if (Array.isArray(all)) all.forEach(t => { if (t.re) _tafMap[String(t.re).slice(0, 6)] = t; });
+  } catch (e) { console.warn('[TAF] loadTafMapa:', e.message); }
+}
+// TAF efetivo de um PM: prefere prod_taf (mais recente), cai pro conceito da planilha.
+function tafDe(re) {
+  return (_tafMap && _tafMap[String(re || '').replace(/\D/g, '').slice(0, 6)]) || null;
+}
+function tafConceito(pm) { return (tafDe(pm && pm.re)?.conceito) || (pm && pm.taf) || null; }
+function tafVencidoDe(pm) {
+  const t = tafDe(pm && pm.re);
+  if (t && t.validade) return new Date().toISOString().slice(0, 10) > t.validade;
+  if (!pm || !pm.data_eap) return false;            // fallback: EAP + 1 ano
+  const lim = new Date(pm.data_eap); lim.setFullYear(lim.getFullYear() + 1);
+  return new Date() > lim;
+}
 let prontoCurrentRe  = '';   // RE do prontuário aberto
 let prontoExtratoFull = [];  // afastamentos do PM aberto, sem filtro (base p/ os selects)
 let prontoCursosFull  = [];  // cursos (internos+externos) do PM aberto, sem filtro (base p/ o select de origem)
@@ -338,10 +363,11 @@ async function loadP1() {
     p1Quadro = Array.isArray(quadroRaw) ? quadroRaw : [];
     const cursosRaw = await r5.json().catch(() => []);
     p1Cursos = Array.isArray(cursosRaw) ? cursosRaw : [];
-    // Carrega UIS e IAS antes de renderizar para que os badges apareçam na primeira passagem.
+    // Carrega UIS, IAS e TAF antes de renderizar para que os badges apareçam na primeira passagem.
     await Promise.all([
       loadUisRestricoes().catch(() => {}),
       loadIasMapa().catch(() => {}),
+      loadTafMapa().catch(() => {}),
     ]);
     if (renderingP1) renderP1();
     renderHome();
@@ -405,15 +431,11 @@ function renderP1() {
     const d = new Date(r.data_eap);
     return !isNaN(d) && d.getUTCFullYear() === anoAtual;
   });
-  const TAFTAT_REPROV = new Set(['inapto','ruim']);
-  const inaptosTaf = dataF.filter(r => TAFTAT_REPROV.has((r.taf||'').toLowerCase().trim()));
+  const TAFTAT_REPROV = new Set(['inapto','ruim','insuficiente']);
+  // conceito do TAF: prefere prod_taf (via tafConceito), cai pro efetivo_pm.taf
+  const inaptosTaf = dataF.filter(r => TAFTAT_REPROV.has((tafConceito(r)||'').toLowerCase().trim()));
   const inaptosTat = dataF.filter(r => TAFTAT_REPROV.has((r.tat||'').toLowerCase().trim()));
-  const taftatVencFn = pm => {
-    if (!pm.data_eap) return false;
-    const d = new Date(pm.data_eap), lim = new Date(d);
-    lim.setFullYear(lim.getFullYear() + 1);
-    return new Date() > lim;
-  };
+  const taftatVencFn = pm => tafVencidoDe(pm);   // validade do TAF (data+1 ano) ou fallback EAP+1 ano
   const taftatVencidos = dataF.filter(taftatVencFn);
 
   // Graduação agrupada pro card — Subtenente e Sargento no mesmo grupo
@@ -1441,13 +1463,13 @@ function p1ShowKpiDetail(tipo) {
     };
     const feitos   = dataFEap.filter(r => isEapOk(r)).sort((a,b) => (a.data_eap||'').localeCompare(b.data_eap||''));
     const pend     = dataFEap.filter(r => !isEapOk(r));
-    const REPROV_D = new Set(['inapto','ruim']);
-    const inapTAF  = dataFEap.filter(r => REPROV_D.has((r.taf||'').toLowerCase().trim()));
+    const REPROV_D = new Set(['inapto','ruim','insuficiente']);
+    const inapTAF  = dataFEap.filter(r => REPROV_D.has((tafConceito(r)||'').toLowerCase().trim()));
     const inapTAT  = dataFEap.filter(r => REPROV_D.has((r.tat||'').toLowerCase().trim()));
     const vencidos = dataFEap.filter(taftatVencFn);
     const lim365   = (() => { const d = new Date(); d.setDate(d.getDate() - 365); return d; })();
     const aptos365 = dataFEap.filter(r =>
-      r.data_eap && new Date(r.data_eap) >= lim365 && !REPROV_D.has((r.taf||'').toLowerCase().trim())
+      r.data_eap && new Date(r.data_eap) >= lim365 && !REPROV_D.has((tafConceito(r)||'').toLowerCase().trim())
     );
 
     const notaCor2  = n => ({ 'excepcional':'#4bc87a','muito bom':'#9de05a','bom':'#c8c84b','regular':'#c8a84b','ruim':'#e05555','inapto':'#e05555' })[(n||'').toLowerCase()] || 'var(--tx3)';
@@ -1463,16 +1485,18 @@ function p1ShowKpiDetail(tipo) {
     };
 
     // Info do card: data do EAP (ou situação) + badges de TAF/TAT.
+    // TAF = conceito do prod_taf (se houver), senão o da planilha.
+    const tafBadge = r => notaBadgeSm(tafConceito(r));
     const infoEapDatas = dateFn => r => `
       <div style="font-size:10px;color:#4bc87a;font-family:'DM Mono',monospace">${dateFn(r)}</div>
-      <div style="display:flex;gap:6px;justify-content:center;margin-top:2px;font-size:10px;color:var(--tx3)">TAF ${notaBadgeSm(r.taf)} TAT ${notaBadgeSm(r.tat)}</div>`;
+      <div style="display:flex;gap:6px;justify-content:center;margin-top:2px;font-size:10px;color:var(--tx3)">TAF ${tafBadge(r)} TAT ${notaBadgeSm(r.tat)}</div>`;
     const infoEapPend = r => {
       const sit = taftatVencFn(r)
         ? `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:6px;background:#e0555522;color:#e05555">Vencido</span>`
         : `<span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:6px;background:#c8a84b22;color:#c8a84b">Não realizado</span>`;
-      return `<div>${sit}</div><div style="display:flex;gap:6px;justify-content:center;margin-top:2px;font-size:10px;color:var(--tx3)">TAF ${notaBadgeSm(r.taf)} TAT ${notaBadgeSm(r.tat)}</div>`;
+      return `<div>${sit}</div><div style="display:flex;gap:6px;justify-content:center;margin-top:2px;font-size:10px;color:var(--tx3)">TAF ${tafBadge(r)} TAT ${notaBadgeSm(r.tat)}</div>`;
     };
-    const infoEapNota = campo => r => `<div style="margin-top:2px">${notaBadgeSm(r[campo])}</div>`;
+    const infoEapNota = campo => r => `<div style="margin-top:2px">${campo === 'taf' ? tafBadge(r) : notaBadgeSm(r[campo])}</div>`;
 
     const tblFeitos   = feitos.length   ? p1CardGrid(feitos,   infoEapDatas(r => fmtEap(r.data_eap))) : `<div style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Nenhum realizado ainda</div>`;
     const tblPend     = pend.length     ? p1CardGrid(pend,     infoEapPend) : `<div style="padding:14px;color:var(--tx3);font-size:19px;text-align:center">Todos realizaram ✓</div>`;
@@ -2256,12 +2280,8 @@ async function openProntuario(re) {
     const p2 = n => String(n).padStart(2,'0');
     return `${p2(d1.getDate())}/${p2(d1.getMonth()+1)}/${d1.getFullYear()} à ${p2(d3.getDate())}/${p2(d3.getMonth()+1)}/${d3.getFullYear()}`;
   };
-  const tafVencido = (() => {
-    if (!pm.data_eap) return false;
-    const eap = new Date(pm.data_eap);
-    const limite = new Date(eap); limite.setFullYear(limite.getFullYear() + 1);
-    return new Date() > limite;
-  })();
+  const tafRec = tafDe(pm.re);   // TAF mais recente do prod_taf (se houver)
+  const tafVencido = tafVencidoDe(pm);
   const renderTeste = (dataTafTat, nota) => {
     if (!nota && !dataTafTat) return `<span style="font-size:19px;color:var(--tx3)">—</span>`;
     const cor = tafVencido ? '#e05555' : notaCor(nota);
@@ -2270,7 +2290,16 @@ async function openProntuario(re) {
             ${range ? `<div style="font-size:19px;color:var(--tx3)">${range}</div>` : ''}
             ${tafVencido ? `<div style="font-size:19px;font-weight:600;color:#e05555;margin-top:2px">⚠ VENCIDO</div>` : ''}`;
   };
-  document.getElementById('pronto-taf').innerHTML = renderTeste(pm.data_eap, pm.taf);
+  // TAF: usa prod_taf (data real do teste + pontos + validade) quando disponível.
+  if (tafRec) {
+    const cor = tafVencido ? '#e05555' : notaCor(tafRec.conceito);
+    document.getElementById('pronto-taf').innerHTML =
+      `<div style="font-size:19px;font-weight:600;color:${cor}">${escHtml(tafRec.conceito || '—')}${tafRec.pontos != null ? ` · ${tafRec.pontos} pts` : ''}</div>` +
+      `<div style="font-size:19px;color:var(--tx3)">Realizado ${fmtD(tafRec.data)} · vence ${fmtD(tafRec.validade)}</div>` +
+      (tafVencido ? `<div style="font-size:19px;font-weight:600;color:#e05555;margin-top:2px">⚠ VENCIDO</div>` : '');
+  } else {
+    document.getElementById('pronto-taf').innerHTML = renderTeste(pm.data_eap, pm.taf);
+  }
   document.getElementById('pronto-tat').innerHTML = renderTeste(pm.data_eap, pm.tat);
 
   // Alerta TAF/TAT vencido no status

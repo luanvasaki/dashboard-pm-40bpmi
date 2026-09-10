@@ -359,6 +359,31 @@ CREATE TABLE IF NOT EXISTS `prod_laureas` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- ────────────────────────────────────────────────────────────────────────────
+-- P1 — TAF (Teste de Aptidão Física). Histórico completo por PM. Alimentada por
+-- import (SINGES/CCB — ver script do Plano B). Uma linha por realização de TAF.
+-- Validade da IAS-… não: validade do TAF = `data` + 1 ano (calculado na app).
+-- ────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `prod_taf` (
+  `id`           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `id_taf`       VARCHAR(120) NOT NULL,   -- chave de dedup: "<re6>-<data>" (ou "<re6>-<boletim>")
+  `re_pm`        VARCHAR(20)  NOT NULL,
+  `nome_pm`      VARCHAR(255) NULL,
+  `posto_pm`     VARCHAR(100) NULL,
+  `opm`          VARCHAR(80)  NULL,
+  `data`         DATE         NULL,       -- data da realização do teste
+  `pontos`       INT          NULL,       -- Pts. Total
+  `conceito`     VARCHAR(40)  NULL,       -- EXCELENTE | MUITO BOM | BOM | REGULAR | INSUFICIENTE | INAPTO
+  `boletim`      VARCHAR(60)  NULL,       -- nº do BOL
+  `data_boletim` DATE         NULL,
+  `opm_boletim`  VARCHAR(80)  NULL,
+  `origem`       VARCHAR(20)  NOT NULL DEFAULT 'singes',
+  `updated_at`   DATETIME     NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `prod_taf_id_taf_key` (`id_taf`),
+  KEY `prod_taf_re_idx` (`re_pm`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ────────────────────────────────────────────────────────────────────────────
 -- P3 — PVS (Programa de Vigilância Solidária)
 -- ────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `pvs` (
