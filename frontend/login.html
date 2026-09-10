@@ -4,6 +4,8 @@
 <link rel="icon" type="image/png" href="images/favicon.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <title>40 BPM/I — Acesso Restrito</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -163,7 +165,11 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-
 </div>
 
 <script>
-const API = window.location.origin + '/api';
+// Base do app (funciona em subpasta, ex: /unidades/40bpmi/sis40bpmi/).
+const APP_BASE = window.location.pathname.replace(/[^/]*$/, '');
+const APP_HOME = APP_BASE + 'index.html';
+// nginx da PM: sem PATH_INFO → rota vai por ?__route=
+const API = window.location.origin + APP_BASE + 'api/index.php';
 
 function switchTab(tab, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
@@ -189,21 +195,21 @@ async function doLogin() {
   btn.disabled = true; btn.textContent = 'Verificando...';
 
   try {
-    const res  = await fetch(`${API}/auth/login`, {
+    const res  = await fetch(`${API}?__route=/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
       body: JSON.stringify({ matricula, senha })
     });
     const data = await res.json();
-    if (!res.ok) return showMsg('msg-login', 'RE ou senha incorretos.', 'err');
+    if (!res.ok) return showMsg('msg-login', data.error || 'RE ou senha incorretos.', 'err');
 
     localStorage.setItem('auth_user', JSON.stringify(data.user));
     if (data.user.resetSenha) {
       document.getElementById('tabs-wrap').style.display = 'none';
       document.getElementById('form-nova-senha').classList.add('on');
     } else {
-      window.location.replace('/');
+      window.location.replace(APP_HOME);
     }
   } catch {
     showMsg('msg-login', 'Erro de conexão com o servidor.', 'err');
@@ -223,7 +229,7 @@ async function doNovaSenha() {
   btn.disabled = true; btn.textContent = 'Salvando...';
 
   try {
-    const res   = await fetch(`${API}/auth/nova-senha`, {
+    const res   = await fetch(`${API}?__route=/auth/nova-senha`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
@@ -232,7 +238,7 @@ async function doNovaSenha() {
     const data = await res.json();
     if (!res.ok) return showMsg('msg-nova-senha', data.error || 'Erro ao salvar senha.', 'err');
     showMsg('msg-nova-senha', 'Senha salva! Redirecionando...', 'ok');
-    setTimeout(() => window.location.replace('/'), 1200);
+    setTimeout(() => window.location.replace(APP_HOME), 1200);
   } catch {
     showMsg('msg-nova-senha', 'Erro de conexão com o servidor.', 'err');
   } finally {
@@ -259,7 +265,7 @@ async function doRegister() {
   btn.disabled = true; btn.textContent = 'Enviando...';
 
   try {
-    const res  = await fetch(`${API}/auth/register`, {
+    const res  = await fetch(`${API}?__route=/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nome, posto, matricula: mat, secao, senha })
@@ -283,7 +289,7 @@ async function doRegister() {
 // Se já estiver logado, vai direto pro dashboard
 (function(){
   const user = localStorage.getItem('auth_user');
-  if (user) window.location.replace('/');
+  if (user) window.location.replace(APP_HOME);
 })();
 </script>
 </body>

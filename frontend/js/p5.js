@@ -380,11 +380,13 @@ function p5SearchInput(val) {
   if (!q) { drop.style.display = 'none'; return; }
 
   const isRe = /^\d+$/.test(q);
-  const matches = p5EfetivoFull.filter(r =>
+  // Ordena do mais antigo pro mais recruta (posto Cel→Sd, RE menor primeiro)
+  // antes de cortar em 30 — reusa p1OrdenarPorAntiguidade (p1.js carrega antes).
+  const matches = p1OrdenarPorAntiguidade(p5EfetivoFull.filter(r =>
     (isRe
       ? (r.re || '').toLowerCase().startsWith(q)
       : (r.nome || '').toLowerCase().includes(q) || (r.nome_guerra || '').toLowerCase().includes(q))
-  ).slice(0, 30);
+  )).slice(0, 30);
 
   if (!matches.length) { drop.style.display = 'none'; return; }
 

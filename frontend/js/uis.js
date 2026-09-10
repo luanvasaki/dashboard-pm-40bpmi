@@ -166,16 +166,42 @@ function _uisFilteredIasMap() {
   return result;
 }
 
+// Vencimento da IAS = PRÓXIMO ANIVERSÁRIO (mês/dia do nascimento) após a inspeção
+// médica + 90 dias. Regra do usuário (2026-09-11): não vale "1 ano" — a IAS vence
+// no aniversário e não se pode passar o aniversário sem tê-la refeito. Os 90 dias
+// evitam marcar como "vence amanhã" quem fez a IAS poucas semanas antes do
+// aniversário. O backend manda `data_vencimento_aniv` pronto; aqui é o fallback.
+function _iasVenceEm(rec) {
+  if (!rec) return null;
+  if (rec.data_vencimento_aniv) return rec.data_vencimento_aniv;
+  const nasc = rec.data_nascimento, med = rec.data_medico;
+  if (!nasc || !med) return null;
+  let md = String(nasc).slice(5, 10);        // 'MM-DD'
+  if (md === '02-29') md = '02-28';
+  const base = new Date(new Date(String(med).slice(0, 10)).getTime() + 90 * 86400000).toISOString().slice(0, 10);
+  const ano = parseInt(base.slice(0, 4), 10);
+  let cand = ano + '-' + md;
+  if (cand <= base) cand = (ano + 1) + '-' + md;
+  return cand;
+}
+
 function _iasStatusFromRec(rec) {
   if (!rec) return null;
-  if (!rec.data_vencimento) return 'vencido';
+  const venc = _iasVenceEm(rec);
+  if (!venc) return 'vencido';
   const today = new Date().toISOString().slice(0, 10);
   const em30  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-  if (rec.data_vencimento < today) return 'vencido';
-  if (rec.data_vencimento <= em30) return 'vencendo';
+  if (venc < today) return 'vencido';
+  if (venc <= em30) return 'vencendo';
   return 'apto';
 }
 
+// Mês do aniversário do rec — prefere data_nascimento (efetivo_pm, sempre
+// 'YYYY-MM-DD'); cai pra data_aniversario (legado, hoje sempre nulo).
+function _iasMesAniv(rec) {
+  if (rec && rec.data_nascimento) return String(rec.data_nascimento).slice(5, 7);
+  return _iasAnivMes(rec && rec.data_aniversario);
+}
 function _iasAnivMes(aniv) {
   if (!aniv) return null;
   const s = String(aniv);
@@ -216,7 +242,9 @@ async function loadUisSection() {
   try {
     const tasks = [loadUisRestricoes(), loadIasMapa()];
     if (typeof p1Data !== 'undefined' && !p1Data.length) {
-      tasks.push(authFetch(`${API}/efetivo`).then(r => r.json()).then(d => { if (Array.isArray(d)) p1Data = d; }).catch(() => {}));
+      tasks.push(authFetch(`${API}/efetivo`).then(r => r.json()).then(d => {
+        if (Array.isArray(d)) p1Data = (typeof enriquecerLotacao === 'function') ? d.map(enriquecerLotacao) : d;
+      }).catch(() => {}));
     }
     // p1Afasts alimenta o KPI de Restrições (fonte efetivo_pm.possui_restricao) e o
     // novo KPI CAPS/NAPS (Supervisão Nível I/II/III) — carrega se ainda não veio do P1.
@@ -536,7 +564,8 @@ async function confirmUisUpload() {
     if (!res.ok || !json.ok) throw new Error(json.error || 'Erro desconhecido');
     showUisMsg(`✓ ${json.inserted} registros importados com sucesso.`, 'ok');
     btn.textContent = 'Importar';
-    loadUisSection();
+    await registraUpload();
+    recarregarAposUpload(`${json.inserted} restrições UIS importadas.`);
   } catch (err) {
     showUisMsg('✗ ' + err.message, 'err');
     btn.disabled = false; btn.textContent = 'Importar';
@@ -728,7 +757,9 @@ function uisBadge(re) {
 
 // ═══════════════════════════════════════════════════════════════
 // IAS — INSPEÇÃO ANUAL DE SAÚDE
-// Validade: 1 ano a partir do vencimento (campo data_vencimento).
+// Vencimento = PRÓXIMO ANIVERSÁRIO (mês/dia de data_nascimento) após a inspeção
+// médica (data_medico). Não vale "1 ano": vence no aniversário e não se pode
+// passar o aniversário sem tê-la refeito. Ver _iasVenceEm / _iasStatusFromRec.
 // RE normalizado sem dígito verificador (igual ao UIS).
 // ═══════════════════════════════════════════════════════════════
 
@@ -758,12 +789,7 @@ function iasStatus(re) {
   if (!_iasMap || !re) return null;
   const rec = _iasMap[iasNormRE(re)];
   if (!rec) return null;
-  if (!rec.data_vencimento) return 'vencido';
-  const today = new Date().toISOString().slice(0, 10);
-  const em30  = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-  if (rec.data_vencimento < today) return 'vencido';
-  if (rec.data_vencimento <= em30) return 'vencendo';
-  return 'apto';
+  return _iasStatusFromRec(rec);
 }
 
 // Badge IAS para lista do P1 (mostra somente se vencido ou vencendo)
@@ -776,7 +802,8 @@ function iasBadge(re) {
   }
   const rec = _iasMap[key];
   const today = new Date().toISOString().slice(0, 10);
-  const dias = rec?.data_vencimento ? Math.ceil((new Date(rec.data_vencimento) - new Date(today)) / 86400000) : null;
+  const _venc = _iasVenceEm(rec);
+  const dias = _venc ? Math.ceil((new Date(_venc) - new Date(today)) / 86400000) : null;
   return `<span onclick="event.stopPropagation();openIasPmModal('${key}')" title="IAS vencendo — clique para ver" style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;background:#c8a84b18;border:1px solid #c8a84b55;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;color:#c8a84b;margin-left:6px">💉 IAS ⚠ ${dias}d</span>`;
 }
 
@@ -785,20 +812,11 @@ async function loadIasSection() {
   if (_iasMap !== null && _uisRestMap !== null) renderUisPage();
 }
 
-// ─── Modal individual: IAS de um PM ───────────────────────────
-async function openIasPmModal(re, nomePm) {
-  const el = document.getElementById('ias-pm-nome');
-  if (el) el.textContent = `RE ${re}${nomePm ? ' · ' + nomePm : ''}`;
-  const ct = document.getElementById('ias-pm-content');
-  if (ct) ct.innerHTML = '<div style="color:#ffffff;font-size:13px">Carregando...</div>';
-  document.getElementById('ias-pm-mo').classList.add('on');
-  document.body.style.overflow = 'hidden';
-  try {
-    const data = await authFetch(`${API}/ias/${re}`).then(r => r.json());
-    if (ct) ct.innerHTML = renderIasPmContent(data);
-  } catch (e) {
-    if (ct) ct.innerHTML = `<div style="color:#f07878">Erro: ${e.message}</div>`;
-  }
+// Clicar num PM (badge 💉 ou card do detalhe IAS) abre o PRONTUÁRIO completo,
+// não uma tela só da IAS — pedido do usuário (2026-09-11). O prontuário já tem
+// a sua própria seção de IAS. openProntuario (p1.js) aceita RE de 6 dígitos.
+async function openIasPmModal(re, _nomePm) {
+  if (typeof openProntuario === 'function') { openProntuario(re); return; }
 }
 
 function closeIasPmModal() {
@@ -809,7 +827,7 @@ function closeIasPmModal() {
 function renderIasPmContent(rec) {
   if (!rec) return '<div style="color:#ffffff;font-size:13px;padding:8px">Nenhum registro IAS encontrado para este PM.</div>';
   const today = new Date().toISOString().slice(0, 10);
-  const venc  = rec.data_vencimento;
+  const venc  = _iasVenceEm(rec);
   const vencida  = venc && venc < today;
   const diasRest = venc ? Math.ceil((new Date(venc) - new Date(today)) / 86400000) : null;
   const vencendo = diasRest !== null && diasRest >= 0 && diasRest <= 30;
@@ -825,15 +843,15 @@ function renderIasPmContent(rec) {
 
   return `<div style="background:var(--s2);border:1px solid ${borderCor};border-radius:8px;padding:14px;margin-bottom:10px">
     <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-      <div style="font-size:15px;color:#ffffff">Vencimento: <b style="color:${corVal};font-size:17px">${fmtD(venc)}</b></div>
+      <div style="font-size:15px;color:#ffffff">Vence no aniversário: <b style="color:${corVal};font-size:17px">${fmtD(venc)}</b></div>
       <div style="font-size:15px;color:#ffffff">Médico: <b style="color:var(--tx)">${fmtD(rec.data_medico)}</b></div>
       <div style="font-size:15px;color:#ffffff">Dentista: <b style="color:var(--tx)">${fmtD(rec.data_dentista)}</b></div>
-      ${rec.data_aniversario ? `<div style="font-size:15px;color:#ffffff">Aniversário: <b style="color:var(--tx)">${rec.data_aniversario}</b></div>` : ''}
+      ${rec.data_nascimento ? `<div style="font-size:15px;color:#ffffff">Aniversário: <b style="color:var(--tx)">${String(rec.data_nascimento).slice(8,10)}/${String(rec.data_nascimento).slice(5,7)}</b></div>` : ''}
       ${alertaBadge}
     </div>
     <div style="background:${vencida?'rgba(240,120,120,0.1)':vencendo?'rgba(200,168,75,0.1)':'rgba(75,200,122,0.1)'};border:1px solid ${borderCor}55;border-radius:6px;padding:10px 14px">
       <div style="font-family:'DM Mono',monospace;font-size:10px;color:${corVal};letter-spacing:1.5px;margin-bottom:4px">SITUAÇÃO IAS · INSPEÇÃO ANUAL DE SAÚDE</div>
-      <div style="font-size:17px;font-weight:700;color:${corVal}">${vencida ? 'IAS VENCIDA — Regularizar para TAF/TAT' : vencendo ? `IAS vence em ${diasRest} dias — Regularizar em breve` : venc ? 'IAS VÁLIDA — Apto para TAF/TAT' : 'Data de vencimento não informada'}</div>
+      <div style="font-size:17px;font-weight:700;color:${corVal}">${vencida ? 'IAS VENCIDA — Regularizar para TAF/TAT' : vencendo ? `IAS vence em ${diasRest} dias (no aniversário) — Regularizar antes` : venc ? 'IAS VÁLIDA — Apto para TAF/TAT' : 'Sem inspeção médica ou data de nascimento — conta como vencida'}</div>
     </div>
   </div>`;
 }
@@ -940,11 +958,12 @@ function renderUisPage() {
   // também — por isso os dois números não batiam sem essa linha extra
   // explicando a diferença (achado numa varredura visual, os dois valores
   // pareciam contraditórios sem essa distinção visível).
-  const tlVencidas = iasVals.filter(([,r]) => r.data_vencimento && r.data_vencimento < today).length;
-  const tl30       = iasVals.filter(([,r]) => r.data_vencimento && r.data_vencimento >= today && r.data_vencimento <= em30).length;
-  const tl60       = iasVals.filter(([,r]) => r.data_vencimento && r.data_vencimento > em30 && r.data_vencimento <= em60).length;
-  const tl90       = iasVals.filter(([,r]) => r.data_vencimento && r.data_vencimento > em60 && r.data_vencimento <= em90).length;
-  const tlSemData  = iasVals.filter(([,r]) => !r.data_vencimento).length;
+  const _tlV = ([,r]) => _iasVenceEm(r);   // vencimento = próximo aniversário após a inspeção médica
+  const tlVencidas = iasVals.filter(x => { const v = _tlV(x); return v && v < today; }).length;
+  const tl30       = iasVals.filter(x => { const v = _tlV(x); return v && v >= today && v <= em30; }).length;
+  const tl60       = iasVals.filter(x => { const v = _tlV(x); return v && v > em30 && v <= em60; }).length;
+  const tl90       = iasVals.filter(x => { const v = _tlV(x); return v && v > em60 && v <= em90; }).length;
+  const tlSemData  = iasVals.filter(x => !_tlV(x)).length;
   const tlMax      = Math.max(tlVencidas, tl30, tl60, tl90, tlSemData, 1);
   const tlBar = (label, count, cor, sub) => count > 0 ? `
     <div style="margin-bottom:20px">
@@ -1010,7 +1029,7 @@ function renderUisPage() {
   // ── IAS agendar este mês / próximo ─────────────────────────
   const mesAtual = today.slice(5,7);
   const mesProx  = String((parseInt(mesAtual)%12)+1).padStart(2,'0');
-  const agendarPms = iasVals.filter(([,r]) => { const m = _iasAnivMes(r.data_aniversario); return m === mesAtual || m === mesProx; });
+  const agendarPms = iasVals.filter(([,r]) => { const m = _iasMesAniv(r); return m === mesAtual || m === mesProx; });
   const agendarPorOpm = {};
   agendarPms.forEach(([,r]) => { const o = r.opm||'Sem OPM'; agendarPorOpm[o] = (agendarPorOpm[o]||0)+1; });
   const iasAgendarHtml = agendarPms.length > 0 ? `
@@ -1042,10 +1061,13 @@ function renderUisPage() {
   const sgpRestVenc30 = sgpRestPms.filter(r => r.restricao_termino && r.restricao_termino >= today && r.restricao_termino <= em30).length;
 
   // ── CAPS/NAPS · Supervisão Nível I/II/III (não é afastamento, 2026-08) ──
-  const capsAtivos = (typeof p1Afasts !== 'undefined' ? p1Afasts : []).filter(a =>
+  // Uma linha por PM (p1DedupSupervisao) — o WSSCPM guarda o histórico e o
+  // mesmo PM pode ter vários períodos ativos sobrepostos (ex: RE 155031-4).
+  const capsAtivosRaw = (typeof p1Afasts !== 'undefined' ? p1Afasts : []).filter(a =>
     (typeof p1EhSupervisao === 'function' ? p1EhSupervisao(a) : /supervis[aã]o|caps\s*\/\s*naps/i.test(a.tipo_afastamento||'')) &&
     a.inicio && a.inicio <= today && (!a.termino || a.termino >= today)
   );
+  const capsAtivos = typeof p1DedupSupervisao === 'function' ? p1DedupSupervisao(capsAtivosRaw) : capsAtivosRaw;
   const capsPorNivel = { I: 0, II: 0, III: 0 };
   capsAtivos.forEach(a => {
     const m = /n[ií]vel\s*(i{1,3})\b/i.exec(a.tipo_afastamento || '');
@@ -1218,11 +1240,11 @@ function renderUisDetail() {
     const mesProx  = String((parseInt(mesAtual) % 12) + 1).padStart(2, '0');
 
     // Pool inicial baseado no tipo de KPI clicado
-    const iasComReg = iasVals.filter(([,r]) => r.data_vencimento); // só com data real
+    const iasComReg = iasVals.filter(([,r]) => _iasVenceEm(r)); // com inspeção médica + nascimento
     const pool = (() => {
       if (_uisDetTipo === 'ias-aptos')   return iasComReg.filter(([,r]) => _iasStatusFromRec(r) === 'apto');
       if (_uisDetTipo === 'ias-venc30')  return iasComReg.filter(([,r]) => _iasStatusFromRec(r) === 'vencendo');
-      return iasComReg; // ias-total: só registros com data_vencimento preenchida
+      return iasComReg; // ias-total: só registros com vencimento calculável
     })();
 
     // Filtro CIA dentro do modal
@@ -1236,16 +1258,16 @@ function renderUisDetail() {
 
     // Contagens para botões (sobre pool pós-CIA)
     const cntVencida  = poolCia.filter(([,r]) => _iasStatusFromRec(r) === 'vencido').length;
-    const cntAniv     = poolCia.filter(([,r]) => { const m = _iasAnivMes(r.data_aniversario); return m === mesAtual || m === mesProx; }).length;
+    const cntAniv     = poolCia.filter(([,r]) => { const m = _iasMesAniv(r); return m === mesAtual || m === mesProx; }).length;
     const cntApto     = poolCia.filter(([,r]) => _iasStatusFromRec(r) === 'apto').length;
 
     // Aplicar sub-filtro de status
     const displayRows = (() => {
       if (_uisDetSub === 'vencida')  return poolCia.filter(([,r]) => _iasStatusFromRec(r) === 'vencido');
-      if (_uisDetSub === 'aniv')     return poolCia.filter(([,r]) => { const m = _iasAnivMes(r.data_aniversario); return m === mesAtual || m === mesProx; });
+      if (_uisDetSub === 'aniv')     return poolCia.filter(([,r]) => { const m = _iasMesAniv(r); return m === mesAtual || m === mesProx; });
       if (_uisDetSub === 'apto')     return poolCia.filter(([,r]) => _iasStatusFromRec(r) === 'apto');
       return poolCia;
-    })().slice().sort((a,b) => (a[1].data_vencimento||'').localeCompare(b[1].data_vencimento||''));
+    })().slice().sort((a,b) => (_iasVenceEm(a[1])||'').localeCompare(_iasVenceEm(b[1])||''));
 
     // Botões de status (sempre visíveis)
     const statusBtns = [
@@ -1277,12 +1299,12 @@ function renderUisDetail() {
     const rowsHtml = displayRows.map(([re, r]) => {
       const s    = _iasStatusFromRec(r);
       const cor  = s === 'vencido' ? '#f07878' : s === 'vencendo' ? '#c8a84b' : '#4bc87a';
-      const anivM = _iasAnivMes(r.data_aniversario);
+      const anivM = _iasMesAniv(r);
       const anivLabel = anivM === mesAtual ? '🎂 este mês' : anivM === mesProx ? '🎂 próximo mês' : '';
       const pm   = (typeof p1Data !== 'undefined' ? p1Data : []).find(p => iasNormRE(p.re) === re);
       return `<tr>
         <td style="${tdS}">${escHtml(pm?.opm || r.opm || '—')}</td>
-        <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px;color:${cor}">${fmtD(r.data_vencimento)}</td>
+        <td style="${tdS};font-family:'DM Mono',monospace;font-size:17px;color:${cor}">${fmtD(_iasVenceEm(r))}</td>
         <td style="${tdS};font-size:15px;color:#c8a84b">${anivLabel}</td>
       </tr>`;
     }).join('') || `<tr><td colspan="3" style="padding:20px;text-align:center;color:#ffffff;font-size:17px">Nenhum registro</td></tr>`;
@@ -1366,9 +1388,11 @@ function renderUisDetail() {
     // Não é afastamento — vem de tipo_afastamento sincronizado do SGP que
     // contém "Supervisão" ou "CAPS/NAPS" (ver p1EhSupervisao em p1.js).
     const ehSup = a => typeof p1EhSupervisao === 'function' ? p1EhSupervisao(a) : /supervis[aã]o|caps\s*\/\s*naps/i.test(a.tipo_afastamento||'');
-    const ativos = (typeof p1Afasts !== 'undefined' ? p1Afasts : []).filter(a =>
+    const ativosRaw = (typeof p1Afasts !== 'undefined' ? p1Afasts : []).filter(a =>
       ehSup(a) && a.inicio && a.inicio <= today && (!a.termino || a.termino >= today)
     );
+    // Uma linha por PM — ver p1DedupSupervisao (mesmo critério do KPI).
+    const ativos = typeof p1DedupSupervisao === 'function' ? p1DedupSupervisao(ativosRaw) : ativosRaw;
     const nivelDe = a => { const m = /n[ií]vel\s*(i{1,3})\b/i.exec(a.tipo_afastamento||''); return m ? m[1].toUpperCase() : null; };
     const rows = (_uisDetTipo === 'caps-total' ? ativos : ativos.filter(a => nivelDe(a) === _uisDetTipo.replace('caps-nivel','').replace('1','I').replace('2','II').replace('3','III')))
       .slice().sort((a,b) => (a.re||'').localeCompare(b.re||''));

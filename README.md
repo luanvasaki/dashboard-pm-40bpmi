@@ -174,7 +174,7 @@ Autenticação por JWT em cookie `httpOnly`, sessão de 8 horas.
 
 ---
 
-## Banco de dados (Supabase / PostgreSQL)
+## Banco de dados (MySQL 8 — servidor da PM)
 
 | Tabela | Conteúdo |
 |---|---|
@@ -197,8 +197,11 @@ Autenticação por JWT em cookie `httpOnly`, sessão de 8 horas.
 | `indicadores_qualidade_p3` | Indicadores de qualidade P3 |
 | `disque_denuncia_registros` | Registros Disque Denúncia |
 | `config_dashboard` | Configurações globais (chave/valor) |
+| `sgp_sync_jobs` · `sgp_dp_sessao` | Fila e sessão do agente de sincronização |
+| `ias_registros` · `uis_restricoes` · `prod_laureas` · `prod_conseg` · `pvs` | IAS, restrições médicas, láureas, CONSEG, PVS |
 
-Todas as tabelas têm RLS habilitado. O backend usa `service_role key` que bypassa o RLS.
+Schema completo em `schema_mysql.sql` (fonte da verdade — rodar 1x no phpMyAdmin).
+Sem RLS: a autorização é 100% na aplicação, via JWT + checagem de role/seção.
 
 ---
 
@@ -210,79 +213,66 @@ Todas as tabelas têm RLS habilitado. O backend usa `service_role key` que bypas
 - **PapaParse** — leitura e validação de CSV no navegador
 - **Lucide Icons** — ícones via CDN
 
-### Backend
-**Node.js + Express**, responsável por:
-- Servir o frontend via `express.static`
-- API REST com autenticação JWT (`httpOnly` cookie)
-- Sincronização com Supabase a cada 5 min (cache em memória)
-- Módulos analíticos independentes em `backend/analytics/`
+### Backend (`frontend/api/`)
+**PHP puro** — sem framework, sem Composer, sem build. Roda no Apache/PHP da PM
+(o mesmo ambiente do phpMyAdmin):
+- `index.php` é o front controller (roteia por `PATH_INFO`)
+- API REST com autenticação JWT (`httpOnly` cookie, HS256 feito à mão)
+- Acesso ao MySQL via `lib/db.php` (mysqli), com cache em arquivo pro RAC PM
+- Módulos analíticos independentes em `frontend/api/analytics/`
+
+### Agente de sincronização (`agente-sgp-php/`)
+PHP CLI, roda dentro da intranet da PM (no próprio www9). Lê a fila
+`sgp_sync_jobs` e busca dados no WSSCPM (SOAP/HTTP) e no SGP-DP (REST/JSON, com
+sessão colada pelo usuário) → grava em `efetivo_pm`, `afastamentos_pm`,
+`fotos_pm`, `ias_registros`, `uis_restricoes`, `prod_cursos`, `prod_laureas`.
 
 ### Deploy
-**Vercel** (região `gru1`) — publicação automática a cada push. Todo tráfego roteia para `backend/server.js`.
+Apache/PHP da PM (`www9.intranet.policiamilitar.sp.gov.br`), banco MySQL da PM.
+Sem publicação automática — sobe-se a pasta `frontend/` para o docroot. Passo a
+passo em `frontend/api/README.md`.
 
 ---
 
 ## Como rodar localmente
 
-**Pré-requisitos:** Node.js v18+
+**Pré-requisitos:** PHP 8.1+ com `mysqli` + `mbstring`; um MySQL/MariaDB.
 
 ```bash
-# 1. Clone o repositório
 git clone https://github.com/luanvasaki/dashboard-pm-40bpmi.git
 cd dashboard-pm-40bpmi
 
-# 2. Instale as dependências
-cd backend && npm install
+# 1. Credenciais
+cp frontend/api/secrets.php.example frontend/api/secrets.php
+#    preencher MYSQL_* e JWT_SECRET
 
-# 3. Configure as variáveis de ambiente
-cp .env.example backend/.env
-# Edite backend/.env com suas credenciais
+# 2. Schema (phpMyAdmin → Importar, ou:)
+mysql -h <host> -u <user> -p <database> < schema_mysql.sql
+
+# 3. Servir
+php -S localhost:8080 -t frontend
+#    abrir http://localhost:8080  (API em /api/index.php/<rota>)
 ```
 
-**Variáveis obrigatórias em `backend/.env`:**
-
-| Variável | Descrição |
-|---|---|
-| `SUPABASE_URL` | URL do projeto Supabase |
-| `SUPABASE_KEY` | service_role key |
-| `JWT_SECRET` | String aleatória ≥ 64 chars |
-| `NODE_ENV` | `production` em produção |
-| `ALLOWED_ORIGIN` | Origem CORS (vazio = libera tudo em dev) |
-
-```bash
-# 4. Inicie o servidor
-node server.js
-
-# 5. Acesse no navegador
-# http://localhost:3001
-```
-
-> Sem Supabase configurado, o sistema usa `raw_data.json` como fallback automático.
+Detalhes (hash do admin, segredo JWT, `COOKIE_SECURE`/`TRUST_PROXY`) em
+`frontend/api/README.md` e no `CLAUDE.md`.
 
 ---
 
 ## Estrutura do projeto
 
 ```
-├── backend/
-│   ├── analytics/
-│   │   ├── crimePressureIndex.js
-│   │   ├── trendAnalysis.js
-│   │   ├── priorityScore.js
-│   │   ├── cityRanking.js
-│   │   ├── targetDeviation.js
-│   │   └── insightGenerator.js
-│   └── server.js                  ← API REST + auth + todas as rotas
-├── frontend/
-│   ├── index.html                 ← SPA principal
-│   ├── login.html                 ← autenticação e cadastro
-│   ├── js/app.js                  ← toda a lógica e gráficos
-│   └── css/style.css
-├── raw_data.json                  ← fallback local
-├── create_prod_cursos.sql         ← script para criar tabela de cursos
-├── create_prod_tempo_resposta.sql ← script para criar tabela de tempo de resposta
-├── supabase_rls_enable.sql        ← script para habilitar RLS
-├── vercel.json                    ← configuração de deploy
+├── frontend/                       ← docroot (Apache)
+│   ├── index.html · login.html     ← SPA + login
+│   ├── js/*.js · css/style.css
+│   └── api/                         ← BACKEND PHP
+│       ├── index.php                ← front controller
+│       ├── lib/                     ← db · jwt · auth · http · cache · …
+│       ├── analytics/               ← 6 módulos de cálculo puro
+│       └── routes/                  ← auth · users · rac · efetivo · prod · …
+├── agente-sgp-php/                  ← agente PHP CLI (WSSCPM/SGP-DP → MySQL)
+├── schema_mysql.sql                ← DDL de todas as tabelas (fonte da verdade)
+├── CLAUDE.md                       ← guia de arquitetura / comandos
 └── README.md
 ```
 

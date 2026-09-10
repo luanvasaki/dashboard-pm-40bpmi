@@ -105,7 +105,7 @@ async function confirmUpload() {
   const btn = document.getElementById('upl-confirm');
   btn.disabled = true;
   btn.textContent = 'Importando...';
-  showUplMsg('Enviando para o Supabase...', 'info');
+  showUplMsg('Enviando para o servidor...', 'info');
 
   try {
     const res  = await authFetch(`${API}/upload`, {
@@ -118,21 +118,11 @@ async function confirmUpload() {
     if (!res.ok || !json.ok) throw new Error(json.error || 'Erro desconhecido');
 
     showUplMsg(`✓ ${json.uploaded} registros importados. Total na base: ${json.total}.`, 'ok');
-    registraUpload();
+    await registraUpload();
     btn.classList.remove('on');
-
-    // Força re-sincronização do cache do servidor antes de recarregar
-    await authFetch(`${API}/sync`, { method: 'POST' }).catch(() => {});
-    await loadData();
-    selAno   = ANOS[0] || new Date().getFullYear();
-    MESES    = getMesForAno(selAno);
-    selMeses = [...MESES];
-    hmMeses  = [...MESES];
-    buildSbMes();
-    buildHmFilter();
-    buildPageFilters();
-    renderAll();
-    await updateSyncStatus();
+    // Recarrega a página — garante que crimes/municípios/anos (carregados só no
+    // boot) reflitam o que acabou de entrar, sem depender da ordem das chamadas.
+    recarregarAposUpload(`${json.uploaded} registros do Banco RAC importados.`);
 
   } catch (err) {
     showUplMsg('✗ ' + err.message, 'err');
@@ -307,7 +297,7 @@ async function confirmOcorrUpload() {
   const btn = document.getElementById('ocorr-confirm');
   btn.disabled = true;
   btn.textContent = 'Importando...';
-  showOcorrMsg('Enviando para o Supabase...', 'info');
+  showOcorrMsg('Enviando para o servidor...', 'info');
 
   try {
     const res  = await authFetch(`${API}/upload/ocorrencias`, {
@@ -318,8 +308,9 @@ async function confirmOcorrUpload() {
     const json = await res.json();
     if (!res.ok || !json.ok) throw new Error(json.error || 'Erro desconhecido');
     showOcorrMsg(`✓ ${json.inserted} registros importados com sucesso.`, 'ok');
-    registraUpload();
+    await registraUpload();
     btn.textContent = 'Importar';
+    recarregarAposUpload(`${json.inserted} ocorrências InfoCrim importadas.`);
   } catch (err) {
     showOcorrMsg('✗ ' + err.message, 'err');
     btn.disabled = false;

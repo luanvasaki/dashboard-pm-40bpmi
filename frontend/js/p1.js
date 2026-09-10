@@ -145,8 +145,8 @@ const CIA_STRUCT = [
     label: '3ª CIA', sede: 'Salto de Pirapora', color: CIA_COR['3'],
     units: [
       { label: 'Sede · Salto de Pirapora',    keys: ['3 cia - sede', 'salto de pirapora', 'salto pirapora', '^3 cia$'] },
-      { label: '1º Pel · Araçoiaba da Serra', keys: ['aracoiaba'] },
-      { label: '2º Pel · Pilar do Sul',       keys: ['pilar do sul', 'pilar'] },
+      { label: '1º Pel · Pilar do Sul',       keys: ['pilar do sul', 'pilar'] },
+      { label: '2º Pel · Araçoiaba da Serra', keys: ['aracoiaba'] },
       { label: '3º Pel · Iperó',              keys: ['ipero'] },
     ]
   },
@@ -163,6 +163,21 @@ const _opmMatch = (opm, keys) => {
   const n = _normOpm(opm);
   return keys.some(k => k.startsWith('^') ? new RegExp(k).test(n) : n.includes(_normOpm(k)));
 };
+
+// Enriquece o `opm` do PM com a lotação vinda do SGP (cia/municipio — ver
+// agente-sgp: derivar_lotacao). A planilha manda só "1º Pel"/"1º GP", que é
+// ambíguo (cada Cia tem o seu). O SGP dá a Cia e o município; com isso o `opm`
+// passa a casar com as chaves do CIA_STRUCT. O valor da planilha fica em
+// `opm_planilha` (exibição). PM ainda não sincronizado mantém o opm da planilha.
+function enriquecerLotacao(pm) {
+  pm.opm_planilha = pm.opm || '';
+  if (pm.municipio) {
+    pm.opm = [pm.municipio, pm.opm_planilha].filter(Boolean).join(' · ');
+  } else if (pm.cia) {
+    pm.opm = pm.cia; // Sede sem cidade / código não mapeado → casa com ^N cia$ / ^em$
+  }
+  return pm;
+}
 
 // Categoriza posto/graduação em 4 grupos
 function p1Cat(posto) {
@@ -237,7 +252,7 @@ function p1CatTipo(t) {
   if (/luto/.test(tl)) return 'Luto';
   if (/maternidade/.test(tl)) return 'Maternidade';
   if (/paternidade/.test(tl)) return 'Paternidade';
-  if (/\blts\b|licen[cç]a.trat|tratamento.sa/.test(tl)) return 'LTS';
+  if (/\blts\b|licen[cç]a\s*(para\s*)?trat|tratamento\s+de\s+sa[uú]de/.test(tl)) return 'LTS';
   return 'Outros';
 }
 
@@ -260,6 +275,31 @@ const p1EhRestricao = a => !!a.restricao;
 // afastamentos do prontuário (diferente de restrição, que fica no histórico).
 // Viram o KPI próprio "CAPS/NAPS" na UIS (uis.js).
 const p1EhSupervisao = a => /supervis[aã]o|caps\s*\/\s*naps/i.test(a.tipo_afastamento || '');
+function p1SupervNivel(a) { const m = /n[ií]vel\s*(i{1,3})\b/i.exec(a.tipo_afastamento || ''); return m ? m[1].toUpperCase() : null; }
+// O WSSCPM guarda o HISTÓRICO de supervisões CAPS/NAPS — um PM pode ter várias
+// linhas ativas hoje ao mesmo tempo (períodos que se sobrepõem, ex: RE 155031-4).
+// O KPI CAPS/NAPS conta PESSOAS, não linhas: recebe as supervisões já filtradas
+// por "ativa hoje" e devolve UMA por RE — a de início mais recente (decisão mais
+// nova); em empate, o nível mais alto (III > II > I).
+function p1DedupSupervisao(ativos) {
+  const ordN = { III: 3, II: 2, I: 1 };
+  const porRe = new Map();
+  for (const a of ativos) {
+    const cur = porRe.get(a.re);
+    if (!cur) { porRe.set(a.re, a); continue; }
+    const ai = a.inicio || '', ci = cur.inicio || '';
+    if (ai > ci || (ai === ci && (ordN[p1SupervNivel(a)] || 0) > (ordN[p1SupervNivel(cur)] || 0))) {
+      porRe.set(a.re, a);
+    }
+  }
+  return [...porRe.values()];
+}
+
+// Licença-Prêmio convertida EM PECÚNIA (indenizada) — o PM recebe o valor e
+// continua trabalhando, não é ausência. Não conta em nenhum KPI/lista de
+// afastamento, não gera badge vermelho no card e não entra no extrato do
+// prontuário (pedido do usuário, 2026-09-10).
+const p1EhLPPecunia = a => /pec[uú]nia|indeniz/i.test(a.tipo_afastamento || '');
 
 // Pra escala de rua (KPIs de disponibilidade por CIA/OPM), só a restrição de
 // código "PO" (Policiamento — BG PM 166/2006) de fato tira o PM da rua; quem
@@ -290,7 +330,7 @@ async function loadP1() {
       authFetch(`${API}/p1/quadro`),
       authFetch(`${API}/prod/cursos`)
     ]);
-    p1Data   = await r1.json();
+    p1Data   = (await r1.json()).map(enriquecerLotacao);
     p1Afasts = await r2.json();
     const vagasRaw = await r3.json();
     p1Vagas  = Array.isArray(vagasRaw) ? vagasRaw : [];
@@ -343,7 +383,7 @@ function renderP1() {
     // Termino nulo (ex: LSV em aberto, sem data de fim ainda) conta como
     // ainda em curso — não pode exigir a.termino truthy, senão essas
     // pessoas somem da lista de "afastado hoje" mesmo estando afastadas.
-    if (!p1EhRestricao(a) && !p1EhSupervisao(a) && a.inicio && a.inicio <= hoje && (!a.termino || a.termino >= hoje)) {
+    if (!p1EhRestricao(a) && !p1EhSupervisao(a) && !p1EhLPPecunia(a) && a.inicio && a.inicio <= hoje && (!a.termino || a.termino >= hoje)) {
       if (!afastHoje[a.re]) afastHoje[a.re] = [];
       afastHoje[a.re].push(a);
     }
@@ -699,6 +739,41 @@ async function p1SgpDpSalvarSessao() {
   }
 }
 
+// Salva o cookie e JÁ dispara IAS + cursos + láureas do efetivo inteiro, na
+// ordem mais rápida → mais lenta (láureas, cursos, IAS) pra aproveitar o cookie
+// enquanto ele está fresco. Uso típico: 1×/dia antes de sair, já logado no SGP.
+async function p1SgpDpSalvarESincronizar() {
+  const msg = document.getElementById('p1-sgpdp-msg');
+  const cookie = document.getElementById('p1-sgpdp-cookie').value.trim();
+  if (cookie.length < 20) { msg.innerHTML = '<span style="color:#f07878">Cole o valor completo do cookie primeiro.</span>'; return; }
+  if (!confirm('Salva o cookie e reconsulta IAS + cursos + láureas de TODO o efetivo, um por um (pode levar 1–2h no total). Rode só com o cookie recém-colado e logado no SGP. Continuar?')) return;
+  msg.innerHTML = '<span style="color:var(--tx3)">Salvando cookie…</span>';
+  try {
+    const res = await authFetch(`${API}/sgp-dp/sessao`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cookie })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao salvar sessão.');
+    document.getElementById('p1-sgpdp-cookie').value = '';
+
+    const criados = [];
+    for (const tipo of ['laureas_bulk', 'cursos_bulk', 'ias_bulk']) {
+      const r = await authFetch(`${API}/efetivo/sync`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo })
+      });
+      if (r.ok) criados.push(tipo.replace('_bulk', ''));
+      else if (r.status === 409) criados.push(tipo.replace('_bulk', '') + ' (já em andamento)');
+    }
+    msg.innerHTML = `<span style="color:#4bc87a">Cookie salvo e sincronização disparada: ${escHtml(criados.join(', '))}. Pode fechar — o agente processa em segundo plano.</span>`;
+    p1SgpDpStatusSessao();
+    if (typeof p1SgpRefreshStatus === 'function') p1SgpRefreshStatus();
+  } catch (err) {
+    msg.innerHTML = `<span style="color:#f07878">${escHtml(err.message)}</span>`;
+  }
+}
+
 async function p1SgpIasRequestSingle() {
   const msg = document.getElementById('p1-sgpdp-msg');
   const re = document.getElementById('p1-sgpdp-re').value.trim();
@@ -821,12 +896,36 @@ function p1SgpStatusLabel(status) {
   return `<span style="color:${color}">${label}</span>`;
 }
 
+// Enquanto houver job em andamento, re-consulta o status a cada 5s e re-dispara
+// o agente (POST /efetivo/sync/tick) — o container mata processos em background,
+// então cada tick garante que ele volte a rodar / recupere job travado.
+let _p1SgpPoll = null;
+let _p1SgpAguardando = new Set(); // ids de jobs que vimos em andamento nesta sessão
+function p1SgpStartPoll() {
+  if (_p1SgpPoll) return;
+  _p1SgpPoll = setInterval(async () => {
+    try { await authFetch(`${API}/efetivo/sync/tick`, { method: 'POST' }).catch(() => {}); } catch (_) {}
+    p1SgpRefreshStatus();
+  }, 5000);
+}
+function p1SgpStopPoll() { if (_p1SgpPoll) { clearInterval(_p1SgpPoll); _p1SgpPoll = null; } }
+
 async function p1SgpRefreshStatus() {
   const el = document.getElementById('p1-sgp-lista');
   if (!el) return;
   try {
     const jobs = await authFetch(`${API}/efetivo/sync/status`).then(r => r.json());
     if (!jobs.length) { el.innerHTML = '<span style="color:var(--tx3)">Nenhum pedido ainda.</span>'; return; }
+
+    jobs.filter(j => j.status === 'pending' || j.status === 'processing').forEach(j => _p1SgpAguardando.add(j.id));
+    if (jobs.some(j => j.status === 'pending' || j.status === 'processing')) { p1SgpStartPoll(); }
+    else { p1SgpStopPoll(); }
+    // job que estava em andamento nesta sessão e concluiu → recarrega pros dados novos
+    const concluiu = jobs.find(j => j.status === 'done' && _p1SgpAguardando.has(j.id));
+    if (concluiu) {
+      _p1SgpAguardando.delete(concluiu.id);
+      recarregarAposUpload(`Sincronização concluída — ${concluiu.resultado?.atualizados ?? 0}/${concluiu.resultado?.total ?? '?'}.`);
+    }
     el.innerHTML = jobs.map(j => {
       const ehIas = j.tipo === 'ias_single' || j.tipo === 'ias_bulk';
       const ehCursos = j.tipo === 'cursos_single' || j.tipo === 'cursos_bulk';
@@ -840,6 +939,9 @@ async function p1SgpRefreshStatus() {
         detalhe = !ehSingle
           ? ` — ${j.resultado.atualizados}/${j.resultado.total} atualizados${j.resultado.erros?.length ? `, ${j.resultado.erros.length} erro(s)` : ''}${j.resultado.abortado ? ` — ${escHtml(j.resultado.abortado)}` : ''}`
           : ` — ${escHtml(j.resultado.nome || '')}`;
+      } else if (j.status === 'processing' && j.resultado?.total) {
+        const p = j.resultado.processados ?? j.resultado.atualizados ?? 0;
+        detalhe = ` — ${p}/${j.resultado.total}…`;
       } else if (j.status === 'error' && j.resultado?.erro) {
         detalhe = ` — ${escHtml(j.resultado.erro)}`;
       }
@@ -870,8 +972,8 @@ function p1FileChange() {
     're': 'RE',
     'nome completo': 'Nome', 'nome': 'Nome',
     'função': 'Funcao', 'funcao': 'Funcao',
-    'genero': 'Genero', 'gênero': 'Genero',
-    'nome de guerra': 'NomeGuerra',
+    // Gênero e Nome de Guerra NÃO vêm mais da planilha — são puxados do SGP
+    // ("Atualizar efetivo completo"). Se estiverem no CSV, o backend ignora.
     'data eap': 'DataEAP',
   };
 
@@ -921,9 +1023,8 @@ async function p1ConfirmUpload() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
     msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.inserted} registros importados com sucesso.</span>`;
-    registraUpload();
-    await loadP1();
-    setTimeout(closeP1Upload, 1500);
+    await registraUpload();
+    recarregarAposUpload(`${data.inserted} registros de efetivo importados.`);
   } catch (err) {
     msg.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`;
     btn.disabled = false;
@@ -962,12 +1063,15 @@ function p1IasKpiCardHtml() {
     </div>`;
 }
 
-// Supervisões ativas (CAPS/NAPS) — de p1Afasts, via p1EhSupervisao.
+// Supervisões ativas (CAPS/NAPS) — de p1Afasts, via p1EhSupervisao. Uma linha
+// por PM (p1DedupSupervisao): o WSSCPM guarda o histórico e o mesmo PM pode ter
+// vários períodos ativos sobrepostos (ex: RE 155031-4).
 function _p1CapsAtivos() {
   const hoje = new Date().toISOString().slice(0, 10);
   const ehSup = a => typeof p1EhSupervisao === 'function' ? p1EhSupervisao(a) : /supervis[aã]o|caps\s*\/\s*naps/i.test(a.tipo_afastamento || '');
-  return (typeof p1Afasts !== 'undefined' ? p1Afasts : []).filter(a =>
+  const ativos = (typeof p1Afasts !== 'undefined' ? p1Afasts : []).filter(a =>
     ehSup(a) && a.inicio && a.inicio <= hoje && (!a.termino || a.termino >= hoje));
+  return typeof p1DedupSupervisao === 'function' ? p1DedupSupervisao(ativos) : ativos;
 }
 function _p1CapsNivel(a) { const m = /n[ií]vel\s*(i{1,3})\b/i.exec(a.tipo_afastamento || ''); return m ? m[1].toUpperCase() : null; }
 
@@ -1231,7 +1335,7 @@ function p1ShowKpiDetail(tipo) {
     const totalInfo = r => {
       const afst = p1AfastHoje[r.re];
       const s = afst
-        ? `<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#e0555522;color:#e05555;font-family:'DM Mono',monospace">${escHtml(afst[0]?.tipo_afastamento||'Afastado')}</span>`
+        ? `<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#e0555522;color:#e05555;font-family:'DM Mono',monospace">${escHtml(afst[0] ? p1TipoLabel(afst[0].tipo_afastamento) : 'Afastado')}</span>`
         : `<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#4bc87a22;color:#4bc87a;font-family:'DM Mono',monospace">Apto</span>`;
       return `<div title="${escHtml(r.opm||'')}" style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${escHtml(r.opm||'—')}</div>${s}`;
     };
@@ -1259,7 +1363,7 @@ function p1ShowKpiDetail(tipo) {
     const getMunAfast = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
     const getCiaAfast = opm => (typeof CIA_STRUCT === 'undefined' || !opm) ? -1 : CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
 
-    const ativosBase = p1Afasts.filter(a => !p1EhRestricao(a) && !p1EhSupervisao(a) && a.inicio <= hoje && (!a.termino || a.termino >= hoje) && reSetF.has(a.re)).map(a => {
+    const ativosBase = p1Afasts.filter(a => !p1EhRestricao(a) && !p1EhSupervisao(a) && !p1EhLPPecunia(a) && a.inicio <= hoje && (!a.termino || a.termino >= hoje) && reSetF.has(a.re)).map(a => {
       const pm = p1Data.find(r => r.re === a.re);
       return { a, ciaIdx: getCiaAfast(pm?.opm), mun: getMunAfast(pm?.opm), posto: pm?.posto };
     });
@@ -1297,7 +1401,7 @@ function p1ShowKpiDetail(tipo) {
       const afastInfo = r => {
         const a = r._afast;
         const dias = a.termino ? Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000) : null;
-        return `<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--tx3)">${escHtml(a.tipo_afastamento || '—')}</div>
+        return `<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--tx3)">${escHtml(p1TipoLabel(a.tipo_afastamento))}</div>
                 <div style="font-size:12px;font-family:'DM Mono',monospace;color:${dias!==null&&dias<=3?'#4bc87a':'var(--tx3)'}">${fmtD(a.inicio)} → ${dias!==null ? dias+'d rest.' : fmtD(a.termino)}</div>`;
       };
       inner += `<div style="margin-bottom:16px">
@@ -1469,16 +1573,18 @@ function p1ShowKpiDetail(tipo) {
       const iasInfo = r => {
         const { s, rec } = iasRecByRe[r.re] || {};
         const cor = SIT_COR[s] || 'var(--tx3)';
-        return `<div style="font-size:10px;font-family:'DM Mono',monospace;color:${cor};font-weight:700">${rec?.data_vencimento ? fmtV(rec.data_vencimento) : '—'}</div>
+        const _v = (typeof _iasVenceEm === 'function' ? _iasVenceEm(rec) : rec?.data_vencimento);
+        return `<div style="font-size:10px;font-family:'DM Mono',monospace;color:${cor};font-weight:700">${_v ? fmtV(_v) : '—'}</div>
           <span style="padding:1px 6px;border-radius:6px;font-size:10px;background:${cor}22;color:${cor};font-family:'DM Mono',monospace;margin-top:2px;display:inline-block">${SIT_LBL[s]||s||'—'}</span>`;
       };
-      const iasClick = r => `openIasPmModal('${String(iasNormRE(r.re)).replace(/'/g,"\\'")}')`;
-
+      // Clique no PM abre o prontuário completo (não a tela só da IAS) —
+      // mesmo comportamento do detalhe de CAPS/NAPS. O card já mostra
+      // vencimento + situação da IAS via iasInfo.
       const tabelaIasHtml = p1SomenteQuantitativo()
         ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
         : !anyFilter
           ? `<div style="padding:20px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ Selecione um filtro acima para ver a listagem individual</div>`
-          : p1CardGrid(filtered.map(({r}) => r), iasInfo, iasClick);
+          : p1CardGrid(filtered.map(({r}) => r), iasInfo);
 
       const iasChartsHtml = `
         <div style="display:grid;grid-template-columns:310px 1fr;gap:16px;padding:0 0 16px;border-bottom:1px solid var(--bd);margin-bottom:12px;align-items:start">
@@ -1914,11 +2020,13 @@ function p1SearchInput(val) {
   if (!q || q.length < 1) { drop.style.display = 'none'; return; }
 
   const isRe = /^\d+$/.test(q);
-  const matches = p1Data.filter(r =>
+  // Ordena do mais antigo pro mais recruta (posto Cel→Sd, RE menor primeiro)
+  // antes de cortar em 30 — ver p1OrdenarPorAntiguidade.
+  const matches = p1OrdenarPorAntiguidade(p1Data.filter(r =>
     (isRe
       ? (r.re || '').toLowerCase().startsWith(q)
       : (r.nome || '').toLowerCase().includes(q) || (r.nome_guerra || '').toLowerCase().includes(q))
-  ).slice(0, 30);
+  )).slice(0, 30);
 
   if (!matches.length) { drop.style.display = 'none'; return; }
 
@@ -1932,7 +2040,7 @@ function p1SearchInput(val) {
   drop.innerHTML = matches.map((r, i) => {
     const afst = p1AfastHoje[r.re];
     const statusColor = afst ? '#e05555' : '#4bc87a';
-    const statusTxt   = afst ? (afst[0]?.tipo_afastamento || 'Afastado') : 'Apto';
+    const statusTxt   = afst ? (afst[0] ? p1TipoLabel(afst[0].tipo_afastamento) : 'Afastado') : 'Apto';
     const nomePrinc   = r.nome_guerra || r.nome || '—';
     return `<div data-re="${escHtml(r.re)}" data-i="${i}"
       onmousedown="p1SearchSelect('${(r.re||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')"
@@ -2003,10 +2111,14 @@ async function openProntuario(re) {
   if (p1SomenteQuantitativo()) return;
   const mo = document.getElementById('pronto-mo');
   if (!mo) return;
+  // aceita RE completo ("155031-4") ou só os 6 dígitos ("155031") — o badge da
+  // IAS/UIS passa a forma normalizada.
+  const _re6 = s => String(s || '').replace(/\D/g, '').slice(0, 6);
+  const pm = p1Data.find(r => r.re === re) || p1Data.find(r => _re6(r.re) === _re6(re));
+  if (!pm) { return; }
   mo.style.display = 'flex';
-  prontoCurrentRe = re;
-  const pm = p1Data.find(r => r.re === re);
-  if (!pm) { mo.style.display = 'none'; return; }
+  prontoCurrentRe = pm.re;
+  re = pm.re;
 
   const hoje = new Date().toISOString().split('T')[0];
   const anoAtual = new Date().getFullYear();
@@ -2030,7 +2142,7 @@ async function openProntuario(re) {
   let statusHtml = '';
   if (afsts.length) {
     statusHtml = afsts.map(a =>
-      `<span style="padding:4px 12px;border-radius:20px;background:#e0555522;color:#e05555;font-size:19px;font-family:'DM Mono',monospace">${escHtml(a.tipo_afastamento)}</span>`
+      `<span style="padding:4px 12px;border-radius:20px;background:#e0555522;color:#e05555;font-size:19px;font-family:'DM Mono',monospace">${escHtml(p1TipoLabel(a.tipo_afastamento))}</span>`
     ).join(' ');
   } else if (emRestr) {
     statusHtml = `<span style="padding:4px 12px;border-radius:20px;background:#c8a84b22;color:#c8a84b;font-size:19px;font-family:'DM Mono',monospace">Em Restrição</span>`;
@@ -2129,7 +2241,7 @@ async function openProntuario(re) {
       iasEl.innerHTML =
         `<span style="color:${cor};font-weight:600">${IAS_LBL[iasSt] || '—'}</span>` +
         `<div style="font-size:19px;color:var(--tx3);margin-top:2px">Médico ${fmtD(iasRec.data_medico)} · Dentista ${fmtD(iasRec.data_dentista)}</div>` +
-        `<div style="font-size:19px;color:var(--tx3)">Vence em ${fmtD(iasRec.data_vencimento)}</div>`;
+        `<div style="font-size:19px;color:var(--tx3)">Vence no aniversário ${fmtD(typeof _iasVenceEm === 'function' ? _iasVenceEm(iasRec) : iasRec.data_vencimento)}</div>`;
     }
   }
 
@@ -2201,7 +2313,7 @@ async function openProntuario(re) {
   }
 
   // Extrato cronológico — carrega tudo e popula os filtros de ano/tipo
-  prontoExtratoFull = p1Afasts.filter(a => a.re === re && !p1EhSupervisao(a)).sort((a, b) => (b.inicio || '').localeCompare(a.inicio || ''));
+  prontoExtratoFull = p1Afasts.filter(a => a.re === re && !p1EhSupervisao(a) && !p1EhLPPecunia(a)).sort((a, b) => (b.inicio || '').localeCompare(a.inicio || ''));
   prontoPopulaFiltrosExtrato();
   prontoRenderExtrato();
 
@@ -2583,9 +2695,8 @@ async function quadroConfirmUpload() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
     msg.innerHTML = `<span style="color:#4bc87a">✓ ${data.inserted || p1QuadroParsed.length} registros importados.</span>`;
-    registraUpload();
-    await loadP1();
-    setTimeout(closeQuadroUpload, 1500);
+    await registraUpload();
+    recarregarAposUpload(`${data.inserted || p1QuadroParsed.length} registros do quadro fixado importados.`);
   } catch (err) {
     msg.innerHTML = `<span style="color:#f07878">Erro: ${err.message}</span>`;
     btn.disabled = false; btn.style.opacity = '1';
@@ -2673,7 +2784,7 @@ function exportarSituacao() {
     return [
       r.re, r.nome, r.nome_guerra || '', r.posto || '', r.opm || '', r.funcao || '',
       afst ? 'Afastado' : 'Apto',
-      afst?.tipo_afastamento || '',
+      afst ? p1TipoLabel(afst.tipo_afastamento) : '',
       afst ? fmtD(afst.inicio) : '',
       afst ? fmtD(afst.termino) : '',
       r.possui_restricao || 'N',
@@ -3080,7 +3191,7 @@ function p1ShowPmList(pms, label) {
   const cards = pms.map(r => {
     const afst        = p1AfastHoje[r.re];
     const statusColor = afst ? '#e05555' : '#4bc87a';
-    const statusTxt   = afst ? (afst[0]?.tipo_afastamento || 'AFASTADO') : 'APTO';
+    const statusTxt   = afst ? (afst[0] ? p1TipoLabel(afst[0].tipo_afastamento) : 'AFASTADO') : 'APTO';
     const _re         = escA(r.re || '');
     const fotoCached  = p1Fotos[r.re];
     const avatarContent = fotoCached
@@ -3142,7 +3253,7 @@ function renderHome() {
     const today = new Date().toISOString().split('T')[0];
     const afH = {};
     (p1Afasts || []).forEach(a => {
-      if (!p1EhRestricao(a) && !p1EhSupervisao(a) && a.inicio <= today && (!a.termino || a.termino >= today)) {
+      if (!p1EhRestricao(a) && !p1EhSupervisao(a) && !p1EhLPPecunia(a) && a.inicio <= today && (!a.termino || a.termino >= today)) {
         if (!afH[a.re]) afH[a.re] = [];
         afH[a.re].push(a);
       }
@@ -3471,6 +3582,12 @@ function _checkSectionAccess(id) {
   if (!Object.keys(sa).length) return true;          // sem config → libera
   if (['admin', 'ti'].includes(u.role)) return true; // superusuário → libera
   const key = id === 'p3prod' ? 'p3' : id;           // p3prod verifica chave p3
+  // P5 (láureas) é lista nominal do efetivo → segue o acesso do P1 e exige
+  // nível nominal (não tem modo "só números").
+  if (key === 'p5') {
+    if (['p1', 'p3'].includes(u.role)) return true;
+    return sa.p1 === 'nominal' || sa.p1 === 'editor';
+  }
   const controlled = ['p1', 'uis', 'p3'];
   if (!controlled.includes(key)) return true;        // seção não controlada → libera
   return sa[key] === 'viewer' || sa[key] === 'nominal' || sa[key] === 'editor';

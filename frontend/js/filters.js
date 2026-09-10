@@ -317,6 +317,12 @@ async function init() {
     updateSyncStatus();
     renderHome();
     if (window.lucide) lucide.createIcons();
+
+    // Aviso pós-reload de um upload (recarregarAposUpload em nav.js)
+    try {
+      const fm = sessionStorage.getItem('flash_upload');
+      if (fm !== null) { sessionStorage.removeItem('flash_upload'); flashToast(fm); }
+    } catch (_) {}
   } catch (err) {
     console.error('Erro ao renderizar dashboard:', err);
     document.querySelector('main').innerHTML = `

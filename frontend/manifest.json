@@ -2,7 +2,7 @@
   "name": "Dashboard 40 BPM/I",
   "short_name": "40 BPM/I",
   "description": "Painel de inteligência e produtividade do 40º Batalhão de Polícia Militar do Interior",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#07090f",
   "theme_color": "#07090f",

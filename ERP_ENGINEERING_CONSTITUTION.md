@@ -1,5 +1,7 @@
 # Constituição de Engenharia — Dashboard/ERP 40º BPM/I
 
+> **⚠ Parcialmente desatualizado (migração 2026-09).** O stack mudou: Supabase/PostgreSQL → **MySQL 8 da PM**; Node/Express (`backend/server.js`) → **PHP puro** em `frontend/api/`; deploy Vercel → **Apache/PHP da PM**; agente Node (`agente-sgp/`) → **PHP CLI** (`agente-sgp-php/`); RLS deixou de existir (autorização 100% na aplicação). As seções sobre stack, deploy, integração e RLS abaixo descrevem o mundo antigo. Para fatos atuais de stack e comandos, o `CLAUDE.md` é a fonte da verdade. Os **princípios de decisão** (altitude, verificação independente, "corrigir a causa raiz", etc.) seguem válidos.
+
 **Status:** documento vivo. Baseado em inspeção direta do código, do schema do Supabase (via MCP) e do histórico real de bugs corrigidos neste projeto — não em suposições.
 **Autoridade:** este documento tem precedência sobre preferências individuais de estilo de qualquer agente de IA que trabalhe neste repositório. Em caso de conflito com `CLAUDE.md`, o `CLAUDE.md` descreve *comandos e fatos operacionais*; esta Constituição descreve *princípios de decisão*. Os dois devem ser lidos juntos.
 

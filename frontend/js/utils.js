@@ -24,7 +24,17 @@
  * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
-const API = `${window.location.origin}/api`;
+// Base do app = a pasta onde index.html/login.html estão. Calculada 1x no
+// carregamento (antes de qualquer navegação interna) para funcionar quando o
+// sistema é servido numa subpasta, ex:
+//   https://www9.intranet.policiamilitar.sp.gov.br/unidades/40bpmi/sis40bpmi/
+// APP_BASE fica "/unidades/40bpmi/sis40bpmi/". Na raiz do domínio, fica "/".
+const APP_BASE = window.location.pathname.replace(/[^/]*$/, '');
+
+// Backend PHP. O nginx da PM não passa PATH_INFO nem tem fallback try_files, então
+// a rota vai por query string: <base>api/index.php?__route=/<rota>&<demais params>.
+// authFetch() (auth.js) reescreve `${API}/<rota>?<query>` para esse formato.
+const API = `${window.location.origin}${APP_BASE}api`;
 
 // flag: indica se fonte_texto foi carregado do banco (impede updateSyncStatus de sobrescrever)
 let _fonteFromConfig = false;
