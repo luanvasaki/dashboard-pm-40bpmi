@@ -3582,6 +3582,12 @@ function _checkSectionAccess(id) {
   if (!Object.keys(sa).length) return true;          // sem config → libera
   if (['admin', 'ti'].includes(u.role)) return true; // superusuário → libera
   const key = id === 'p3prod' ? 'p3' : id;           // p3prod verifica chave p3
+  // P5 (láureas) é lista nominal do efetivo → segue o acesso do P1 e exige
+  // nível nominal (não tem modo "só números").
+  if (key === 'p5') {
+    if (['p1', 'p3'].includes(u.role)) return true;
+    return sa.p1 === 'nominal' || sa.p1 === 'editor';
+  }
   const controlled = ['p1', 'uis', 'p3'];
   if (!controlled.includes(key)) return true;        // seção não controlada → libera
   return sa[key] === 'viewer' || sa[key] === 'nominal' || sa[key] === 'editor';

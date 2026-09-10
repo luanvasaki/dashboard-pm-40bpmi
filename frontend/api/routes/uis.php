@@ -126,7 +126,8 @@ return function (Router $r): void {
 
     // [GET /uis/stats] — estatísticas (só números). Origem 'sgp', efetivo atual.
     $r->get('/uis/stats', function (): void {
-        require_auth();
+        $user = require_auth();
+        require_secao($user, 'uis', 'p1');
         if (!db_ready()) {
             Res::error('Banco de dados não configurado', 500);
         }
@@ -226,7 +227,8 @@ return function (Router $r): void {
 
     // [GET /ias/stats] — estatísticas IAS (só números).
     $r->get('/ias/stats', function (): void {
-        require_auth();
+        $user = require_auth();
+        require_secao($user, 'uis', 'p1');
         if (!db_ready()) {
             Res::error('Banco de dados não configurado', 500);
         }
@@ -350,9 +352,10 @@ return function (Router $r): void {
         Res::json(['ok' => true, 'total' => $res['affectedRows']]);
     });
 
-    // [GET /pm/:re/cursos] — cursos de um PM (data desc).
+    // [GET /pm/:re/cursos] — cursos de um PM (data desc). Dado nominal.
     $r->get('/pm/:re/cursos', function (): void {
-        require_auth();
+        $user = require_auth();
+        require_section_nominal($user, 'p1', 'uis', 'p5');
         if (!db_ready()) {
             Res::error('Banco de dados não configurado', 503);
         }
@@ -362,9 +365,10 @@ return function (Router $r): void {
         ]));
     });
 
-    // [GET /pm/:re/laureas] — láureas de um PM (concessão desc).
+    // [GET /pm/:re/laureas] — láureas de um PM (concessão desc). Dado nominal.
     $r->get('/pm/:re/laureas', function (): void {
-        require_auth();
+        $user = require_auth();
+        require_section_nominal($user, 'p1', 'uis', 'p5');
         if (!db_ready()) {
             Res::error('Banco de dados não configurado', 503);
         }
@@ -374,12 +378,14 @@ return function (Router $r): void {
         ]));
     });
 
-    // [GET /laureas/resumo] — grau mais alto por PM + lista crua de láureas.
+    // [GET /laureas/resumo] — grau mais alto por PM + lista crua de láureas (P5).
     $r->get('/laureas/resumo', function (): void {
-        require_auth();
+        $user = require_auth();
+        require_secao($user, 'p5', 'p1');
         if (!db_ready()) {
             Res::error('Banco de dados não configurado', 503);
         }
+        $nominal = pode_nominal($user, 'p1', 'uis', 'p5');
         $efetivoRows = fetch_all('efetivo_pm', ['select' => 're, nome, nome_guerra, posto, opm']);
         $laureasRows = fetch_all('prod_laureas', ['select' => 're_pm, descricao_medalha, concessao, opm']);
 
@@ -405,12 +411,12 @@ return function (Router $r): void {
             }
         }
 
-        $efetivo = array_map(static function ($pm) use ($grauPorRe) {
+        $efetivo = array_map(static function ($pm) use ($grauPorRe, $nominal) {
             $re = explode('-', (string) ($pm['re'] ?? ''))[0];
             return [
                 're'          => $pm['re'],
-                'nome'        => $pm['nome'],
-                'nome_guerra' => $pm['nome_guerra'],
+                'nome'        => $nominal ? $pm['nome'] : null,
+                'nome_guerra' => $nominal ? $pm['nome_guerra'] : null,
                 'posto'       => $pm['posto'],
                 'opm'         => $pm['opm'],
                 'grau'        => $grauPorRe[$re] ?? null,

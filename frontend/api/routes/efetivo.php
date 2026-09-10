@@ -13,10 +13,22 @@ const AFASTAMENTOS_TABLE  = 'afastamentos_pm';
 
 return function (Router $r): void {
 
-    // [GET /efetivo] — todos os PMs. Qualquer autenticado consulta.
+    // [GET /efetivo] — roster de pessoal (base de P1, UIS e P5). Exige acesso a
+    // uma dessas seções; sem acesso nominal, o nome e as datas pessoais saem.
     $r->get('/efetivo', function (): void {
-        require_auth();
-        Res::json(db_ready() ? fetch_all(EFETIVO_TABLE) : []);
+        $user = require_auth();
+        require_secao($user, 'p1', 'uis', 'p5');
+        if (!db_ready()) {
+            Res::json([]);
+        }
+        $rows = fetch_all(EFETIVO_TABLE);
+        if (!pode_nominal($user, 'p1', 'uis', 'p5')) {
+            $rows = filtra_nominal($rows, [
+                'nome', 'nome_guerra', 'data_nascimento', 'data_ingresso', 'data_eap',
+                'taf', 'tat', 'tipos_restricao', 'restricao_inicio', 'restricao_termino',
+            ]);
+        }
+        Res::json($rows);
     });
 
     // [POST /efetivo/upload] — substitui todo o efetivo pelo CSV.
@@ -211,7 +223,15 @@ return function (Router $r): void {
 
     // [GET /afastamentos] — todos. Alimentada só pelo agente-sgp.
     $r->get('/afastamentos', function (): void {
-        require_auth();
-        Res::json(db_ready() ? fetch_all(AFASTAMENTOS_TABLE) : []);
+        $user = require_auth();
+        require_secao($user, 'p1', 'uis');
+        if (!db_ready()) {
+            Res::json([]);
+        }
+        $rows = fetch_all(AFASTAMENTOS_TABLE);
+        if (!pode_nominal($user, 'p1', 'uis')) {
+            $rows = filtra_nominal($rows, ['nome']);
+        }
+        Res::json($rows);
     });
 };

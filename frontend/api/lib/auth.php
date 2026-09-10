@@ -58,25 +58,98 @@ function require_role(array $user, string ...$roles): void
 }
 
 /**
- * Libera rotas com dados NOMINAIS de seções controladas por secoes_acesso —
- * basta UMA das seções estar em 'nominal' ou 'editor'. admin/ti/p1/p3 sempre passam.
+ * Controle de acesso por SEÇÃO (secoes_acesso). Espelha, no servidor, o que o
+ * frontend já faz (_checkSectionAccess / p1SomenteQuantitativo) — antes disso o
+ * "só números" era só cosmético e a API entregava o dado nominal completo.
+ *
+ * Níveis: (ausente/none) < viewer (só números) < nominal (nomes) < editor.
+ * Seções controladas: p1, uis, p3, p5.
+ * @param array<string,mixed> $user
+ */
+function _secoes_acesso(array $user): array
+{
+    $sa = $user['secoes_acesso'] ?? null;
+    return is_array($sa) ? $sa : [];
+}
+
+/** Pode ENTRAR na seção (ver ao menos os números)? */
+function pode_secao(array $user, string $secao): bool
+{
+    $role = $user['role'] ?? null;
+    if ($role === 'ti' || $role === 'admin') {
+        return true;
+    }
+    $sa = _secoes_acesso($user);
+    if (!$sa) {
+        return true; // legado sem config → o frontend também libera
+    }
+    if (!in_array($secao, ['p1', 'uis', 'p3', 'p5'], true)) {
+        return true; // seção não controlada
+    }
+    // P5 (láureas) é dado de pessoal → segue o acesso do P1.
+    $chave = $secao === 'p5' ? 'p1' : $secao;
+    return in_array($sa[$chave] ?? null, ['viewer', 'nominal', 'editor'], true);
+}
+
+/** Pode ver dados NOMINAIS (nomes/indivíduos) de ALGUMA das seções dadas? */
+function pode_nominal(array $user, string ...$secoes): bool
+{
+    $role = $user['role'] ?? null;
+    if ($role === 'ti' || in_array($role, ['admin', 'p1', 'p3'], true)) {
+        return true;
+    }
+    $sa = _secoes_acesso($user);
+    foreach ($secoes as $s) {
+        $chave = $s === 'p5' ? 'p1' : $s;
+        if (in_array($sa[$chave] ?? null, ['nominal', 'editor'], true)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** Exige poder ENTRAR em ALGUMA das seções (senão 403). */
+function require_secao(array $user, string ...$secoes): void
+{
+    foreach ($secoes as $s) {
+        if (pode_secao($user, $s)) {
+            return;
+        }
+    }
+    Res::error('Acesso negado à seção', 403);
+}
+
+/**
+ * Libera rotas com dados NOMINAIS — basta UMA das seções em 'nominal'/'editor'.
+ * admin/ti/p1/p3 sempre passam.
  * @param array<string,mixed> $user
  */
 function require_section_nominal(array $user, string ...$secoes): void
 {
-    $role = $user['role'] ?? null;
-    if ($role === 'ti' || in_array($role, ['admin', 'p1', 'p3'], true)) {
-        return;
+    if (!pode_nominal($user, ...$secoes)) {
+        Res::error('Acesso negado', 403);
     }
-    $sa = $user['secoes_acesso'] ?? [];
-    if (is_array($sa)) {
-        foreach ($secoes as $s) {
-            if (($sa[$s] ?? null) === 'nominal' || ($sa[$s] ?? null) === 'editor') {
-                return;
+}
+
+/**
+ * Remove campos nominais (nome, nome de guerra, datas pessoais…) de uma lista de
+ * registros quando o usuário só tem acesso "número" (viewer) — mantém o que os
+ * KPIs agregados precisam (re para joins, posto, opm, cia, flags).
+ * @param list<array<string,mixed>> $rows
+ * @param list<string> $campos
+ * @return list<array<string,mixed>>
+ */
+function filtra_nominal(array $rows, array $campos): array
+{
+    foreach ($rows as &$r) {
+        foreach ($campos as $c) {
+            if (array_key_exists($c, $r)) {
+                $r[$c] = null;
             }
         }
     }
-    Res::error('Acesso negado', 403);
+    unset($r);
+    return $rows;
 }
 
 /**
