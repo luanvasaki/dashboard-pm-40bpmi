@@ -16,6 +16,45 @@ function re_ativos_set(): array
     return $set;
 }
 
+/** RE (6 díg.) → data_nascimento ('YYYY-MM-DD') do efetivo_pm. */
+function re_nascimento_map(): array
+{
+    $map = [];
+    foreach (fetch_all('efetivo_pm') as $row) {
+        $n = $row['data_nascimento'] ?? null;
+        if ($n) {
+            $map[substr((string) $row['re'], 0, 6)] = substr((string) $n, 0, 10);
+        }
+    }
+    return $map;
+}
+
+/**
+ * Vencimento da IAS = PRÓXIMO ANIVERSÁRIO (mês/dia do nascimento) após a inspeção
+ * médica + 90 dias. Regra do usuário (2026-09-11): a IAS não vale "1 ano" — vence
+ * no aniversário e não se pode passar o aniversário sem tê-la refeito. Os 90 dias
+ * evitam que quem fez a IAS poucas semanas antes do aniversário caia como
+ * "vence amanhã": nesse caso vale até o aniversário do ano seguinte.
+ * Sem nascimento ou sem inspeção médica → null (conta como vencida).
+ */
+function ias_vence_em(?string $nascimento, ?string $dataMedico): ?string
+{
+    if (!$nascimento || !$dataMedico) {
+        return null;
+    }
+    $md = substr($nascimento, 5, 5);   // 'MM-DD'
+    if ($md === '02-29') {
+        $md = '02-28';                 // ano não bissexto
+    }
+    $base = gmdate('Y-m-d', strtotime(substr($dataMedico, 0, 10) . ' +90 days'));
+    $ano  = (int) substr($base, 0, 4);
+    $cand = $ano . '-' . $md;
+    if ($cand <= $base) {
+        $cand = ($ano + 1) . '-' . $md;
+    }
+    return $cand;
+}
+
 /** Extrai a OPM do campo "01-09JANEM" → "EM", "01-09JAN1ª CIA" → "1ª CIA". */
 function normUISopm(?string $s): string
 {
@@ -194,10 +233,13 @@ return function (Router $r): void {
         $today = gmdate('Y-m-d');
         $em30  = gmdate('Y-m-d', time() + 30 * 86400);
         $ativos = re_ativos_set();
+        $nasc   = re_nascimento_map();
         $all = array_values(array_filter(fetch_all('ias_registros'), static fn ($r) => isset($ativos[$r['re']])));
-        $aptos = array_values(array_filter($all, static fn ($r) => $r['data_vencimento'] && $r['data_vencimento'] >= $today));
-        $vencidos = array_values(array_filter($all, static fn ($r) => !$r['data_vencimento'] || $r['data_vencimento'] < $today));
-        $vencendo = array_values(array_filter($aptos, static fn ($r) => $r['data_vencimento'] <= $em30));
+        // vencimento = próximo aniversário após a inspeção médica (não é "1 ano")
+        $vencDe = static fn ($r) => ias_vence_em($nasc[$r['re']] ?? null, $r['data_medico'] ?? null);
+        $aptos = array_values(array_filter($all, static fn ($r) => ($v = $vencDe($r)) && $v >= $today));
+        $vencidos = array_values(array_filter($all, static fn ($r) => !($v = $vencDe($r)) || $v < $today));
+        $vencendo = array_values(array_filter($aptos, static fn ($r) => $vencDe($r) <= $em30));
         Res::json([
             'total'          => count($all),
             'total_aptos'    => count($aptos),
@@ -206,7 +248,9 @@ return function (Router $r): void {
         ]);
     });
 
-    // [GET /ias/mapa] — todos os registros IAS do efetivo atual.
+    // [GET /ias/mapa] — todos os registros IAS do efetivo atual. Anexa
+    // data_nascimento (do efetivo_pm) e data_vencimento_aniv (próximo aniversário
+    // após a inspeção médica) — o frontend calcula o status a partir daí.
     $r->get('/ias/mapa', function (): void {
         $user = require_auth();
         require_section_nominal($user, 'uis', 'p1');
@@ -214,7 +258,14 @@ return function (Router $r): void {
             Res::error('Banco de dados não configurado', 500);
         }
         $ativos = re_ativos_set();
-        Res::json(array_values(array_filter(fetch_all('ias_registros'), static fn ($r) => isset($ativos[$r['re']]))));
+        $nasc   = re_nascimento_map();
+        $rows = array_values(array_filter(fetch_all('ias_registros'), static fn ($r) => isset($ativos[$r['re']])));
+        foreach ($rows as &$r0) {
+            $r0['data_nascimento']      = $nasc[$r0['re']] ?? null;
+            $r0['data_vencimento_aniv'] = ias_vence_em($r0['data_nascimento'], $r0['data_medico'] ?? null);
+        }
+        unset($r0);
+        Res::json($rows);
     });
 
     // [GET /ias/:re] — registro IAS de um PM.
@@ -227,7 +278,12 @@ return function (Router $r): void {
         $reBase = preg_replace('/[^0-9]/', '', (string) Req::param('re'));
         $reNorm = strlen($reBase) >= 7 ? substr($reBase, 0, -1) : $reBase;
         $data = fetch_all('ias_registros', ['filters' => [['eq', 're', $reNorm]]]);
-        Res::json($data[0] ?? null);
+        $rec = $data[0] ?? null;
+        if ($rec) {
+            $rec['data_nascimento']      = re_nascimento_map()[$reNorm] ?? null;
+            $rec['data_vencimento_aniv'] = ias_vence_em($rec['data_nascimento'], $rec['data_medico'] ?? null);
+        }
+        Res::json($rec);
     });
 
     // [POST /upload/cursos] — CSV de cursos que não vêm do SGP-DP (origem 'manual').

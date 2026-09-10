@@ -1573,7 +1573,8 @@ function p1ShowKpiDetail(tipo) {
       const iasInfo = r => {
         const { s, rec } = iasRecByRe[r.re] || {};
         const cor = SIT_COR[s] || 'var(--tx3)';
-        return `<div style="font-size:10px;font-family:'DM Mono',monospace;color:${cor};font-weight:700">${rec?.data_vencimento ? fmtV(rec.data_vencimento) : '—'}</div>
+        const _v = (typeof _iasVenceEm === 'function' ? _iasVenceEm(rec) : rec?.data_vencimento);
+        return `<div style="font-size:10px;font-family:'DM Mono',monospace;color:${cor};font-weight:700">${_v ? fmtV(_v) : '—'}</div>
           <span style="padding:1px 6px;border-radius:6px;font-size:10px;background:${cor}22;color:${cor};font-family:'DM Mono',monospace;margin-top:2px;display:inline-block">${SIT_LBL[s]||s||'—'}</span>`;
       };
       const iasClick = r => `openIasPmModal('${String(iasNormRE(r.re)).replace(/'/g,"\\'")}')`;
@@ -2235,7 +2236,7 @@ async function openProntuario(re) {
       iasEl.innerHTML =
         `<span style="color:${cor};font-weight:600">${IAS_LBL[iasSt] || '—'}</span>` +
         `<div style="font-size:19px;color:var(--tx3);margin-top:2px">Médico ${fmtD(iasRec.data_medico)} · Dentista ${fmtD(iasRec.data_dentista)}</div>` +
-        `<div style="font-size:19px;color:var(--tx3)">Vence em ${fmtD(iasRec.data_vencimento)}</div>`;
+        `<div style="font-size:19px;color:var(--tx3)">Vence no aniversário ${fmtD(typeof _iasVenceEm === 'function' ? _iasVenceEm(iasRec) : iasRec.data_vencimento)}</div>`;
     }
   }
 
