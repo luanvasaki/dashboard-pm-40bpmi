@@ -387,11 +387,13 @@ function derivar_lotacao(string $codigo): array
     }
     $ciaDigit = $c[5];
     $cia = match ($ciaDigit) {
-        '0' => 'EM',
-        '1' => '1ª Cia',
-        '2' => '2ª Cia',
-        '3' => '3ª Cia',
-        default => null, // FT e outros: sem match — o frontend cai no ciaDeOpm(opm)
+        '0'      => 'EM',
+        '1'      => '1ª Cia',
+        '2'      => '2ª Cia',
+        '3'      => '3ª Cia',
+        '6'      => 'FT',   // 60740 6 xxx = Força Tática
+        '7', '8' => 'EM',   // 60740 7/8 xxx = seções do Estado-Maior (P1-P5, ComSoc, etc.)
+        default  => null,   // outro comando (ex: 3020…) — frontend cai no ciaDeOpm(opm)
     };
 
     // (dígito da Cia => (últimos 3 dígitos => município)). Sede = '000',
