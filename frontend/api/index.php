@@ -27,6 +27,7 @@ require __DIR__ . '/lib/query.php';
 require __DIR__ . '/lib/cache.php';
 require __DIR__ . '/lib/ratelimit.php';
 require __DIR__ . '/lib/router.php';
+require __DIR__ . '/lib/agente.php';
 
 mb_internal_encoding('UTF-8');
 

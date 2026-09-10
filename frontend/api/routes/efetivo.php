@@ -130,6 +130,7 @@ return function (Router $r): void {
             throw $e;
         }
         log_acesso($user, 'sgp_sync_pedido', $ehSingle ? "$tipo RE $re" : $tipo);
+        agente_kick(); // dispara o agente em background (no www9 ele roda ali mesmo)
         Res::json($data);
     });
 

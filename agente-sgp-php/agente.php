@@ -13,11 +13,17 @@
  *
  * Modos:
  *   php agente.php           → loop contínuo (poll a cada POLL_INTERVAL_MS)
- *   php agente.php --once    → processa 1 job pendente e sai (para cron/agendador)
+ *   php agente.php --once    → processa 1 job pendente e sai (cron/agendador/
+ *                              disparo pelo backend web — ver agente_kick())
  *
- * Requisitos: PHP 8.1+ com extensões mysqli, curl, mbstring, simplexml.
- * Certificado da CA interna do SGP-DP em certs/sgp-dp-ca.pem (ver README.md) —
- * necessário só para IAS/cursos/láureas; o WSSCPM é HTTP puro.
+ * Onde roda: numa máquina que alcança o WSSCPM/SGP-DP **e** o MySQL. No deploy
+ * da PM isso é o próprio www9 (o backend web dispara `php agente.php --once`
+ * em background quando um job é criado). Bootstrap flexível: se estiver ao lado
+ * de config.php/lib/db.php do backend web, usa aqueles (mesma conexão `foo`);
+ * senão usa os próprios lib/.
+ *
+ * Requisitos: PHP 8.1+ com mysqli, curl, mbstring, simplexml.
+ * CA interna do SGP-DP em certs/sgp-dp-ca.pem — só p/ IAS/cursos/láureas.
  */
 
 declare(strict_types=1);
@@ -27,8 +33,35 @@ if (PHP_SAPI !== 'cli') {
     exit("agente.php só roda via linha de comando.\n");
 }
 
-require __DIR__ . '/lib/config.php';
-require __DIR__ . '/lib/db.php';
+// ── Bootstrap ──────────────────────────────────────────────────────────────
+(static function (): void {
+    // 1) deployado ao lado do backend web (api/agente.php): usa a MESMA config
+    //    e conexão do site (api/secrets.php → banco `foo`).
+    if (is_file(__DIR__ . '/config.php') && is_file(__DIR__ . '/lib/db.php')) {
+        require __DIR__ . '/config.php';
+        require __DIR__ . '/lib/db.php';
+        return;
+    }
+    // 2) no repo, com um secrets.php colocado em frontend/api/ (dev).
+    if (is_file(__DIR__ . '/../frontend/api/config.php') && is_file(__DIR__ . '/../frontend/api/secrets.php')) {
+        require __DIR__ . '/../frontend/api/config.php';
+        require __DIR__ . '/../frontend/api/lib/db.php';
+        return;
+    }
+    // 3) standalone: agente-sgp-php/lib/ + agente-sgp-php/secrets.php|.env
+    require __DIR__ . '/lib/config.php';
+    require __DIR__ . '/lib/db.php';
+})();
+
+if (!defined('POLL_INTERVAL_MS')) {
+    define('POLL_INTERVAL_MS', (int) (getenv('POLL_INTERVAL_MS') ?: 60000));
+}
+if (!defined('CALL_DELAY_MS')) {
+    define('CALL_DELAY_MS', (int) (getenv('CALL_DELAY_MS') ?: 1500));
+}
+if (!defined('SGPDP_CA_CERT_PATH')) {
+    define('SGPDP_CA_CERT_PATH', getenv('SGPDP_CA_CERT_PATH') ?: (__DIR__ . '/certs/sgp-dp-ca.pem'));
+}
 
 mb_internal_encoding('UTF-8');
 error_reporting(E_ALL);
@@ -1102,7 +1135,23 @@ function main(array $argv): void
 {
     $once = in_array('--once', $argv, true);
 
-    logline('Agente SGP (PHP) iniciado. Lembrete: só funciona dentro da intranet da PM.');
+    // Lock: um agente por vez. Vários disparos (botão + cron) não colidem —
+    // quem não pega o lock sai na hora (o job fica pending pro próximo).
+    $lockPath = sys_get_temp_dir() . '/agente-sgp.lock';
+    $lock = fopen($lockPath, 'c');
+    if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
+        logline('Outro agente já está rodando — saindo.');
+        return;
+    }
+    // Bulk de ~350 pessoas leva ~10 min; não deixa o PHP matar o processo.
+    if (function_exists('set_time_limit')) {
+        @set_time_limit(0);
+    }
+    if (function_exists('ignore_user_abort')) {
+        ignore_user_abort(true);
+    }
+
+    logline('Agente SGP (PHP) iniciado. Lembrete: só funciona onde alcança WSSCPM/SGP-DP + MySQL.');
     if (!is_file(SGPDP_CA_CERT_PATH)) {
         logerr('Aviso: CA do SGP-DP não encontrada em ' . SGPDP_CA_CERT_PATH
             . ' — IAS/cursos/láureas vão falhar com erro de certificado até isso ser configurado (ver README.md).');
@@ -1111,12 +1160,19 @@ function main(array $argv): void
         DB::ping();
         logline('MySQL conectado (' . getenv('MYSQL_HOST') . '/' . getenv('MYSQL_DATABASE') . ').');
     } catch (Throwable $e) {
-        logerr('FATAL: não conectou no MySQL (' . $e->getMessage() . '). Verifique o .env/secrets.php.');
+        logerr('FATAL: não conectou no MySQL (' . $e->getMessage() . '). Verifique secrets.php.');
+        flock($lock, LOCK_UN);
         exit(1);
     }
 
     if ($once) {
-        processar_proximo_job();
+        // Processa TODOS os jobs pendentes de uma vez (útil pro disparo web:
+        // um clique pode ter criado o job depois de outro).
+        $n = 0;
+        while (processar_proximo_job() && $n < 50) {
+            $n++;
+        }
+        flock($lock, LOCK_UN);
         return;
     }
 
