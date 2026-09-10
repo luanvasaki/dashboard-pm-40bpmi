@@ -836,12 +836,36 @@ function p1SgpStatusLabel(status) {
   return `<span style="color:${color}">${label}</span>`;
 }
 
+// Enquanto houver job em andamento, re-consulta o status a cada 5s e re-dispara
+// o agente (POST /efetivo/sync/tick) — o container mata processos em background,
+// então cada tick garante que ele volte a rodar / recupere job travado.
+let _p1SgpPoll = null;
+let _p1SgpAguardando = new Set(); // ids de jobs que vimos em andamento nesta sessão
+function p1SgpStartPoll() {
+  if (_p1SgpPoll) return;
+  _p1SgpPoll = setInterval(async () => {
+    try { await authFetch(`${API}/efetivo/sync/tick`, { method: 'POST' }).catch(() => {}); } catch (_) {}
+    p1SgpRefreshStatus();
+  }, 5000);
+}
+function p1SgpStopPoll() { if (_p1SgpPoll) { clearInterval(_p1SgpPoll); _p1SgpPoll = null; } }
+
 async function p1SgpRefreshStatus() {
   const el = document.getElementById('p1-sgp-lista');
   if (!el) return;
   try {
     const jobs = await authFetch(`${API}/efetivo/sync/status`).then(r => r.json());
     if (!jobs.length) { el.innerHTML = '<span style="color:var(--tx3)">Nenhum pedido ainda.</span>'; return; }
+
+    jobs.filter(j => j.status === 'pending' || j.status === 'processing').forEach(j => _p1SgpAguardando.add(j.id));
+    if (jobs.some(j => j.status === 'pending' || j.status === 'processing')) { p1SgpStartPoll(); }
+    else { p1SgpStopPoll(); }
+    // job que estava em andamento nesta sessão e concluiu → recarrega pros dados novos
+    const concluiu = jobs.find(j => j.status === 'done' && _p1SgpAguardando.has(j.id));
+    if (concluiu) {
+      _p1SgpAguardando.delete(concluiu.id);
+      recarregarAposUpload(`Sincronização concluída — ${concluiu.resultado?.atualizados ?? 0}/${concluiu.resultado?.total ?? '?'}.`);
+    }
     el.innerHTML = jobs.map(j => {
       const ehIas = j.tipo === 'ias_single' || j.tipo === 'ias_bulk';
       const ehCursos = j.tipo === 'cursos_single' || j.tipo === 'cursos_bulk';
@@ -855,6 +879,9 @@ async function p1SgpRefreshStatus() {
         detalhe = !ehSingle
           ? ` — ${j.resultado.atualizados}/${j.resultado.total} atualizados${j.resultado.erros?.length ? `, ${j.resultado.erros.length} erro(s)` : ''}${j.resultado.abortado ? ` — ${escHtml(j.resultado.abortado)}` : ''}`
           : ` — ${escHtml(j.resultado.nome || '')}`;
+      } else if (j.status === 'processing' && j.resultado?.total) {
+        const p = j.resultado.processados ?? j.resultado.atualizados ?? 0;
+        detalhe = ` — ${p}/${j.resultado.total}…`;
       } else if (j.status === 'error' && j.resultado?.erro) {
         detalhe = ` — ${escHtml(j.resultado.erro)}`;
       }

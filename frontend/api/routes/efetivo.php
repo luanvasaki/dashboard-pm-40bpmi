@@ -138,6 +138,29 @@ return function (Router $r): void {
         Res::json($data);
     });
 
+    // [POST /efetivo/sync/tick] — chamado em loop pelo frontend enquanto há job
+    // em andamento: recupera job travado (container matou o processo) e
+    // re-dispara o agente. Idempotente.
+    $r->post('/efetivo/sync/tick', function (): void {
+        $user = require_auth();
+        require_role($user, 'admin', 'p1');
+        if (!db_ready()) {
+            Res::error('Banco de dados não configurado', 503);
+        }
+        try {
+            DB::raw("UPDATE sgp_sync_jobs SET status='pending'
+                     WHERE status='processing' AND atualizado_em < (UTC_TIMESTAMP() - INTERVAL 10 MINUTE)");
+        } catch (Throwable $e) {
+            // segue
+        }
+        $temPendente = DB::count(SGP_SYNC_TABLE, ['status' => 'pending']) > 0
+                    || DB::count(SGP_SYNC_TABLE, ['status' => 'processing']) > 0;
+        if ($temPendente) {
+            agente_kick();
+        }
+        Res::json(['ok' => true, 'ativo' => $temPendente]);
+    });
+
     // [GET /efetivo/sync/status] — últimos 10 pedidos.
     $r->get('/efetivo/sync/status', function (): void {
         $user = require_auth();

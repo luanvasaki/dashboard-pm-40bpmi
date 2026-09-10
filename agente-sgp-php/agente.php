@@ -1018,19 +1018,62 @@ function processar_job_single(array $job): array
     return ['ok' => true, 're' => $dados['re'], 'nome' => $dados['nome']];
 }
 
+/** Grava progresso parcial no job atual (barra de progresso no frontend). */
+function job_progress(array $resultado): void
+{
+    $id = $GLOBALS['_job_atual'] ?? null;
+    if ($id === null) {
+        return;
+    }
+    try {
+        DB::update('sgp_sync_jobs', ['resultado' => $resultado, 'atualizado_em' => iso_now()], ['id' => $id]);
+    } catch (Throwable $e) {
+        // não interrompe a sincronização por causa do progresso
+    }
+}
+
+/** Progresso do bulk anterior (pra retomar se o processo foi morto). */
+function _job_retomada(): array
+{
+    $id = $GLOBALS['_job_atual'] ?? null;
+    if ($id === null) {
+        return [];
+    }
+    $j = DB::selectOne('sgp_sync_jobs', ['columns' => 'resultado', 'where' => ['id' => $id]]);
+    return is_array($j['resultado'] ?? null) ? $j['resultado'] : [];
+}
+
 function processar_job_bulk(): array
 {
-    $efetivo = DB::select('efetivo_pm', ['columns' => 're']);
-    $resultado = ['total' => count($efetivo), 'atualizados' => 0, 'erros' => []];
+    $r0 = _job_retomada();
+    $cursorId = (int) ($r0['_cursor_id'] ?? 0);
+    $efetivo = DB::select('efetivo_pm', ['columns' => 'id, re', 'orderBy' => 'id']);
+    $resultado = [
+        'total'       => count($efetivo),
+        'atualizados' => (int) ($r0['atualizados'] ?? 0),
+        'erros'       => is_array($r0['erros'] ?? null) ? $r0['erros'] : [],
+    ];
+    if ($cursorId > 0) {
+        logline("  retomando bulk a partir do id $cursorId");
+    }
+    $i = 0;
     foreach ($efetivo as $row) {
+        if ((int) $row['id'] <= $cursorId) {
+            continue;
+        }
         try {
             sincronizar_um_re(substr((string) $row['re'], 0, 6));
             $resultado['atualizados']++;
         } catch (Throwable $e) {
             $resultado['erros'][] = ['re' => $row['re'], 'erro' => $e->getMessage()];
         }
+        $resultado['_cursor_id'] = (int) $row['id'];
+        if (++$i % 10 === 0) {
+            job_progress($resultado + ['processados' => $resultado['atualizados'] + count($resultado['erros'])]);
+        }
         sleep_ms(CALL_DELAY_MS);
     }
+    unset($resultado['_cursor_id']);
     return $resultado;
 }
 
@@ -1038,10 +1081,20 @@ function processar_job_bulk(): array
 function _processar_bulk_sgpdp(string $columns, callable $sincronizarUm): array
 {
     $cookie = buscar_sessao_sgp_dp();
-    $efetivo = DB::select('efetivo_pm', ['columns' => $columns]);
-    $resultado = ['total' => count($efetivo), 'atualizados' => 0, 'erros' => []];
+    $r0 = _job_retomada();
+    $cursorId = (int) ($r0['_cursor_id'] ?? 0);
+    $efetivo = DB::select('efetivo_pm', ['columns' => 'id, ' . $columns, 'orderBy' => 'id']);
+    $resultado = [
+        'total'       => count($efetivo),
+        'atualizados' => (int) ($r0['atualizados'] ?? 0),
+        'erros'       => is_array($r0['erros'] ?? null) ? $r0['erros'] : [],
+    ];
     $falhasSeguidas = 0;
+    $i = 0;
     foreach ($efetivo as $pm) {
+        if ((int) $pm['id'] <= $cursorId) {
+            continue;
+        }
         try {
             $sincronizarUm($pm, $cookie);
             $resultado['atualizados']++;
@@ -1057,8 +1110,13 @@ function _processar_bulk_sgpdp(string $columns, callable $sincronizarUm): array
                 break;
             }
         }
+        $resultado['_cursor_id'] = (int) $pm['id'];
+        if (++$i % 10 === 0) {
+            job_progress($resultado + ['processados' => $resultado['atualizados'] + count($resultado['erros'])]);
+        }
         sleep_ms(CALL_DELAY_MS);
     }
+    unset($resultado['_cursor_id']);
     return $resultado;
 }
 
@@ -1101,11 +1159,14 @@ function processar_job_laureas_single(array $job): array
 function processar_proximo_job(): bool
 {
     try {
-        $jobs = DB::select('sgp_sync_jobs', [
-            'where'   => ['status' => 'pending'],
-            'orderBy' => ['col' => 'criado_em', 'dir' => 'asc'],
-            'limit'   => 1,
-        ]);
+        // 'pending', ou 'processing' sem atualização há > 90s (agente anterior
+        // morreu no meio — retoma pelo _cursor_id).
+        $jobs = DB::raw(
+            "SELECT * FROM sgp_sync_jobs
+             WHERE status = 'pending'
+                OR (status = 'processing' AND atualizado_em < (UTC_TIMESTAMP() - INTERVAL 90 SECOND))
+             ORDER BY criado_em ASC LIMIT 1"
+        );
     } catch (Throwable $e) {
         logerr('Erro ao consultar fila: ' . $e->getMessage());
         return false;
@@ -1118,6 +1179,7 @@ function processar_proximo_job(): bool
     logline('[' . iso_now() . "] Processando job #{$job['id']} ({$job['tipo']}" . ($job['re'] ? ', RE ' . $job['re'] : '') . ')');
 
     DB::update('sgp_sync_jobs', ['status' => 'processing', 'atualizado_em' => iso_now()], ['id' => $job['id']]);
+    $GLOBALS['_job_atual'] = $job['id'];
 
     $processadores = [
         'bulk'           => static fn () => processar_job_bulk(),
@@ -1181,6 +1243,18 @@ function main(array $argv): void
         logerr('FATAL: não conectou no MySQL (' . $e->getMessage() . '). Verifique secrets.php.');
         flock($lock, LOCK_UN);
         exit(1);
+    }
+
+    // Recupera jobs de um processo anterior que foi morto (container reiniciou
+    // no meio) — sem atualização há 10 min volta pra 'pending'.
+    try {
+        $rec = DB::raw("UPDATE sgp_sync_jobs SET status='pending'
+                        WHERE status='processing' AND atualizado_em < (UTC_TIMESTAMP() - INTERVAL 10 MINUTE)");
+        if (($rec['affectedRows'] ?? 0) > 0) {
+            logline("  {$rec['affectedRows']} job(s) travado(s) recuperado(s).");
+        }
+    } catch (Throwable $e) {
+        logerr('  aviso: falha ao recuperar jobs travados: ' . $e->getMessage());
     }
 
     if ($once) {
