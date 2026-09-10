@@ -252,7 +252,7 @@ function p1CatTipo(t) {
   if (/luto/.test(tl)) return 'Luto';
   if (/maternidade/.test(tl)) return 'Maternidade';
   if (/paternidade/.test(tl)) return 'Paternidade';
-  if (/\blts\b|licen[cç]a.trat|tratamento.sa/.test(tl)) return 'LTS';
+  if (/\blts\b|licen[cç]a\s*(para\s*)?trat|tratamento\s+de\s+sa[uú]de/.test(tl)) return 'LTS';
   return 'Outros';
 }
 
@@ -275,6 +275,12 @@ const p1EhRestricao = a => !!a.restricao;
 // afastamentos do prontuário (diferente de restrição, que fica no histórico).
 // Viram o KPI próprio "CAPS/NAPS" na UIS (uis.js).
 const p1EhSupervisao = a => /supervis[aã]o|caps\s*\/\s*naps/i.test(a.tipo_afastamento || '');
+
+// Licença-Prêmio convertida EM PECÚNIA (indenizada) — o PM recebe o valor e
+// continua trabalhando, não é ausência. Não conta em nenhum KPI/lista de
+// afastamento, não gera badge vermelho no card e não entra no extrato do
+// prontuário (pedido do usuário, 2026-09-10).
+const p1EhLPPecunia = a => /pec[uú]nia|indeniz/i.test(a.tipo_afastamento || '');
 
 // Pra escala de rua (KPIs de disponibilidade por CIA/OPM), só a restrição de
 // código "PO" (Policiamento — BG PM 166/2006) de fato tira o PM da rua; quem
@@ -358,7 +364,7 @@ function renderP1() {
     // Termino nulo (ex: LSV em aberto, sem data de fim ainda) conta como
     // ainda em curso — não pode exigir a.termino truthy, senão essas
     // pessoas somem da lista de "afastado hoje" mesmo estando afastadas.
-    if (!p1EhRestricao(a) && !p1EhSupervisao(a) && a.inicio && a.inicio <= hoje && (!a.termino || a.termino >= hoje)) {
+    if (!p1EhRestricao(a) && !p1EhSupervisao(a) && !p1EhLPPecunia(a) && a.inicio && a.inicio <= hoje && (!a.termino || a.termino >= hoje)) {
       if (!afastHoje[a.re]) afastHoje[a.re] = [];
       afastHoje[a.re].push(a);
     }
@@ -1272,7 +1278,7 @@ function p1ShowKpiDetail(tipo) {
     const totalInfo = r => {
       const afst = p1AfastHoje[r.re];
       const s = afst
-        ? `<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#e0555522;color:#e05555;font-family:'DM Mono',monospace">${escHtml(afst[0]?.tipo_afastamento||'Afastado')}</span>`
+        ? `<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#e0555522;color:#e05555;font-family:'DM Mono',monospace">${escHtml(afst[0] ? p1TipoLabel(afst[0].tipo_afastamento) : 'Afastado')}</span>`
         : `<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#4bc87a22;color:#4bc87a;font-family:'DM Mono',monospace">Apto</span>`;
       return `<div title="${escHtml(r.opm||'')}" style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${escHtml(r.opm||'—')}</div>${s}`;
     };
@@ -1300,7 +1306,7 @@ function p1ShowKpiDetail(tipo) {
     const getMunAfast = opm => { const p = (opm||'').split(' - '); return p.length > 1 ? p[p.length-1].trim() : null; };
     const getCiaAfast = opm => (typeof CIA_STRUCT === 'undefined' || !opm) ? -1 : CIA_STRUCT.findIndex(c => typeof _opmMatch === 'function' && _opmMatch(opm, c.units.flatMap(u => u.keys)));
 
-    const ativosBase = p1Afasts.filter(a => !p1EhRestricao(a) && !p1EhSupervisao(a) && a.inicio <= hoje && (!a.termino || a.termino >= hoje) && reSetF.has(a.re)).map(a => {
+    const ativosBase = p1Afasts.filter(a => !p1EhRestricao(a) && !p1EhSupervisao(a) && !p1EhLPPecunia(a) && a.inicio <= hoje && (!a.termino || a.termino >= hoje) && reSetF.has(a.re)).map(a => {
       const pm = p1Data.find(r => r.re === a.re);
       return { a, ciaIdx: getCiaAfast(pm?.opm), mun: getMunAfast(pm?.opm), posto: pm?.posto };
     });
@@ -1338,7 +1344,7 @@ function p1ShowKpiDetail(tipo) {
       const afastInfo = r => {
         const a = r._afast;
         const dias = a.termino ? Math.ceil((new Date(a.termino) - new Date(hoje)) / 86400000) : null;
-        return `<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--tx3)">${escHtml(a.tipo_afastamento || '—')}</div>
+        return `<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--tx3)">${escHtml(p1TipoLabel(a.tipo_afastamento))}</div>
                 <div style="font-size:12px;font-family:'DM Mono',monospace;color:${dias!==null&&dias<=3?'#4bc87a':'var(--tx3)'}">${fmtD(a.inicio)} → ${dias!==null ? dias+'d rest.' : fmtD(a.termino)}</div>`;
       };
       inner += `<div style="margin-bottom:16px">
@@ -1955,11 +1961,13 @@ function p1SearchInput(val) {
   if (!q || q.length < 1) { drop.style.display = 'none'; return; }
 
   const isRe = /^\d+$/.test(q);
-  const matches = p1Data.filter(r =>
+  // Ordena do mais antigo pro mais recruta (posto Cel→Sd, RE menor primeiro)
+  // antes de cortar em 30 — ver p1OrdenarPorAntiguidade.
+  const matches = p1OrdenarPorAntiguidade(p1Data.filter(r =>
     (isRe
       ? (r.re || '').toLowerCase().startsWith(q)
       : (r.nome || '').toLowerCase().includes(q) || (r.nome_guerra || '').toLowerCase().includes(q))
-  ).slice(0, 30);
+  )).slice(0, 30);
 
   if (!matches.length) { drop.style.display = 'none'; return; }
 
@@ -1973,7 +1981,7 @@ function p1SearchInput(val) {
   drop.innerHTML = matches.map((r, i) => {
     const afst = p1AfastHoje[r.re];
     const statusColor = afst ? '#e05555' : '#4bc87a';
-    const statusTxt   = afst ? (afst[0]?.tipo_afastamento || 'Afastado') : 'Apto';
+    const statusTxt   = afst ? (afst[0] ? p1TipoLabel(afst[0].tipo_afastamento) : 'Afastado') : 'Apto';
     const nomePrinc   = r.nome_guerra || r.nome || '—';
     return `<div data-re="${escHtml(r.re)}" data-i="${i}"
       onmousedown="p1SearchSelect('${(r.re||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')"
@@ -2071,7 +2079,7 @@ async function openProntuario(re) {
   let statusHtml = '';
   if (afsts.length) {
     statusHtml = afsts.map(a =>
-      `<span style="padding:4px 12px;border-radius:20px;background:#e0555522;color:#e05555;font-size:19px;font-family:'DM Mono',monospace">${escHtml(a.tipo_afastamento)}</span>`
+      `<span style="padding:4px 12px;border-radius:20px;background:#e0555522;color:#e05555;font-size:19px;font-family:'DM Mono',monospace">${escHtml(p1TipoLabel(a.tipo_afastamento))}</span>`
     ).join(' ');
   } else if (emRestr) {
     statusHtml = `<span style="padding:4px 12px;border-radius:20px;background:#c8a84b22;color:#c8a84b;font-size:19px;font-family:'DM Mono',monospace">Em Restrição</span>`;
@@ -2242,7 +2250,7 @@ async function openProntuario(re) {
   }
 
   // Extrato cronológico — carrega tudo e popula os filtros de ano/tipo
-  prontoExtratoFull = p1Afasts.filter(a => a.re === re && !p1EhSupervisao(a)).sort((a, b) => (b.inicio || '').localeCompare(a.inicio || ''));
+  prontoExtratoFull = p1Afasts.filter(a => a.re === re && !p1EhSupervisao(a) && !p1EhLPPecunia(a)).sort((a, b) => (b.inicio || '').localeCompare(a.inicio || ''));
   prontoPopulaFiltrosExtrato();
   prontoRenderExtrato();
 
@@ -2713,7 +2721,7 @@ function exportarSituacao() {
     return [
       r.re, r.nome, r.nome_guerra || '', r.posto || '', r.opm || '', r.funcao || '',
       afst ? 'Afastado' : 'Apto',
-      afst?.tipo_afastamento || '',
+      afst ? p1TipoLabel(afst.tipo_afastamento) : '',
       afst ? fmtD(afst.inicio) : '',
       afst ? fmtD(afst.termino) : '',
       r.possui_restricao || 'N',
@@ -3120,7 +3128,7 @@ function p1ShowPmList(pms, label) {
   const cards = pms.map(r => {
     const afst        = p1AfastHoje[r.re];
     const statusColor = afst ? '#e05555' : '#4bc87a';
-    const statusTxt   = afst ? (afst[0]?.tipo_afastamento || 'AFASTADO') : 'APTO';
+    const statusTxt   = afst ? (afst[0] ? p1TipoLabel(afst[0].tipo_afastamento) : 'AFASTADO') : 'APTO';
     const _re         = escA(r.re || '');
     const fotoCached  = p1Fotos[r.re];
     const avatarContent = fotoCached
@@ -3182,7 +3190,7 @@ function renderHome() {
     const today = new Date().toISOString().split('T')[0];
     const afH = {};
     (p1Afasts || []).forEach(a => {
-      if (!p1EhRestricao(a) && !p1EhSupervisao(a) && a.inicio <= today && (!a.termino || a.termino >= today)) {
+      if (!p1EhRestricao(a) && !p1EhSupervisao(a) && !p1EhLPPecunia(a) && a.inicio <= today && (!a.termino || a.termino >= today)) {
         if (!afH[a.re]) afH[a.re] = [];
         afH[a.re].push(a);
       }
