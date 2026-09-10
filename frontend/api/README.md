@@ -95,8 +95,10 @@ funciona (PHP-FPM lê por diretório) — mantém os limites de upload.
 - Todo o resto (rotas, payloads, regras de autorização, parsing de CSV,
   analytics) é idêntico — os módulos de analytics batem byte a byte com o Node.
 
-## Ainda em Node
+## Agente de sincronização
 
-O `agente-sgp/` (sincronização WSSCPM / SGP-DP → MySQL) continua em Node por
-enquanto. Ele roda separado do site; o dashboard funciona sem ele (só não
-recebe atualização automática de efetivo/IAS/cursos). Porta para PHP pendente.
+O `agente-sgp-php/` (WSSCPM / SGP-DP → MySQL) também é PHP CLI — ver o README de
+lá. No deploy da PM ele fica como `frontend/api/agente.php` e o backend web o
+dispara em background (`lib/agente.php` → `php agente.php --once`) sempre que
+cria um job de sincronização. O dashboard funciona sem ele (só não recebe
+atualização automática de efetivo/IAS/cursos/láureas).

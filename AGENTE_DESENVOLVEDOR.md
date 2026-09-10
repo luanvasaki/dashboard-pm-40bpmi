@@ -74,7 +74,7 @@ Ao desenvolver:
 - Tratar erro — `try/catch` por rota, mensagem genérica ao cliente + log detalhado no servidor, seguindo o padrão já existente em `server.js` (`skills/backend`).
 - Não expor secret — nunca logar, retornar ou commitar `SUPABASE_KEY`, `JWT_SECRET`, cookie de sessão SGP-DP, etc.
 - Não introduzir dependência desnecessária — este projeto é deliberadamente enxuto (sem framework de frontend, sem ORM); adicionar uma lib nova exige justificar por que o padrão existente não resolve.
-- Se a tarefa tocar `agente-sgp/agente.js`: lembrar que esse arquivo não é atualizado por `git push` no ambiente real (roda isolado no computador do batalhão, sem git) — a entrega inclui avisar que o arquivo precisa ser transferido manualmente e o processo reiniciado (`skills/architecture`).
+- Se a tarefa tocar `agente-sgp-php/agente.php`: no deploy da PM esse arquivo roda como `frontend/api/agente.php` (cópia), então subir a pasta `frontend/` propaga a mudança; conferir também `frontend/api/certs/sgp-dp-ca.pem` e o cron. (O antigo `agente-sgp/agente.js` em Node foi removido.)
 
 ---
 

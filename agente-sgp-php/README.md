@@ -1,7 +1,8 @@
 # Agente SGP — versão PHP
 
-Porta em PHP de `agente-sgp/agente.js`. Roda como **script CLI** (loop ou
-one-shot por cron/agendador), sem Node.
+Sincronização WSSCPM / SGP-DP → MySQL. Roda como **script CLI** (loop ou
+one-shot por cron/agendador), sem Node. (Porta do antigo `agente-sgp/agente.js`,
+já removido.)
 
 **Precisa rodar DENTRO da intranet da PM** — o WSSCPM
 (`webservices.intranet.policiamilitar.sp.gov.br`, HTTP) e o SGP-DP
@@ -62,11 +63,7 @@ falham com erro de certificado (o resto continua funcionando).
 
 ## Estado da migração
 
-A parte **WSSCPM** (efetivo, foto, afastamentos, restrição via WSSCPM) foi
-validada estruturalmente contra a resposta real do serviço. A parte **SGP-DP**
-(IAS, cursos, láureas, dados pessoais) só dá para validar dentro da intranet com
-uma sessão colada — os nomes de campo foram copiados verbatim do
-`agente-sgp/agente.js` (que funciona em produção), mas o primeiro uso pode
-precisar de ajuste fino.
-
-O `agente-sgp/` (Node) fica como referência até esta versão ser confirmada em uso.
+**Concluída e em produção** (2026-09-10). Rodou os 4 bulks — `bulk` (WSSCPM:
+efetivo/foto/afastamentos/restrição), `ias_bulk`, `cursos_bulk`, `laureas_bulk` —
+contra o efetivo inteiro (354 PMs) com `atualizados: 354/354` e **0 erros** em
+cada um. O antigo `agente-sgp/` (Node) foi removido do repositório.

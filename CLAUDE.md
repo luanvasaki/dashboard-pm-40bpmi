@@ -23,8 +23,9 @@ php -r "echo bin2hex(random_bytes(64)).PHP_EOL;"
 mysql -h <host> -u <user> -p <database> < schema_mysql.sql
 ```
 
-O `agente-sgp/` ainda é Node (`cd agente-sgp && npm install && npm start`) —
-porta para PHP pendente.
+O agente de sincronização (`agente-sgp-php/`) também é PHP CLI — sem Node.
+Roda dentro da intranet da PM (no próprio www9): `php agente.php` (loop) ou
+`php agente.php --once` (1 rodada, p/ cron / disparo pelo backend web).
 
 ## Variáveis de ambiente / configuração
 
@@ -46,7 +47,11 @@ ambiente (`getenv`) têm prioridade.
 
 Limites de upload em `frontend/api/.user.ini` (`post_max_size` etc.).
 
-O `agente-sgp/` (Node) usa `agente-sgp/.env` com as MESMAS variáveis `MYSQL_*`.
+O `agente-sgp-php/` usa `agente-sgp-php/secrets.php` (ou `.env`) com as MESMAS
+variáveis `MYSQL_*`. No deploy da PM ele fica ao lado do backend
+(`frontend/api/agente.php`) e reaproveita o `frontend/api/secrets.php`.
+`SGPDP_CA_CERT_PATH` (ou `certs/sgp-dp-ca.pem`) — CA interna do SGP-DP, só p/
+IAS/cursos/láureas (HTTPS); o WSSCPM é HTTP puro e não precisa.
 
 ## Arquitetura
 
@@ -54,18 +59,18 @@ O `agente-sgp/` (Node) usa `agente-sgp/.env` com as MESMAS variáveis `MYSQL_*`.
 frontend/                     ← docroot servido pelo Apache (substitui o Vercel)
   index.html / login.html     ← SPA + tela de login
   js/*.js  css/style.css       ← lógica, gráficos, chamadas à API
-  api/                         ← BACKEND PHP (porta de backend/server.js)
+  api/                         ← BACKEND PHP (porta do antigo Node backend/server.js)
     index.php                  ← front controller — roteia por PATH_INFO
     config.php                 ← carrega secrets.php / .env
     secrets.php                ← credenciais (não versionado)
-    lib/     db · jwt · http · auth · helpers · query · cache · ratelimit · router · prodmap
+    lib/     db · jwt · http · auth · helpers · query · cache · ratelimit · router · prodmap · agente
     analytics/  crime_pressure · trend_analysis · target_deviation ·
                 priority_score · city_ranking · insight_generator
     routes/  auth · users · rac · efetivo · fotos_vagas · prod · disque · uis · logs
-agente-sgp/                    ← AINDA Node — roda na intranet PM (WSSCPM/SGP-DP → MySQL)
-backend/                       ← Node/Express LEGADO — referência p/ portar o agente; não roda mais o site
+    agente.php                 ← (no deploy) cópia de agente-sgp-php/agente.php
+agente-sgp-php/                ← AGENTE PHP CLI — WSSCPM/SGP-DP → MySQL; roda no www9,
+                                 disparado pelo backend web (lib/agente.php) e/ou por cron
 schema_mysql.sql              ← DDL de todas as tabelas (rodar 1x no phpMyAdmin) — fonte da verdade
-vercel.json                   ← OBSOLETO
 ```
 
 **Sem framework frontend** — HTML/CSS/JS puro com Chart.js, PapaParse e Lucide Icons via CDN.
@@ -87,12 +92,14 @@ host). Converte na leitura: `TINYINT(1)`→bool, `DATE`→`'YYYY-MM-DD'`,
 direto no banco a cada request.
 
 **Migração Supabase → MySQL → PHP** (2026-09): o projeto usava Supabase
-(PostgreSQL) + Node. Trocado por MySQL da PM e depois o backend web reescrito em
-PHP (a TI não libera Node na infra). O `agente-sgp/` segue em Node por ora. Os
-módulos de analytics PHP batem byte a byte com os do Node (`backend/analytics/`).
-Índice único parcial do `sgp_sync_jobs` virou coluna gerada `bulk_lock` + UNIQUE;
-sem RLS (autorização 100% na aplicação via JWT). Os `.sql` avulsos da raiz são
-PostgreSQL e ficaram obsoletos.
+(PostgreSQL) + Node. Trocado por MySQL da PM e todo o código reescrito em PHP
+(a TI não libera Node na infra) — backend web **e** o agente de sincronização
+(`agente-sgp-php/`, validado em produção: bulk de 354 PMs sem erro nas 4 filas
+WSSCPM/IAS/cursos/láureas). Os módulos de analytics PHP batem byte a byte com os
+do Node original. Índice único parcial do `sgp_sync_jobs` virou coluna gerada
+`bulk_lock` + UNIQUE; sem RLS (autorização 100% na aplicação via JWT). O código
+Node antigo (`backend/`, `agente-sgp/`), o `vercel.json` e os `.sql` avulsos da
+raiz (PostgreSQL) foram removidos — `schema_mysql.sql` é a fonte da verdade.
 
 ## Banco de dados (MySQL 8 — servidor da PM)
 
@@ -170,8 +177,10 @@ Checklist:
    `COOKIE_SECURE`/`TRUST_PROXY` só `true` com HTTPS/proxy real.
 4. Subir a pasta `frontend/` inteira para o docroot (via WS_FTP, no lugar dos
    arquivos estáticos atuais). Conferir diretório de cache gravável.
-5. `agente-sgp/` (Node, por enquanto) roda numa máquina DENTRO da intranet PM
-   com acesso ao WSSCPM/SGP-DP e o mesmo `MYSQL_*` no `.env`. **Pendente:**
-   portar o agente para PHP CLI (cron) — decidido, ainda não feito.
-
-`vercel.json`, `backend/` (Node) e os `.sql` avulsos da raiz são legado.
+5. `agente-sgp-php/` roda no próprio www9 (alcança WSSCPM/SGP-DP + MySQL).
+   Deploy: copiar `agente-sgp-php/agente.php` para `frontend/api/agente.php` e a
+   CA do SGP-DP para `frontend/api/certs/sgp-dp-ca.pem`. O backend web dispara
+   `php agente.php --once` em background quando cria um job (`lib/agente.php`);
+   um cron `* * * * * php .../agente.php --once` cobre o caso do disparo falhar.
+   A sessão do SGP-DP (cookie) é colada pelo usuário no dashboard (tela P1) e
+   dura ~1–4h — bulks de IAS/cursos/láureas precisam dela fresca.
