@@ -1577,13 +1577,14 @@ function p1ShowKpiDetail(tipo) {
         return `<div style="font-size:10px;font-family:'DM Mono',monospace;color:${cor};font-weight:700">${_v ? fmtV(_v) : '—'}</div>
           <span style="padding:1px 6px;border-radius:6px;font-size:10px;background:${cor}22;color:${cor};font-family:'DM Mono',monospace;margin-top:2px;display:inline-block">${SIT_LBL[s]||s||'—'}</span>`;
       };
-      const iasClick = r => `openIasPmModal('${String(iasNormRE(r.re)).replace(/'/g,"\\'")}')`;
-
+      // Clique no PM abre o prontuário completo (não a tela só da IAS) —
+      // mesmo comportamento do detalhe de CAPS/NAPS. O card já mostra
+      // vencimento + situação da IAS via iasInfo.
       const tabelaIasHtml = p1SomenteQuantitativo()
         ? `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ LISTAGEM NOMINAL RESTRITA — total: ${filtered.length}</div>`
         : !anyFilter
           ? `<div style="padding:20px;text-align:center;color:var(--tx3);font-size:15px;font-family:'DM Mono',monospace;letter-spacing:1px">▸ Selecione um filtro acima para ver a listagem individual</div>`
-          : p1CardGrid(filtered.map(({r}) => r), iasInfo, iasClick);
+          : p1CardGrid(filtered.map(({r}) => r), iasInfo);
 
       const iasChartsHtml = `
         <div style="display:grid;grid-template-columns:310px 1fr;gap:16px;padding:0 0 16px;border-bottom:1px solid var(--bd);margin-bottom:12px;align-items:start">
