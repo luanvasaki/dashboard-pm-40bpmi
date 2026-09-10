@@ -46,12 +46,16 @@ return function (Router $r): void {
             return '';
         };
 
+        // Preserva por prefixo de 6 dígitos: a planilha pode trazer o dígito
+        // verificador diferente do que a sincronização gravou (ex: "127748-A"
+        // na planilha vs "127748-0" do WSSCPM).
+        $re6 = static fn (string $re): string => substr(preg_replace('/\D/', '', $re) ?? '', 0, 6);
         $restricaoAntes = DB::select(EFETIVO_TABLE, [
             'columns' => 're, genero, nome_guerra, cia, municipio, codigo_opm, possui_restricao, tipos_restricao, restricao_inicio, restricao_termino, data_nascimento, data_ingresso',
         ]);
         $porRe = [];
         foreach ($restricaoAntes as $row) {
-            $porRe[(string) $row['re']] = $row;
+            $porRe[$re6((string) $row['re'])] = $row;
         }
 
         $rows = [];
@@ -60,7 +64,7 @@ return function (Router $r): void {
                 continue;
             }
             $re = $gf($rec, 'RE', 're');
-            $a  = $porRe[$re] ?? null;
+            $a  = $porRe[$re6($re)] ?? null;
             $row = [
                 'opm'               => $gf($rec, 'OPM', 'opm'),
                 'posto'             => $gf($rec, 'Posto', 'posto', 'Posto / Grad', 'posto / grad'),

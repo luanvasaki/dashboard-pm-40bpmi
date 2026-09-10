@@ -378,7 +378,10 @@ function _is_status_apenas(?string $d): bool
 function derivar_lotacao(string $codigo): array
 {
     $c = preg_replace('/\D/', '', $codigo);
-    if (strlen($c) < 6) {
+    // Só interpreta códigos do 40º BPM/I (prefixo 6074). PM adido/lotado em
+    // outro comando (ex: 3020…) → deixa cia/municipio nulos e o frontend
+    // agrupa pelo opm da planilha.
+    if (strlen($c) < 9 || substr($c, 0, 4) !== '6074') {
         return [null, null];
     }
     $ciaDigit = $c[5];
@@ -459,13 +462,24 @@ function buscar_afastamentos_pm(string $cpf): array
 }
 
 /** Só atualiza quem já está no efetivo. Devolve a OPM já cadastrada. */
+/**
+ * Só atualiza quem já está no efetivo (adicionado pela planilha). Casa pelos 6
+ * primeiros dígitos do RE — a planilha às vezes traz o dígito verificador
+ * errado ou como letra ("127748-A"); a sincronização grava o RE no formato do
+ * WSSCPM ("127748-0"). Devolve a OPM já cadastrada.
+ */
 function upsert_efetivo(array $dados): string
 {
-    $existentes = DB::select('efetivo_pm', ['columns' => 'id, opm', 'where' => ['re' => $dados['re']]]);
+    $re6 = substr(preg_replace('/\D/', '', (string) $dados['re']), 0, 6);
+    $existentes = DB::select('efetivo_pm', [
+        'columns' => 'id, opm',
+        'where'   => [['re', 'LIKE', $re6 . '%']],
+        'limit'   => 1,
+    ]);
     if (!$existentes) {
         throw new RuntimeException("RE {$dados['re']} não está no efetivo — adicione pela planilha antes de sincronizar.");
     }
-    DB::update('efetivo_pm', $dados, ['re' => $dados['re']]);
+    DB::update('efetivo_pm', $dados, ['id' => $existentes[0]['id']]);
     return (string) ($existentes[0]['opm'] ?? '');
 }
 
